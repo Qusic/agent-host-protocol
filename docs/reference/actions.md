@@ -1,3 +1,6 @@
+<!-- Generated from types/*.ts — do not edit -->
+
+
 # Actions Reference
 
 Complete reference for all action types in the Agent Host Protocol. Actions are the sole mutation mechanism for subscribable state.
@@ -26,7 +29,7 @@ Fired when available agent backends or their models change.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'root/agentsChanged'` | Discriminant |
-| `agents` | `IAgentInfo[]` | Updated agent list |
+| `agents` | [IAgentInfo](/reference/state-types#iagentinfo)[] | Updated agent list |
 
 ## Session Actions
 
@@ -39,7 +42,7 @@ Session backend initialized successfully.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'session/ready'` | Discriminant |
-| `session` | `URI` | Session URI |
+| `session` | [URI](/reference/state-types#uri) | Session URI |
 
 ### `session/creationFailed`
 
@@ -48,8 +51,8 @@ Session backend failed to initialize.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'session/creationFailed'` | Discriminant |
-| `session` | `URI` | Session URI |
-| `error` | `IErrorInfo` | Error details |
+| `session` | [URI](/reference/state-types#uri) | Session URI |
+| `error` | [IErrorInfo](/reference/state-types#ierrorinfo) | Error details |
 
 ### `session/turnStarted`
 
@@ -58,9 +61,9 @@ Session backend failed to initialize.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'session/turnStarted'` | Discriminant |
-| `session` | `URI` | Session URI |
+| `session` | [URI](/reference/state-types#uri) | Session URI |
 | `turnId` | `string` | Turn identifier |
-| `userMessage` | `IUserMessage` | User's message |
+| `userMessage` | [IUserMessage](/reference/state-types#iusermessage) | User's message |
 
 ### `session/delta`
 
@@ -69,7 +72,7 @@ Streaming text chunk from the assistant.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'session/delta'` | Discriminant |
-| `session` | `URI` | Session URI |
+| `session` | [URI](/reference/state-types#uri) | Session URI |
 | `turnId` | `string` | Turn identifier |
 | `content` | `string` | Text chunk |
 
@@ -80,9 +83,9 @@ Structured content appended to the response.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'session/responsePart'` | Discriminant |
-| `session` | `URI` | Session URI |
+| `session` | [URI](/reference/state-types#uri) | Session URI |
 | `turnId` | `string` | Turn identifier |
-| `part` | `IResponsePart` | Response part (markdown or content ref) |
+| `part` | [IResponsePart](/reference/state-types#iresponsepart) | Response part (markdown or content ref) |
 
 ### `session/toolStart`
 
@@ -91,9 +94,9 @@ Tool execution began.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'session/toolStart'` | Discriminant |
-| `session` | `URI` | Session URI |
+| `session` | [URI](/reference/state-types#uri) | Session URI |
 | `turnId` | `string` | Turn identifier |
-| `toolCall` | `IToolCallState` | Full tool call state |
+| `toolCall` | [IToolCallState](/reference/state-types#itoolcallstate) | Full tool call state |
 
 ### `session/toolComplete`
 
@@ -102,10 +105,10 @@ Tool execution finished.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'session/toolComplete'` | Discriminant |
-| `session` | `URI` | Session URI |
+| `session` | [URI](/reference/state-types#uri) | Session URI |
 | `turnId` | `string` | Turn identifier |
 | `toolCallId` | `string` | Tool call to complete |
-| `result` | `IToolCompleteResult` | Completion result |
+| `result` | [IToolCompleteResult](#itoolcompleteresult) | Completion result |
 
 #### `IToolCompleteResult`
 
@@ -123,9 +126,9 @@ Permission needed from the user to proceed.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'session/permissionRequest'` | Discriminant |
-| `session` | `URI` | Session URI |
+| `session` | [URI](/reference/state-types#uri) | Session URI |
 | `turnId` | `string` | Turn identifier |
-| `request` | `IPermissionRequest` | Permission request details |
+| `request` | [IPermissionRequest](/reference/state-types#ipermissionrequest) | Permission request details |
 
 ### `session/permissionResolved`
 
@@ -134,7 +137,7 @@ Permission needed from the user to proceed.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'session/permissionResolved'` | Discriminant |
-| `session` | `URI` | Session URI |
+| `session` | [URI](/reference/state-types#uri) | Session URI |
 | `turnId` | `string` | Turn identifier |
 | `requestId` | `string` | Permission request ID |
 | `approved` | `boolean` | Whether permission was granted |
@@ -146,7 +149,7 @@ Turn finished — the assistant is idle.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'session/turnComplete'` | Discriminant |
-| `session` | `URI` | Session URI |
+| `session` | [URI](/reference/state-types#uri) | Session URI |
 | `turnId` | `string` | Turn identifier |
 
 ### `session/turnCancelled`
@@ -156,7 +159,7 @@ Turn finished — the assistant is idle.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'session/turnCancelled'` | Discriminant |
-| `session` | `URI` | Session URI |
+| `session` | [URI](/reference/state-types#uri) | Session URI |
 | `turnId` | `string` | Turn identifier |
 
 ### `session/error`
@@ -166,9 +169,9 @@ Error during turn processing.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'session/error'` | Discriminant |
-| `session` | `URI` | Session URI |
+| `session` | [URI](/reference/state-types#uri) | Session URI |
 | `turnId` | `string` | Turn identifier |
-| `error` | `IErrorInfo` | Error details |
+| `error` | [IErrorInfo](/reference/state-types#ierrorinfo) | Error details |
 
 ### `session/titleChanged`
 
@@ -177,7 +180,7 @@ Session title updated (typically auto-generated from conversation).
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'session/titleChanged'` | Discriminant |
-| `session` | `URI` | Session URI |
+| `session` | [URI](/reference/state-types#uri) | Session URI |
 | `title` | `string` | New title |
 
 ### `session/usage`
@@ -187,9 +190,9 @@ Token usage report for a turn.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'session/usage'` | Discriminant |
-| `session` | `URI` | Session URI |
+| `session` | [URI](/reference/state-types#uri) | Session URI |
 | `turnId` | `string` | Turn identifier |
-| `usage` | `IUsageInfo` | Token usage data |
+| `usage` | [IUsageInfo](/reference/state-types#iusageinfo) | Token usage data |
 
 ### `session/reasoning`
 
@@ -198,7 +201,7 @@ Reasoning/thinking text from the model.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'session/reasoning'` | Discriminant |
-| `session` | `URI` | Session URI |
+| `session` | [URI](/reference/state-types#uri) | Session URI |
 | `turnId` | `string` | Turn identifier |
 | `content` | `string` | Reasoning text chunk |
 
@@ -209,7 +212,7 @@ Reasoning/thinking text from the model.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'session/modelChanged'` | Discriminant |
-| `session` | `URI` | Session URI |
+| `session` | [URI](/reference/state-types#uri) | Session URI |
 | `model` | `string` | New model ID |
 
 ## Version Introduction

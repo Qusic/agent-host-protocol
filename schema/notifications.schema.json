@@ -1,0 +1,724 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Generated from types/notifications.ts — do not edit",
+  "$id": "https://github.com/microsoft/agent-host-protocol/schema/notifications.schema.json",
+  "title": "AHP Notification Types",
+  "description": "All notification types in the Agent Host Protocol.",
+  "$defs": {
+    "ISessionAddedNotification": {
+      "type": "object",
+      "description": "Broadcast to all connected clients when a new session is created.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "notify/sessionAdded"
+          ]
+        },
+        "summary": {
+          "$ref": "#/$defs/ISessionSummary",
+          "description": "Summary of the new session"
+        }
+      },
+      "required": [
+        "type",
+        "summary"
+      ]
+    },
+    "ISessionRemovedNotification": {
+      "type": "object",
+      "description": "Broadcast to all connected clients when a session is disposed.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "notify/sessionRemoved"
+          ]
+        },
+        "session": {
+          "$ref": "#/$defs/URI",
+          "description": "URI of the removed session"
+        }
+      },
+      "required": [
+        "type",
+        "session"
+      ]
+    },
+    "IProtocolNotification": {
+      "description": "Discriminated union of all protocol notifications.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ISessionAddedNotification"
+        },
+        {
+          "$ref": "#/$defs/ISessionRemovedNotification"
+        }
+      ]
+    },
+    "IRootState": {
+      "type": "object",
+      "description": "Global state shared with every client subscribed to `agenthost:/root`.",
+      "properties": {
+        "agents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IAgentInfo"
+          },
+          "description": "Available agent backends and their models"
+        }
+      },
+      "required": [
+        "agents"
+      ]
+    },
+    "IAgentInfo": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "Agent provider ID (e.g. `'copilot'`)"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description string"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ISessionModelInfo"
+          },
+          "description": "Available models for this agent"
+        }
+      },
+      "required": [
+        "provider",
+        "displayName",
+        "description",
+        "models"
+      ]
+    },
+    "ISessionModelInfo": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Model identifier"
+        },
+        "provider": {
+          "type": "string",
+          "description": "Provider this model belongs to"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable model name"
+        },
+        "maxContextWindow": {
+          "type": "number",
+          "description": "Maximum context window size"
+        },
+        "supportsVision": {
+          "type": "boolean",
+          "description": "Whether the model supports vision"
+        },
+        "policyState": {
+          "type": "string",
+          "enum": [
+            "enabled",
+            "disabled",
+            "unconfigured"
+          ],
+          "description": "Policy configuration state"
+        }
+      },
+      "required": [
+        "id",
+        "provider",
+        "name"
+      ]
+    },
+    "ISessionState": {
+      "type": "object",
+      "description": "Full state for a single session, loaded when a client subscribes to the session's URI.",
+      "properties": {
+        "summary": {
+          "$ref": "#/$defs/ISessionSummary",
+          "description": "Lightweight session metadata"
+        },
+        "lifecycle": {
+          "type": "string",
+          "enum": [
+            "creating",
+            "ready",
+            "creationFailed"
+          ],
+          "description": "Session initialization state"
+        },
+        "creationError": {
+          "$ref": "#/$defs/IErrorInfo",
+          "description": "Error details if creation failed"
+        },
+        "turns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ITurn"
+          },
+          "description": "Completed turns"
+        },
+        "activeTurn": {
+          "$ref": "#/$defs/IActiveTurn",
+          "description": "Currently in-progress turn"
+        }
+      },
+      "required": [
+        "summary",
+        "lifecycle",
+        "turns"
+      ]
+    },
+    "ISessionSummary": {
+      "type": "object",
+      "properties": {
+        "resource": {
+          "$ref": "#/$defs/URI",
+          "description": "Session URI"
+        },
+        "provider": {
+          "type": "string",
+          "description": "Agent provider ID"
+        },
+        "title": {
+          "type": "string",
+          "description": "Session title"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "idle",
+            "in-progress",
+            "error"
+          ],
+          "description": "Current session status"
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Creation timestamp"
+        },
+        "modifiedAt": {
+          "type": "number",
+          "description": "Last modification timestamp"
+        },
+        "model": {
+          "type": "string",
+          "description": "Currently selected model"
+        }
+      },
+      "required": [
+        "resource",
+        "provider",
+        "title",
+        "status",
+        "createdAt",
+        "modifiedAt"
+      ]
+    },
+    "ITurn": {
+      "type": "object",
+      "description": "A completed request/response cycle.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Turn identifier"
+        },
+        "userMessage": {
+          "$ref": "#/$defs/IUserMessage",
+          "description": "The user's input"
+        },
+        "responseText": {
+          "type": "string",
+          "description": "Final response text (captured from streaming)"
+        },
+        "responseParts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IResponsePart"
+          },
+          "description": "Structured response content"
+        },
+        "toolCalls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ICompletedToolCall"
+          },
+          "description": "Completed tool invocations"
+        },
+        "usage": {
+          "$ref": "#/$defs/IUsageInfo",
+          "description": "Token usage info"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "cancelled",
+            "error"
+          ],
+          "description": "How the turn ended"
+        },
+        "error": {
+          "$ref": "#/$defs/IErrorInfo",
+          "description": "Error details if state is `'error'`"
+        }
+      },
+      "required": [
+        "id",
+        "userMessage",
+        "responseText",
+        "responseParts",
+        "toolCalls",
+        "usage",
+        "state"
+      ]
+    },
+    "IActiveTurn": {
+      "type": "object",
+      "description": "An in-progress turn — the assistant is actively streaming.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Turn identifier"
+        },
+        "userMessage": {
+          "$ref": "#/$defs/IUserMessage",
+          "description": "The user's input"
+        },
+        "streamingText": {
+          "type": "string",
+          "description": "Accumulated streaming response text"
+        },
+        "responseParts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IResponsePart"
+          },
+          "description": "Structured response content so far"
+        },
+        "toolCalls": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/IToolCallState"
+          },
+          "description": "Active tool invocations keyed by tool call ID"
+        },
+        "pendingPermissions": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/IPermissionRequest"
+          },
+          "description": "Pending permission requests keyed by request ID"
+        },
+        "reasoning": {
+          "type": "string",
+          "description": "Accumulated reasoning/thinking text"
+        },
+        "usage": {
+          "$ref": "#/$defs/IUsageInfo",
+          "description": "Token usage info"
+        }
+      },
+      "required": [
+        "id",
+        "userMessage",
+        "streamingText",
+        "responseParts",
+        "toolCalls",
+        "pendingPermissions",
+        "reasoning",
+        "usage"
+      ]
+    },
+    "IUserMessage": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Message text"
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IMessageAttachment"
+          },
+          "description": "File/selection attachments"
+        }
+      },
+      "required": [
+        "text"
+      ]
+    },
+    "IMessageAttachment": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "file",
+            "directory",
+            "selection"
+          ],
+          "description": "Attachment type"
+        },
+        "path": {
+          "type": "string",
+          "description": "File/directory path"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name"
+        }
+      },
+      "required": [
+        "type",
+        "path"
+      ]
+    },
+    "IMarkdownResponsePart": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "markdown"
+          ],
+          "description": "Discriminant"
+        },
+        "content": {
+          "type": "string",
+          "description": "Markdown content"
+        }
+      },
+      "required": [
+        "kind",
+        "content"
+      ]
+    },
+    "IContentRef": {
+      "type": "object",
+      "description": "A reference to large content stored outside the state tree.",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "contentRef"
+          ],
+          "description": "Discriminant"
+        },
+        "uri": {
+          "type": "string",
+          "description": "Content URI"
+        },
+        "sizeHint": {
+          "type": "number",
+          "description": "Approximate size in bytes"
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "Content MIME type"
+        }
+      },
+      "required": [
+        "kind",
+        "uri"
+      ]
+    },
+    "IToolCallState": {
+      "type": "object",
+      "description": "Full lifecycle state of a tool invocation within an active turn.",
+      "properties": {
+        "toolCallId": {
+          "type": "string",
+          "description": "Unique tool call identifier"
+        },
+        "toolName": {
+          "type": "string",
+          "description": "Internal tool name"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable tool name"
+        },
+        "invocationMessage": {
+          "type": "string",
+          "description": "Message shown while running"
+        },
+        "toolInput": {
+          "type": "string",
+          "description": "Raw tool input"
+        },
+        "toolKind": {
+          "type": "string",
+          "enum": [
+            "terminal"
+          ],
+          "description": "Rendering hint"
+        },
+        "language": {
+          "type": "string",
+          "description": "Language for syntax highlighting"
+        },
+        "toolArguments": {
+          "type": "string",
+          "description": "Serialized tool arguments"
+        },
+        "status": {
+          "$ref": "#/$defs/ToolCallStatus",
+          "description": "Current status"
+        },
+        "parameters": {
+          "description": "Parsed tool parameters"
+        },
+        "confirmed": {
+          "$ref": "#/$defs/ConfirmationState",
+          "description": "How the tool was confirmed"
+        },
+        "pastTenseMessage": {
+          "type": "string",
+          "description": "Message shown after completion"
+        },
+        "toolOutput": {
+          "type": "string",
+          "description": "Tool output text"
+        },
+        "error": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string"
+            },
+            "code": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "message"
+          ],
+          "description": "Error details"
+        },
+        "cancellationReason": {
+          "type": "string",
+          "enum": [
+            "denied",
+            "skipped"
+          ],
+          "description": "Why the tool was cancelled"
+        }
+      },
+      "required": [
+        "toolCallId",
+        "toolName",
+        "displayName",
+        "invocationMessage",
+        "status"
+      ]
+    },
+    "ICompletedToolCall": {
+      "type": "object",
+      "properties": {
+        "toolCallId": {
+          "type": "string",
+          "description": "Unique tool call identifier"
+        },
+        "toolName": {
+          "type": "string",
+          "description": "Internal tool name"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable tool name"
+        },
+        "invocationMessage": {
+          "type": "string",
+          "description": "Message shown during invocation"
+        },
+        "success": {
+          "type": "boolean",
+          "description": "Whether the tool succeeded"
+        },
+        "pastTenseMessage": {
+          "type": "string",
+          "description": "Message shown after completion"
+        },
+        "toolInput": {
+          "type": "string",
+          "description": "Raw tool input"
+        },
+        "toolKind": {
+          "type": "string",
+          "enum": [
+            "terminal"
+          ],
+          "description": "Rendering hint"
+        },
+        "language": {
+          "type": "string",
+          "description": "Language for syntax highlighting"
+        },
+        "toolOutput": {
+          "type": "string",
+          "description": "Tool output text"
+        },
+        "error": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string"
+            },
+            "code": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "message"
+          ],
+          "description": "Error details"
+        }
+      },
+      "required": [
+        "toolCallId",
+        "toolName",
+        "displayName",
+        "invocationMessage",
+        "success",
+        "pastTenseMessage"
+      ]
+    },
+    "IPermissionRequest": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "description": "Unique request identifier"
+        },
+        "permissionKind": {
+          "type": "string",
+          "enum": [
+            "shell",
+            "write",
+            "mcp",
+            "read",
+            "url"
+          ],
+          "description": "Type of permission"
+        },
+        "toolCallId": {
+          "type": "string",
+          "description": "Associated tool call"
+        },
+        "path": {
+          "type": "string",
+          "description": "File/directory path"
+        },
+        "fullCommandText": {
+          "type": "string",
+          "description": "Full command to execute"
+        },
+        "intention": {
+          "type": "string",
+          "description": "What the tool intends to do"
+        },
+        "serverName": {
+          "type": "string",
+          "description": "MCP server name"
+        },
+        "toolName": {
+          "type": "string",
+          "description": "Tool requesting permission"
+        },
+        "rawRequest": {
+          "type": "string",
+          "description": "Raw request data"
+        }
+      },
+      "required": [
+        "requestId",
+        "permissionKind"
+      ]
+    },
+    "IUsageInfo": {
+      "type": "object",
+      "properties": {
+        "inputTokens": {
+          "type": "number",
+          "description": "Input tokens consumed"
+        },
+        "outputTokens": {
+          "type": "number",
+          "description": "Output tokens generated"
+        },
+        "model": {
+          "type": "string",
+          "description": "Model used"
+        },
+        "cacheReadTokens": {
+          "type": "number",
+          "description": "Tokens read from cache"
+        }
+      }
+    },
+    "IErrorInfo": {
+      "type": "object",
+      "properties": {
+        "errorType": {
+          "type": "string",
+          "description": "Error type identifier"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable error message"
+        },
+        "stack": {
+          "type": "string",
+          "description": "Stack trace"
+        }
+      },
+      "required": [
+        "errorType",
+        "message"
+      ]
+    },
+    "ISnapshot": {
+      "type": "object",
+      "description": "A point-in-time snapshot of a subscribed resource's state, returned by\n`initialize`, `reconnect`, and `subscribe`.",
+      "properties": {
+        "resource": {
+          "$ref": "#/$defs/URI",
+          "description": "The subscribed resource URI (e.g. `agenthost:/root` or `copilot:/<uuid>`)"
+        },
+        "state": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/IRootState"
+            },
+            {
+              "$ref": "#/$defs/ISessionState"
+            }
+          ],
+          "description": "The current state of the resource"
+        },
+        "fromSeq": {
+          "type": "number",
+          "description": "The `serverSeq` at which this snapshot was taken. Subsequent actions will have `serverSeq > fromSeq`."
+        }
+      },
+      "required": [
+        "resource",
+        "state",
+        "fromSeq"
+      ]
+    }
+  }
+}

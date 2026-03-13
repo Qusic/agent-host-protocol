@@ -1,3 +1,6 @@
+<!-- Generated from types/*.ts — do not edit -->
+
+
 # Error Codes
 
 AHP uses [JSON-RPC 2.0](https://www.jsonrpc.org/specification) error codes. In addition to the standard JSON-RPC codes, AHP defines application-specific error codes in the `-32000` to `-32099` range.

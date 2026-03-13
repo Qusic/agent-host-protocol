@@ -1,0 +1,886 @@
+/**
+ * Markdown Generator — Generates VitePress-compatible reference markdown from
+ * TypeScript type definitions parsed via ts-morph.
+ */
+
+import {
+  Project,
+  InterfaceDeclaration,
+  TypeAliasDeclaration,
+  PropertySignature,
+  VariableDeclaration,
+  JSDocTag,
+  SourceFile,
+  Node,
+} from 'ts-morph';
+import fs from 'fs';
+import path from 'path';
+
+const GENERATED_HEADER = '<!-- Generated from types/*.ts — do not edit -->\n\n';
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function getJsDocDescription(node: InterfaceDeclaration | TypeAliasDeclaration | VariableDeclaration): string {
+  const jsDocs = node.getJsDocs();
+  if (jsDocs.length === 0) return '';
+  return jsDocs[0].getDescription().trim();
+}
+
+function getJsDocTag(node: InterfaceDeclaration | TypeAliasDeclaration | VariableDeclaration, tagName: string): string | undefined {
+  const jsDocs = node.getJsDocs();
+  for (const doc of jsDocs) {
+    const tags = doc.getTags();
+    for (const tag of tags) {
+      if (tag.getTagName() === tagName) {
+        return tag.getCommentText()?.trim();
+      }
+    }
+  }
+  return undefined;
+}
+
+function hasJsDocTag(node: InterfaceDeclaration | TypeAliasDeclaration | VariableDeclaration, tagName: string): boolean {
+  return getJsDocTag(node, tagName) !== undefined;
+}
+
+function getJsDocTagFromProperty(prop: PropertySignature, tagName: string): string | undefined {
+  const jsDocs = prop.getJsDocs();
+  for (const doc of jsDocs) {
+    const tags = doc.getTags();
+    for (const tag of tags) {
+      if (tag.getTagName() === tagName) {
+        return tag.getCommentText()?.trim();
+      }
+    }
+  }
+  return undefined;
+}
+
+function getPropertyDescription(prop: PropertySignature): string {
+  const jsDocs = prop.getJsDocs();
+  if (jsDocs.length === 0) return '';
+  return jsDocs[0].getDescription().trim();
+}
+
+function getPropertyType(prop: PropertySignature): string {
+  const typeNode = prop.getTypeNode();
+  if (typeNode) {
+    return typeNode.getText();
+  }
+  return prop.getType().getText(prop);
+}
+
+function isOptional(prop: PropertySignature): boolean {
+  return prop.hasQuestionToken();
+}
+
+function formatType(typeText: string): string {
+  // Clean up imported type references (remove import paths)
+  return typeText
+    .replace(/import\([^)]+\)\./g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function escapeMarkdown(text: string): string {
+  return text.replace(/\|/g, '\\|').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Set of known type names that can be cross-linked within the page.
+ * Populated before rendering each page.
+ */
+let knownTypes = new Set<string>();
+
+/**
+ * Maps type names to the page where they're defined (for cross-page links).
+ */
+const typeToPage: Record<string, string> = {};
+
+/**
+ * The current page being generated (e.g. 'state-types', 'actions').
+ */
+let currentPage = '';
+
+/**
+ * Maps a type name to the page-relative anchor (VitePress lowercases heading text).
+ */
+function typeAnchor(name: string): string {
+  return name.toLowerCase();
+}
+
+/**
+ * Wraps known type references in markdown links to their heading anchors.
+ * Links to the correct page if the type is defined on a different page.
+ * Handles arrays (T[]), Record<string, T>, unions (A | B), and T | undefined.
+ */
+function linkifyType(typeText: string): string {
+  return typeText.replace(/\b(I[A-Z]\w+|ToolCallStatus|ConfirmationState|URI)\b/g, (match) => {
+    if (knownTypes.has(match)) {
+      const page = typeToPage[match];
+      if (page && page !== currentPage) {
+        return `[${match}](/reference/${page}#${typeAnchor(match)})`;
+      }
+      return `[${match}](#${typeAnchor(match)})`;
+    }
+    return match;
+  });
+}
+
+function escapeTypeForTable(typeText: string): string {
+  const formatted = formatType(typeText).replace(/\|/g, '\\|');
+  const linked = linkifyType(formatted);
+  // If it contains cross-links, render without backticks so links are clickable
+  if (linked !== formatted) {
+    return linked;
+  }
+  return '`' + formatted + '`';
+}
+
+// ─── Table Generation ────────────────────────────────────────────────────────
+
+interface TableRow {
+  field: string;
+  type: string;
+  required?: string;
+  description: string;
+}
+
+function renderTable(rows: TableRow[], includeRequired: boolean): string {
+  const lines: string[] = [];
+  if (includeRequired) {
+    lines.push('| Field | Type | Required | Description |');
+    lines.push('|---|---|---|---|');
+    for (const row of rows) {
+      lines.push(`| \`${row.field}\` | ${escapeTypeForTable(row.type)} | ${row.required || 'Yes'} | ${escapeMarkdown(row.description)} |`);
+    }
+  } else {
+    lines.push('| Field | Type | Description |');
+    lines.push('|---|---|---|');
+    for (const row of rows) {
+      lines.push(`| \`${row.field}\` | ${escapeTypeForTable(row.type)} | ${escapeMarkdown(row.description)} |`);
+    }
+  }
+  return lines.join('\n');
+}
+
+function interfaceToRows(iface: InterfaceDeclaration): TableRow[] {
+  return iface.getProperties().map((prop) => {
+    const name = prop.getName();
+    const typeText = getPropertyType(prop);
+    let description = getPropertyDescription(prop);
+
+    // Auto-label literal type fields (discriminants) if no explicit description
+    if (!description && (name === 'type' || name === 'kind') && typeText.startsWith("'")) {
+      description = 'Discriminant';
+    }
+
+    return {
+      field: name,
+      type: typeText,
+      required: isOptional(prop) ? 'No' : 'Yes',
+      description,
+    };
+  });
+}
+
+function hasOptionalProperties(iface: InterfaceDeclaration): boolean {
+  return iface.getProperties().some((p) => isOptional(p));
+}
+
+function renderInterfaceTable(iface: InterfaceDeclaration): string {
+  const rows = interfaceToRows(iface);
+  const showRequired = hasOptionalProperties(iface);
+  return renderTable(rows, showRequired);
+}
+
+// ─── Lookup Helpers ──────────────────────────────────────────────────────────
+
+function getInterface(project: Project, name: string): InterfaceDeclaration {
+  for (const sf of project.getSourceFiles()) {
+    const iface = sf.getInterface(name);
+    if (iface) return iface;
+  }
+  throw new Error(`Interface ${name} not found`);
+}
+
+function getTypeAlias(project: Project, name: string): TypeAliasDeclaration | undefined {
+  for (const sf of project.getSourceFiles()) {
+    const ta = sf.getTypeAlias(name);
+    if (ta) return ta;
+  }
+  return undefined;
+}
+
+/**
+ * Renders a type alias as a proper ### heading with its definition.
+ * String-literal unions: ### `ToolCallStatus` \n `'running' | 'pending-permission' | ...`
+ * Interface unions: ### `IResponsePart` \n `IMarkdownResponsePart | IContentRef` (with cross-links)
+ */
+function renderTypeAlias(project: Project, name: string): string {
+  const ta = getTypeAlias(project, name);
+  if (!ta) return '';
+  const desc = getJsDocDescription(ta);
+  const typeText = formatType(ta.getTypeNode()?.getText() || '');
+  const lines: string[] = [];
+  lines.push(`### \`${name}\`\n`);
+  if (desc) lines.push(desc + '\n');
+  // Linkify interface references in the definition
+  const linkedType = linkifyType(typeText);
+  if (linkedType.includes('[')) {
+    // Contains cross-links — render without wrapping backticks so links are clickable
+    lines.push(linkedType + '\n');
+  } else {
+    // Pure literal type — wrap in backticks
+    lines.push(`\`${typeText}\`\n`);
+  }
+  return lines.join('\n');
+}
+
+/**
+ * Finds all type aliases in a source file that have a given @category tag.
+ */
+function getTypeAliasesByCategory(project: Project, fileName: string, category: string): TypeAliasDeclaration[] {
+  const result: TypeAliasDeclaration[] = [];
+  const sf = project.getSourceFiles().find(f => f.getBaseName() === fileName);
+  if (!sf) return result;
+  for (const ta of sf.getTypeAliases()) {
+    const cat = getJsDocTag(ta, 'category');
+    if (cat === category) {
+      result.push(ta);
+    }
+  }
+  return result;
+}
+
+function getVariable(project: Project, name: string): VariableDeclaration | undefined {
+  for (const sf of project.getSourceFiles()) {
+    for (const vs of sf.getVariableStatements()) {
+      for (const decl of vs.getDeclarations()) {
+        if (decl.getName() === name) return decl;
+      }
+    }
+  }
+  return undefined;
+}
+
+function getJsDocExamples(node: InterfaceDeclaration | TypeAliasDeclaration | VariableDeclaration): string[] {
+  const examples: string[] = [];
+  for (const doc of node.getJsDocs()) {
+    for (const tag of doc.getTags()) {
+      if (tag.getTagName() === 'example') {
+        const text = tag.getCommentText()?.trim();
+        if (text) examples.push(text);
+      }
+    }
+  }
+  return examples;
+}
+
+function getRemarksText(node: InterfaceDeclaration | TypeAliasDeclaration | VariableDeclaration): string | undefined {
+  return getJsDocTag(node, 'remarks');
+}
+
+// ─── State Types Page ────────────────────────────────────────────────────────
+
+/**
+ * Populates the knownTypes set from interfaces and type aliases across source files.
+ * Also builds the typeToPage map for cross-page linking.
+ */
+function collectKnownTypes(project: Project, fileNames: string[]): void {
+  knownTypes = new Set<string>();
+  for (const fileName of fileNames) {
+    const sf = project.getSourceFiles().find(f => f.getBaseName() === fileName);
+    if (!sf) continue;
+    for (const iface of sf.getInterfaces()) {
+      knownTypes.add(iface.getName());
+    }
+    for (const ta of sf.getTypeAliases()) {
+      knownTypes.add(ta.getName());
+    }
+  }
+  knownTypes.add('URI');
+}
+
+/** Maps source file names to their doc page slugs. */
+const FILE_TO_PAGE: Record<string, string> = {
+  'state.ts': 'state-types',
+  'actions.ts': 'actions',
+  'commands.ts': 'commands',
+  'notifications.ts': 'notifications',
+  'errors.ts': 'error-codes',
+};
+
+/**
+ * Populates typeToPage for all types across all source files.
+ * Called once at the start of generation.
+ */
+function buildTypePageMap(project: Project): void {
+  for (const [fileName, page] of Object.entries(FILE_TO_PAGE)) {
+    const sf = project.getSourceFiles().find(f => f.getBaseName() === fileName);
+    if (!sf) continue;
+    for (const iface of sf.getInterfaces()) {
+      typeToPage[iface.getName()] = page;
+    }
+    for (const ta of sf.getTypeAliases()) {
+      typeToPage[ta.getName()] = page;
+    }
+  }
+}
+
+function generateStateTypesPage(project: Project): string {
+  collectKnownTypes(project, ['state.ts']);
+  currentPage = 'state-types';
+
+  const lines: string[] = [GENERATED_HEADER];
+  lines.push('# State Types\n');
+  lines.push('Complete reference for all state types in the Agent Host Protocol.\n');
+
+  // Root State
+  lines.push('## Root State\n');
+  const rootState = getInterface(project, 'IRootState');
+  lines.push(`### \`IRootState\`\n`);
+  lines.push(getJsDocDescription(rootState) + '\n');
+  lines.push(renderInterfaceTable(rootState) + '\n');
+
+  const agentInfo = getInterface(project, 'IAgentInfo');
+  lines.push(`### \`IAgentInfo\`\n`);
+  lines.push(renderInterfaceTable(agentInfo) + '\n');
+
+  const modelInfo = getInterface(project, 'ISessionModelInfo');
+  lines.push(`### \`ISessionModelInfo\`\n`);
+  lines.push(renderInterfaceTable(modelInfo) + '\n');
+
+  // Session State
+  lines.push('## Session State\n');
+  const sessionState = getInterface(project, 'ISessionState');
+  lines.push(`### \`ISessionState\`\n`);
+  lines.push(getJsDocDescription(sessionState) + '\n');
+  lines.push(renderInterfaceTable(sessionState) + '\n');
+
+  const sessionSummary = getInterface(project, 'ISessionSummary');
+  lines.push(`### \`ISessionSummary\`\n`);
+  lines.push(renderInterfaceTable(sessionSummary) + '\n');
+
+  // Turn Types
+  lines.push('## Turn Types\n');
+  const turn = getInterface(project, 'ITurn');
+  lines.push(`### \`ITurn\`\n`);
+  lines.push(getJsDocDescription(turn) + '\n');
+  lines.push(renderInterfaceTable(turn) + '\n');
+
+  const activeTurn = getInterface(project, 'IActiveTurn');
+  lines.push(`### \`IActiveTurn\`\n`);
+  lines.push(getJsDocDescription(activeTurn) + '\n');
+  lines.push(renderInterfaceTable(activeTurn) + '\n');
+
+  const userMessage = getInterface(project, 'IUserMessage');
+  lines.push(`### \`IUserMessage\`\n`);
+  lines.push(renderInterfaceTable(userMessage) + '\n');
+
+  const messageAttachment = getInterface(project, 'IMessageAttachment');
+  lines.push(`### \`IMessageAttachment\`\n`);
+  lines.push(renderInterfaceTable(messageAttachment) + '\n');
+
+  // Response Parts
+  lines.push('## Response Parts\n');
+  const mdPart = getInterface(project, 'IMarkdownResponsePart');
+  lines.push(`### \`IMarkdownResponsePart\`\n`);
+  lines.push(renderInterfaceTable(mdPart) + '\n');
+
+  const contentRef = getInterface(project, 'IContentRef');
+  lines.push(`### \`IContentRef\`\n`);
+  lines.push(getJsDocDescription(contentRef) + '\n');
+  lines.push(renderInterfaceTable(contentRef) + '\n');
+
+  // Render IResponsePart type alias automatically
+  const responseParts = getTypeAliasesByCategory(project, 'state.ts', 'Response Parts');
+  for (const ta of responseParts) {
+    lines.push(renderTypeAlias(project, ta.getName()) + '\n');
+  }
+
+  // Tool Call Types
+  lines.push('## Tool Call Types\n');
+
+  const toolCallState = getInterface(project, 'IToolCallState');
+  lines.push(`### \`IToolCallState\`\n`);
+  lines.push(getJsDocDescription(toolCallState) + '\n');
+
+  // Emit remarks as a tip block
+  const toolCallRemarks = getRemarksText(toolCallState);
+  if (toolCallRemarks) {
+    lines.push('::: tip FUTURE WORK');
+    lines.push(toolCallRemarks);
+    lines.push(':::\n');
+  }
+
+  lines.push(renderInterfaceTable(toolCallState) + '\n');
+
+  // Render type aliases in the Tool Call Types category automatically
+  const toolCallAliases = getTypeAliasesByCategory(project, 'state.ts', 'Tool Call Types');
+  for (const ta of toolCallAliases) {
+    const rendered = renderTypeAlias(project, ta.getName());
+    if (rendered) lines.push(rendered + '\n');
+  }
+
+  const completedToolCall = getInterface(project, 'ICompletedToolCall');
+  lines.push(`### \`ICompletedToolCall\`\n`);
+  lines.push(renderInterfaceTable(completedToolCall) + '\n');
+
+  // Permission Types
+  lines.push('## Permission Types\n');
+  const permReq = getInterface(project, 'IPermissionRequest');
+  lines.push(`### \`IPermissionRequest\`\n`);
+  lines.push(renderInterfaceTable(permReq) + '\n');
+
+  // Common Types
+  lines.push('## Common Types\n');
+
+  const usageInfo = getInterface(project, 'IUsageInfo');
+  lines.push(`### \`IUsageInfo\`\n`);
+  lines.push(renderInterfaceTable(usageInfo) + '\n');
+
+  const errorInfo = getInterface(project, 'IErrorInfo');
+  lines.push(`### \`IErrorInfo\`\n`);
+  lines.push(renderInterfaceTable(errorInfo) + '\n');
+
+  const snapshot = getInterface(project, 'ISnapshot');
+  lines.push(`### \`ISnapshot\`\n`);
+  lines.push(getJsDocDescription(snapshot) + '\n');
+  lines.push(renderInterfaceTable(snapshot) + '\n');
+
+  return lines.join('\n');
+}
+
+// ─── Actions Page ────────────────────────────────────────────────────────────
+
+interface ActionMeta {
+  interfaceName: string;
+  typeValue: string;
+  description: string;
+  clientDispatchable: boolean;
+  version: number;
+}
+
+const ACTION_ORDER: ActionMeta[] = [
+  // Root
+  { interfaceName: 'IRootAgentsChangedAction', typeValue: 'root/agentsChanged', description: 'Fired when available agent backends or their models change.', clientDispatchable: false, version: 1 },
+  // Session
+  { interfaceName: 'ISessionReadyAction', typeValue: 'session/ready', description: 'Session backend initialized successfully.', clientDispatchable: false, version: 1 },
+  { interfaceName: 'ISessionCreationFailedAction', typeValue: 'session/creationFailed', description: 'Session backend failed to initialize.', clientDispatchable: false, version: 1 },
+  { interfaceName: 'ISessionTurnStartedAction', typeValue: 'session/turnStarted', description: 'User sent a message; server starts agent processing.', clientDispatchable: true, version: 1 },
+  { interfaceName: 'ISessionDeltaAction', typeValue: 'session/delta', description: 'Streaming text chunk from the assistant.', clientDispatchable: false, version: 1 },
+  { interfaceName: 'ISessionResponsePartAction', typeValue: 'session/responsePart', description: 'Structured content appended to the response.', clientDispatchable: false, version: 1 },
+  { interfaceName: 'ISessionToolStartAction', typeValue: 'session/toolStart', description: 'Tool execution began.', clientDispatchable: false, version: 1 },
+  { interfaceName: 'ISessionToolCompleteAction', typeValue: 'session/toolComplete', description: 'Tool execution finished.', clientDispatchable: false, version: 1 },
+  { interfaceName: 'ISessionPermissionRequestAction', typeValue: 'session/permissionRequest', description: 'Permission needed from the user to proceed.', clientDispatchable: false, version: 1 },
+  { interfaceName: 'ISessionPermissionResolvedAction', typeValue: 'session/permissionResolved', description: 'Permission granted or denied.', clientDispatchable: true, version: 1 },
+  { interfaceName: 'ISessionTurnCompleteAction', typeValue: 'session/turnComplete', description: 'Turn finished — the assistant is idle.', clientDispatchable: false, version: 1 },
+  { interfaceName: 'ISessionTurnCancelledAction', typeValue: 'session/turnCancelled', description: 'Turn was aborted; server stops processing.', clientDispatchable: true, version: 1 },
+  { interfaceName: 'ISessionErrorAction', typeValue: 'session/error', description: 'Error during turn processing.', clientDispatchable: false, version: 1 },
+  { interfaceName: 'ISessionTitleChangedAction', typeValue: 'session/titleChanged', description: 'Session title updated (typically auto-generated from conversation).', clientDispatchable: false, version: 1 },
+  { interfaceName: 'ISessionUsageAction', typeValue: 'session/usage', description: 'Token usage report for a turn.', clientDispatchable: false, version: 1 },
+  { interfaceName: 'ISessionReasoningAction', typeValue: 'session/reasoning', description: 'Reasoning/thinking text from the model.', clientDispatchable: false, version: 1 },
+  { interfaceName: 'ISessionModelChangedAction', typeValue: 'session/modelChanged', description: 'Model changed for this session.', clientDispatchable: true, version: 1 },
+];
+
+function generateActionsPage(project: Project): string {
+  collectKnownTypes(project, ['state.ts', 'actions.ts']);
+  currentPage = 'actions';
+
+  const lines: string[] = [GENERATED_HEADER];
+  lines.push('# Actions Reference\n');
+  lines.push('Complete reference for all action types in the Agent Host Protocol. Actions are the sole mutation mechanism for subscribable state.\n');
+
+  // Action Envelope
+  lines.push('## Action Envelope\n');
+  lines.push('Every action is wrapped in an `ActionEnvelope`:\n');
+  lines.push('```typescript');
+  lines.push('interface IActionEnvelope {');
+  lines.push('  readonly action: IStateAction;');
+  lines.push('  readonly serverSeq: number;');
+  lines.push('  readonly origin: { clientId: string; clientSeq: number } | undefined;');
+  lines.push('  readonly rejectionReason?: string;');
+  lines.push('}');
+  lines.push('```\n');
+
+  // Root Actions
+  lines.push('## Root Actions\n');
+  lines.push('Mutate `RootState`. All are server-only.\n');
+
+  // Session Actions header will be inserted at the right point
+  let inSession = false;
+
+  for (const meta of ACTION_ORDER) {
+    if (!inSession && meta.typeValue.startsWith('session/')) {
+      inSession = true;
+      lines.push('## Session Actions\n');
+      lines.push('Mutate `SessionState`. Scoped to a session URI.\n');
+    }
+
+    const iface = getInterface(project, meta.interfaceName);
+    lines.push(`### \`${meta.typeValue}\`\n`);
+
+    const prefix = meta.clientDispatchable ? '**Client-dispatchable.** ' : '';
+    lines.push(prefix + getJsDocDescription(iface) + '\n');
+
+    lines.push(renderInterfaceTable(iface) + '\n');
+
+    // Special case: toolComplete has a nested IToolCompleteResult
+    if (meta.typeValue === 'session/toolComplete') {
+      const resultIface = getInterface(project, 'IToolCompleteResult');
+      lines.push(`#### \`IToolCompleteResult\`\n`);
+      lines.push(renderInterfaceTable(resultIface) + '\n');
+    }
+  }
+
+  // Version Introduction table
+  lines.push('## Version Introduction\n');
+  lines.push('All actions listed above were introduced in protocol version **1**.\n');
+  lines.push('| Action Type | Version |');
+  lines.push('|---|---|');
+  for (const meta of ACTION_ORDER) {
+    lines.push(`| \`${meta.typeValue}\` | ${meta.version} |`);
+  }
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+// ─── Commands Page ───────────────────────────────────────────────────────────
+
+interface CommandMeta {
+  method: string;
+  paramsInterface: string;
+  resultInterface?: string;
+  resultText?: string;
+}
+
+const COMMAND_ORDER: CommandMeta[] = [
+  { method: 'initialize', paramsInterface: 'IInitializeParams', resultInterface: 'IInitializeResult' },
+  { method: 'reconnect', paramsInterface: 'IReconnectParams' },
+  { method: 'createSession', paramsInterface: 'ICreateSessionParams', resultText: '`null` on success.' },
+  { method: 'disposeSession', paramsInterface: 'IDisposeSessionParams', resultText: '`null` on success.' },
+  { method: 'listSessions', paramsInterface: 'IListSessionsParams', resultText: '`ISessionSummary[]`' },
+  { method: 'fetchContent', paramsInterface: 'IFetchContentParams', resultInterface: 'IFetchContentResult' },
+  { method: 'fetchTurns', paramsInterface: 'IFetchTurnsParams', resultInterface: 'IFetchTurnsResult' },
+];
+
+function generateCommandsPage(project: Project): string {
+  collectKnownTypes(project, ['state.ts', 'actions.ts', 'commands.ts']);
+  currentPage = 'commands';
+
+  const lines: string[] = [GENERATED_HEADER];
+  lines.push('# Commands\n');
+  lines.push('Commands are JSON-RPC requests from the client to the server. They return a result or a JSON-RPC error.\n');
+
+  for (const cmd of COMMAND_ORDER) {
+    const paramsIface = getInterface(project, cmd.paramsInterface);
+    const desc = getJsDocDescription(paramsIface);
+    const direction = getJsDocTag(paramsIface, 'direction') || 'Client → Server';
+    const messageType = getJsDocTag(paramsIface, 'messageType') || 'Request';
+
+    lines.push(`## \`${cmd.method}\`\n`);
+    lines.push(desc + '\n');
+    lines.push('| Property | Value |');
+    lines.push('|---|---|');
+    lines.push(`| Direction | ${direction} |`);
+    lines.push(`| Type | ${messageType} |\n`);
+
+    lines.push('**Parameters:**\n');
+    lines.push(renderInterfaceTable(paramsIface) + '\n');
+
+    // Reconnect has two result types
+    if (cmd.method === 'reconnect') {
+      const replayResult = getInterface(project, 'IReconnectReplayResult');
+      const snapshotResult = getInterface(project, 'IReconnectSnapshotResult');
+
+      lines.push('**Result (replay):** When the server can replay from the requested sequence:\n');
+      lines.push(renderInterfaceTable(replayResult) + '\n');
+
+      lines.push('**Result (snapshot):** When the gap exceeds the replay buffer:\n');
+      lines.push(renderInterfaceTable(snapshotResult) + '\n');
+
+      lines.push(getJsDocDescription(replayResult) + '\n');
+    } else if (cmd.resultInterface) {
+      const resultIface = getInterface(project, cmd.resultInterface);
+      lines.push('**Result:**\n');
+      lines.push(renderInterfaceTable(resultIface) + '\n');
+    } else if (cmd.resultText) {
+      lines.push(`**Result:** ${cmd.resultText}\n`);
+    }
+
+    // Add any extra description text from the params interface
+    const seeTag = getJsDocTag(paramsIface, 'see');
+    if (seeTag) {
+      // Convert @see tag to markdown link
+      const seeMatch = seeTag.match(/\{@link\s+([^|]+)\|([^}]+)\}/);
+      if (seeMatch) {
+        lines.push(`See [${seeMatch[2].trim()}](${seeMatch[1].trim()}) for details.\n`);
+      }
+    }
+
+    // Add examples
+    const examples = getJsDocExamples(paramsIface);
+    for (const example of examples) {
+      lines.push('**Example:**\n');
+      lines.push(example + '\n');
+    }
+
+    // Add spec notes from description (after the first sentence)
+    const fullDesc = getJsDocDescription(paramsIface);
+    const sentences = fullDesc.split('\n\n');
+    if (sentences.length > 1) {
+      for (let i = 1; i < sentences.length; i++) {
+        lines.push(sentences[i].trim() + '\n');
+      }
+    }
+
+    lines.push('---\n');
+  }
+
+  // Client-Dispatched Actions section
+  lines.push('## Client-Dispatched Actions\n');
+  lines.push('In addition to commands, clients interact with the server by **dispatching actions** as fire-and-forget notifications:\n');
+  lines.push('```jsonc');
+  lines.push('// Client → Server');
+  lines.push('{');
+  lines.push('  "jsonrpc": "2.0",');
+  lines.push('  "method": "dispatchAction",');
+  lines.push('  "params": {');
+  lines.push('    "clientSeq": 1,');
+  lines.push('    "action": { "type": "session/turnStarted", "session": "copilot:/<uuid>", ... }');
+  lines.push('  }');
+  lines.push('}');
+  lines.push('```\n');
+  lines.push('These are **write-ahead**: the client applies them optimistically to local state. See [Actions](/guide/actions) for the full list of client-dispatchable actions.\n');
+  lines.push('| Action | Server-side effect |');
+  lines.push('|---|---|');
+  lines.push('| `session/turnStarted` | Begins agent processing for the new turn |');
+  lines.push('| `session/permissionResolved` | Unblocks the pending tool execution |');
+  lines.push('| `session/turnCancelled` | Aborts the in-progress turn |');
+  lines.push('| `session/modelChanged` | Changes the model for subsequent turns |');
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+// ─── Notifications Page ──────────────────────────────────────────────────────
+
+function generateNotificationsPage(project: Project): string {
+  collectKnownTypes(project, ['state.ts', 'notifications.ts']);
+  currentPage = 'notifications';
+
+  const lines: string[] = [GENERATED_HEADER];
+  lines.push('# Notifications\n');
+  lines.push('Notifications are ephemeral broadcasts that are **not** part of the state tree. They are not processed by reducers and are not replayed on reconnection.\n');
+
+  // Protocol Notifications
+  lines.push('## Protocol Notifications\n');
+
+  const sessionAdded = getInterface(project, 'ISessionAddedNotification');
+  lines.push(`### \`notify/sessionAdded\`\n`);
+  lines.push(getJsDocDescription(sessionAdded) + '\n');
+  lines.push(renderInterfaceTable(sessionAdded) + '\n');
+
+  const sessionAddedExamples = getJsDocExamples(sessionAdded);
+  for (const example of sessionAddedExamples) {
+    lines.push('**Example:**\n');
+    lines.push(example + '\n');
+  }
+
+  const sessionRemoved = getInterface(project, 'ISessionRemovedNotification');
+  lines.push(`### \`notify/sessionRemoved\`\n`);
+  lines.push(getJsDocDescription(sessionRemoved) + '\n');
+  lines.push(renderInterfaceTable(sessionRemoved) + '\n');
+
+  const sessionRemovedExamples = getJsDocExamples(sessionRemoved);
+  for (const example of sessionRemovedExamples) {
+    lines.push('**Example:**\n');
+    lines.push(example + '\n');
+  }
+
+  // Usage Pattern
+  lines.push('## Usage Pattern\n');
+  lines.push('Clients use notifications to maintain a local session list cache:\n');
+  lines.push('1. On connect, fetch the full session list via `listSessions()`.');
+  lines.push('2. Listen for `notify/sessionAdded` and `notify/sessionRemoved` to keep the cache updated.');
+  lines.push('3. On reconnect, **re-fetch** the full list — notifications are not replayed.\n');
+
+  // Version Introduction
+  lines.push('## Version Introduction\n');
+  lines.push('| Notification Type | Version |');
+  lines.push('|---|---|');
+  lines.push('| `notify/sessionAdded` | 1 |');
+  lines.push('| `notify/sessionRemoved` | 1 |\n');
+
+  // Server Notifications (action delivery)
+  lines.push('## Server Notifications\n');
+  lines.push('In addition to protocol notifications, the server pushes action envelopes to subscribed clients:\n');
+  lines.push(`### \`action\`\n`);
+  lines.push('Wraps an `ActionEnvelope` for delivery to subscribed clients:\n');
+  lines.push('```json');
+  lines.push('{');
+  lines.push('  "jsonrpc": "2.0",');
+  lines.push('  "method": "action",');
+  lines.push('  "params": {');
+  lines.push('    "envelope": {');
+  lines.push('      "action": { "type": "session/delta", ... },');
+  lines.push('      "serverSeq": 43,');
+  lines.push('      "origin": { "clientId": "client-1", "clientSeq": 1 }');
+  lines.push('    }');
+  lines.push('  }');
+  lines.push('}');
+  lines.push('```');
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+// ─── Error Codes Page ────────────────────────────────────────────────────────
+
+function generateErrorCodesPage(project: Project): string {
+  const lines: string[] = [GENERATED_HEADER];
+  lines.push('# Error Codes\n');
+  lines.push('AHP uses [JSON-RPC 2.0](https://www.jsonrpc.org/specification) error codes. In addition to the standard JSON-RPC codes, AHP defines application-specific error codes in the `-32000` to `-32099` range.\n');
+
+  // Get the error code objects from the source
+  const errorsFile = project.getSourceFiles().find(sf => sf.getBaseName() === 'errors.ts');
+  if (!errorsFile) throw new Error('errors.ts not found');
+
+  // Standard JSON-RPC Codes
+  lines.push('## Standard JSON-RPC Codes\n');
+  lines.push('These codes are defined by the JSON-RPC 2.0 specification:\n');
+  lines.push('| Code | Name | Description |');
+  lines.push('|---|---|---|');
+
+  const jsonRpcCodes: Array<{ code: number; name: string; description: string }> = [
+    { code: -32700, name: 'Parse error', description: 'Invalid JSON' },
+    { code: -32600, name: 'Invalid request', description: 'Not a valid JSON-RPC request' },
+    { code: -32601, name: 'Method not found', description: 'Unknown method name' },
+    { code: -32602, name: 'Invalid params', description: 'Invalid method parameters' },
+    { code: -32603, name: 'Internal error', description: 'Unspecified server error' },
+  ];
+  for (const c of jsonRpcCodes) {
+    lines.push(`| \`${c.code}\` | ${c.name} | ${c.description} |`);
+  }
+  lines.push('');
+
+  // AHP Application Codes — extract from the source
+  lines.push('## AHP Application Codes\n');
+  lines.push('| Code | Name | Description |');
+  lines.push('|---|---|---|');
+
+  // Parse from the const object in errors.ts
+  const ahpCodesVar = errorsFile.getVariableDeclaration('AhpErrorCodes');
+  if (ahpCodesVar) {
+    let initializer = ahpCodesVar.getInitializer();
+    // Unwrap `as const`
+    if (initializer && Node.isAsExpression(initializer)) {
+      initializer = initializer.getExpression();
+    }
+    if (initializer && Node.isObjectLiteralExpression(initializer)) {
+      for (const prop of initializer.getProperties()) {
+        if (Node.isPropertyAssignment(prop)) {
+          const name = prop.getName();
+          const value = prop.getInitializer()?.getText();
+          // Get the leading comment for this property
+          const fullText = prop.getFullText();
+          let description = '';
+          const commentMatch = fullText.match(/\/\*\*\s*(.+?)\s*\*\//);
+          if (commentMatch) {
+            description = commentMatch[1];
+          }
+          lines.push(`| \`${value}\` | \`${name}\` | ${description} |`);
+        }
+      }
+    }
+  }
+  lines.push('');
+
+  // Error Response Format
+  lines.push('## Error Response Format\n');
+  lines.push('All error responses follow the JSON-RPC 2.0 error format:\n');
+  lines.push('```json');
+  lines.push('{');
+  lines.push('  "jsonrpc": "2.0",');
+  lines.push('  "id": 1,');
+  lines.push('  "error": {');
+  lines.push('    "code": -32002,');
+  lines.push('    "message": "No agent registered for provider \'unknown\'",');
+  lines.push('    "data": {}');
+  lines.push('  }');
+  lines.push('}');
+  lines.push('```\n');
+  lines.push('The `data` field is OPTIONAL and MAY contain additional structured information about the error. Its shape is not defined by the protocol.\n');
+
+  // Version Introduction
+  lines.push('## Version Introduction\n');
+  lines.push('All error codes listed above were introduced in protocol version **1**.\n');
+
+  return lines.join('\n');
+}
+
+// ─── Messages Page ───────────────────────────────────────────────────────────
+
+function generateMessagesPage(_project: Project): string {
+  const lines: string[] = [GENERATED_HEADER];
+  lines.push('# Messages Reference\n');
+  lines.push('Complete reference of all JSON-RPC methods in the Agent Host Protocol, organized by direction and type.\n');
+
+  lines.push('## Client → Server Requests\n');
+  lines.push('These methods have an `id` and expect a response.\n');
+  lines.push('| Method | Description | Reference |');
+  lines.push('|---|---|---|');
+  lines.push('| `initialize` | Handshake — establishes the connection and protocol version | [Lifecycle](/specification/lifecycle) |');
+  lines.push('| `reconnect` | Re-establishes a dropped connection with replay or snapshot | [Lifecycle](/specification/lifecycle) |');
+  lines.push('| `subscribe` | Subscribe to a URI-identified state resource | [Subscriptions](/specification/subscriptions) |');
+  lines.push('| `createSession` | Create a new agent session | [Commands](/reference/commands) |');
+  lines.push('| `disposeSession` | Dispose a session and clean up resources | [Commands](/reference/commands) |');
+  lines.push('| `listSessions` | Fetch session summaries | [Commands](/reference/commands) |');
+  lines.push('| `fetchTurns` | Fetch historical turns for a session | [Commands](/reference/commands) |');
+  lines.push('| `fetchContent` | Fetch large content by reference | [Commands](/reference/commands) |\n');
+
+  lines.push('## Client → Server Notifications\n');
+  lines.push('These methods have no `id` and expect no response.\n');
+  lines.push('| Method | Description | Reference |');
+  lines.push('|---|---|---|');
+  lines.push('| `unsubscribe` | Stop receiving updates for a URI | [Subscriptions](/specification/subscriptions) |');
+  lines.push('| `dispatchAction` | Fire-and-forget action dispatch (write-ahead) | [Actions](/guide/actions) |\n');
+
+  lines.push('## Server → Client Notifications\n');
+  lines.push('These are pushed by the server without a preceding request.\n');
+  lines.push('| Method | Description | Reference |');
+  lines.push('|---|---|---|');
+  lines.push('| `action` | Delivers an `ActionEnvelope` to subscribed clients | [Actions](/reference/actions) |');
+  lines.push('| `notification` | Ephemeral protocol notification (e.g. session added/removed) | [Notifications](/reference/notifications) |\n');
+
+  lines.push('## Version Introduction\n');
+  lines.push('All messages listed above were introduced in protocol version **1**.\n');
+
+  return lines.join('\n');
+}
+
+// ─── Public API ──────────────────────────────────────────────────────────────
+
+export function generateMarkdownDocs(project: Project, outDir: string): void {
+  fs.mkdirSync(outDir, { recursive: true });
+
+  // Build the global type→page map for cross-page links
+  buildTypePageMap(project);
+
+  const pages: Array<{ filename: string; generator: (project: Project) => string }> = [
+    { filename: 'state-types.md', generator: generateStateTypesPage },
+    { filename: 'actions.md', generator: generateActionsPage },
+    { filename: 'commands.md', generator: generateCommandsPage },
+    { filename: 'notifications.md', generator: generateNotificationsPage },
+    { filename: 'error-codes.md', generator: generateErrorCodesPage },
+    { filename: 'messages.md', generator: generateMessagesPage },
+  ];
+
+  for (const page of pages) {
+    const content = page.generator(project);
+    fs.writeFileSync(path.join(outDir, page.filename), content, 'utf-8');
+    console.log(`  • ${page.filename}`);
+  }
+}

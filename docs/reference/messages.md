@@ -1,3 +1,6 @@
+<!-- Generated from types/*.ts — do not edit -->
+
+
 # Messages Reference
 
 Complete reference of all JSON-RPC methods in the Agent Host Protocol, organized by direction and type.

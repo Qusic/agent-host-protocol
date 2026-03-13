@@ -1,3 +1,6 @@
+<!-- Generated from types/*.ts — do not edit -->
+
+
 # State Types
 
 Complete reference for all state types in the Agent Host Protocol.
@@ -10,7 +13,7 @@ Global state shared with every client subscribed to `agenthost:/root`.
 
 | Field | Type | Description |
 |---|---|---|
-| `agents` | `IAgentInfo[]` | Available agent backends and their models |
+| `agents` | [IAgentInfo](#iagentinfo)[] | Available agent backends and their models |
 
 ### `IAgentInfo`
 
@@ -19,7 +22,7 @@ Global state shared with every client subscribed to `agenthost:/root`.
 | `provider` | `string` | Agent provider ID (e.g. `'copilot'`) |
 | `displayName` | `string` | Human-readable name |
 | `description` | `string` | Description string |
-| `models` | `ISessionModelInfo[]` | Available models for this agent |
+| `models` | [ISessionModelInfo](#isessionmodelinfo)[] | Available models for this agent |
 
 ### `ISessionModelInfo`
 
@@ -38,19 +41,19 @@ Global state shared with every client subscribed to `agenthost:/root`.
 
 Full state for a single session, loaded when a client subscribes to the session's URI.
 
-| Field | Type | Description |
-|---|---|---|
-| `summary` | `ISessionSummary` | Lightweight session metadata |
-| `lifecycle` | `'creating' \| 'ready' \| 'creationFailed'` | Session initialization state |
-| `creationError` | `IErrorInfo?` | Error details if creation failed |
-| `turns` | `ITurn[]` | Completed turns |
-| `activeTurn` | `IActiveTurn \| undefined` | Currently in-progress turn |
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `summary` | [ISessionSummary](#isessionsummary) | Yes | Lightweight session metadata |
+| `lifecycle` | `'creating' \| 'ready' \| 'creationFailed'` | Yes | Session initialization state |
+| `creationError` | [IErrorInfo](#ierrorinfo) | No | Error details if creation failed |
+| `turns` | [ITurn](#iturn)[] | Yes | Completed turns |
+| `activeTurn` | [IActiveTurn](#iactiveturn) | No | Currently in-progress turn |
 
 ### `ISessionSummary`
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `resource` | `URI` | Yes | Session URI |
+| `resource` | [URI](#uri) | Yes | Session URI |
 | `provider` | `string` | Yes | Agent provider ID |
 | `title` | `string` | Yes | Session title |
 | `status` | `'idle' \| 'in-progress' \| 'error'` | Yes | Current session status |
@@ -64,16 +67,16 @@ Full state for a single session, loaded when a client subscribes to the session'
 
 A completed request/response cycle.
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | Turn identifier |
-| `userMessage` | `IUserMessage` | The user's input |
-| `responseText` | `string` | Final response text (captured from streaming) |
-| `responseParts` | `IResponsePart[]` | Structured response content |
-| `toolCalls` | `ICompletedToolCall[]` | Completed tool invocations |
-| `usage` | `IUsageInfo \| undefined` | Token usage info |
-| `state` | `'complete' \| 'cancelled' \| 'error'` | How the turn ended |
-| `error` | `IErrorInfo?` | Error details if state is `'error'` |
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `id` | `string` | Yes | Turn identifier |
+| `userMessage` | [IUserMessage](#iusermessage) | Yes | The user's input |
+| `responseText` | `string` | Yes | Final response text (captured from streaming) |
+| `responseParts` | [IResponsePart](#iresponsepart)[] | Yes | Structured response content |
+| `toolCalls` | [ICompletedToolCall](#icompletedtoolcall)[] | Yes | Completed tool invocations |
+| `usage` | [IUsageInfo](#iusageinfo) \| undefined | Yes | Token usage info |
+| `state` | `'complete' \| 'cancelled' \| 'error'` | Yes | How the turn ended |
+| `error` | [IErrorInfo](#ierrorinfo) | No | Error details if state is `'error'` |
 
 ### `IActiveTurn`
 
@@ -82,20 +85,20 @@ An in-progress turn — the assistant is actively streaming.
 | Field | Type | Description |
 |---|---|---|
 | `id` | `string` | Turn identifier |
-| `userMessage` | `IUserMessage` | The user's input |
+| `userMessage` | [IUserMessage](#iusermessage) | The user's input |
 | `streamingText` | `string` | Accumulated streaming response text |
-| `responseParts` | `IResponsePart[]` | Structured response content so far |
-| `toolCalls` | `Record<string, IToolCallState>` | Active tool invocations keyed by tool call ID |
-| `pendingPermissions` | `Record<string, IPermissionRequest>` | Pending permission requests keyed by request ID |
+| `responseParts` | [IResponsePart](#iresponsepart)[] | Structured response content so far |
+| `toolCalls` | Record<string, [IToolCallState](#itoolcallstate)> | Active tool invocations keyed by tool call ID |
+| `pendingPermissions` | Record<string, [IPermissionRequest](#ipermissionrequest)> | Pending permission requests keyed by request ID |
 | `reasoning` | `string` | Accumulated reasoning/thinking text |
-| `usage` | `IUsageInfo \| undefined` | Token usage info |
+| `usage` | [IUsageInfo](#iusageinfo) \| undefined | Token usage info |
 
 ### `IUserMessage`
 
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `text` | `string` | Yes | Message text |
-| `attachments` | `IMessageAttachment[]` | No | File/selection attachments |
+| `attachments` | [IMessageAttachment](#imessageattachment)[] | No | File/selection attachments |
 
 ### `IMessageAttachment`
 
@@ -125,7 +128,10 @@ A reference to large content stored outside the state tree.
 | `sizeHint` | `number` | No | Approximate size in bytes |
 | `mimeType` | `string` | No | Content MIME type |
 
-`IResponsePart = IMarkdownResponsePart | IContentRef`
+### `IResponsePart`
+
+[IMarkdownResponsePart](#imarkdownresponsepart) | [IContentRef](#icontentref)
+
 
 ## Tool Call Types
 
@@ -134,7 +140,10 @@ A reference to large content stored outside the state tree.
 Full lifecycle state of a tool invocation within an active turn.
 
 ::: tip FUTURE WORK
-Fields like `toolName` in `IToolCallState` and `serverName`/`toolName`/`rawRequest` in `IPermissionRequest` carry agent-specific identifiers on the wire despite the agent-agnostic design principle. These exist for debugging and logging purposes. A future version may move these to a separate diagnostic channel or namespace them more clearly.
+Fields like `toolName` carry agent-specific identifiers on the wire despite the
+agent-agnostic design principle. These exist for debugging and logging purposes.
+A future version may move these to a separate diagnostic channel or namespace them
+more clearly.
 :::
 
 | Field | Type | Required | Description |
@@ -147,33 +156,39 @@ Fields like `toolName` in `IToolCallState` and `serverName`/`toolName`/`rawReque
 | `toolKind` | `'terminal'` | No | Rendering hint |
 | `language` | `string` | No | Language for syntax highlighting |
 | `toolArguments` | `string` | No | Serialized tool arguments |
-| `status` | `ToolCallStatus` | Yes | Current status |
+| `status` | [ToolCallStatus](#toolcallstatus) | Yes | Current status |
 | `parameters` | `unknown` | No | Parsed tool parameters |
-| `confirmed` | `ConfirmationState` | No | How the tool was confirmed |
+| `confirmed` | [ConfirmationState](#confirmationstate) | No | How the tool was confirmed |
 | `pastTenseMessage` | `string` | No | Message shown after completion |
 | `toolOutput` | `string` | No | Tool output text |
 | `error` | `{ message: string; code?: string }` | No | Error details |
 | `cancellationReason` | `'denied' \| 'skipped'` | No | Why the tool was cancelled |
 
-**`ToolCallStatus`**: `'running' | 'pending-permission' | 'completed' | 'failed' | 'cancelled'`
+### `ToolCallStatus`
 
-**`ConfirmationState`**: `'not-needed' | 'user-action' | 'setting' | 'denied' | 'skipped'`
+`'running' | 'pending-permission' | 'completed' | 'failed' | 'cancelled'`
+
+
+### `ConfirmationState`
+
+`'not-needed' | 'user-action' | 'setting' | 'denied' | 'skipped'`
+
 
 ### `ICompletedToolCall`
 
-| Field | Type | Description |
-|---|---|---|
-| `toolCallId` | `string` | Unique tool call identifier |
-| `toolName` | `string` | Internal tool name |
-| `displayName` | `string` | Human-readable tool name |
-| `invocationMessage` | `string` | Message shown during invocation |
-| `success` | `boolean` | Whether the tool succeeded |
-| `pastTenseMessage` | `string` | Message shown after completion |
-| `toolInput` | `string?` | Raw tool input |
-| `toolKind` | `'terminal'?` | Rendering hint |
-| `language` | `string?` | Language for syntax highlighting |
-| `toolOutput` | `string?` | Tool output text |
-| `error` | `{ message: string; code?: string }?` | Error details |
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `toolCallId` | `string` | Yes | Unique tool call identifier |
+| `toolName` | `string` | Yes | Internal tool name |
+| `displayName` | `string` | Yes | Human-readable tool name |
+| `invocationMessage` | `string` | Yes | Message shown during invocation |
+| `success` | `boolean` | Yes | Whether the tool succeeded |
+| `pastTenseMessage` | `string` | Yes | Message shown after completion |
+| `toolInput` | `string` | No | Raw tool input |
+| `toolKind` | `'terminal'` | No | Rendering hint |
+| `language` | `string` | No | Language for syntax highlighting |
+| `toolOutput` | `string` | No | Tool output text |
+| `error` | `{ message: string; code?: string }` | No | Error details |
 
 ## Permission Types
 
@@ -212,10 +227,11 @@ Fields like `toolName` in `IToolCallState` and `serverName`/`toolName`/`rawReque
 
 ### `ISnapshot`
 
-A point-in-time snapshot of a subscribed resource's state, returned by `initialize`, `reconnect`, and `subscribe`.
+A point-in-time snapshot of a subscribed resource's state, returned by
+`initialize`, `reconnect`, and `subscribe`.
 
 | Field | Type | Description |
 |---|---|---|
-| `resource` | `URI` | The subscribed resource URI (e.g. `agenthost:/root` or `copilot:/<uuid>`) |
-| `state` | `IRootState \| ISessionState` | The current state of the resource |
-| `fromSeq` | `number` | The `serverSeq` at which this snapshot was taken. Subsequent actions will have `serverSeq > fromSeq`. |
+| `resource` | [URI](#uri) | The subscribed resource URI (e.g. `agenthost:/root` or `copilot:/&lt;uuid&gt;`) |
+| `state` | [IRootState](#irootstate) \| [ISessionState](#isessionstate) | The current state of the resource |
+| `fromSeq` | `number` | The `serverSeq` at which this snapshot was taken. Subsequent actions will have `serverSeq &gt; fromSeq`. |

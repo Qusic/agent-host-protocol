@@ -4,9 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "tsx scripts/dev.ts",
+    "generate": "tsx scripts/generate.ts",
+    "generate:docs": "tsx scripts/generate.ts --docs",
+    "generate:schema": "tsx scripts/generate.ts --schema",
     "docs:dev": "vitepress dev docs",
-    "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:build": "npm run generate && vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "typecheck": "tsc --noEmit -p types/tsconfig.json"
   },
   "repository": {
     "type": "git",
@@ -21,6 +26,9 @@
   },
   "homepage": "https://github.com/microsoft/agent-host-protocol#readme",
   "devDependencies": {
+    "ts-morph": "^24.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
     "vitepress": "^1.6.4"
   }
 }
