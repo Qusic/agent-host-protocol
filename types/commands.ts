@@ -1,0 +1,333 @@
+/**
+ * Command Types — Source of truth for all AHP command (JSON-RPC request) definitions.
+ *
+ * @module commands
+ * @description Commands are JSON-RPC requests from the client to the server.
+ * They return a result or a JSON-RPC error.
+ */
+
+import type { URI, ISnapshot, ISessionSummary, ITurn } from './state.js';
+import type { IActionEnvelope, IStateAction } from './actions.js';
+
+// ─── initialize ──────────────────────────────────────────────────────────────
+
+/**
+ * Establishes a new connection and negotiates the protocol version.
+ * This MUST be the first message sent by the client.
+ *
+ * @category Commands
+ * @method initialize
+ * @direction Client → Server
+ * @messageType Request
+ * @version 1
+ * @see {@link /specification/lifecycle | Lifecycle} for the full handshake flow.
+ */
+export interface IInitializeParams {
+  /** Protocol version the client speaks */
+  protocolVersion: number;
+  /** Unique client identifier */
+  clientId: string;
+  /** URIs to subscribe to during handshake */
+  initialSubscriptions?: URI[];
+}
+
+/**
+ * Result of the `initialize` command.
+ *
+ * If the server does not support the client's protocol version, it MUST return
+ * error code `-32005` (`UnsupportedProtocolVersion`).
+ */
+export interface IInitializeResult {
+  /** Protocol version the server speaks */
+  protocolVersion: number;
+  /** Current server sequence number */
+  serverSeq: number;
+  /** Snapshots for each `initialSubscriptions` URI */
+  snapshots: ISnapshot[];
+}
+
+// ─── reconnect ───────────────────────────────────────────────────────────────
+
+/**
+ * Re-establishes a dropped connection. The server replays missed actions or
+ * provides fresh snapshots.
+ *
+ * @category Commands
+ * @method reconnect
+ * @direction Client → Server
+ * @messageType Request
+ * @version 1
+ * @see {@link /specification/lifecycle | Lifecycle} for details.
+ */
+export interface IReconnectParams {
+  /** Client identifier from the original connection */
+  clientId: string;
+  /** Last `serverSeq` the client received */
+  lastSeenServerSeq: number;
+  /** URIs the client was subscribed to */
+  subscriptions: URI[];
+}
+
+/**
+ * Reconnect result when the server can replay from the requested sequence.
+ *
+ * The server MUST include all replayed data in the response.
+ */
+export interface IReconnectReplayResult {
+  /** Discriminant */
+  type: 'replay';
+  /** Missed action envelopes since `lastSeenServerSeq` */
+  actions: IActionEnvelope[];
+}
+
+/**
+ * Reconnect result when the gap exceeds the replay buffer.
+ */
+export interface IReconnectSnapshotResult {
+  /** Discriminant */
+  type: 'snapshot';
+  /** Fresh snapshots for each subscription */
+  snapshots: ISnapshot[];
+}
+
+/** Result of the `reconnect` command. */
+export type IReconnectResult = IReconnectReplayResult | IReconnectSnapshotResult;
+
+// ─── subscribe ───────────────────────────────────────────────────────────────
+
+/**
+ * Subscribe to a URI-identified state resource.
+ *
+ * @category Commands
+ * @method subscribe
+ * @direction Client → Server
+ * @messageType Request
+ * @version 1
+ * @see {@link /specification/subscriptions | Subscriptions}
+ */
+export interface ISubscribeParams {
+  /** URI to subscribe to */
+  resource: URI;
+}
+
+/**
+ * Result of the `subscribe` command.
+ */
+export interface ISubscribeResult {
+  /** Snapshot of the subscribed resource */
+  snapshot: ISnapshot;
+}
+
+// ─── createSession ───────────────────────────────────────────────────────────
+
+/**
+ * Creates a new session with the specified agent provider.
+ *
+ * If the session URI already exists, the server MUST return an error with code
+ * `-32003` (`SessionAlreadyExists`).
+ *
+ * After creation, the client should subscribe to the session URI to receive state
+ * updates. The server also broadcasts a `notify/sessionAdded` notification to all
+ * clients.
+ *
+ * @category Commands
+ * @method createSession
+ * @direction Client → Server
+ * @messageType Request
+ * @version 1
+ * @example
+ * ```jsonc
+ * // Client → Server
+ * { "jsonrpc": "2.0", "id": 2, "method": "createSession",
+ *   "params": { "session": "copilot:/<uuid>", "provider": "copilot", "model": "gpt-4o" } }
+ *
+ * // Server → Client (success)
+ * { "jsonrpc": "2.0", "id": 2, "result": null }
+ *
+ * // Server → Client (failure — provider not found)
+ * { "jsonrpc": "2.0", "id": 2, "error": { "code": -32002, "message": "No agent for provider" } }
+ *
+ * // Server → Client (failure — session already exists)
+ * { "jsonrpc": "2.0", "id": 2, "error": { "code": -32003, "message": "Session already exists" } }
+ * ```
+ */
+export interface ICreateSessionParams {
+  /** Session URI (client-chosen, e.g. `copilot:/<uuid>`) */
+  session: URI;
+  /** Agent provider ID */
+  provider?: string;
+  /** Model ID to use */
+  model?: string;
+}
+
+// ─── disposeSession ──────────────────────────────────────────────────────────
+
+/**
+ * Disposes a session and cleans up server-side resources.
+ *
+ * The server broadcasts a `notify/sessionRemoved` notification to all clients.
+ *
+ * @category Commands
+ * @method disposeSession
+ * @direction Client → Server
+ * @messageType Request
+ * @version 1
+ */
+export interface IDisposeSessionParams {
+  /** Session URI to dispose */
+  session: URI;
+}
+
+// ─── listSessions ────────────────────────────────────────────────────────────
+
+/**
+ * Returns a list of session summaries. Used to populate session lists and sidebars.
+ *
+ * The session list is **not** part of the state tree because it can be arbitrarily
+ * large. Clients fetch it imperatively and maintain a local cache updated by
+ * `notify/sessionAdded` and `notify/sessionRemoved` notifications.
+ *
+ * @category Commands
+ * @method listSessions
+ * @direction Client → Server
+ * @messageType Request
+ * @version 1
+ */
+export interface IListSessionsParams {
+  /** Optional filter criteria */
+  filter?: object;
+}
+
+/** Result of the `listSessions` command: `ISessionSummary[]`. */
+export type IListSessionsResult = ISessionSummary[];
+
+// ─── fetchContent ────────────────────────────────────────────────────────────
+
+/**
+ * Fetches large content referenced by a `ContentRef` in the state tree.
+ *
+ * Content references keep the state tree small by storing large data (images,
+ * long tool outputs) by reference rather than inline.
+ *
+ * Binary content (images, etc.) MUST use `base64` encoding. Text content MAY
+ * use `utf-8` encoding.
+ *
+ * @category Commands
+ * @method fetchContent
+ * @direction Client → Server
+ * @messageType Request
+ * @version 1
+ * @example
+ * ```jsonc
+ * // Client → Server
+ * { "jsonrpc": "2.0", "id": 10, "method": "fetchContent",
+ *   "params": { "uri": "copilot:/<uuid>/content/img-1" } }
+ *
+ * // Server → Client
+ * { "jsonrpc": "2.0", "id": 10, "result": {
+ *   "data": "iVBORw0KGgo...",
+ *   "encoding": "base64",
+ *   "mimeType": "image/png"
+ * }}
+ * ```
+ */
+export interface IFetchContentParams {
+  /** Content URI from a `ContentRef` */
+  uri: string;
+}
+
+/**
+ * Result of the `fetchContent` command.
+ */
+export interface IFetchContentResult {
+  /** Content encoded as a string */
+  data: string;
+  /** How `data` is encoded */
+  encoding: 'base64' | 'utf-8';
+  /** MIME type of the content */
+  mimeType?: string;
+}
+
+// ─── fetchTurns ──────────────────────────────────────────────────────────────
+
+/**
+ * Fetches historical turns for a session. Used for lazy loading of conversation
+ * history.
+ *
+ * @category Commands
+ * @method fetchTurns
+ * @direction Client → Server
+ * @messageType Request
+ * @version 1
+ * @example
+ * ```jsonc
+ * // Client → Server (fetch the 20 most recent turns)
+ * { "jsonrpc": "2.0", "id": 8, "method": "fetchTurns",
+ *   "params": { "session": "copilot:/<uuid>", "limit": 20 } }
+ *
+ * // Server → Client
+ * { "jsonrpc": "2.0", "id": 8, "result": {
+ *   "turns": [ { "id": "t1", ... }, { "id": "t2", ... } ],
+ *   "hasMore": true
+ * }}
+ *
+ * // Client → Server (fetch 20 turns before t1)
+ * { "jsonrpc": "2.0", "id": 9, "method": "fetchTurns",
+ *   "params": { "session": "copilot:/<uuid>", "before": "t1", "limit": 20 } }
+ * ```
+ */
+export interface IFetchTurnsParams {
+  /** Session URI */
+  session: URI;
+  /** Turn ID to fetch before (exclusive). Omit to fetch from the most recent turn. */
+  before?: string;
+  /** Maximum number of turns to return. Server MAY impose its own upper bound. */
+  limit?: number;
+}
+
+/**
+ * Result of the `fetchTurns` command.
+ */
+export interface IFetchTurnsResult {
+  /** The requested turns, ordered oldest-first */
+  turns: ITurn[];
+  /** Whether more turns exist before the returned range */
+  hasMore: boolean;
+}
+
+// ─── unsubscribe ─────────────────────────────────────────────────────────────
+
+/**
+ * Stop receiving updates for a URI.
+ *
+ * @category Commands
+ * @method unsubscribe
+ * @direction Client → Server
+ * @messageType Notification
+ * @version 1
+ * @see {@link /specification/subscriptions | Subscriptions}
+ */
+export interface IUnsubscribeParams {
+  /** URI to unsubscribe from */
+  resource: URI;
+}
+
+// ─── dispatchAction ──────────────────────────────────────────────────────────
+
+/**
+ * Fire-and-forget action dispatch (write-ahead). The client applies actions
+ * optimistically to local state.
+ *
+ * @category Commands
+ * @method dispatchAction
+ * @direction Client → Server
+ * @messageType Notification
+ * @version 1
+ * @see {@link /guide/actions | Actions} for the full list of client-dispatchable actions.
+ */
+export interface IDispatchActionParams {
+  /** Client sequence number */
+  clientSeq: number;
+  /** The action to dispatch */
+  action: IStateAction;
+}

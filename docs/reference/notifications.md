@@ -1,3 +1,6 @@
+<!-- Generated from types/*.ts — do not edit -->
+
+
 # Notifications
 
 Notifications are ephemeral broadcasts that are **not** part of the state tree. They are not processed by reducers and are not replayed on reconnection.
@@ -11,7 +14,7 @@ Broadcast to all connected clients when a new session is created.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'notify/sessionAdded'` | Discriminant |
-| `summary` | `ISessionSummary` | Summary of the new session |
+| `summary` | [ISessionSummary](/reference/state-types#isessionsummary) | Summary of the new session |
 
 **Example:**
 
@@ -42,7 +45,7 @@ Broadcast to all connected clients when a session is disposed.
 | Field | Type | Description |
 |---|---|---|
 | `type` | `'notify/sessionRemoved'` | Discriminant |
-| `session` | `URI` | URI of the removed session |
+| `session` | [URI](/reference/state-types#uri) | URI of the removed session |
 
 **Example:**
 

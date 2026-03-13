@@ -1,0 +1,40 @@
+/**
+ * Generation entry point — Parses TypeScript type definitions using ts-morph and
+ * generates documentation markdown and JSON Schema files.
+ */
+
+import { Project } from 'ts-morph';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { generateMarkdownDocs } from './generate-markdown.js';
+import { generateJsonSchemas } from './generate-json-schema.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(__dirname, '..');
+const TYPES_DIR = path.join(ROOT, 'types');
+const DOCS_DIR = path.join(ROOT, 'docs', 'reference');
+const SCHEMA_DIR = path.join(ROOT, 'schema');
+
+const args = process.argv.slice(2);
+const docsOnly = args.includes('--docs');
+const schemaOnly = args.includes('--schema');
+const generateAll = !docsOnly && !schemaOnly;
+
+// Load the TypeScript project
+const project = new Project({
+  tsConfigFilePath: path.join(TYPES_DIR, 'tsconfig.json'),
+});
+
+if (generateAll || docsOnly) {
+  console.log('Generating documentation markdown...');
+  generateMarkdownDocs(project, DOCS_DIR);
+  console.log(`  → docs written to ${path.relative(ROOT, DOCS_DIR)}/`);
+}
+
+if (generateAll || schemaOnly) {
+  console.log('Generating JSON Schema...');
+  generateJsonSchemas(project, SCHEMA_DIR);
+  console.log(`  → schemas written to ${path.relative(ROOT, SCHEMA_DIR)}/`);
+}
+
+console.log('Done.');

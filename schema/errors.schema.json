@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Generated from types/errors.ts — do not edit",
+  "$id": "https://github.com/microsoft/agent-host-protocol/schema/errors.schema.json",
+  "title": "AHP Error Codes",
+  "description": "Error codes used in the Agent Host Protocol.",
+  "$defs": {
+    "JsonRpcErrorCode": {
+      "description": "Standard JSON-RPC 2.0 error codes.",
+      "type": "number",
+      "enum": [
+        -32700,
+        -32600,
+        -32601,
+        -32602,
+        -32603
+      ]
+    },
+    "AhpErrorCode": {
+      "description": "AHP application-specific error codes.",
+      "type": "number",
+      "enum": [
+        -32001,
+        -32002,
+        -32003,
+        -32004,
+        -32005,
+        -32006
+      ]
+    }
+  }
+}
