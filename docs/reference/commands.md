@@ -237,6 +237,10 @@ Lists directory entries at a file URI on the server's filesystem.
 This is intended for remote folder pickers and similar UI that needs to let
 users navigate the server's local filesystem.
 
+The server MUST return success only if the target exists and is a directory.
+If the target does not exist, is not a directory, or cannot be accessed, the
+server MUST return a JSON-RPC error.
+
 | Property | Value |
 |---|---|
 | Direction | Client → Server |
@@ -256,6 +260,10 @@ users navigate the server's local filesystem.
 
 This is intended for remote folder pickers and similar UI that needs to let
 users navigate the server's local filesystem.
+
+The server MUST return success only if the target exists and is a directory.
+If the target does not exist, is not a directory, or cannot be accessed, the
+server MUST return a JSON-RPC error.
 
 ---
 

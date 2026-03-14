@@ -245,7 +245,7 @@
     },
     "IBrowseDirectoryParams": {
       "type": "object",
-      "description": "Lists directory entries at a file URI on the server's filesystem.\n\nThis is intended for remote folder pickers and similar UI that needs to let\nusers navigate the server's local filesystem.",
+      "description": "Lists directory entries at a file URI on the server's filesystem.\n\nThis is intended for remote folder pickers and similar UI that needs to let\nusers navigate the server's local filesystem.\n\nThe server MUST return success only if the target exists and is a directory.\nIf the target does not exist, is not a directory, or cannot be accessed, the\nserver MUST return a JSON-RPC error.",
       "properties": {
         "uri": {
           "$ref": "#/$defs/URI",

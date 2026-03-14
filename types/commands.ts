@@ -258,6 +258,10 @@ export interface IFetchContentResult {
  * This is intended for remote folder pickers and similar UI that needs to let
  * users navigate the server's local filesystem.
  *
+ * The server MUST return success only if the target exists and is a directory.
+ * If the target does not exist, is not a directory, or cannot be accessed, the
+ * server MUST return a JSON-RPC error.
+ *
  * @category Commands
  * @method browseDirectory
  * @direction Client → Server
