@@ -22,7 +22,7 @@ interface IActionEnvelope {
 
 Mutate `RootState`. All are server-only.
 
-### `root/agentsChanged` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L59" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `root/agentsChanged` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L76" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Fired when available agent backends or their models change.
 
@@ -35,7 +35,7 @@ Fired when available agent backends or their models change.
 
 Mutate `SessionState`. Scoped to a session URI.
 
-### `session/ready` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L73" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/ready` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L102" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Session backend initialized successfully.
 
@@ -44,7 +44,7 @@ Session backend initialized successfully.
 | `type` | `'session/ready'` | Discriminant |
 | `session` | [URI](/reference/state-types#uri) | Session URI |
 
-### `session/creationFailed` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L85" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/creationFailed` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L114" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Session backend failed to initialize.
 
@@ -54,7 +54,7 @@ Session backend failed to initialize.
 | `session` | [URI](/reference/state-types#uri) | Session URI |
 | `error` | [IErrorInfo](/reference/state-types#ierrorinfo) | Error details |
 
-### `session/turnStarted` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L100" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/turnStarted` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L129" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 **Client-dispatchable.** User sent a message; server starts agent processing.
 
@@ -65,7 +65,7 @@ Session backend failed to initialize.
 | `turnId` | `string` | Turn identifier |
 | `userMessage` | [IUserMessage](/reference/state-types#iusermessage) | User's message |
 
-### `session/delta` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L116" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/delta` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L145" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Streaming text chunk from the assistant.
 
@@ -76,7 +76,7 @@ Streaming text chunk from the assistant.
 | `turnId` | `string` | Turn identifier |
 | `content` | `string` | Text chunk |
 
-### `session/responsePart` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L132" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/responsePart` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L161" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Structured content appended to the response.
 
@@ -87,7 +87,7 @@ Structured content appended to the response.
 | `turnId` | `string` | Turn identifier |
 | `part` | [IResponsePart](/reference/state-types#iresponsepart) | Response part (markdown or content ref) |
 
-### `session/toolCallStart` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L152" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/toolCallStart` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L181" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 A tool call begins — parameters are streaming from the LM.
 
@@ -103,7 +103,7 @@ reaches the `running` state and dispatching `session/toolCallComplete`.
 | `toolClientId` | `string` | No | If this tool is provided by a client, the `clientId` of the owning client.
 Absent for server-side tools. |
 
-### `session/toolCallDelta` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L171" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/toolCallDelta` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L200" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Streaming partial parameters for a tool call.
 
@@ -113,7 +113,7 @@ Streaming partial parameters for a tool call.
 | `content` | `string` | Yes | Partial parameter content to append |
 | `invocationMessage` | [StringOrMarkdown](/reference/state-types#stringormarkdown) | No | Updated progress message |
 
-### `session/toolCallReady` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L190" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/toolCallReady` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L219" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Tool call parameters are complete. Transitions to `pending-confirmation`
 or directly to `running` if `confirmed` is set.
@@ -129,7 +129,7 @@ owning client can begin execution immediately.
 | `toolInput` | `string` | No | Raw tool input |
 | `confirmed` | [ToolCallConfirmationReason](/reference/state-types#toolcallconfirmationreason) | No | If set, the tool was auto-confirmed and transitions directly to `running` |
 
-### `session/toolCallConfirmed (approved)` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L207" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/toolCallConfirmed (approved)` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L236" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 **Client-dispatchable.** Client approves a pending tool call. The tool transitions to `running`.
 
@@ -139,7 +139,7 @@ owning client can begin execution immediately.
 | `approved` | `true` | The tool call was approved |
 | `confirmed` | [ToolCallConfirmationReason](/reference/state-types#toolcallconfirmationreason) | How the tool was confirmed |
 
-### `session/toolCallConfirmed (denied)` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L225" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/toolCallConfirmed (denied)` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L254" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 **Client-dispatchable.** Client denies a pending tool call. The tool transitions to `cancelled`.
 
@@ -154,7 +154,7 @@ not recognize the tool or cannot execute it.
 | `userSuggestion` | [IUserMessage](/reference/state-types#iusermessage) | No | What the user suggested doing instead |
 | `reasonMessage` | [StringOrMarkdown](/reference/state-types#stringormarkdown) | No | Optional explanation for the denial |
 
-### `session/toolCallComplete` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L264" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/toolCallComplete` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L293" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Tool execution finished. Transitions to `completed` or `pending-result-confirmation`
 if `requiresResultConfirmation` is `true`.
@@ -173,7 +173,7 @@ this action with `result.success = false` and an appropriate error.
 | `result` | [IToolCallResult](/reference/state-types#itoolcallresult) | Yes | Execution result |
 | `requiresResultConfirmation` | `boolean` | No | If true, the result requires client approval before finalizing |
 
-#### `IToolCallResult` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L296" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+#### `IToolCallResult` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L307" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -187,7 +187,7 @@ This mirrors the `content` field of MCP `CallToolResult`. |
 This mirrors the `structuredContent` field of MCP `CallToolResult`. |
 | `error` | `{ message: string; code?: string }` | No | Error details if the tool failed |
 
-### `session/toolCallResultConfirmed` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L281" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/toolCallResultConfirmed` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L310" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 **Client-dispatchable.** Client approves or denies a tool's result.
 
@@ -198,7 +198,7 @@ If `approved` is `false`, the tool transitions to `cancelled` with reason `resul
 | `type` | `'session/toolCallResultConfirmed'` | Discriminant |
 | `approved` | `boolean` | Whether the result was approved |
 
-### `session/permissionRequest` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L293" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/permissionRequest` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L322" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Permission needed from the user to proceed.
 
@@ -209,7 +209,7 @@ Permission needed from the user to proceed.
 | `turnId` | `string` | Turn identifier |
 | `request` | [IPermissionRequest](/reference/state-types#ipermissionrequest) | Permission request details |
 
-### `session/permissionResolved` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L310" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/permissionResolved` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L339" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 **Client-dispatchable.** Permission granted or denied.
 
@@ -221,7 +221,7 @@ Permission needed from the user to proceed.
 | `requestId` | `string` | Permission request ID |
 | `approved` | `boolean` | Whether permission was granted |
 
-### `session/turnComplete` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L328" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/turnComplete` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L357" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Turn finished — the assistant is idle.
 
@@ -231,7 +231,7 @@ Turn finished — the assistant is idle.
 | `session` | [URI](/reference/state-types#uri) | Session URI |
 | `turnId` | `string` | Turn identifier |
 
-### `session/turnCancelled` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L343" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/turnCancelled` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L372" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 **Client-dispatchable.** Turn was aborted; server stops processing.
 
@@ -241,7 +241,7 @@ Turn finished — the assistant is idle.
 | `session` | [URI](/reference/state-types#uri) | Session URI |
 | `turnId` | `string` | Turn identifier |
 
-### `session/error` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L357" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/error` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L386" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Error during turn processing.
 
@@ -252,7 +252,7 @@ Error during turn processing.
 | `turnId` | `string` | Turn identifier |
 | `error` | [IErrorInfo](/reference/state-types#ierrorinfo) | Error details |
 
-### `session/titleChanged` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L373" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/titleChanged` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L402" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Session title updated (typically auto-generated from conversation).
 
@@ -262,7 +262,7 @@ Session title updated (typically auto-generated from conversation).
 | `session` | [URI](/reference/state-types#uri) | Session URI |
 | `title` | `string` | New title |
 
-### `session/usage` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L387" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/usage` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L416" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Token usage report for a turn.
 
@@ -273,7 +273,7 @@ Token usage report for a turn.
 | `turnId` | `string` | Turn identifier |
 | `usage` | [IUsageInfo](/reference/state-types#iusageinfo) | Token usage data |
 
-### `session/reasoning` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L403" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/reasoning` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L432" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Reasoning/thinking text from the model.
 
@@ -284,7 +284,7 @@ Reasoning/thinking text from the model.
 | `turnId` | `string` | Turn identifier |
 | `content` | `string` | Reasoning text chunk |
 
-### `session/modelChanged` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L420" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `session/modelChanged` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/actions.ts#L449" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 **Client-dispatchable.** Model changed for this session.
 

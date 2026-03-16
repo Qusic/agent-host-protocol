@@ -5,6 +5,22 @@
   "title": "AHP Action Types",
   "description": "All action types in the Agent Host Protocol.",
   "$defs": {
+    "IActionOrigin": {
+      "type": "object",
+      "description": "Identifies the client that originally dispatched an action.",
+      "properties": {
+        "clientId": {
+          "type": "string"
+        },
+        "clientSeq": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "clientId",
+        "clientSeq"
+      ]
+    },
     "IActionEnvelope": {
       "type": "object",
       "description": "Every action is wrapped in an `ActionEnvelope`.",
@@ -16,19 +32,7 @@
           "type": "number"
         },
         "origin": {
-          "type": "object",
-          "properties": {
-            "clientId": {
-              "type": "string"
-            },
-            "clientSeq": {
-              "type": "number"
-            }
-          },
-          "required": [
-            "clientId",
-            "clientSeq"
-          ]
+          "$ref": "#/$defs/IActionOrigin"
         },
         "rejectionReason": {
           "type": "string"
@@ -55,6 +59,11 @@
         "toolCallId": {
           "type": "string",
           "description": "Tool call identifier"
+        },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this tool call.\n\nClients MAY look for well-known keys here to provide enhanced UI.\nFor example, a `ptyTerminal` key with `{ input: string; output: string }`\nindicates the tool operated on a terminal (both `input` and `output` may\ncontain escape sequences)."
         }
       },
       "required": [
@@ -84,6 +93,26 @@
       "required": [
         "type",
         "agents"
+      ]
+    },
+    "IRootActiveSessionsChangedAction": {
+      "type": "object",
+      "description": "Fired when the number of active sessions changes.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "root/activeSessionsChanged"
+          ]
+        },
+        "activeSessions": {
+          "type": "number",
+          "description": "Current count of active sessions"
+        }
+      },
+      "required": [
+        "type",
+        "activeSessions"
       ]
     },
     "ISessionReadyAction": {
@@ -769,6 +798,10 @@
             "$ref": "#/$defs/IAgentInfo"
           },
           "description": "Available agent backends and their models"
+        },
+        "activeSessions": {
+          "type": "number",
+          "description": "Number of active (non-disposed) sessions on the server"
         }
       },
       "required": [
@@ -1171,7 +1204,7 @@
           "type": "number",
           "description": "Approximate size in bytes"
         },
-        "mimeType": {
+        "contentType": {
           "type": "string",
           "description": "Content MIME type"
         }
@@ -1200,6 +1233,11 @@
         "toolClientId": {
           "type": "string",
           "description": "If this tool is provided by a client, the `clientId` of the owning client.\nAbsent for server-side tools.\n\nWhen set, the identified client is responsible for executing the tool and\ndispatching `session/toolCallComplete` with the result."
+        },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this tool call.\n\nClients MAY look for well-known keys here to provide enhanced UI.\nFor example, a `ptyTerminal` key with `{ input: string; output: string }`\nindicates the tool operated on a terminal (both `input` and `output` may\ncontain escape sequences)."
         }
       },
       "required": [
@@ -1747,6 +1785,9 @@
         },
         {
           "$ref": "#/$defs/IRootAgentsChangedAction"
+        },
+        {
+          "$ref": "#/$defs/IRootActiveSessionsChangedAction"
         },
         {
           "$ref": "#/$defs/ISessionReadyAction"

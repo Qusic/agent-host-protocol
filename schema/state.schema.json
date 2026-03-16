@@ -15,6 +15,10 @@
             "$ref": "#/$defs/IAgentInfo"
           },
           "description": "Available agent backends and their models"
+        },
+        "activeSessions": {
+          "type": "number",
+          "description": "Number of active (non-disposed) sessions on the server"
         }
       },
       "required": [
@@ -417,7 +421,7 @@
           "type": "number",
           "description": "Approximate size in bytes"
         },
-        "mimeType": {
+        "contentType": {
           "type": "string",
           "description": "Content MIME type"
         }
@@ -446,6 +450,11 @@
         "toolClientId": {
           "type": "string",
           "description": "If this tool is provided by a client, the `clientId` of the owning client.\nAbsent for server-side tools.\n\nWhen set, the identified client is responsible for executing the tool and\ndispatching `session/toolCallComplete` with the result."
+        },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this tool call.\n\nClients MAY look for well-known keys here to provide enhanced UI.\nFor example, a `ptyTerminal` key with `{ input: string; output: string }`\nindicates the tool operated on a terminal (both `input` and `output` may\ncontain escape sequences)."
         }
       },
       "required": [

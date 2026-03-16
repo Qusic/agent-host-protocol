@@ -25,17 +25,18 @@ This MUST be the first message sent by the client.
 
 **Result:**
 
-| Field | Type | Description |
-|---|---|---|
-| `protocolVersion` | `number` | Protocol version the server speaks |
-| `serverSeq` | `number` | Current server sequence number |
-| `snapshots` | [ISnapshot](/reference/state-types#isnapshot)[] | Snapshots for each `initialSubscriptions` URI |
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `protocolVersion` | `number` | Yes | Protocol version the server speaks |
+| `serverSeq` | `number` | Yes | Current server sequence number |
+| `snapshots` | [ISnapshot](/reference/state-types#isnapshot)[] | Yes | Snapshots for each `initialSubscriptions` URI |
+| `defaultDirectory` | `string` | No | Default working directory for sessions, if the server has one |
 
 See [Lifecycle](/specification/lifecycle) for details.
 
 ---
 
-## `reconnect` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L62" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+## `reconnect` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L64" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Re-establishes a dropped connection. The server replays missed actions or
 provides fresh snapshots.
@@ -75,7 +76,7 @@ See [Lifecycle](/specification/lifecycle) for details.
 
 ---
 
-## `createSession` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L154" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+## `createSession` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L156" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Creates a new session with the specified agent provider.
 
@@ -98,6 +99,7 @@ clients.
 | `session` | [URI](/reference/state-types#uri) | Yes | Session URI (client-chosen, e.g. `copilot:/&lt;uuid&gt;`) |
 | `provider` | `string` | No | Agent provider ID |
 | `model` | `string` | No | Model ID to use |
+| `workingDirectory` | `string` | No | Working directory for the session |
 
 **Result:** `null` on success.
 
@@ -127,7 +129,7 @@ clients.
 
 ---
 
-## `disposeSession` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L176" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+## `disposeSession` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L180" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Disposes a session and cleans up server-side resources.
 
@@ -150,7 +152,7 @@ The server broadcasts a `notify/sessionRemoved` notification to all clients.
 
 ---
 
-## `listSessions` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L196" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+## `listSessions` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L200" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Returns a list of session summaries. Used to populate session lists and sidebars.
 
@@ -177,7 +179,7 @@ large. Clients fetch it imperatively and maintain a local cache updated by
 
 ---
 
-## `fetchContent` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L234" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+## `fetchContent` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L238" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Fetches large content referenced by a `ContentRef` in the state tree.
 
@@ -229,7 +231,7 @@ use `utf-8` encoding.
 
 ---
 
-## `fetchTurns` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L279" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+## `fetchTurns` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L283" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Fetches historical turns for a session. Used for lazy loading of conversation
 history.

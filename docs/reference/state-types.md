@@ -11,11 +11,12 @@ Complete reference for all state types in the Agent Host Protocol.
 
 Global state shared with every client subscribed to `agenthost:/root`.
 
-| Field | Type | Description |
-|---|---|---|
-| `agents` | [IAgentInfo](#iagentinfo)[] | Available agent backends and their models |
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `agents` | [IAgentInfo](#iagentinfo)[] | Yes | Available agent backends and their models |
+| `activeSessions` | `number` | No | Number of active (non-disposed) sessions on the server |
 
-### `IAgentInfo` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L36" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IAgentInfo` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L38" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 | Field | Type | Description |
 |---|---|---|
@@ -24,7 +25,7 @@ Global state shared with every client subscribed to `agenthost:/root`.
 | `description` | `string` | Description string |
 | `models` | [ISessionModelInfo](#isessionmodelinfo)[] | Available models for this agent |
 
-### `ISessionModelInfo` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L50" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `ISessionModelInfo` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L52" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -37,7 +38,7 @@ Global state shared with every client subscribed to `agenthost:/root`.
 
 ## Session State
 
-### `ISessionState` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L72" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `ISessionState` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L74" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Full state for a single session, loaded when a client subscribes to the session's URI.
 
@@ -51,7 +52,7 @@ Full state for a single session, loaded when a client subscribes to the session'
 | `turns` | [ITurn](#iturn)[] | Yes | Completed turns |
 | `activeTurn` | [IActiveTurn](#iactiveturn) | No | Currently in-progress turn |
 
-### `ISessionSummary` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L109" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `ISessionSummary` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L111" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -65,7 +66,7 @@ Full state for a single session, loaded when a client subscribes to the session'
 
 ## Turn Types
 
-### `ITurn` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L133" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `ITurn` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L135" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 A completed request/response cycle.
 
@@ -80,7 +81,7 @@ A completed request/response cycle.
 | `state` | `'complete' \| 'cancelled' \| 'error'` | Yes | How the turn ended |
 | `error` | [IErrorInfo](#ierrorinfo) | No | Error details if state is `'error'` |
 
-### `IActiveTurn` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L157" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IActiveTurn` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L159" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 An in-progress turn — the assistant is actively streaming.
 
@@ -95,14 +96,14 @@ An in-progress turn — the assistant is actively streaming.
 | `reasoning` | `string` | Accumulated reasoning/thinking text |
 | `usage` | [IUsageInfo](#iusageinfo) \| undefined | Token usage info |
 
-### `IUserMessage` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L179" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IUserMessage` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L181" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `text` | `string` | Yes | Message text |
 | `attachments` | [IMessageAttachment](#imessageattachment)[] | No | File/selection attachments |
 
-### `IMessageAttachment` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L189" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IMessageAttachment` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L191" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -112,14 +113,14 @@ An in-progress turn — the assistant is actively streaming.
 
 ## Response Parts
 
-### `IMarkdownResponsePart` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L203" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IMarkdownResponsePart` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L205" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 | Field | Type | Description |
 |---|---|---|
 | `kind` | `'markdown'` | Discriminant |
 | `content` | `string` | Markdown content |
 
-### `IContentRef` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L215" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IContentRef` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L217" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 A reference to large content stored outside the state tree.
 
@@ -128,16 +129,16 @@ A reference to large content stored outside the state tree.
 | `kind` | `'contentRef'` | Yes | Discriminant |
 | `uri` | `string` | Yes | Content URI |
 | `sizeHint` | `number` | No | Approximate size in bytes |
-| `mimeType` | `string` | No | Content MIME type |
+| `contentType` | `string` | No | Content MIME type |
 
-### `IResponsePart` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L229" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IResponsePart` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L231" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 [IMarkdownResponsePart](#imarkdownresponsepart) | [IContentRef](#icontentref)
 
 
 ## Tool Call Types
 
-### `ToolCallStatus` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L239" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `ToolCallStatus` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L241" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Derived status type for the tool call lifecycle. This is the discriminant
 field (`status`) across all tool call state interfaces.
@@ -145,7 +146,7 @@ field (`status`) across all tool call state interfaces.
 [IToolCallState](#itoolcallstate)['status']
 
 
-### `ToolCallConfirmationReason` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L250" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `ToolCallConfirmationReason` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L252" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 How a tool call was confirmed for execution.
 
@@ -156,7 +157,7 @@ How a tool call was confirmed for execution.
 `'not-needed' | 'user-action' | 'setting'`
 
 
-### `IToolCallState` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L395" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IToolCallState` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L406" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Discriminated union of all tool call lifecycle states.
 
@@ -166,7 +167,7 @@ for the full state machine diagram.
 | [IToolCallStreamingState](#itoolcallstreamingstate) | [IToolCallPendingConfirmationState](#itoolcallpendingconfirmationstate) | [IToolCallRunningState](#itoolcallrunningstate) | [IToolCallPendingResultConfirmationState](#itoolcallpendingresultconfirmationstate) | [IToolCallCompletedState](#itoolcallcompletedstate) | [IToolCallCancelledState](#itoolcallcancelledstate)
 
 
-### `IToolCallResult` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L296" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IToolCallResult` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L307" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Tool execution result details, available after execution completes.
 
@@ -182,7 +183,7 @@ This mirrors the `content` field of MCP `CallToolResult`. |
 This mirrors the `structuredContent` field of MCP `CallToolResult`. |
 | `error` | `{ message: string; code?: string }` | No | Error details if the tool failed |
 
-### `IToolCallStreamingState` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L322" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IToolCallStreamingState` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L333" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 LM is streaming the tool call parameters.
 
@@ -192,7 +193,7 @@ LM is streaming the tool call parameters.
 | `partialInput` | `string` | No | Partial parameters accumulated so far |
 | `invocationMessage` | [StringOrMarkdown](#stringormarkdown) | No | Progress message shown while parameters are streaming |
 
-### `IToolCallPendingConfirmationState` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L335" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IToolCallPendingConfirmationState` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L346" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Parameters are complete, waiting for client to confirm execution.
 
@@ -200,7 +201,7 @@ Parameters are complete, waiting for client to confirm execution.
 |---|---|---|
 | `status` | `'pending-confirmation'` |  |
 
-### `IToolCallRunningState` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L344" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IToolCallRunningState` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L355" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Tool is actively executing.
 
@@ -209,7 +210,7 @@ Tool is actively executing.
 | `status` | `'running'` |  |
 | `confirmed` | [ToolCallConfirmationReason](#toolcallconfirmationreason) | How the tool was confirmed for execution |
 
-### `IToolCallPendingResultConfirmationState` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L355" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IToolCallPendingResultConfirmationState` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L366" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Tool finished executing, waiting for client to approve the result.
 
@@ -218,7 +219,7 @@ Tool finished executing, waiting for client to approve the result.
 | `status` | `'pending-result-confirmation'` |  |
 | `confirmed` | [ToolCallConfirmationReason](#toolcallconfirmationreason) | How the tool was confirmed for execution |
 
-### `IToolCallCompletedState` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L366" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IToolCallCompletedState` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L377" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Tool completed successfully or with an error.
 
@@ -227,7 +228,7 @@ Tool completed successfully or with an error.
 | `status` | `'completed'` |  |
 | `confirmed` | [ToolCallConfirmationReason](#toolcallconfirmationreason) | How the tool was confirmed for execution |
 
-### `IToolCallCancelledState` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L377" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IToolCallCancelledState` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L388" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Tool call was cancelled before execution.
 
@@ -240,7 +241,7 @@ Tool call was cancelled before execution.
 
 ## Permission Types
 
-### `IPermissionRequest` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L524" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IPermissionRequest` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L535" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -256,7 +257,7 @@ Tool call was cancelled before execution.
 
 ## Common Types
 
-### `IUsageInfo` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L550" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IUsageInfo` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L561" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -265,7 +266,7 @@ Tool call was cancelled before execution.
 | `model` | `string` | No | Model used |
 | `cacheReadTokens` | `number` | No | Tokens read from cache |
 
-### `IErrorInfo` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L564" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `IErrorInfo` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L575" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -273,7 +274,7 @@ Tool call was cancelled before execution.
 | `message` | `string` | Yes | Human-readable error message |
 | `stack` | `string` | No | Stack trace |
 
-### `ISnapshot` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L579" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+### `ISnapshot` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/state.ts#L590" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 A point-in-time snapshot of a subscribed resource's state, returned by
 `initialize`, `reconnect`, and `subscribe`.

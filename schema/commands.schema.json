@@ -48,6 +48,10 @@
             "$ref": "#/$defs/ISnapshot"
           },
           "description": "Snapshots for each `initialSubscriptions` URI"
+        },
+        "defaultDirectory": {
+          "type": "string",
+          "description": "Default working directory for sessions, if the server has one"
         }
       },
       "required": [
@@ -171,6 +175,10 @@
         "model": {
           "type": "string",
           "description": "Model ID to use"
+        },
+        "workingDirectory": {
+          "type": "string",
+          "description": "Working directory for the session"
         }
       },
       "required": [
@@ -312,6 +320,55 @@
         "action"
       ]
     },
+    "IBrowseDirectoryParams": {
+      "type": "object",
+      "description": "Lists the contents of a directory on the server. Used by clients to\npresent directory pickers or file browsers.",
+      "properties": {
+        "directory": {
+          "type": "string",
+          "description": "Directory path to browse. Omit to list the default/root directory."
+        }
+      }
+    },
+    "IBrowseDirectoryEntry": {
+      "type": "object",
+      "description": "A single entry in a directory listing.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Entry name (not a full path)"
+        },
+        "isDirectory": {
+          "type": "boolean",
+          "description": "Whether this entry is a directory"
+        }
+      },
+      "required": [
+        "name",
+        "isDirectory"
+      ]
+    },
+    "IBrowseDirectoryResult": {
+      "type": "object",
+      "description": "Result of the `browseDirectory` command.",
+      "properties": {
+        "directory": {
+          "type": "string",
+          "description": "Absolute path of the listed directory"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IBrowseDirectoryEntry"
+          },
+          "description": "Entries in the directory"
+        }
+      },
+      "required": [
+        "directory",
+        "entries"
+      ]
+    },
     "IRootState": {
       "type": "object",
       "description": "Global state shared with every client subscribed to `agenthost:/root`.",
@@ -322,6 +379,10 @@
             "$ref": "#/$defs/IAgentInfo"
           },
           "description": "Available agent backends and their models"
+        },
+        "activeSessions": {
+          "type": "number",
+          "description": "Number of active (non-disposed) sessions on the server"
         }
       },
       "required": [
@@ -724,7 +785,7 @@
           "type": "number",
           "description": "Approximate size in bytes"
         },
-        "mimeType": {
+        "contentType": {
           "type": "string",
           "description": "Content MIME type"
         }
@@ -753,6 +814,11 @@
         "toolClientId": {
           "type": "string",
           "description": "If this tool is provided by a client, the `clientId` of the owning client.\nAbsent for server-side tools.\n\nWhen set, the identified client is responsible for executing the tool and\ndispatching `session/toolCallComplete` with the result."
+        },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this tool call.\n\nClients MAY look for well-known keys here to provide enhanced UI.\nFor example, a `ptyTerminal` key with `{ input: string; output: string }`\nindicates the tool operated on a terminal (both `input` and `output` may\ncontain escape sequences)."
         }
       },
       "required": [
@@ -1215,6 +1281,22 @@
         "fromSeq"
       ]
     },
+    "IActionOrigin": {
+      "type": "object",
+      "description": "Identifies the client that originally dispatched an action.",
+      "properties": {
+        "clientId": {
+          "type": "string"
+        },
+        "clientSeq": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "clientId",
+        "clientSeq"
+      ]
+    },
     "IActionEnvelope": {
       "type": "object",
       "description": "Every action is wrapped in an `ActionEnvelope`.",
@@ -1226,19 +1308,7 @@
           "type": "number"
         },
         "origin": {
-          "type": "object",
-          "properties": {
-            "clientId": {
-              "type": "string"
-            },
-            "clientSeq": {
-              "type": "number"
-            }
-          },
-          "required": [
-            "clientId",
-            "clientSeq"
-          ]
+          "$ref": "#/$defs/IActionOrigin"
         },
         "rejectionReason": {
           "type": "string"
@@ -1265,6 +1335,11 @@
         "toolCallId": {
           "type": "string",
           "description": "Tool call identifier"
+        },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this tool call.\n\nClients MAY look for well-known keys here to provide enhanced UI.\nFor example, a `ptyTerminal` key with `{ input: string; output: string }`\nindicates the tool operated on a terminal (both `input` and `output` may\ncontain escape sequences)."
         }
       },
       "required": [
@@ -1294,6 +1369,26 @@
       "required": [
         "type",
         "agents"
+      ]
+    },
+    "IRootActiveSessionsChangedAction": {
+      "type": "object",
+      "description": "Fired when the number of active sessions changes.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "root/activeSessionsChanged"
+          ]
+        },
+        "activeSessions": {
+          "type": "number",
+          "description": "Current count of active sessions"
+        }
+      },
+      "required": [
+        "type",
+        "activeSessions"
       ]
     },
     "ISessionReadyAction": {

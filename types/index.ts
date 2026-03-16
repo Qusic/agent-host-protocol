@@ -23,8 +23,6 @@ export type {
   IMarkdownResponsePart,
   IContentRef,
   IResponsePart,
-  ToolCallStatus,
-  ToolCallConfirmationReason,
   IToolCallResult,
   IToolCallStreamingState,
   IToolCallPendingConfirmationState,
@@ -45,10 +43,26 @@ export type {
   ISnapshot,
 } from './state.js';
 
+export {
+  PolicyState,
+  SessionLifecycle,
+  SessionStatus,
+  TurnState,
+  AttachmentType,
+  ResponsePartKind,
+  ToolCallStatus,
+  ToolCallConfirmationReason,
+  ToolCallCancellationReason,
+  ToolResultContentType,
+  PermissionKind,
+} from './state.js';
+
 // Action types
 export type {
   IActionEnvelope,
+  IActionOrigin,
   IRootAgentsChangedAction,
+  IRootActiveSessionsChangedAction,
   ISessionReadyAction,
   ISessionCreationFailedAction,
   ISessionTurnStartedAction,
@@ -77,6 +91,8 @@ export type {
   IStateAction,
 } from './actions.js';
 
+export { ActionType } from './actions.js';
+
 // Command types
 export type {
   IInitializeParams,
@@ -97,7 +113,12 @@ export type {
   IFetchTurnsResult,
   IUnsubscribeParams,
   IDispatchActionParams,
+  IBrowseDirectoryParams,
+  IBrowseDirectoryEntry,
+  IBrowseDirectoryResult,
 } from './commands.js';
+
+export { ReconnectResultType, ContentEncoding } from './commands.js';
 
 // Notification types
 export type {
@@ -105,6 +126,8 @@ export type {
   ISessionRemovedNotification,
   IProtocolNotification,
 } from './notifications.js';
+
+export { NotificationType } from './notifications.js';
 
 // Error codes
 export {
@@ -121,7 +144,9 @@ export {
   PROTOCOL_VERSION,
   MIN_PROTOCOL_VERSION,
   ACTION_INTRODUCED_IN,
+  NOTIFICATION_INTRODUCED_IN,
   isActionKnownToVersion,
+  isNotificationKnownToVersion,
   capabilitiesForVersion,
 } from './version/registry.js';
 export type { ProtocolCapabilities } from './version/registry.js';
