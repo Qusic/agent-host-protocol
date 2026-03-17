@@ -202,6 +202,22 @@
         }
       }
     },
+    "IListSessionsResult": {
+      "type": "object",
+      "description": "Result of the `listSessions` command.",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ISessionSummary"
+          },
+          "description": "The list of session summaries."
+        }
+      },
+      "required": [
+        "items"
+      ]
+    },
     "IFetchContentParams": {
       "type": "object",
       "description": "Fetches large content referenced by a `ContentRef` in the state tree.\n\nContent references keep the state tree small by storing large data (images,\nlong tool outputs) by reference rather than inline.\n\nBinary content (images, etc.) MUST use `base64` encoding. Text content MAY\nuse `utf-8` encoding.",

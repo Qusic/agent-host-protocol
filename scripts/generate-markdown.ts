@@ -588,7 +588,7 @@ const COMMAND_ORDER: CommandMeta[] = [
   { method: 'reconnect', paramsInterface: 'IReconnectParams' },
   { method: 'createSession', paramsInterface: 'ICreateSessionParams', resultText: '`null` on success.' },
   { method: 'disposeSession', paramsInterface: 'IDisposeSessionParams', resultText: '`null` on success.' },
-  { method: 'listSessions', paramsInterface: 'IListSessionsParams', resultText: '`ISessionSummary[]`' },
+  { method: 'listSessions', paramsInterface: 'IListSessionsParams', resultInterface: 'IListSessionsResult' },
   { method: 'fetchContent', paramsInterface: 'IFetchContentParams', resultInterface: 'IFetchContentResult' },
   { method: 'browseDirectory', paramsInterface: 'IBrowseDirectoryParams', resultInterface: 'IBrowseDirectoryResult' },
   { method: 'fetchTurns', paramsInterface: 'IFetchTurnsParams', resultInterface: 'IFetchTurnsResult' },

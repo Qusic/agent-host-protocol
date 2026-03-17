@@ -171,7 +171,11 @@ large. Clients fetch it imperatively and maintain a local cache updated by
 |---|---|---|---|
 | `filter` | `object` | No | Optional filter criteria |
 
-**Result:** `ISessionSummary[]`
+**Result:**
+
+| Field | Type | Description |
+|---|---|---|
+| `items` | [ISessionSummary](/reference/state-types#isessionsummary)[] | The list of session summaries. |
 
 The session list is **not** part of the state tree because it can be arbitrarily
 large. Clients fetch it imperatively and maintain a local cache updated by
@@ -179,7 +183,7 @@ large. Clients fetch it imperatively and maintain a local cache updated by
 
 ---
 
-## `fetchContent` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L258" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+## `fetchContent` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L261" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Fetches large content referenced by a `ContentRef` in the state tree.
 
@@ -231,7 +235,7 @@ use `utf-8` encoding.
 
 ---
 
-## `browseDirectory` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L293" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+## `browseDirectory` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L296" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Lists directory entries at a file URI on the server's filesystem.
 
@@ -268,7 +272,7 @@ server MUST return a JSON-RPC error.
 
 ---
 
-## `fetchTurns` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L344" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
+## `fetchTurns` <a href="https://github.com/microsoft/agent-host-protocol/blob/main/types/commands.ts#L347" title="View source" style="float:right;font-size:0.75em;opacity:0.5;text-decoration:none">📄</a>
 
 Fetches historical turns for a session. Used for lazy loading of conversation
 history.
