@@ -57,6 +57,10 @@ import type {
   IProtocolNotification,
 } from '../notifications.js';
 
+import type {
+  IListSessionsResult,
+} from '../commands.js';
+
 // ─── Bidirectional Assignability Check ───────────────────────────────────────
 
 /**
@@ -114,6 +118,7 @@ type V1_ISessionServerToolsChangedAction = ISessionServerToolsChangedAction;
 type V1_ISessionActiveClientChangedAction = ISessionActiveClientChangedAction;
 type V1_ISessionActiveClientToolsChangedAction = ISessionActiveClientToolsChangedAction;
 type V1_IProtocolNotification = IProtocolNotification;
+type V1_IListSessionsResult = IListSessionsResult;
 
 // ─── Compatibility Assertions ────────────────────────────────────────────────
 
@@ -198,3 +203,5 @@ type _CheckActiveClientChangedAction = AssertCompatible<V1_ISessionActiveClientC
 type _CheckActiveClientToolsChangedAction = AssertCompatible<V1_ISessionActiveClientToolsChangedAction, ISessionActiveClientToolsChangedAction>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckProtocolNotification = AssertCompatible<V1_IProtocolNotification, IProtocolNotification>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckListSessionsResult = AssertCompatible<V1_IListSessionsResult, IListSessionsResult>;

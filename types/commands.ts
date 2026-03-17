@@ -212,8 +212,11 @@ export interface IListSessionsParams {
   filter?: object;
 }
 
-/** Result of the `listSessions` command: `ISessionSummary[]`. */
-export type IListSessionsResult = ISessionSummary[];
+/** Result of the `listSessions` command. */
+export interface IListSessionsResult {
+  /** The list of session summaries. */
+  items: ISessionSummary[];
+}
 
 // ─── fetchContent ────────────────────────────────────────────────────────────
 
