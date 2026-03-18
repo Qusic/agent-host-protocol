@@ -426,3 +426,52 @@ export interface IBrowseDirectoryEntry {
   /** Whether this entry is a directory */
   isDirectory: boolean;
 }
+
+// ─── authenticate ────────────────────────────────────────────────────────────
+
+/**
+ * Pushes a Bearer token for a protected resource. The `resource` field MUST
+ * match an `IProtectedResourceMetadata.resource` value declared by an agent
+ * in `IAgentInfo.protectedResources`.
+ *
+ * Tokens are delivered using [RFC 6750](https://datatracker.ietf.org/doc/html/rfc6750)
+ * (Bearer Token Usage) semantics. The client obtains the token from the
+ * authorization server(s) listed in the resource's metadata and pushes it
+ * to the server via this command.
+ *
+ * @category Commands
+ * @method authenticate
+ * @direction Client → Server
+ * @messageType Request
+ * @version 1
+ * @see {@link /specification/authentication | Authentication}
+ * @example
+ * ```jsonc
+ * // Client → Server
+ * { "jsonrpc": "2.0", "id": 3, "method": "authenticate",
+ *   "params": { "resource": "https://api.github.com", "token": "gho_xxxx" } }
+ *
+ * // Server → Client (success)
+ * { "jsonrpc": "2.0", "id": 3, "result": { "authenticated": true } }
+ *
+ * // Server → Client (failure — unknown resource)
+ * { "jsonrpc": "2.0", "id": 3, "result": { "authenticated": false } }
+ * ```
+ */
+export interface IAuthenticateParams {
+  /**
+   * The protected resource identifier. MUST match a `resource` value from
+   * `IProtectedResourceMetadata` declared in `IAgentInfo.protectedResources`.
+   */
+  resource: string;
+  /** Bearer token obtained from the resource's authorization server */
+  token: string;
+}
+
+/**
+ * Result of the `authenticate` command.
+ */
+export interface IAuthenticateResult {
+  /** Whether the server accepted the token for the specified resource */
+  authenticated: boolean;
+}
