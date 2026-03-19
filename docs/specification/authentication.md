@@ -19,7 +19,7 @@ sequenceDiagram
     AS-->>C: Token
 
     C->>S: authenticate({ resource, token })
-    S-->>C: { authenticated: true }
+    S-->>C: {}
 
     C->>S: createSession / other commands
 ```
@@ -101,15 +101,15 @@ Clients push Bearer tokens to the server using the [`authenticate`](/reference/c
   }
 }
 
-// Server → Client
+// Server → Client (success)
 {
   "jsonrpc": "2.0",
   "id": 3,
-  "result": { "authenticated": true }
+  "result": {}
 }
 ```
 
-The server SHOULD validate the token and return `{ "authenticated": false }` if the token is invalid or the resource is unrecognized.
+If the token is invalid or the resource is unrecognized, the server MUST return a JSON-RPC error (e.g. `AuthRequired` `-32007` or `InvalidParams` `-32602`).
 
 ### Why keyed by `resource`?
 

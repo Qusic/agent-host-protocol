@@ -452,10 +452,10 @@ export interface IBrowseDirectoryEntry {
  *   "params": { "resource": "https://api.github.com", "token": "gho_xxxx" } }
  *
  * // Server → Client (success)
- * { "jsonrpc": "2.0", "id": 3, "result": { "authenticated": true } }
+ * { "jsonrpc": "2.0", "id": 3, "result": {} }
  *
- * // Server → Client (failure — unknown resource)
- * { "jsonrpc": "2.0", "id": 3, "result": { "authenticated": false } }
+ * // Server → Client (failure — invalid token)
+ * { "jsonrpc": "2.0", "id": 3, "error": { "code": -32007, "message": "Invalid token" } }
  * ```
  */
 export interface IAuthenticateParams {
@@ -470,8 +470,10 @@ export interface IAuthenticateParams {
 
 /**
  * Result of the `authenticate` command.
+ *
+ * An empty object on success. If the token is invalid or the resource is
+ * unrecognized, the server MUST return a JSON-RPC error (e.g. `AuthRequired`
+ * `-32007` or `InvalidParams` `-32602`).
  */
 export interface IAuthenticateResult {
-  /** Whether the server accepted the token for the specified resource */
-  authenticated: boolean;
 }

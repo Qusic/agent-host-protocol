@@ -412,16 +412,8 @@
     },
     "IAuthenticateResult": {
       "type": "object",
-      "description": "Result of the `authenticate` command.",
-      "properties": {
-        "authenticated": {
-          "type": "boolean",
-          "description": "Whether the server accepted the token for the specified resource"
-        }
-      },
-      "required": [
-        "authenticated"
-      ]
+      "description": "Result of the `authenticate` command.\n\nAn empty object on success. If the token is invalid or the resource is\nunrecognized, the server MUST return a JSON-RPC error (e.g. `AuthRequired`\n`-32007` or `InvalidParams` `-32602`).",
+      "properties": {}
     },
     "IProtectedResourceMetadata": {
       "type": "object",
