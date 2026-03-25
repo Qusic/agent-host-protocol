@@ -17,6 +17,7 @@ import type {
   IToolDefinition,
   ISessionActiveClient,
   IUsageInfo,
+  ISessionCustomization,
 } from './state.js';
 
 import { ToolCallConfirmationReason, ToolCallCancellationReason, PendingMessageKind } from './state.js';
@@ -55,6 +56,8 @@ export const enum ActionType {
   SessionPendingMessageSet = 'session/pendingMessageSet',
   SessionPendingMessageRemoved = 'session/pendingMessageRemoved',
   SessionQueuedMessagesReordered = 'session/queuedMessagesReordered',
+  SessionCustomizationsChanged = 'session/customizationsChanged',
+  SessionCustomizationToggled = 'session/customizationToggled',
 }
 
 // ─── Action Envelope ─────────────────────────────────────────────────────────
@@ -531,6 +534,45 @@ export interface ISessionActiveClientToolsChangedAction {
   tools: IToolDefinition[];
 }
 
+// ─── Customization Actions ───────────────────────────────────────────────────
+
+/**
+ * The session's customizations have changed.
+ *
+ * Full-replacement semantics: the `customizations` array replaces the
+ * previous `customizations` entirely.
+ *
+ * @category Session Actions
+ * @version 1
+ */
+export interface ISessionCustomizationsChangedAction {
+  type: ActionType.SessionCustomizationsChanged;
+  /** Session URI */
+  session: URI;
+  /** Updated customization list (full replacement) */
+  customizations: ISessionCustomization[];
+}
+
+/**
+ * A client toggled a customization on or off.
+ *
+ * The server locates the customization by `uri` in the session's
+ * customization list and sets its `enabled` flag.
+ *
+ * @category Session Actions
+ * @version 1
+ * @clientDispatchable
+ */
+export interface ISessionCustomizationToggledAction {
+  type: ActionType.SessionCustomizationToggled;
+  /** Session URI */
+  session: URI;
+  /** The URI of the customization to toggle */
+  uri: URI;
+  /** Whether to enable or disable the customization */
+  enabled: boolean;
+}
+
 // ─── Pending Message Actions ─────────────────────────────────────────────────
 
 /**
@@ -631,4 +673,6 @@ export type IStateAction =
   | ISessionActiveClientToolsChangedAction
   | ISessionPendingMessageSetAction
   | ISessionPendingMessageRemovedAction
-  | ISessionQueuedMessagesReorderedAction;
+  | ISessionQueuedMessagesReorderedAction
+  | ISessionCustomizationsChangedAction
+  | ISessionCustomizationToggledAction;

@@ -43,6 +43,9 @@ import type {
   IErrorInfo,
   ISnapshot,
   IPendingMessage,
+  Icon,
+  ICustomizationRef,
+  ISessionCustomization,
 } from '../state.js';
 
 import type {
@@ -58,6 +61,8 @@ import type {
   ISessionPendingMessageSetAction,
   ISessionPendingMessageRemovedAction,
   ISessionQueuedMessagesReorderedAction,
+  ISessionCustomizationsChangedAction,
+  ISessionCustomizationToggledAction,
 } from '../actions.js';
 
 import type {
@@ -129,6 +134,9 @@ type V1_IUsageInfo = IUsageInfo;
 type V1_IErrorInfo = IErrorInfo;
 type V1_ISnapshot = ISnapshot;
 type V1_IPendingMessage = IPendingMessage;
+type V1_Icon = Icon;
+type V1_ICustomizationRef = ICustomizationRef;
+type V1_ISessionCustomization = ISessionCustomization;
 type V1_IStateAction = IStateAction;
 type V1_IActionEnvelope = IActionEnvelope;
 type V1_IActionOrigin = IActionOrigin;
@@ -141,6 +149,8 @@ type V1_ISessionActiveClientToolsChangedAction = ISessionActiveClientToolsChange
 type V1_ISessionPendingMessageSetAction = ISessionPendingMessageSetAction;
 type V1_ISessionPendingMessageRemovedAction = ISessionPendingMessageRemovedAction;
 type V1_ISessionQueuedMessagesReorderedAction = ISessionQueuedMessagesReorderedAction;
+type V1_ISessionCustomizationsChangedAction = ISessionCustomizationsChangedAction;
+type V1_ISessionCustomizationToggledAction = ISessionCustomizationToggledAction;
 type V1_IProtocolNotification = IProtocolNotification;
 type V1_IAuthRequiredNotification = IAuthRequiredNotification;
 type V1_IListSessionsResult = IListSessionsResult;
@@ -244,6 +254,16 @@ type _CheckPendingMessageSetAction = AssertCompatible<V1_ISessionPendingMessageS
 type _CheckPendingMessageRemovedAction = AssertCompatible<V1_ISessionPendingMessageRemovedAction, ISessionPendingMessageRemovedAction>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckQueuedMessagesReorderedAction = AssertCompatible<V1_ISessionQueuedMessagesReorderedAction, ISessionQueuedMessagesReorderedAction>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckIcon = AssertCompatible<V1_Icon, Icon>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckCustomizationRef = AssertCompatible<V1_ICustomizationRef, ICustomizationRef>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckSessionCustomization = AssertCompatible<V1_ISessionCustomization, ISessionCustomization>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckCustomizationsChangedAction = AssertCompatible<V1_ISessionCustomizationsChangedAction, ISessionCustomizationsChangedAction>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckCustomizationToggledAction = AssertCompatible<V1_ISessionCustomizationToggledAction, ISessionCustomizationToggledAction>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckProtocolNotification = AssertCompatible<V1_IProtocolNotification, IProtocolNotification>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

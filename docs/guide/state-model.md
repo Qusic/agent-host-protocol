@@ -20,6 +20,7 @@ AgentInfo {
   displayName: string
   description: string
   models: ModelInfo[]
+  customizations?: CustomizationRef[]  // Open Plugins
 }
 
 ModelInfo {
@@ -46,6 +47,7 @@ SessionState {
   workingDirectory?: URI
   turns: Turn[]
   activeTurn: ActiveTurn | undefined
+  customizations?: SessionCustomization[]  // server-provided plugins
 }
 ```
 
@@ -278,5 +280,6 @@ Clients can **set** or **remove** both steering and queued messages at any time 
 ## Next Steps
 
 - [Actions](/guide/actions) — How state is mutated.
+- [Customizations](/guide/customizations) — Extending sessions with Open Plugins.
 - [Write-Ahead Reconciliation](/guide/reconciliation) — How clients stay in sync.
 - [State Types Reference](/reference/state-types) — Complete type definitions.

@@ -21,7 +21,7 @@ import { IS_CLIENT_DISPATCHABLE } from './action-origin.generated.js';
  * clients receiving unknown actions from a newer server degrade gracefully.
  */
 export function softAssertNever(value: never, log?: (msg: string) => void): void {
-  const msg = `Unhandled action type: ${(value as { type: string }).type}`;
+  const msg = `Unhandled action type: ${JSON.stringify(value)}`;
   (log ?? console.warn)(msg);
 }
 
@@ -451,6 +451,25 @@ export function sessionReducer(state: ISessionState, action: ISessionAction, log
         ...state,
         activeClient: { ...state.activeClient, tools: action.tools },
       };
+
+    // ── Customizations ──────────────────────────────────────────────────
+
+    case ActionType.SessionCustomizationsChanged:
+      return { ...state, customizations: action.customizations };
+
+    case ActionType.SessionCustomizationToggled: {
+      const list = state.customizations;
+      if (!list) {
+        return state;
+      }
+      const idx = list.findIndex(c => c.customization.uri === action.uri);
+      if (idx < 0) {
+        return state;
+      }
+      const updated = [...list];
+      updated[idx] = { ...list[idx], enabled: action.enabled };
+      return { ...state, customizations: updated };
+    }
 
     // ── Pending Messages ──────────────────────────────────────────────────
 

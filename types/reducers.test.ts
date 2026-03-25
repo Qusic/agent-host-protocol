@@ -1005,3 +1005,82 @@ describe('sessionReducer — queuedMessagesReordered', () => {
     assert.strictEqual(result, state);
   });
 });
+
+// ─── Customization Tests ─────────────────────────────────────────────────────
+
+describe('sessionReducer — customizations', () => {
+  const cRef1 = { uri: 'https://plugins.example/a', displayName: 'Plugin A' };
+  const cRef2 = { uri: 'https://plugins.example/b', displayName: 'Plugin B' };
+
+  describe('session/customizationsChanged', () => {
+    it('replaces the entire customizations list', () => {
+      const state = makeSessionState();
+      const customizations = [
+        { customization: cRef1, enabled: true },
+        { customization: cRef2, enabled: false, clientId: 'client-1' },
+      ];
+      const result = sessionReducer(state, {
+        type: ActionType.SessionCustomizationsChanged,
+        session: S,
+        customizations,
+      });
+      assert.deepStrictEqual(result.customizations, customizations);
+    });
+
+    it('replaces existing customizations', () => {
+      const state = makeSessionState({
+        customizations: [{ customization: cRef1, enabled: true }],
+      });
+      const customizations = [{ customization: cRef2, enabled: false }];
+      const result = sessionReducer(state, {
+        type: ActionType.SessionCustomizationsChanged,
+        session: S,
+        customizations,
+      });
+      assert.deepStrictEqual(result.customizations, customizations);
+    });
+  });
+
+  describe('session/customizationToggled', () => {
+    it('toggles a customization by URI', () => {
+      const state = makeSessionState({
+        customizations: [
+          { customization: cRef1, enabled: true },
+          { customization: cRef2, enabled: true },
+        ],
+      });
+      const result = sessionReducer(state, {
+        type: ActionType.SessionCustomizationToggled,
+        session: S,
+        uri: cRef1.uri,
+        enabled: false,
+      });
+      assert.equal(result.customizations![0].enabled, false);
+      assert.equal(result.customizations![1].enabled, true);
+    });
+
+    it('is no-op for unknown URI', () => {
+      const state = makeSessionState({
+        customizations: [{ customization: cRef1, enabled: true }],
+      });
+      const result = sessionReducer(state, {
+        type: ActionType.SessionCustomizationToggled,
+        session: S,
+        uri: 'https://plugins.example/unknown',
+        enabled: false,
+      });
+      assert.strictEqual(result, state);
+    });
+
+    it('is no-op when customizations is undefined', () => {
+      const state = makeSessionState();
+      const result = sessionReducer(state, {
+        type: ActionType.SessionCustomizationToggled,
+        session: S,
+        uri: cRef1.uri,
+        enabled: false,
+      });
+      assert.strictEqual(result, state);
+    });
+  });
+});

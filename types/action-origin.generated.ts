@@ -29,6 +29,8 @@ import type {
   ISessionPendingMessageSetAction,
   ISessionPendingMessageRemovedAction,
   ISessionQueuedMessagesReorderedAction,
+  ISessionCustomizationsChangedAction,
+  ISessionCustomizationToggledAction,
 } from './actions.js';
 
 import { ActionType } from './actions.js';
@@ -67,6 +69,8 @@ export type ISessionAction =
   | ISessionPendingMessageSetAction
   | ISessionPendingMessageRemovedAction
   | ISessionQueuedMessagesReorderedAction
+  | ISessionCustomizationsChangedAction
+  | ISessionCustomizationToggledAction
 ;
 
 /** Union of session actions that clients may dispatch. */
@@ -82,6 +86,7 @@ export type IClientSessionAction =
   | ISessionPendingMessageSetAction
   | ISessionPendingMessageRemovedAction
   | ISessionQueuedMessagesReorderedAction
+  | ISessionCustomizationToggledAction
 ;
 
 /** Union of session actions that only the server may produce. */
@@ -99,6 +104,7 @@ export type IServerSessionAction =
   | ISessionUsageAction
   | ISessionReasoningAction
   | ISessionServerToolsChangedAction
+  | ISessionCustomizationsChangedAction
 ;
 
 // ─── Client-Dispatchable Map ─────────────────────────────────────────────────
@@ -134,4 +140,6 @@ export const IS_CLIENT_DISPATCHABLE: { readonly [K in IStateAction['type']]: boo
   [ActionType.SessionPendingMessageSet]: true,
   [ActionType.SessionPendingMessageRemoved]: true,
   [ActionType.SessionQueuedMessagesReordered]: true,
+  [ActionType.SessionCustomizationsChanged]: false,
+  [ActionType.SessionCustomizationToggled]: true,
 };

@@ -1,0 +1,182 @@
+# Customizations
+
+Customizations extend agent sessions with additional capabilities through [Open Plugins](https://open-plugins.com/) — a standard for packaging agent extensions like skills, hooks, MCP servers, and rules into distributable plugins.
+
+AHP treats plugins as opaque references. The protocol specifies identity and metadata (URI, display name, description, icons) but **not** plugin implementation details, which are defined by the Open Plugins specification.
+
+## Sources
+
+Customizations enter a session from two sources:
+
+1. **Server-provided** — The agent host declares customizations on each agent via `AgentInfo.customizations`. When a session is created, the server activates relevant plugins and exposes them in `SessionState.customizations` with loading status.
+2. **Client-provided** — The active client contributes customizations via `SessionActiveClient.customizations`. These are lightweight references that the server may act on (e.g. loading the plugin server-side).
+
+```mermaid
+flowchart LR
+    subgraph "Root State"
+        AI["AgentInfo\n.customizations"]
+    end
+
+    subgraph "Session State"
+        SC["SessionState\n.customizations"]
+        AC["SessionActiveClient\n.customizations"]
+    end
+
+    AI -- "server activates\non session create" --> SC
+    AC -- "client contributes\nvia activeClientChanged" --> AC
+```
+
+## Customization Reference
+
+A `CustomizationRef` identifies a plugin with minimal metadata:
+
+```typescript
+CustomizationRef {
+  uri: URI             // plugin URI (HTTPS URL, marketplace ID, etc.)
+  displayName: string  // human-readable name
+  description?: string // what the plugin provides
+  icons?: Icon[]       // icons for UI display
+}
+```
+
+The `uri` is the stable identity for a customization — it is used to match customizations across sources and for toggling.
+
+## Server Customizations
+
+Server-provided customizations are exposed in `SessionState.customizations` as `SessionCustomization` entries. Each entry wraps a `CustomizationRef` with session-specific state:
+
+```typescript
+SessionCustomization {
+  customization: CustomizationRef
+  enabled: boolean
+  status?: 'loading' | 'loaded' | 'degraded' | 'error'
+  statusMessage?: string
+}
+```
+
+### Loading Status
+
+The server reports the loading state of each plugin it manages:
+
+```mermaid
+stateDiagram-v2
+    [*] --> loading : session created
+
+    loading --> loaded : plugin ready
+    loading --> degraded : partial load (warnings)
+    loading --> error : load failed
+
+    degraded --> loaded : warnings resolved
+    loaded --> degraded : runtime warning
+
+    loaded --> error : runtime failure
+    degraded --> error : runtime failure
+```
+
+| Status | Meaning |
+|---|---|
+| `loading` | Plugin is being loaded (initial state) |
+| `loaded` | Plugin is fully operational |
+| `degraded` | Plugin partially loaded — some components work but there are warnings. `statusMessage` describes the issue. |
+| `error` | Plugin failed to load entirely. `statusMessage` contains the error. |
+
+The server updates `SessionState.customizations` via the `session/customizationsChanged` action whenever loading status changes. This action uses full-replacement semantics — the entire array is replaced.
+
+## Client Customizations
+
+The active client contributes customizations by including them in `SessionActiveClient.customizations` when claiming the active role (via `session/activeClientChanged`) or updating tools (via `session/activeClientToolsChanged`).
+
+Client customizations are `CustomizationRef` values — the client declares which plugins it has, and the server may choose to act on them (e.g. loading them server-side or surfacing them in the session's customization list).
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+
+    Client->>Server: activeClientChanged (activeClient with customizations)
+    Note over Server: Server registers client customizations
+    Server->>Client: action echoed back
+
+    Note over Server: Server may load client plugins<br/>and add to session customizations
+    Server->>Client: customizationsChanged (updated list)
+```
+
+When the active client disconnects or is replaced, its customizations are no longer available. The server SHOULD update `SessionState.customizations` accordingly.
+
+## Toggling Customizations
+
+Any client can enable or disable a customization by dispatching `session/customizationToggled`:
+
+```typescript
+{
+  type: 'session/customizationToggled'
+  session: URI
+  uri: URI         // customization to toggle
+  enabled: boolean // new enabled state
+}
+```
+
+This matches the customization by its `uri` field and sets `enabled`. The server applies the toggle and may react by activating or deactivating the plugin.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+
+    Note over Server: customizations: [Plugin A (enabled), Plugin B (enabled)]
+
+    Client->>Server: customizationToggled (uri: Plugin A, enabled: false)
+    Server->>Client: customizationToggled echoed
+    Note over Server: customizations: [Plugin A (disabled), Plugin B (enabled)]
+
+    Client->>Server: customizationToggled (uri: Plugin A, enabled: true)
+    Server->>Client: customizationToggled echoed
+    Note over Server: customizations: [Plugin A (enabled), Plugin B (enabled)]
+```
+
+## Actions Summary
+
+| Type | Client-dispatchable? | When |
+|---|---|---|
+| `session/customizationsChanged` | No | Server updated the session's customization list (full replacement) |
+| `session/customizationToggled` | **Yes** | Client toggled a customization on or off |
+
+## Full Session Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+
+    Note over Client,Server: 1. Client subscribes to session
+
+    Server->>Client: snapshot (customizations: loading)
+
+    Note over Server: Server loads agent plugins
+
+    Server->>Client: customizationsChanged (Plugin A: loaded, Plugin B: degraded)
+
+    Note over Client,Server: 2. Client becomes active with its own customizations
+
+    Client->>Server: activeClientChanged (tools + customizations: [Plugin C])
+    Server->>Client: action echoed
+
+    Server->>Client: customizationsChanged (Plugin A: loaded, Plugin B: degraded, Plugin C: loading)
+    Server->>Client: customizationsChanged (Plugin A: loaded, Plugin B: degraded, Plugin C: loaded)
+
+    Note over Client,Server: 3. Client disables a plugin
+
+    Client->>Server: customizationToggled (Plugin B, enabled: false)
+    Server->>Client: action echoed
+
+    Note over Client,Server: 4. Active client disconnects
+
+    Server->>Client: activeClientChanged (null)
+    Server->>Client: customizationsChanged (Plugin A: loaded, Plugin B: degraded)
+```
+
+## Next Steps
+
+- [State Model](/guide/state-model) — The state tree that customizations live in.
+- [Actions](/guide/actions) — How state is mutated by actions.
+- [State Types Reference](/reference/state-types) — Complete type definitions.

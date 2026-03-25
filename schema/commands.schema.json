@@ -419,6 +419,38 @@
       "description": "Result of the `authenticate` command.\n\nAn empty object on success. If the token is invalid or the resource is\nunrecognized, the server MUST return a JSON-RPC error (e.g. `AuthRequired`\n`-32007` or `InvalidParams` `-32602`).",
       "properties": {}
     },
+    "Icon": {
+      "type": "object",
+      "description": "An optionally-sized icon that can be displayed in a user interface.",
+      "properties": {
+        "src": {
+          "$ref": "#/$defs/URI",
+          "description": "A standard URI pointing to an icon resource. May be an HTTP/HTTPS URL or a\n`data:` URI with Base64-encoded image data.\n\nConsumers SHOULD take steps to ensure URLs serving icons are from the\nsame domain as the client/server or a trusted domain.\n\nConsumers SHOULD take appropriate precautions when consuming SVGs as they can contain\nexecutable JavaScript."
+        },
+        "contentType": {
+          "type": "string",
+          "description": "Optional MIME type override if the source MIME type is missing or generic.\nFor example: `\"image/png\"`, `\"image/jpeg\"`, or `\"image/svg+xml\"`."
+        },
+        "sizes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional array of strings that specify sizes at which the icon can be used.\nEach string should be in WxH format (e.g., `\"48x48\"`, `\"96x96\"`) or `\"any\"` for scalable formats like SVG.\n\nIf not provided, the client should assume that the icon can be used at any size."
+        },
+        "theme": {
+          "type": "string",
+          "enum": [
+            "light",
+            "dark"
+          ],
+          "description": "Optional specifier for the theme this icon is designed for. `\"light\"` indicates\nthe icon is designed to be used with a light background, and `\"dark\"` indicates\nthe icon is designed to be used with a dark background.\n\nIf not provided, the client should assume the icon can be used with any theme."
+        }
+      },
+      "required": [
+        "src"
+      ]
+    },
     "IProtectedResourceMetadata": {
       "type": "object",
       "description": "Describes a protected resource's authentication requirements using\n[RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) (OAuth 2.0\nProtected Resource Metadata) semantics.\n\nField names use snake_case to match the RFC 9728 JSON format.",
@@ -546,6 +578,13 @@
             "$ref": "#/$defs/IProtectedResourceMetadata"
           },
           "description": "Protected resources this agent requires authentication for.\n\nEach entry describes an OAuth 2.0 protected resource using\n[RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728) semantics.\nClients should obtain tokens from the declared `authorization_servers`\nand push them via the `authenticate` command before creating sessions\nwith this agent."
+        },
+        "customizations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ICustomizationRef"
+          },
+          "description": "Customizations (Open Plugins) associated with this agent.\n\nEach entry is a reference to an [Open Plugins](https://open-plugins.com/)\nplugin that the agent host can activate for sessions using this agent."
         }
       },
       "required": [
@@ -659,6 +698,13 @@
             "$ref": "#/$defs/IPendingMessage"
           },
           "description": "Messages to send automatically as new turns after the current turn finishes"
+        },
+        "customizations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ISessionCustomization"
+          },
+          "description": "Server-provided customizations active in this session.\n\nClient-provided customizations are available on\n{@link ISessionActiveClient.customizations | activeClient.customizations}."
         }
       },
       "required": [
@@ -685,6 +731,13 @@
             "$ref": "#/$defs/IToolDefinition"
           },
           "description": "Tools this client provides to the session"
+        },
+        "customizations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ICustomizationRef"
+          },
+          "description": "Customizations this client contributes to the session"
         }
       },
       "required": [
@@ -1306,6 +1359,61 @@
         "type",
         "beforeURI",
         "afterURI"
+      ]
+    },
+    "ICustomizationRef": {
+      "type": "object",
+      "description": "A reference to an [Open Plugins](https://open-plugins.com/) plugin.\n\nThis is intentionally thin — AHP specifies plugin identity and metadata\nbut not implementation details, which are defined by the Open Plugins spec.",
+      "properties": {
+        "uri": {
+          "$ref": "#/$defs/URI",
+          "description": "Plugin URI (e.g. an HTTPS URL or marketplace identifier)"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of what the plugin provides"
+        },
+        "icons": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Icon"
+          },
+          "description": "Icons for the plugin"
+        }
+      },
+      "required": [
+        "uri",
+        "displayName"
+      ]
+    },
+    "ISessionCustomization": {
+      "type": "object",
+      "description": "A customization active in a session.\n\nEntries without a `clientId` are server-provided; entries with a `clientId`\noriginate from that client.",
+      "properties": {
+        "customization": {
+          "$ref": "#/$defs/ICustomizationRef",
+          "description": "The plugin this customization refers to"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this customization is currently enabled"
+        },
+        "status": {
+          "$ref": "#/$defs/CustomizationStatus",
+          "description": "Server-reported loading status"
+        },
+        "statusMessage": {
+          "type": "string",
+          "description": "Human-readable status detail (e.g. error message or degradation warning)."
+        }
+      },
+      "required": [
+        "customization",
+        "enabled"
       ]
     },
     "IUsageInfo": {
@@ -2033,6 +2141,58 @@
         "type",
         "session",
         "tools"
+      ]
+    },
+    "ISessionCustomizationsChangedAction": {
+      "type": "object",
+      "description": "The session's customizations have changed.\n\nFull-replacement semantics: the `customizations` array replaces the\nprevious `customizations` entirely.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ActionType.SessionCustomizationsChanged"
+        },
+        "session": {
+          "$ref": "#/$defs/URI",
+          "description": "Session URI"
+        },
+        "customizations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ISessionCustomization"
+          },
+          "description": "Updated customization list (full replacement)"
+        }
+      },
+      "required": [
+        "type",
+        "session",
+        "customizations"
+      ]
+    },
+    "ISessionCustomizationToggledAction": {
+      "type": "object",
+      "description": "A client toggled a customization on or off.\n\nThe server locates the customization by `uri` in the session's\ncustomization list and sets its `enabled` flag.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ActionType.SessionCustomizationToggled"
+        },
+        "session": {
+          "$ref": "#/$defs/URI",
+          "description": "Session URI"
+        },
+        "uri": {
+          "$ref": "#/$defs/URI",
+          "description": "The URI of the customization to toggle"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether to enable or disable the customization"
+        }
+      },
+      "required": [
+        "type",
+        "session",
+        "uri",
+        "enabled"
       ]
     },
     "ISessionPendingMessageSetAction": {
