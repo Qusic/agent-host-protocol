@@ -50,6 +50,8 @@ export const ACTION_INTRODUCED_IN: { readonly [K in IStateAction['type']]: numbe
   [ActionType.SessionPendingMessageSet]: 1,
   [ActionType.SessionPendingMessageRemoved]: 1,
   [ActionType.SessionQueuedMessagesReordered]: 1,
+  [ActionType.SessionCustomizationsChanged]: 1,
+  [ActionType.SessionCustomizationToggled]: 1,
 };
 
 /**

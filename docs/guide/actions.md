@@ -77,6 +77,15 @@ A `session/toolUpdate` action for streaming incremental tool output (e.g. termin
 
 The `pendingMessageSet` and `pendingMessageRemoved` actions carry a `kind` discriminant (`'steering'` or `'queued'`). See the [State Model — Pending Messages](/guide/state-model#pending-messages) for semantics.
 
+### Customizations
+
+| Type | Client-dispatchable? | When |
+|---|---|---|
+| `session/customizationsChanged` | No | Server updated the session's customization list (full replacement) |
+| `session/customizationToggled` | **Yes** | Client toggled a customization on or off by URI |
+
+See the [Customizations guide](/guide/customizations) for the full flow.
+
 ## Client-Dispatched Actions
 
 Clients interact with the server by dispatching actions as fire-and-forget notifications:
@@ -104,6 +113,7 @@ The client applies the action **optimistically** to its local state before sendi
 | `session/pendingMessageSet` | Stores a steering or queued message (upsert); if queued and idle, auto-starts a turn |
 | `session/pendingMessageRemoved` | Cancels a pending message before it is consumed |
 | `session/queuedMessagesReordered` | Reorders queued messages; unknown IDs ignored, unmentioned messages kept at end |
+| `session/customizationToggled` | Toggles a customization on or off by URI |
 
 ## Reducers
 

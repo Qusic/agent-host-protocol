@@ -12,7 +12,8 @@
     "docs:build": "npm run generate && vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "typecheck": "tsc --noEmit -p types/tsconfig.json",
-    "test": "npm run typecheck && tsx --test types/*.test.ts"
+    "lint": "eslint",
+    "test": "npm run typecheck && npm run lint && node --test types/*.test.ts"
   },
   "repository": {
     "type": "git",
@@ -21,13 +22,16 @@
   "keywords": [],
   "author": "Microsoft Corporation",
   "license": "MIT",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/microsoft/agent-host-protocol/issues"
   },
   "homepage": "https://github.com/microsoft/agent-host-protocol#readme",
   "devDependencies": {
     "@types/node": "^25.5.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.2",
+    "@typescript-eslint/parser": "^8.57.2",
+    "eslint": "^10.1.0",
     "mermaid": "^11.13.0",
     "ts-morph": "^24.0.0",
     "tsx": "^4.19.0",

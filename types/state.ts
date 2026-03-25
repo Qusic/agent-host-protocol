@@ -18,6 +18,52 @@ export type URI = string;
  */
 export type StringOrMarkdown = string | { markdown: string };
 
+// ─── Icon ────────────────────────────────────────────────────────────────────
+
+/**
+ * An optionally-sized icon that can be displayed in a user interface.
+ *
+ * @category Common Types
+ */
+export interface Icon {
+  /**
+   * A standard URI pointing to an icon resource. May be an HTTP/HTTPS URL or a
+   * `data:` URI with Base64-encoded image data.
+   *
+   * Consumers SHOULD take steps to ensure URLs serving icons are from the
+   * same domain as the client/server or a trusted domain.
+   *
+   * Consumers SHOULD take appropriate precautions when consuming SVGs as they can contain
+   * executable JavaScript.
+   *
+   * @format uri
+   */
+  src: string;
+
+  /**
+   * Optional MIME type override if the source MIME type is missing or generic.
+   * For example: `"image/png"`, `"image/jpeg"`, or `"image/svg+xml"`.
+   */
+  contentType?: string;
+
+  /**
+   * Optional array of strings that specify sizes at which the icon can be used.
+   * Each string should be in WxH format (e.g., `"48x48"`, `"96x96"`) or `"any"` for scalable formats like SVG.
+   *
+   * If not provided, the client should assume that the icon can be used at any size.
+   */
+  sizes?: string[];
+
+  /**
+   * Optional specifier for the theme this icon is designed for. `"light"` indicates
+   * the icon is designed to be used with a light background, and `"dark"` indicates
+   * the icon is designed to be used with a dark background.
+   *
+   * If not provided, the client should assume the icon can be used with any theme.
+   */
+  theme?: 'light' | 'dark';
+}
+
 // ─── Protected Resource Metadata (RFC 9728) ─────────────────────────────────
 
 /**
@@ -133,6 +179,13 @@ export interface IAgentInfo {
    * @see {@link /specification/authentication | Authentication}
    */
   protectedResources?: IProtectedResourceMetadata[];
+  /**
+   * Customizations (Open Plugins) associated with this agent.
+   *
+   * Each entry is a reference to an [Open Plugins](https://open-plugins.com/)
+   * plugin that the agent host can activate for sessions using this agent.
+   */
+  customizations?: ICustomizationRef[];
 }
 
 /**
@@ -233,6 +286,13 @@ export interface ISessionState {
   steeringMessage?: IPendingMessage;
   /** Messages to send automatically as new turns after the current turn finishes */
   queuedMessages?: IPendingMessage[];
+  /**
+   * Server-provided customizations active in this session.
+   *
+   * Client-provided customizations are available on
+   * {@link ISessionActiveClient.customizations | activeClient.customizations}.
+   */
+  customizations?: ISessionCustomization[];
 }
 
 /**
@@ -250,6 +310,8 @@ export interface ISessionActiveClient {
   displayName?: string;
   /** Tools this client provides to the session */
   tools: IToolDefinition[];
+  /** Customizations this client contributes to the session */
+  customizations?: ICustomizationRef[];
 }
 
 /**
@@ -793,6 +855,64 @@ export type IToolResultContent =
   | IToolResultBinaryContent
   | IToolResultFileEditContent
   | IContentRef;
+
+// ─── Customization Types ─────────────────────────────────────────────────────
+
+/**
+ * A reference to an [Open Plugins](https://open-plugins.com/) plugin.
+ *
+ * This is intentionally thin — AHP specifies plugin identity and metadata
+ * but not implementation details, which are defined by the Open Plugins spec.
+ *
+ * @category Customization Types
+ */
+export interface ICustomizationRef {
+  /** Plugin URI (e.g. an HTTPS URL or marketplace identifier) */
+  uri: URI;
+  /** Human-readable name */
+  displayName: string;
+  /** Description of what the plugin provides */
+  description?: string;
+  /** Icons for the plugin */
+  icons?: Icon[];
+}
+
+/**
+ * Loading status for a server-managed customization.
+ *
+ * @category Customization Types
+ */
+export const enum CustomizationStatus {
+  /** Plugin is being loaded */
+  Loading = 'loading',
+  /** Plugin is fully operational */
+  Loaded = 'loaded',
+  /** Plugin partially loaded but has warnings */
+  Degraded = 'degraded',
+  /** Plugin was unable to load */
+  Error = 'error',
+}
+
+/**
+ * A customization active in a session.
+ *
+ * Entries without a `clientId` are server-provided; entries with a `clientId`
+ * originate from that client.
+ *
+ * @category Customization Types
+ */
+export interface ISessionCustomization {
+  /** The plugin this customization refers to */
+  customization: ICustomizationRef;
+  /** Whether this customization is currently enabled */
+  enabled: boolean;
+  /** Server-reported loading status */
+  status?: CustomizationStatus;
+  /**
+   * Human-readable status detail (e.g. error message or degradation warning).
+   */
+  statusMessage?: string;
+}
 
 // ─── Common Types ────────────────────────────────────────────────────────────
 
