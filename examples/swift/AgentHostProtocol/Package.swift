@@ -21,5 +21,10 @@ let package = Package(
             name: "AgentHostProtocol",
             path: "Sources/AgentHostProtocol"
         ),
+        .testTarget(
+            name: "AgentHostProtocolTests",
+            dependencies: ["AgentHostProtocol"],
+            path: "Tests/AgentHostProtocolTests"
+        ),
     ]
 )

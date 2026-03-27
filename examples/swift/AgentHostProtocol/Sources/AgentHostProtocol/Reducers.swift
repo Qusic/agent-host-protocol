@@ -126,6 +126,11 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
 
     case .sessionToolCallReady(let a):
         return updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
+            // Only process if currently streaming or running (matches TS behavior)
+            switch tc {
+            case .streaming, .running: break
+            default: return tc
+            }
             let base = toolCallBase(tc)
             if let confirmed = a.confirmed {
                 return .running(ToolCallRunningState(
