@@ -131,7 +131,7 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
             case .streaming, .running: break
             default: return tc
             }
-            let base = toolCallBase(tc)
+            let base = tc.baseFields
             if let confirmed = a.confirmed {
                 return .running(ToolCallRunningState(
                     toolCallId: base.toolCallId,
@@ -161,7 +161,7 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
     case .sessionToolCallConfirmed(let a):
         return updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
             guard case .pendingConfirmation(let pending) = tc else { return tc }
-            let base = toolCallBase(tc)
+            let base = tc.baseFields
             if a.approved {
                 return .running(ToolCallRunningState(
                     toolCallId: base.toolCallId,
@@ -192,7 +192,7 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
 
     case .sessionToolCallComplete(let a):
         return updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
-            let base = toolCallBase(tc)
+            let base = tc.baseFields
             let confirmed: ToolCallConfirmationReason
             let invocationMessage: StringOrMarkdown
             let toolInput: String?
@@ -248,7 +248,7 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
     case .sessionToolCallResultConfirmed(let a):
         return updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
             guard case .pendingResultConfirmation(let prc) = tc else { return tc }
-            let base = toolCallBase(tc)
+            let base = tc.baseFields
             if a.approved {
                 return .completed(ToolCallCompletedState(
                     toolCallId: base.toolCallId,
@@ -437,37 +437,8 @@ private func currentTimestamp() -> Int {
     Int(Date().timeIntervalSince1970 * 1000)
 }
 
-/// Extracts common base fields from any tool call state.
-private struct ToolCallBaseFields {
-    let toolCallId: String
-    let toolName: String
-    let displayName: String
-    let toolClientId: String?
-    let meta: [String: AnyCodable]?
-}
-
-private func toolCallBase(_ tc: ToolCallState) -> ToolCallBaseFields {
-    switch tc {
-    case .streaming(let s):
-        return ToolCallBaseFields(toolCallId: s.toolCallId, toolName: s.toolName,
-                                  displayName: s.displayName, toolClientId: s.toolClientId, meta: s.meta)
-    case .pendingConfirmation(let s):
-        return ToolCallBaseFields(toolCallId: s.toolCallId, toolName: s.toolName,
-                                  displayName: s.displayName, toolClientId: s.toolClientId, meta: s.meta)
-    case .running(let s):
-        return ToolCallBaseFields(toolCallId: s.toolCallId, toolName: s.toolName,
-                                  displayName: s.displayName, toolClientId: s.toolClientId, meta: s.meta)
-    case .pendingResultConfirmation(let s):
-        return ToolCallBaseFields(toolCallId: s.toolCallId, toolName: s.toolName,
-                                  displayName: s.displayName, toolClientId: s.toolClientId, meta: s.meta)
-    case .completed(let s):
-        return ToolCallBaseFields(toolCallId: s.toolCallId, toolName: s.toolName,
-                                  displayName: s.displayName, toolClientId: s.toolClientId, meta: s.meta)
-    case .cancelled(let s):
-        return ToolCallBaseFields(toolCallId: s.toolCallId, toolName: s.toolName,
-                                  displayName: s.displayName, toolClientId: s.toolClientId, meta: s.meta)
-    }
-}
+// ToolCallBaseFields and toolCallBase() are now shared via
+// ToolCallState.baseFields in ToolCallStateExtensions.swift.
 
 /// Ends the active turn, producing a completed Turn record.
 /// Non-terminal tool calls are forced to cancelled.
@@ -489,7 +460,7 @@ private func endTurn(
         case .completed, .cancelled:
             return part
         default:
-            let base = toolCallBase(tc)
+            let base = tc.baseFields
             let invocationMessage: StringOrMarkdown
             let toolInput: String?
             switch tc {
@@ -557,19 +528,9 @@ private func updateToolCall(
     var found = false
     let parts: [ResponsePart] = activeTurn.responseParts.map { part in
         guard case .toolCall(var tcPart) = part else { return part }
-        let tc = tcPart.toolCall
-        let id: String
-        switch tc {
-        case .streaming(let s): id = s.toolCallId
-        case .pendingConfirmation(let s): id = s.toolCallId
-        case .running(let s): id = s.toolCallId
-        case .pendingResultConfirmation(let s): id = s.toolCallId
-        case .completed(let s): id = s.toolCallId
-        case .cancelled(let s): id = s.toolCallId
-        }
-        guard id == toolCallId else { return part }
+        guard tcPart.toolCall.toolCallId == toolCallId else { return part }
         found = true
-        tcPart.toolCall = updater(tc)
+        tcPart.toolCall = updater(tcPart.toolCall)
         return .toolCall(tcPart)
     }
 
@@ -594,22 +555,7 @@ private func updateResponsePart(
     var found = false
     let parts: [ResponsePart] = activeTurn.responseParts.map { part in
         guard !found else { return part }
-        let id: String?
-        switch part {
-        case .markdown(let m): id = m.id
-        case .reasoning(let r): id = r.id
-        case .toolCall(let t):
-            switch t.toolCall {
-            case .streaming(let s): id = s.toolCallId
-            case .pendingConfirmation(let s): id = s.toolCallId
-            case .running(let s): id = s.toolCallId
-            case .pendingResultConfirmation(let s): id = s.toolCallId
-            case .completed(let s): id = s.toolCallId
-            case .cancelled(let s): id = s.toolCallId
-            }
-        case .contentRef: id = nil
-        }
-        guard id == partId else { return part }
+        guard part.partId == partId else { return part }
         found = true
         return updater(part)
     }

@@ -206,7 +206,7 @@ public struct AHPSessionReducer: Reducer {
                 case .streaming, .running: break
                 default: return
                 }
-                let base = Self.toolCallBase(tc)
+                let base = tc.baseFields
                 if let confirmed = a.confirmed {
                     tc = .running(ToolCallRunningState(
                         toolCallId: base.toolCallId,
@@ -237,7 +237,7 @@ public struct AHPSessionReducer: Reducer {
         case .sessionToolCallConfirmed(let a):
             Self.updateToolCallInPlace(state: &state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
                 guard case .pendingConfirmation(let pending) = tc else { return }
-                let base = Self.toolCallBase(tc)
+                let base = tc.baseFields
                 if a.approved {
                     tc = .running(ToolCallRunningState(
                         toolCallId: base.toolCallId,
@@ -269,7 +269,7 @@ public struct AHPSessionReducer: Reducer {
 
         case .sessionToolCallComplete(let a):
             Self.updateToolCallInPlace(state: &state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
-                let base = Self.toolCallBase(tc)
+                let base = tc.baseFields
                 let confirmed: ToolCallConfirmationReason
                 let invocationMessage: StringOrMarkdown
                 let toolInput: String?
@@ -326,7 +326,7 @@ public struct AHPSessionReducer: Reducer {
         case .sessionToolCallResultConfirmed(let a):
             Self.updateToolCallInPlace(state: &state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
                 guard case .pendingResultConfirmation(let prc) = tc else { return }
-                let base = Self.toolCallBase(tc)
+                let base = tc.baseFields
                 if a.approved {
                     tc = .completed(ToolCallCompletedState(
                         toolCallId: base.toolCallId,
@@ -448,36 +448,8 @@ public struct AHPSessionReducer: Reducer {
 
     // MARK: - Private Helpers
 
-    private struct ToolCallBaseFields {
-        let toolCallId: String
-        let toolName: String
-        let displayName: String
-        let toolClientId: String?
-        let meta: [String: AnyCodable]?
-    }
-
-    private static func toolCallBase(_ tc: ToolCallState) -> ToolCallBaseFields {
-        switch tc {
-        case .streaming(let s):
-            return ToolCallBaseFields(toolCallId: s.toolCallId, toolName: s.toolName,
-                                       displayName: s.displayName, toolClientId: s.toolClientId, meta: s.meta)
-        case .pendingConfirmation(let s):
-            return ToolCallBaseFields(toolCallId: s.toolCallId, toolName: s.toolName,
-                                       displayName: s.displayName, toolClientId: s.toolClientId, meta: s.meta)
-        case .running(let s):
-            return ToolCallBaseFields(toolCallId: s.toolCallId, toolName: s.toolName,
-                                       displayName: s.displayName, toolClientId: s.toolClientId, meta: s.meta)
-        case .pendingResultConfirmation(let s):
-            return ToolCallBaseFields(toolCallId: s.toolCallId, toolName: s.toolName,
-                                       displayName: s.displayName, toolClientId: s.toolClientId, meta: s.meta)
-        case .completed(let s):
-            return ToolCallBaseFields(toolCallId: s.toolCallId, toolName: s.toolName,
-                                       displayName: s.displayName, toolClientId: s.toolClientId, meta: s.meta)
-        case .cancelled(let s):
-            return ToolCallBaseFields(toolCallId: s.toolCallId, toolName: s.toolName,
-                                       displayName: s.displayName, toolClientId: s.toolClientId, meta: s.meta)
-        }
-    }
+    // ToolCallBaseFields and toolCallBase() are now shared via
+    // ToolCallState.baseFields in ToolCallStateExtensions.swift.
 
     /// Ends the active turn, producing a completed Turn record.
     /// Non-terminal tool calls are forced to cancelled.
@@ -497,7 +469,7 @@ public struct AHPSessionReducer: Reducer {
             case .completed, .cancelled:
                 return part
             default:
-                let base = toolCallBase(tc)
+                let base = tc.baseFields
                 let invocationMessage: StringOrMarkdown
                 let toolInput: String?
                 switch tc {
@@ -562,16 +534,7 @@ public struct AHPSessionReducer: Reducer {
         var found = false
         let newParts: [ResponsePart] = parts.map { part in
             guard case .toolCall(var tcPart) = part else { return part }
-            let id: String
-            switch tcPart.toolCall {
-            case .streaming(let s): id = s.toolCallId
-            case .pendingConfirmation(let s): id = s.toolCallId
-            case .running(let s): id = s.toolCallId
-            case .pendingResultConfirmation(let s): id = s.toolCallId
-            case .completed(let s): id = s.toolCallId
-            case .cancelled(let s): id = s.toolCallId
-            }
-            guard id == toolCallId else { return part }
+            guard tcPart.toolCall.toolCallId == toolCallId else { return part }
             found = true
             updater(&tcPart.toolCall)
             return .toolCall(tcPart)
@@ -594,22 +557,7 @@ public struct AHPSessionReducer: Reducer {
         var found = false
         let newParts: [ResponsePart] = parts.map { part in
             guard !found else { return part }
-            let id: String?
-            switch part {
-            case .markdown(let m): id = m.id
-            case .reasoning(let r): id = r.id
-            case .toolCall(let t):
-                switch t.toolCall {
-                case .streaming(let s): id = s.toolCallId
-                case .pendingConfirmation(let s): id = s.toolCallId
-                case .running(let s): id = s.toolCallId
-                case .pendingResultConfirmation(let s): id = s.toolCallId
-                case .completed(let s): id = s.toolCallId
-                case .cancelled(let s): id = s.toolCallId
-                }
-            case .contentRef: id = nil
-            }
-            guard id == partId else { return part }
+            guard part.partId == partId else { return part }
             found = true
             var mutable = part
             updater(&mutable)

@@ -3,7 +3,12 @@
 import Foundation
 
 /// A type-erased `Codable` value for handling `unknown` and `Record<string, unknown>` types.
-public struct AnyCodable: Codable, Sendable, Equatable {
+///
+/// Marked `@unchecked Sendable` because the stored `Any` is only ever set to
+/// immutable, `Sendable`-safe types during decoding (Bool, Int, Double, String,
+/// NSNull, and recursive `[Any]`/`[String: Any]` of those). The value is `let`,
+/// so it cannot be mutated after initialization.
+public struct AnyCodable: Codable, @unchecked Sendable, Equatable {
     public let value: Any
 
     public init(_ value: Any) {
@@ -72,6 +77,15 @@ public struct AnyCodable: Codable, Sendable, Equatable {
             return lhs == rhs
         case let (lhs as String, rhs as String):
             return lhs == rhs
+        case let (lhs as [Any], rhs as [Any]):
+            guard lhs.count == rhs.count else { return false }
+            return zip(lhs, rhs).allSatisfy { AnyCodable($0) == AnyCodable($1) }
+        case let (lhs as [String: Any], rhs as [String: Any]):
+            guard lhs.count == rhs.count else { return false }
+            return lhs.allSatisfy { key, val in
+                guard let other = rhs[key] else { return false }
+                return AnyCodable(val) == AnyCodable(other)
+            }
         default:
             return false
         }
