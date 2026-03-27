@@ -7,3 +7,4 @@ docs/reference/
 docs/public/schema/
 examples/swift/AgentHostProtocol/Sources/AgentHostProtocol/Generated/
 examples/swift/AgentHostProtocol/.build/
+examples/swift/AHPApp/.build/
