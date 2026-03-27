@@ -249,7 +249,7 @@ final class NativeReducerTests: XCTestCase {
     func testRootReducerDoesNotMutateOriginalViaApplying() {
         let state = makeRootState(agents: [])
         let agents = [AgentInfo(provider: "x", displayName: "X", description: "x", models: [])]
-        let _ = rootR.applying(
+        _ = rootR.applying(
             action: .rootAgentsChanged(RootAgentsChangedAction(type: .rootAgentsChanged, agents: agents)),
             to: state
         )

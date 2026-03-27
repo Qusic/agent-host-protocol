@@ -208,7 +208,7 @@ final class ReducersTests: XCTestCase {
     func testRootReducerDoesNotMutateOriginalState() {
         let state = makeRootState(agents: [])
         let agents = [AgentInfo(provider: "x", displayName: "X", description: "x", models: [])]
-        let _ = rootReducer(
+        _ = rootReducer(
             state: state,
             action: .rootAgentsChanged(RootAgentsChangedAction(type: .rootAgentsChanged, agents: agents))
         )
@@ -369,7 +369,7 @@ final class ReducersTests: XCTestCase {
         XCTAssertEqual(next.activeTurn?.responseParts.count, 1)
     }
 
-    func testTurnCompleteFinalizesTournComplete() {
+    func testTurnCompleteFinalizesToTurnComplete() {
         var s = createMarkdownPart(makeSessionStateWithActiveTurn(), partId: "md-1")
         s = sessionReducer(
             state: s,
