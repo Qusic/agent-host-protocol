@@ -2,30 +2,12 @@
 description: >-
   Interact with an Agent Host Protocol (AHP) server via WebSocket.
   Use when asked to connect to, message, or control an AHP server.
-  Handles connection lifecycle, state subscriptions, action dispatch,
-  tool call permissions, and reconnection.
 ---
 
 # Agent Host Protocol – Copilot Skill
 
 You have access to an MCP server (`ahp-websocket`) that lets you connect to an
 Agent Host Protocol server over WebSocket and exchange JSON-RPC 2.0 messages.
-
-## Core Concepts
-
-AHP is a **Redux-inspired state synchronisation protocol** built on JSON-RPC 2.0
-over WebSocket. The server maintains an authoritative state tree; clients apply
-actions optimistically and reconcile with the server's echoed actions.
-
-- **Root state** (`agenthost:/root`) – lists available agents/models.
-- **Session state** (`<provider>:/<uuid>`) – per-conversation state with turns,
-  deltas, tool calls, and permissions.
-- **Actions** – the sole mutation mechanism, wrapped in `ActionEnvelope`s with a
-  `serverSeq`.
-- **Subscriptions** – clients subscribe to URI-identified state resources to
-  receive action streams.
-- **Notifications** – ephemeral broadcasts (session added/removed) that are NOT
-  part of the state tree and NOT replayed on reconnect.
 
 ## Available MCP tools
 
@@ -37,17 +19,38 @@ actions optimistically and reconcile with the server's echoed actions.
 | `status`            | Check connection state, pending request count, inbox depth |
 | `next_id`           | Get a unique incrementing integer for JSON-RPC request `id` fields |
 
-## Workflow
-
-Follow this sequence for every AHP interaction. Do not skip steps.
-
-### 1. Connect and initialize
+## Quick-start workflow
 
 ```
-connect(url: "ws://localhost:3000")
+1. connect(url: "ws://localhost:3000")
+2. send initialize notification
+3. wait for serverHello via get_notifications
+4. subscribe to root state
+5. create a session, subscribe, send turns
 ```
 
-Then send an `initialize` **notification** (no `id` field):
+## Protocol overview
+
+AHP is a **Redux-inspired state synchronisation protocol** built on JSON-RPC 2.0
+over WebSocket. The server maintains an authoritative state tree; clients apply
+actions optimistically and reconcile with the server's echoed actions.
+
+Key concepts:
+- **Root state** (`agenthost:/root`) – lists available agents/models.
+- **Session state** (`<provider>:/<uuid>`) – per-conversation state with turns,
+  deltas, tool calls, and permissions.
+- **Actions** – the sole mutation mechanism, wrapped in `ActionEnvelope`s with a
+  `serverSeq`.
+- **Subscriptions** – clients subscribe to URI-identified state resources to
+  receive action streams.
+- **Notifications** – ephemeral broadcasts (session added/removed) that are NOT
+  part of the state tree and NOT replayed on reconnect.
+
+## Connection lifecycle
+
+### 1. Initialize
+
+Send an `initialize` **notification** (no `id` field):
 
 ```json
 {
@@ -78,7 +81,7 @@ which includes snapshots for any initial subscriptions.
 The response contains the current state snapshot.
 After subscribing, subsequent mutations arrive as `action` notifications.
 
-### 3. Create a session and subscribe
+### 3. Create a session
 
 ```json
 {
@@ -93,8 +96,7 @@ After subscribing, subsequent mutations arrive as `action` notifications.
 }
 ```
 
-Then subscribe to the session URI. **Wait for a `session/ready` action before
-sending messages.** If you see `session/creationFailed`, the session cannot be used.
+Then subscribe to the session URI. Wait for a `session/ready` action.
 
 ### 4. Send a message (start a turn)
 
@@ -116,16 +118,16 @@ Dispatch a `session/turnStarted` action as a **notification** (fire-and-forget):
 }
 ```
 
-Then poll `get_notifications(wait: 2)` to collect streaming actions until
-you see `session/turnComplete`.
+Then poll `get_notifications(wait: 2)` to collect streaming `session/delta`
+actions until you see `session/turnComplete`.
 
 ### 5. Handle tool calls and permissions
 
-If the agent calls a tool, watch for:
-- `session/toolCallStart` – tool invocation started; may need confirmation
-- `session/toolCallReady` – parameters complete, awaiting approval
+If the agent calls a tool, the server sends:
+- `session/toolStart` – tool invocation started
+- `session/permissionRequest` – user approval needed
 
-Approve or deny with:
+Resolve permissions with:
 
 ```json
 {
@@ -134,20 +136,29 @@ Approve or deny with:
   "params": {
     "clientSeq": 2,
     "action": {
-      "type": "session/toolCallConfirmed",
+      "type": "session/permissionResolved",
       "session": "<provider>:/<uuid>",
       "turnId": "<turn-id>",
-      "toolCallId": "<tool-call-id>",
+      "requestId": "<perm-request-id>",
       "approved": true
     }
   }
 }
 ```
 
-### 6. Reconnect on disconnect
+### 6. Other commands
 
-If the connection drops, call `connect` again and send `reconnect` instead of
-`initialize`:
+| Command             | Purpose |
+|---------------------|---------|
+| `listSessions`      | List all session summaries |
+| `disposeSession`    | Tear down a session |
+| `fetchContent`      | Fetch large content by URI reference |
+| `fetchTurns`        | Fetch historical turns for a session |
+
+### 7. Reconnection
+
+If the connection drops, call `connect` again and send a `reconnect` message
+instead of `initialize`:
 
 ```json
 {
@@ -161,68 +172,29 @@ If the connection drops, call `connect` again and send `reconnect` instead of
 }
 ```
 
-## Action Dispatch Decision Table
+## Action types reference
 
-Use this to select the correct action for each scenario.
+### Client-dispatchable actions
+| Action                       | Effect |
+|------------------------------|--------|
+| `session/turnStarted`        | Begin a new turn with a user message |
+| `session/permissionResolved` | Approve or deny a pending tool permission |
+| `session/turnCancelled`      | Abort an in-progress turn |
+| `session/modelChanged`       | Switch the model for future turns |
 
-| Scenario | Action | Notes |
-|----------|--------|-------|
-| Send a message | `session/turnStarted` | Always use action dispatch, never an RPC |
-| Cancel in-progress turn | `session/turnCancelled` | Idempotent; may race with completion |
-| Approve tool call | `session/toolCallConfirmed` | Set `approved: true` |
-| Deny tool call | `session/toolCallConfirmed` | Set `approved: false` |
-| Approve tool result | `session/toolCallResultConfirmed` | After tool execution completes |
-| Switch model | `session/modelChanged` | Affects subsequent turns only |
-| Toggle a plugin | `session/customizationToggled` | By URI |
-| Inject a steering hint | `session/pendingMessageSet` | `kind: 'steering'` — into current turn |
-| Queue a follow-up | `session/pendingMessageSet` | `kind: 'queued'` — auto-starts when idle |
-
-**For queries, use RPC commands:**
-
-| Command             | Purpose |
-|---------------------|---------|
-| `listSessions`      | List all session summaries |
-| `disposeSession`    | Tear down a session |
-| `fetchContent`      | Fetch large content by URI reference |
-| `fetchTurns`        | Fetch historical turns for a session |
-
-## Preferences
-
-| Prefer | Over | Why |
-|--------|------|-----|
-| Dispatching a state action | Making an imperative RPC | Actions flow through reducers, enable write-ahead reconciliation, and are visible to all clients |
-| Polling `get_notifications` with a wait | Busy-looping with no wait | Reduces load; the server streams actions as they occur |
-| Using `session/turnStarted` | Inventing a custom "send message" RPC | `turnStarted` is the protocol-standard way to initiate a turn |
-| Waiting for `session/ready` | Sending messages immediately after `createSession` | The session backend needs time to initialize |
-| Using `session/toolCallConfirmed` | Calling a tool approval RPC | Confirmation is a state action, not a command |
-
-## Anti-Patterns
-
-### ❌ Sending messages before `session/ready`
-
-The session backend initializes asynchronously. Dispatching `session/turnStarted`
-before receiving `session/ready` will be rejected.
-
-### ❌ Using `send` for state mutations instead of `dispatchAction`
-
-All state mutations must go through `dispatchAction` as fire-and-forget
-notifications. Never invent custom RPC methods for things that should be actions.
-
-### ❌ Ignoring `rejectionReason` on echoed actions
-
-When the server echoes back your action with a `rejectionReason`, revert the
-optimistic state change. Common rejections: `"no active turn to cancel"`,
-`"unknown tool call ID"`.
-
-### ❌ Forgetting to increment `clientSeq`
-
-Each dispatched action needs a unique, monotonically increasing `clientSeq`.
-Reusing sequence numbers breaks write-ahead reconciliation.
-
-### ❌ Subscribing without checking existing subscriptions
-
-Before subscribing to a session URI, verify you aren't already subscribed.
-Duplicate subscriptions cause duplicate action delivery.
+### Server-originated actions
+| Action                       | Meaning |
+|------------------------------|---------|
+| `root/agentsChanged`         | Available agents or models changed |
+| `session/ready`              | Session backend initialized |
+| `session/creationFailed`     | Session failed to initialize |
+| `session/delta`              | Streaming text content for a turn |
+| `session/toolStart`          | Agent is calling a tool |
+| `session/toolDelta`          | Streaming tool output |
+| `session/toolComplete`       | Tool execution finished |
+| `session/permissionRequest`  | User approval needed for a tool |
+| `session/turnComplete`       | Turn finished |
+| `session/error`              | Error during turn |
 
 ## Full documentation
 
@@ -231,15 +203,13 @@ For complete protocol details, refer to the docs in this repository:
 - **Guide**: `docs/guide/` – conceptual overviews and walkthroughs
   - `getting-started.md` – end-to-end example
   - `state-model.md` – full state tree shape
-  - `actions.md` – how actions work, action dispatch decision table
+  - `actions.md` – how actions work
   - `reconciliation.md` – write-ahead reconciliation algorithm
-  - `design.md` – design preferences and anti-patterns
-  - `customizations.md` – Open Plugins integration
 - **Specification**: `docs/specification/` – normative protocol spec
   - `transport.md` – transport requirements
   - `lifecycle.md` – connection, session, and reconnection lifecycle
   - `subscriptions.md` – subscription mechanics
-  - `versioning.md` – version negotiation and protocol evolution workflow
+  - `versioning.md` – version negotiation
 - **Reference**: `docs/reference/` – complete type references
   - `messages.md` – all state types
   - `actions.md` – all action types with fields

@@ -86,34 +86,6 @@ The `pendingMessageSet` and `pendingMessageRemoved` actions carry a `kind` discr
 
 See the [Customizations guide](/guide/customizations) for the full flow.
 
-## Action Dispatch Decision Table
-
-Use this table to select the correct action or command for a given user/agent scenario. Prefer the narrowest action that matches the intent.
-
-| Scenario | Dispatch | Origin | Notes |
-|----------|----------|--------|-------|
-| User sends a message | `session/turnStarted` | Client | Optimistically applied; server begins agent processing |
-| User cancels an in-progress turn | `session/turnCancelled` | Client | Idempotent; may race with `turnComplete` — reconciliation handles it |
-| User approves a tool call | `session/toolCallConfirmed` | Client | Unblocks tool execution on the server |
-| User denies a tool call | `session/toolCallConfirmed` (denied) | Client | Cancels tool execution |
-| User approves tool result | `session/toolCallResultConfirmed` | Client | Confirms or rejects the tool's output |
-| User switches the model | `session/modelChanged` | Client | Affects subsequent turns only |
-| User injects a steering message | `session/pendingMessageSet` (kind: `steering`) | Client | Injected into current in-progress turn |
-| User queues a follow-up message | `session/pendingMessageSet` (kind: `queued`) | Client | Auto-starts a turn when idle |
-| User cancels a queued message | `session/pendingMessageRemoved` | Client | Before the server consumes it |
-| User reorders queued messages | `session/queuedMessagesReordered` | Client | Unknown IDs ignored; unmentioned kept at end |
-| User toggles a plugin on/off | `session/customizationToggled` | Client | By URI; server reloads as needed |
-| Agent streams text | `session/delta` | Server | Appended to response part by `partId` |
-| Agent starts a tool call | `session/toolCallStart` | Server | Creates tool call in `pendingConfirmation` or `running` state |
-| Agent completes a tool call | `session/toolCallComplete` | Server | Carries result; transitions to `completed` |
-| Agent finishes the turn | `session/turnComplete` | Server | Finalizes active turn into history |
-| Server updates customizations | `session/customizationsChanged` | Server | Full replacement of customization list |
-
-**When to use an RPC command instead:**
-- **Queries**: `fetchContent`, `fetchTurns`, `listSessions`, `browseDirectory` — read-only, no state mutation.
-- **Lifecycle**: `createSession`, `disposeSession` — one-time setup/teardown, not a recurring state transition.
-- **Subscriptions**: `subscribe`, `unsubscribe` — transport-level plumbing, not domain state.
-
 ## Client-Dispatched Actions
 
 Clients interact with the server by dispatching actions as fire-and-forget notifications:
