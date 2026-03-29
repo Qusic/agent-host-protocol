@@ -25,7 +25,7 @@ struct ChatView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack(alignment: .bottom) {
             // Message list
             ScrollViewReader { proxy in
                 ZStack(alignment: .bottomTrailing) {
@@ -54,7 +54,7 @@ struct ChatView: View {
                         }
                         .padding(.horizontal, 14)
                         .padding(.top, 8)
-                        .padding(.bottom, 16)
+                        .padding(.bottom, 80) // extra space so content isn't hidden behind floating input
                     }
                     .defaultScrollAnchor(.bottom)
                     .onAppear {
@@ -98,7 +98,7 @@ struct ChatView: View {
                             }
                         }
                         .padding(.trailing, 16)
-                        .padding(.bottom, 12)
+                        .padding(.bottom, 80) // above the floating input bar
                         .accessibilityLabel("Scroll to bottom")
                         .transition(.scale.combined(with: .opacity))
                         .animation(.easeOut(duration: 0.15), value: isAtBottom)
@@ -113,8 +113,8 @@ struct ChatView: View {
                 }
                 .animation(.easeInOut(duration: 0.25), value: store.isReconnecting)
             }
-            
-            // Input area
+
+            // Floating input bar
             InputBar(text: $inputText, isFocused: $inputFocused) {
                 guard !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
                 let message = inputText
@@ -149,52 +149,75 @@ struct InputBar: View {
         !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private let containerRadius: CGFloat = 20
+
     var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            // Text field — compact by default, grows to ~8 lines
+        VStack(spacing: 0) {
+            // Text field row
             TextField("Message the agent…", text: $text, axis: .vertical)
                 .lineLimit(1...8)
                 .focused(isFocused)
                 .textInputAutocapitalization(.never)
                 .disableAutocorrection(true)
                 .font(.body)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(Color(.systemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color(.systemGray4), lineWidth: 1)
-                )
+                .padding(.horizontal, 14)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
 
-            // Send / Stop button
-            Button {
-                if isStreaming {
-                    Task { await store.cancelTurn() }
-                } else {
-                    isFocused.wrappedValue = false
-                    onSubmit()
+            // Toolbar row
+            HStack(spacing: 12) {
+                Spacer()
+
+                // Send / Stop button
+                Button {
+                    if isStreaming {
+                        Task { await store.cancelTurn() }
+                    } else {
+                        isFocused.wrappedValue = false
+                        onSubmit()
+                    }
+                } label: {
+                    Image(systemName: isStreaming ? "stop.fill" : "arrow.up")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(isStreaming ? Color.primary : Color.white)
+                        .frame(width: 32, height: 32)
+                        .background(
+                            Circle()
+                                .fill(isStreaming ? Color(.systemGray5) : (canSend ? Color.black : Color(.systemGray3)))
+                        )
+                        .overlay(
+                            Circle()
+                                .stroke(Color(.systemGray3), lineWidth: isStreaming ? 1 : 0)
+                        )
                 }
-            } label: {
-                Image(systemName: isStreaming ? "stop.fill" : "paperplane.fill")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(isStreaming ? Color.primary : Color.white)
-                    .frame(width: 40, height: 40)
-                    .background(
-                        Circle()
-                            .fill(isStreaming ? Color(.systemGray5) : (canSend ? Color.black : Color(.systemGray3)))
-                    )
-                    .overlay(
-                        Circle()
-                            .stroke(Color(.systemGray3), lineWidth: isStreaming ? 1 : 0)
-                    )
+                .buttonStyle(.plain)
+                .disabled(!isStreaming && !canSend)
+                .accessibilityLabel(isStreaming ? "Stop turn" : "Send message")
             }
-            .buttonStyle(.plain)
-            .disabled(!isStreaming && !canSend)
-            .accessibilityLabel(isStreaming ? "Stop turn" : "Send message")
+            .padding(.horizontal, 14)
+            .padding(.bottom, 10)
         }
+        .glassInputBackground(cornerRadius: containerRadius)
         .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.bottom, 6)
+    }
+}
+
+// MARK: - Glass Background
+
+private extension View {
+    @ViewBuilder
+    func glassInputBackground(cornerRadius: CGFloat) -> some View {
+        if #available(iOS 26, *) {
+            self.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+        } else {
+            self
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .stroke(Color(.systemGray4), lineWidth: 0.5)
+                )
+        }
     }
 }
 

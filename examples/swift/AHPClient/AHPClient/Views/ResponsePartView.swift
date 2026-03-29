@@ -107,6 +107,13 @@ struct ToolCallPartView: View {
                     .foregroundStyle(.red)
             }
 
+            // Show cancellation reason
+            if case .cancelled(let s) = toolCall, let reason = s.reasonMessage {
+                Text(stringOrMarkdownText(reason))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             // Action buttons
             actionButtons
         }
@@ -139,7 +146,7 @@ struct ToolCallPartView: View {
         case .running:
             ProgressView().controlSize(.mini)
         case .pendingResultConfirmation:
-            Image(systemName: "checkmark.circle.badge.questionmark")
+            Image(systemName: "questionmark.circle.fill")
                 .foregroundStyle(.orange)
         case .completed(let s):
             Image(systemName: s.success ? "checkmark.circle.fill" : "xmark.circle.fill")
@@ -163,6 +170,7 @@ struct ToolCallPartView: View {
                     }
                 }
                 .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle(radius: 8))
 
                 Button("Approve") {
                     if let ids = turnAndToolId {
@@ -170,6 +178,7 @@ struct ToolCallPartView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.roundedRectangle(radius: 8))
             }
         case .pendingResultConfirmation:
             HStack {
@@ -177,6 +186,7 @@ struct ToolCallPartView: View {
                     // Result denial not exposed yet
                 }
                 .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle(radius: 8))
 
                 Button("Accept") {
                     if let ids = turnAndToolId {
@@ -184,6 +194,7 @@ struct ToolCallPartView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.roundedRectangle(radius: 8))
             }
         default:
             EmptyView()
@@ -209,11 +220,10 @@ struct ToolCallPartView: View {
 
     private var toolColor: Color {
         switch toolCall {
-        case .pendingConfirmation: .orange
+        case .pendingConfirmation, .pendingResultConfirmation: .orange
         case .running, .streaming: .blue
-        case .completed(let s): s.success ? .green : .red
+        case .completed(let s): s.success ? .secondary : .red
         case .cancelled: .secondary
-        case .pendingResultConfirmation: .orange
         }
     }
 
@@ -221,6 +231,8 @@ struct ToolCallPartView: View {
         switch toolCall {
         case .pendingConfirmation, .pendingResultConfirmation:
             return Color.orange.opacity(0.05)
+        case .completed(let s) where !s.success:
+            return Color.red.opacity(0.04)
         default:
             return Color(.systemGray6).opacity(0.5)
         }
@@ -229,7 +241,7 @@ struct ToolCallPartView: View {
     private var borderColor: Color {
         switch toolCall {
         case .pendingConfirmation, .pendingResultConfirmation: .orange.opacity(0.4)
-        case .completed(let s): s.success ? .green.opacity(0.2) : .red.opacity(0.3)
+        case .completed(let s): s.success ? Color(.systemGray4).opacity(0.5) : .red.opacity(0.3)
         default: Color(.systemGray4).opacity(0.5)
         }
     }
@@ -421,6 +433,7 @@ struct ContentRefView: View {
     var body: some View {
         HStack {
             Image(systemName: contentIcon)
+                .foregroundStyle(.secondary)
             VStack(alignment: .leading) {
                 Text(ref.uri)
                     .font(.caption)
@@ -432,10 +445,14 @@ struct ContentRefView: View {
                 }
             }
         }
-        .padding(8)
+        .padding(10)
         .background(
-            Color(.systemGray6),
-            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(.systemGray6).opacity(0.5))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Color(.systemGray4).opacity(0.5), lineWidth: 1)
         )
     }
 
@@ -444,4 +461,155 @@ struct ContentRefView: View {
         if ref.contentType?.hasPrefix("text/") == true { return "doc.text" }
         return "doc"
     }
+}
+
+// MARK: - Preview Helpers
+
+/// Wraps InputBar so FocusState can be provided in a #Preview context.
+private struct InputBarPreviewWrapper: View {
+    @State private var text = ""
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        InputBar(text: $text, isFocused: $isFocused) { }
+    }
+}
+
+// MARK: - Previews
+
+#Preview("All Response Parts", traits: .fixedLayout(width: 390, height: 2200)) {
+    ScrollView {
+        VStack(alignment: .leading, spacing: 24) {
+            // Markdown
+            Text("Markdown").font(.caption.bold()).foregroundStyle(.secondary)
+            MarkdownPartView(part: MarkdownResponsePart(
+                kind: .markdown,
+                id: "p1",
+                content: """
+                Here is some **bold** text and `inline code`.
+
+                - First item
+                - Second item
+
+                ```swift
+                let x = 42
+                ```
+                """
+            ))
+
+            // Reasoning
+            Text("Reasoning").font(.caption.bold()).foregroundStyle(.secondary)
+            ReasoningPartView(part: ReasoningResponsePart(
+                kind: .reasoning,
+                id: "r1",
+                content: "Let me think about this step by step. The user wants to refactor the authentication module to use JWT tokens instead of session cookies."
+            ))
+
+            // Tool Call — Streaming
+            Text("Tool Call — Streaming").font(.caption.bold()).foregroundStyle(.secondary)
+            ToolCallPartView(toolCall: .streaming(ToolCallStreamingState(
+                toolCallId: "tc0",
+                toolName: "editFile",
+                displayName: "Edit file",
+                status: .streaming,
+                partialInput: "{\"path\": \"src/main.ts\", \"content\": \"...",
+                invocationMessage: .string("Editing src/main.ts")
+            )))
+
+            // Tool Call — Pending Confirmation
+            Text("Tool Call — Pending Confirmation").font(.caption.bold()).foregroundStyle(.secondary)
+            ToolCallPartView(toolCall: .pendingConfirmation(ToolCallPendingConfirmationState(
+                toolCallId: "tc0b",
+                toolName: "bash",
+                displayName: "Run command",
+                invocationMessage: .string("Run: npm run deploy"),
+                toolInput: "{\"command\": \"npm run deploy\"}",
+                status: .pendingConfirmation,
+                confirmationTitle: .string("Allow deployment?")
+            )))
+
+            // Tool Call — Running
+            Text("Tool Call — Running").font(.caption.bold()).foregroundStyle(.secondary)
+            ToolCallPartView(toolCall: .running(ToolCallRunningState(
+                toolCallId: "tc1",
+                toolName: "bash",
+                displayName: "Run command",
+                invocationMessage: .string("Running: npm test"),
+                toolInput: "{\"command\": \"npm test\"}",
+                status: .running,
+                confirmed: .notNeeded
+            )))
+
+            // Tool Call — Completed
+            Text("Tool Call — Completed").font(.caption.bold()).foregroundStyle(.secondary)
+            ToolCallPartView(toolCall: .completed(ToolCallCompletedState(
+                toolCallId: "tc2",
+                toolName: "readFile",
+                displayName: "Read file",
+                invocationMessage: .string("Reading package.json"),
+                toolInput: "{\"path\": \"package.json\"}",
+                success: true,
+                pastTenseMessage: .string("Read package.json"),
+                content: [.text(ToolResultTextContent(type: .text, text: "{\"name\": \"my-app\"}"))],
+                status: .completed,
+                confirmed: .notNeeded
+            )))
+
+            // Tool Call — Failed
+            Text("Tool Call — Failed").font(.caption.bold()).foregroundStyle(.secondary)
+            ToolCallPartView(toolCall: .completed(ToolCallCompletedState(
+                toolCallId: "tc3",
+                toolName: "bash",
+                displayName: "Run command",
+                invocationMessage: .string("Running: rm -rf /"),
+                toolInput: "{\"command\": \"rm -rf /\"}",
+                success: false,
+                pastTenseMessage: .string("Command failed"),
+                status: .completed,
+                confirmed: .userAction
+            )))
+
+            // Tool Call — Pending Result Confirmation
+            Text("Tool Call — Pending Result").font(.caption.bold()).foregroundStyle(.secondary)
+            ToolCallPartView(toolCall: .pendingResultConfirmation(ToolCallPendingResultConfirmationState(
+                toolCallId: "tc4",
+                toolName: "writeFile",
+                displayName: "Write file",
+                invocationMessage: .string("Writing config.json"),
+                toolInput: "{\"path\": \"config.json\"}",
+                success: true,
+                pastTenseMessage: .string("Wrote config.json"),
+                content: [.text(ToolResultTextContent(type: .text, text: "File written successfully"))],
+                status: .pendingResultConfirmation,
+                confirmed: .userAction
+            )))
+
+            // Tool Call — Cancelled
+            Text("Tool Call — Cancelled").font(.caption.bold()).foregroundStyle(.secondary)
+            ToolCallPartView(toolCall: .cancelled(ToolCallCancelledState(
+                toolCallId: "tc5",
+                toolName: "bash",
+                displayName: "Run command",
+                invocationMessage: .string("Running: git push --force"),
+                toolInput: "{\"command\": \"git push --force\"}",
+                status: .cancelled,
+                reason: .denied,
+                reasonMessage: .string("User denied force push")
+            )))
+
+            // Content Ref
+            Text("Content Ref").font(.caption.bold()).foregroundStyle(.secondary)
+            ContentRefView(ref: ContentRef(
+                kind: .contentRef,
+                uri: "file:///Users/me/project/README.md",
+                contentType: "text/markdown"
+            ))
+
+            // Input Bar
+            Text("Input Bar").font(.caption.bold()).foregroundStyle(.secondary)
+            InputBarPreviewWrapper()
+        }
+        .padding()
+    }
+    .environment(AppStore())
 }
