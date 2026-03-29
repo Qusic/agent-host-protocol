@@ -28,11 +28,34 @@ final class AppStore {
     /// Connection status.
     var connectionState: AHPConnection.ConnectionState = .disconnected
 
+    /// `true` while a reconnect (or fallback connect) is in progress.
+    var isReconnecting = false
+
+    /// Default working directory reported by the server (from `InitializeResult.defaultDirectory`).
+    var defaultDirectory: String?
+
     /// Last error message for display.
     var errorMessage: String?
 
-    /// Server URL string (editable in settings).
-    var serverURL: String = "ws://localhost:3000"
+    /// Saved server configurations.
+    var servers: [ServerConfiguration] = []
+
+    /// Currently selected server ID.
+    var selectedServerId: UUID? {
+        didSet {
+            if let id = selectedServerId {
+                UserDefaults.standard.set(id.uuidString, forKey: "selectedServerId")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "selectedServerId")
+            }
+        }
+    }
+
+    /// The currently selected server configuration.
+    var selectedServer: ServerConfiguration? {
+        guard let id = selectedServerId else { return nil }
+        return servers.first { $0.id == id }
+    }
 
     // MARK: - Computed Properties
 
@@ -62,6 +85,7 @@ final class AppStore {
     // MARK: - Private
 
     private let connection: AHPConnection
+    private let serverStorage = ServerStorage.shared
     private var sessionReducer_ = AHPSessionReducer()
 
     // MARK: - Init
@@ -69,6 +93,16 @@ final class AppStore {
     init() {
         let conn = AHPConnection()
         self.connection = conn
+
+        // Load saved servers
+        servers = serverStorage.fetchServers()
+
+        // Restore last selected server
+        if let savedId = UserDefaults.standard.string(forKey: "selectedServerId"),
+           let uuid = UUID(uuidString: savedId),
+           servers.contains(where: { $0.id == uuid }) {
+            selectedServerId = uuid
+        }
 
         // Wire up callbacks — these are invoked on the MainActor because the
         // connection dispatches them there.
@@ -82,27 +116,218 @@ final class AppStore {
             await conn.setOnStateChange { [weak self] state in
                 self?.connectionState = state
             }
+            await conn.setOnUnexpectedDisconnect { [weak self] in
+                guard let self else { return }
+                Task { await self.reconnect() }
+            }
+        }
+    }
+
+    // MARK: - Server Management
+
+    /// Add a new server configuration and persist it.
+    func addServer(_ server: ServerConfiguration) {
+        servers.append(server)
+        serverStorage.saveServer(server)
+    }
+
+    /// Update an existing server configuration and persist it.
+    func updateServer(_ server: ServerConfiguration) {
+        if let index = servers.firstIndex(where: { $0.id == server.id }) {
+            let needsReconnect = selectedServerId == server.id &&
+                (servers[index].scheme != server.scheme ||
+                 servers[index].host != server.host ||
+                 servers[index].token != server.token)
+
+            servers[index] = server
+            serverStorage.saveServer(server)
+
+            if needsReconnect {
+                Task {
+                    await disconnect()
+                    await connect()
+                }
+            }
+        }
+    }
+
+    /// Delete a server configuration.
+    func deleteServer(id: UUID) {
+        servers.removeAll { $0.id == id }
+        serverStorage.deleteServer(id: id)
+        if selectedServerId == id {
+            selectedServerId = nil
+            Task { await disconnect() }
+        }
+    }
+
+    /// Select a server and connect to it.
+    func selectServer(_ id: UUID) {
+        guard servers.contains(where: { $0.id == id }) else { return }
+        let wasConnected = selectedServerId != nil && connectionState == .connected
+        if wasConnected {
+            Task {
+                await disconnect()
+                selectedServerId = id
+                await connect()
+            }
+        } else {
+            selectedServerId = id
         }
     }
 
     // MARK: - Connection
 
-    /// Connect to the AHP server.
+    /// Errors from server validation.
+    enum ValidationError: LocalizedError {
+        case invalidURL
+        case localNetworkPermissionNeeded
+        case connectionFailed(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .invalidURL: "Invalid server URL"
+            case .localNetworkPermissionNeeded: "Local network access required"
+            case .connectionFailed(let msg): msg
+            }
+        }
+    }
+
+    /// Validate a server configuration by attempting a test connection.
+    /// Returns successfully if the connection + initialize handshake succeeds.
+    /// Throws `ValidationError.localNetworkPermissionNeeded` if iOS permission is required.
+    func validateServer(_ server: ServerConfiguration) async throws {
+        guard let url = URL(string: server.endpointURLString) else {
+            throw ValidationError.invalidURL
+        }
+
+        // Use a temporary connection so we don't clobber the main one.
+        let testConnection = AHPConnection()
+        do {
+            try await testConnection.connect(to: url)
+            await testConnection.disconnect()
+        } catch {
+            let nsError = error as NSError
+            let isLNPError = nsError.domain == NSURLErrorDomain
+                && (-1200 ... -1001).contains(nsError.code)
+                && isLocalNetworkHost(server.host)
+
+            if isLNPError {
+                throw ValidationError.localNetworkPermissionNeeded
+            }
+            throw ValidationError.connectionFailed(error.localizedDescription)
+        }
+    }
+
+    /// Wait for local network permission to be granted via Bonjour polling.
+    /// Returns `true` if permission was granted, `false` if denied.
+    func waitForLocalNetworkPermission() async -> Bool {
+        await withCheckedContinuation { continuation in
+            let checker = LocalNetworkPrivacy()
+            self.activeNetworkCheck = checker
+            checker.checkAccessState { granted in
+                Task { @MainActor in
+                    continuation.resume(returning: granted)
+                }
+            }
+        }
+    }
+
+    private var activeNetworkCheck: LocalNetworkPrivacy?
+
+    /// Connect to the selected AHP server.
     func connect() async {
-        guard let url = URL(string: serverURL) else {
+        guard let server = selectedServer else {
+            errorMessage = "No server selected"
+            return
+        }
+        guard let url = URL(string: server.endpointURLString) else {
             errorMessage = "Invalid server URL"
             return
         }
         do {
             errorMessage = nil
             let result = try await connection.connect(to: url)
+            defaultDirectory = result.defaultDirectory
 
             // Process initial snapshots
             for snapshot in result.snapshots {
                 applySnapshot(snapshot)
             }
+
+            // Fetch existing sessions and subscribe to each
+            await fetchAndSubscribeSessions()
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Reconnect after an unexpected disconnect, preserving the `serverSeq` delta so the server
+    /// can replay only the actions missed during the outage. Falls back to a full `connect()` if
+    /// no prior connection state is available or if the reconnect handshake itself fails.
+    func reconnect() async {
+        guard let server = selectedServer,
+              let url = URL(string: server.endpointURLString) else { return }
+
+        isReconnecting = true
+        defer { isReconnecting = false }
+
+        let canReconnect = await connection.canReconnect
+        if canReconnect {
+            do {
+                errorMessage = nil
+                let result = try await connection.reconnect(to: url)
+                applyReconnectResult(result)
+                // Subscribe to any sessions that appeared while we were offline.
+                await fetchAndSubscribeSessions()
+                return
+            } catch {
+                // Reconnect handshake failed (server restarted, etc.) — fall through to a
+                // full initialize so the user isn't left in a broken state.
+            }
+        }
+
+        await connect()
+    }
+
+    /// Reconnect only when the connection is currently down (e.g. after the app returns to the
+    /// foreground). Safe to call at any time; it's a no-op when already connected.
+    func reconnectIfNeeded() async {
+        guard selectedServer != nil, connectionState == .disconnected else { return }
+        await reconnect()
+    }
+
+    /// Apply a `ReconnectResult` to the current app state.
+    ///
+    /// - For `.replay`: each missed `ActionEnvelope` is applied in `serverSeq` order, giving the
+    ///   same outcome as if the actions had arrived in real time.
+    /// - For `.snapshot`: each snapshot replaces the corresponding resource's state wholesale.
+    func applyReconnectResult(_ result: ReconnectResult) {
+        switch result {
+        case .replay(let r):
+            for envelope in r.actions {
+                handleAction(envelope)
+            }
+        case .snapshot(let r):
+            for snapshot in r.snapshots {
+                applySnapshot(snapshot)
+            }
+        }
+    }
+
+    /// Fetch all existing sessions from the server and subscribe to them.
+    func fetchAndSubscribeSessions() async {
+        do {
+            let summaries = try await connection.listSessions()
+            for summary in summaries {
+                if sessions[summary.resource] == nil {
+                    let snapshot = try await connection.subscribe(resource: summary.resource)
+                    applySnapshot(snapshot)
+                }
+            }
+        } catch {
+            // Non-fatal: sessions may not be available yet
+            print("[AHP] Failed to fetch sessions: \(error)")
         }
     }
 
@@ -116,15 +341,16 @@ final class AppStore {
 
     // MARK: - Session Management
 
-    /// Create a new session with the given agent provider and model.
-    func createSession(provider: String, model: String? = nil) async {
+    /// Create a new session with the given agent provider, model, and optional working directory.
+    func createSession(provider: String, model: String? = nil, workingDirectory: String? = nil) async {
         let sessionId = UUID().uuidString
         let uri = "\(provider):/\(sessionId)"
         do {
             try await connection.createSession(params: CreateSessionParams(
                 session: uri,
                 provider: provider,
-                model: model
+                model: model,
+                workingDirectory: workingDirectory
             ))
 
             // Subscribe to the new session
@@ -279,7 +505,7 @@ final class AppStore {
 
     // MARK: - Private: State Management
 
-    private func applySnapshot(_ snapshot: Snapshot) {
+    func applySnapshot(_ snapshot: Snapshot) {
         switch snapshot.state {
         case .root(let state):
             rootState = state
@@ -288,7 +514,7 @@ final class AppStore {
         }
     }
 
-    private func handleAction(_ envelope: ActionEnvelope) {
+    func handleAction(_ envelope: ActionEnvelope) {
         let action = envelope.action
 
         // Apply to root state
@@ -374,5 +600,8 @@ private extension AHPConnection {
     }
     func setOnStateChange(_ callback: @escaping @MainActor (AHPConnection.ConnectionState) -> Void) {
         onStateChange = callback
+    }
+    func setOnUnexpectedDisconnect(_ callback: @escaping @MainActor () -> Void) {
+        onUnexpectedDisconnect = callback
     }
 }

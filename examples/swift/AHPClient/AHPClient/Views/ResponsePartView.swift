@@ -26,9 +26,25 @@ struct MarkdownPartView: View {
     let part: MarkdownResponsePart
 
     var body: some View {
-        Text(LocalizedStringKey(part.content))
-            .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        if !part.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if let attributed = try? AttributedString(
+                markdown: part.content,
+                options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+            ) {
+                Text(attributed)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+            } else {
+                // Fallback for content that fails to parse as markdown.
+                Text(part.content)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+            }
+        }
     }
 }
 
@@ -41,17 +57,20 @@ struct ReasoningPartView: View {
     var body: some View {
         DisclosureGroup(isExpanded: $isExpanded) {
             Text(part.content)
-                .font(.caption)
+                .font(.footnote)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
         } label: {
-            Label("Reasoning", systemImage: "brain")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Label("Thinking", systemImage: "brain")
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(.purple)
         }
-        .padding(8)
-        .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 8))
+        .padding(10)
+        .background(
+            Color.purple.opacity(0.08),
+            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+        )
     }
 }
 
@@ -60,6 +79,7 @@ struct ReasoningPartView: View {
 struct ToolCallPartView: View {
     let toolCall: ToolCallState
     @Environment(AppStore.self) private var store
+    @State private var showDetail = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -73,40 +93,37 @@ struct ToolCallPartView: View {
                 statusView
             }
 
-            // Invocation message
+            // Tool invocation message
             if let msg = invocationMessage {
                 Text(stringOrMarkdownText(msg))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            // Tool input (collapsible)
-            if let input = toolInput, !input.isEmpty {
-                DisclosureGroup("Parameters") {
-                    Text(input)
-                        .font(.system(.caption, design: .monospaced))
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .font(.caption)
+            // Show a failure label for completed-but-failed calls
+            if case .completed(let s) = toolCall, !s.success {
+                Label("Tool failed", systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.red)
             }
-
-            // Tool result content
-            toolResultView
 
             // Action buttons
             actionButtons
         }
         .padding(10)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(.background)
-                .shadow(color: .primary.opacity(0.1), radius: 2, y: 1)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(cardBackground)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .stroke(borderColor, lineWidth: 1)
         )
+        .contentShape(Rectangle())
+        .onTapGesture { showDetail = true }
+        .sheet(isPresented: $showDetail) {
+            ToolCallDetailSheet(toolCall: toolCall)
+        }
     }
 
     // MARK: - Status
@@ -173,33 +190,6 @@ struct ToolCallPartView: View {
         }
     }
 
-    // MARK: - Tool Result Content
-
-    @ViewBuilder
-    private var toolResultView: some View {
-        switch toolCall {
-        case .completed(let s):
-            if let content = s.content {
-                ForEach(Array(content.enumerated()), id: \.offset) { _, item in
-                    ToolResultContentView(content: item)
-                }
-            }
-            if !s.success {
-                Text("Tool failed")
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
-        case .pendingResultConfirmation(let s):
-            if let content = s.content {
-                ForEach(Array(content.enumerated()), id: \.offset) { _, item in
-                    ToolResultContentView(content: item)
-                }
-            }
-        default:
-            EmptyView()
-        }
-    }
-
     // MARK: - Helpers
 
     private var displayName: String {
@@ -227,11 +217,20 @@ struct ToolCallPartView: View {
         }
     }
 
+    private var cardBackground: Color {
+        switch toolCall {
+        case .pendingConfirmation, .pendingResultConfirmation:
+            return Color.orange.opacity(0.05)
+        default:
+            return Color(.systemGray6).opacity(0.5)
+        }
+    }
+
     private var borderColor: Color {
         switch toolCall {
-        case .pendingConfirmation, .pendingResultConfirmation: .orange.opacity(0.5)
-        case .completed(let s): s.success ? .green.opacity(0.3) : .red.opacity(0.3)
-        default: .secondary.opacity(0.2)
+        case .pendingConfirmation, .pendingResultConfirmation: .orange.opacity(0.4)
+        case .completed(let s): s.success ? .green.opacity(0.2) : .red.opacity(0.3)
+        default: Color(.systemGray4).opacity(0.5)
         }
     }
 
@@ -275,6 +274,92 @@ struct ToolCallPartView: View {
     }
 }
 
+// MARK: - ToolCallDetailSheet
+
+/// Modal sheet showing the full input (parameters) and output (result content) of a tool call.
+struct ToolCallDetailSheet: View {
+    let toolCall: ToolCallState
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // --- Input Section ---
+                    if let input = toolInput, !input.isEmpty {
+                        Section {
+                            Text(input)
+                                .font(.system(.caption, design: .monospaced))
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(10)
+                                .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 8))
+                        } header: {
+                            Label("Input", systemImage: "arrow.right.circle")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                    }
+
+                    // --- Output Section ---
+                    if let content = toolResultContent, !content.isEmpty {
+                        Section {
+                            ForEach(Array(content.enumerated()), id: \.offset) { _, item in
+                                ToolResultContentView(content: item)
+                            }
+                        } header: {
+                            Label("Output", systemImage: "arrow.left.circle")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                    } else if hasResult {
+                        Section {
+                            Text("No output content")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } header: {
+                            Label("Output", systemImage: "arrow.left.circle")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle(toolCall.baseFields.displayName)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private var toolInput: String? {
+        switch toolCall {
+        case .streaming(let s): return s.partialInput
+        case .pendingConfirmation(let s): return s.toolInput
+        case .running(let s): return s.toolInput
+        case .pendingResultConfirmation(let s): return s.toolInput
+        case .completed(let s): return s.toolInput
+        default: return nil
+        }
+    }
+
+    private var toolResultContent: [ToolResultContent]? {
+        switch toolCall {
+        case .completed(let s): return s.content
+        case .pendingResultConfirmation(let s): return s.content
+        default: return nil
+        }
+    }
+
+    private var hasResult: Bool {
+        switch toolCall {
+        case .completed, .pendingResultConfirmation: return true
+        default: return false
+        }
+    }
+}
+
 // MARK: - ToolResultContentView
 
 struct ToolResultContentView: View {
@@ -286,11 +371,11 @@ struct ToolResultContentView: View {
             Text(t.text)
                 .font(.system(.caption, design: .monospaced))
                 .textSelection(.enabled)
-                .padding(6)
+                .padding(8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 6))
+                .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 6))
         case .binary(let b):
-            if b.contentType?.hasPrefix("image/") == true,
+            if b.contentType.hasPrefix("image/") == true,
                let data = Data(base64Encoded: b.data),
                let uiImage = UIImage(data: data) {
                 Image(uiImage: uiImage)
@@ -299,7 +384,7 @@ struct ToolResultContentView: View {
                     .frame(maxHeight: 300)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             } else {
-                Label("Binary content (\(b.contentType ?? "unknown"))", systemImage: "doc.zipper")
+                Label("Binary content (\(b.contentType))", systemImage: "doc.zipper")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -309,19 +394,19 @@ struct ToolResultContentView: View {
                 VStack(alignment: .leading) {
                     Text("File edit")
                         .font(.caption.bold())
-                    if let diff = edit.diff {
+                    if let diff = edit.diff?.value as? [String: Any] {
                         HStack(spacing: 4) {
-                            Text("+\(diff.added ?? 0)")
+                            Text("+\(diff["added"] as? Int ?? 0)")
                                 .foregroundStyle(.green)
-                            Text("-\(diff.removed ?? 0)")
+                            Text("-\(diff["removed"] as? Int ?? 0)")
                                 .foregroundStyle(.red)
                         }
                         .font(.caption)
                     }
                 }
             }
-            .padding(6)
-            .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 6))
+            .padding(8)
+            .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 8))
         case .contentRef(let ref):
             ContentRefView(ref: ref)
         }
@@ -347,8 +432,11 @@ struct ContentRefView: View {
                 }
             }
         }
-        .padding(6)
-        .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 6))
+        .padding(8)
+        .background(
+            Color(.systemGray6),
+            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+        )
     }
 
     private var contentIcon: String {

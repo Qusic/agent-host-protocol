@@ -1,4 +1,5 @@
 import SwiftUI
+import AgentHostProtocol
 
 /// Welcome view shown when no session is selected.
 struct WelcomeView: View {

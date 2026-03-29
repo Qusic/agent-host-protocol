@@ -45,11 +45,16 @@ actor AHPConnection {
     private var urlSession: URLSession?
     private var nextRequestId = 1
     private var pendingRequests: [Int: CheckedContinuation<Data, Error>] = [:]
-    private var serverSeq = 0
+    /// Last `serverSeq` received from the server. Internal so tests can inspect it.
+    var serverSeq = 0
     private var subscriptions: [String] = []
     private var receiveTask: Task<Void, Never>?
 
     private(set) var state: ConnectionState = .disconnected
+
+    /// `true` when there is enough state to attempt a `reconnect` handshake rather than
+    /// a full `initialize`. Requires at least one prior successful connection.
+    var canReconnect: Bool { serverSeq > 0 && !subscriptions.isEmpty }
 
     /// Callback invoked on the MainActor when a server action envelope arrives.
     var onAction: (@MainActor (ActionEnvelope) -> Void)?
@@ -57,6 +62,9 @@ actor AHPConnection {
     var onNotification: (@MainActor (ProtocolNotification) -> Void)?
     /// Callback invoked on the MainActor when the connection state changes.
     var onStateChange: (@MainActor (ConnectionState) -> Void)?
+    /// Callback invoked on the MainActor when the transport drops unexpectedly (not from a
+    /// deliberate `disconnect()` call). Use this to trigger a reconnect attempt.
+    var onUnexpectedDisconnect: (@MainActor () -> Void)?
 
     /// Generic JSON-RPC success response wrapper (must be top-level in the actor
     /// because Swift does not allow nested types inside generic functions).
@@ -81,6 +89,7 @@ actor AHPConnection {
 
         let session = URLSession(configuration: .default)
         let ws = session.webSocketTask(with: url)
+        ws.maximumMessageSize = 128 * 1024 * 1024  // 128 MB
         ws.resume()
         self.urlSession = session
         self.webSocket = ws
@@ -110,6 +119,48 @@ actor AHPConnection {
         urlSession = nil
         pendingRequests.removeAll()
         Task { await setState(.disconnected) }
+    }
+
+    // MARK: - Reconnect
+
+    /// Re-establishes the WebSocket transport and performs the AHP `reconnect` handshake,
+    /// passing `clientId`, `lastSeenServerSeq`, and the current subscription list so the server
+    /// can either replay missed actions or return fresh snapshots.
+    ///
+    /// After this call succeeds the connection is back in `.connected` state and the caller
+    /// is responsible for applying the returned `ReconnectResult` to the app state.
+    @discardableResult
+    func reconnect(to url: URL) async throws -> ReconnectResult {
+        await setState(.reconnecting)
+
+        let session = URLSession(configuration: .default)
+        let ws = session.webSocketTask(with: url)
+        ws.maximumMessageSize = 128 * 1024 * 1024  // 128 MB
+        ws.resume()
+        self.urlSession = session
+        self.webSocket = ws
+        startReceiving()
+
+        let params = ReconnectParams(
+            clientId: clientId,
+            lastSeenServerSeq: serverSeq,
+            subscriptions: subscriptions
+        )
+        let result: ReconnectResult = try await sendRequest(method: "reconnect", params: params)
+
+        // Advance serverSeq to the highest sequence in the result so that
+        // subsequent live action notifications are ordered correctly.
+        switch result {
+        case .replay(let r):
+            if let last = r.actions.last {
+                serverSeq = last.serverSeq
+            }
+        case .snapshot(let r):
+            serverSeq = r.snapshots.map(\.fromSeq).max() ?? serverSeq
+        }
+
+        await setState(.connected)
+        return result
     }
 
     // MARK: - Commands
@@ -248,6 +299,14 @@ actor AHPConnection {
                     let message = try await ws.receive()
                     await self.handleMessage(message)
                 } catch {
+                    // A CancellationError means disconnect() was called deliberately; anything
+                    // else is an unexpected network drop that should trigger a reconnect attempt.
+                    if !Task.isCancelled {
+                        await self.setState(.disconnected)
+                        if let callback = await self.onUnexpectedDisconnect {
+                            await MainActor.run { callback() }
+                        }
+                    }
                     break
                 }
             }

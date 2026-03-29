@@ -4,29 +4,22 @@ import SwiftUI
 struct ContentView: View {
     @Environment(AppStore.self) private var store
     @State private var showSettings = false
+    @State private var navigationPath: [String] = []
 
     var body: some View {
-        @Bindable var store = store
-
-        NavigationSplitView {
-            SidebarView()
-        } detail: {
-            if store.currentSession != nil {
-                ChatView()
-            } else {
-                WelcomeView()
-            }
-        }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: 12) {
-                    ConnectionIndicator()
-                    Button {
-                        showSettings = true
-                    } label: {
-                        Image(systemName: "gearshape")
-                    }
+        NavigationStack(path: $navigationPath) {
+            SidebarView(navigationPath: $navigationPath)
+                .navigationDestination(for: String.self) { _ in
+                    ChatView()
                 }
+        }
+        .onChange(of: store.selectedSessionURI) { _, newValue in
+            if let uri = newValue {
+                if navigationPath.last != uri {
+                    navigationPath = [uri]
+                }
+            } else {
+                navigationPath = []
             }
         }
         .sheet(isPresented: $showSettings) {
