@@ -9,8 +9,13 @@ struct ContentView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             SidebarView(navigationPath: $navigationPath)
-                .navigationDestination(for: String.self) { _ in
-                    ChatView()
+                .navigationDestination(for: String.self) { value in
+                    if value.hasPrefix("folder:") {
+                        let path = String(value.dropFirst("folder:".count))
+                        FolderSessionsView(folderPath: path, navigationPath: $navigationPath)
+                    } else {
+                        ChatView()
+                    }
                 }
         }
         .onChange(of: store.selectedSessionURI) { _, newValue in

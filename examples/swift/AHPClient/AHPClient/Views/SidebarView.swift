@@ -105,8 +105,10 @@ struct SidebarView: View {
         }
     }
 
+    private static let maxSessionsPerFolder = 5
+
     // Folder-based grouping
-    private var groupedByFolder: [(group: SessionFolderGroup, sessions: [SessionSummary])] {
+    private var groupedByFolder: [(group: SessionFolderGroup, sessions: [SessionSummary], hasMore: Bool)] {
         var buckets: [String: (group: SessionFolderGroup, sessions: [SessionSummary])] = [:]
         for summary in filteredSummaries {
             let folder = SessionFolderGroup.make(from: summary.workingDirectory)
@@ -122,6 +124,11 @@ struct SidebarView: View {
                 let lhsTime = lhs.sessions.first?.modifiedAt ?? 0
                 let rhsTime = rhs.sessions.first?.modifiedAt ?? 0
                 return lhsTime > rhsTime
+            }
+            .map { group, sessions in
+                let hasMore = sessions.count > Self.maxSessionsPerFolder
+                let truncated = hasMore ? Array(sessions.prefix(Self.maxSessionsPerFolder)) : sessions
+                return (group, truncated, hasMore)
             }
     }
 
@@ -179,8 +186,8 @@ struct SidebarView: View {
                                     sessionSection(title: group.title, sessions: sessions)
                                 }
                             case .byFolder:
-                                ForEach(groupedByFolder, id: \.group) { group, sessions in
-                                    folderSection(group: group, sessions: sessions)
+                                ForEach(groupedByFolder, id: \.group) { group, sessions, hasMore in
+                                    folderSection(group: group, sessions: sessions, hasMore: hasMore)
                                 }
                             }
                         }
@@ -358,7 +365,7 @@ struct SidebarView: View {
         }
     }
 
-    private func folderSection(group: SessionFolderGroup, sessions: [SessionSummary]) -> some View {
+    private func folderSection(group: SessionFolderGroup, sessions: [SessionSummary], hasMore: Bool) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "folder")
@@ -381,6 +388,24 @@ struct SidebarView: View {
 
             ForEach(sessions, id: \.resource) { summary in
                 sessionButton(for: summary, showFolder: false)
+            }
+
+            if hasMore {
+                NavigationLink(value: "folder:\(group.path)") {
+                    HStack {
+                        Text("Show More Sessions")
+                            .font(.subheadline.weight(.medium))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .modifier(SessionCardStyle())
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -504,7 +529,7 @@ struct SidebarView: View {
 
 // MARK: - SessionCardStyle
 
-private struct SessionCardStyle: ViewModifier {
+struct SessionCardStyle: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
