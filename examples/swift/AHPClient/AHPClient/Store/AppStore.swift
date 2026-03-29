@@ -207,12 +207,14 @@ final class AppStore {
             try await testConnection.connect(to: url)
             await testConnection.disconnect()
         } catch {
+            // When local network access is denied, iOS returns URL errors in
+            // the -1001…-1200 range. Rather than guessing whether the host is
+            // local, let the OS tell us: if we get a network-layer error, try
+            // the Bonjour permission check and surface the prompt.
             let nsError = error as NSError
-            let isLNPError = nsError.domain == NSURLErrorDomain
+            if nsError.domain == NSURLErrorDomain
                 && (-1200 ... -1001).contains(nsError.code)
-                && isLocalNetworkHost(server.host)
-
-            if isLNPError {
+            {
                 throw ValidationError.localNetworkPermissionNeeded
             }
             throw ValidationError.connectionFailed(error.localizedDescription)
