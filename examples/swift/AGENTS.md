@@ -107,3 +107,5 @@ The app uses `#available(iOS 26.0, *)` checks for:
 ### Build & Run
 
 Open `AHPClient/AHPClient.xcodeproj` in Xcode. The project references `AgentHostProtocol` as a local Swift package dependency. Code signing requires a `Signing.local.xcconfig` file (see `Config/Signing.local.xcconfig.example`).
+
+For development, `AHPClient` uses a native `NWConnection` WebSocket transport instead of `URLSessionWebSocketTask`,  avoiding `URLSession` ATS enforcement for direct `ws://` development targets such as local LAN addresses or Tailscale tailnet IPs. Public or internet-exposed deployments should still prefer `wss://`.
