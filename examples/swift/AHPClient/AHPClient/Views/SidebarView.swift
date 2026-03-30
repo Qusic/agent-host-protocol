@@ -195,6 +195,9 @@ struct SidebarView: View {
                     .padding(.vertical, 8)
                     .padding(.horizontal, 16)
                 }
+                .refreshable {
+                    await store.fetchAndSubscribeSessions()
+                }
 
                 if #available(iOS 26.0, *) {
                     // iOS 26: new session button lives in bottomBar toolbar
