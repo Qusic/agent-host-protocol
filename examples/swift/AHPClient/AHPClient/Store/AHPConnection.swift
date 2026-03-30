@@ -329,7 +329,10 @@ actor AHPConnection {
             let id: Int?
             let method: String?
         }
-        guard let probe = try? decoder.decode(MessageProbe.self, from: data) else { return }
+        guard let probe = try? decoder.decode(MessageProbe.self, from: data) else {
+            print("[AHP] WARNING: Failed to decode message probe from data: \(String(data: data.prefix(500), encoding: .utf8) ?? "<binary>")")
+            return
+        }
 
         if let id = probe.id, probe.method == nil {
             // This is a response to a pending request
@@ -340,26 +343,35 @@ actor AHPConnection {
             switch method {
             case "action":
                 // Server action broadcast
-                if let envelope = try? decoder.decode(
-                    JsonRpcNotification<ActionEnvelope>.self, from: data
-                ) {
+                do {
+                    let envelope = try decoder.decode(
+                        JsonRpcNotification<ActionEnvelope>.self, from: data
+                    )
                     let params = envelope.params
                     serverSeq = params.serverSeq
                     if let callback = onAction {
                         Task { @MainActor in callback(params) }
                     }
+                } catch {
+                    print("[AHP] ERROR: Failed to decode action envelope: \(error)")
+                    print("[AHP]   Raw data: \(String(data: data.prefix(1000), encoding: .utf8) ?? "<binary>")")
                 }
             case "notification":
                 // Protocol notification
-                if let note = try? decoder.decode(
-                    JsonRpcNotification<NotificationMethodParams>.self, from: data
-                ) {
+                do {
+                    let note = try decoder.decode(
+                        JsonRpcNotification<NotificationMethodParams>.self, from: data
+                    )
                     if let callback = onNotification {
                         let notification = note.params.notification
                         Task { @MainActor in callback(notification) }
                     }
+                } catch {
+                    print("[AHP] ERROR: Failed to decode notification: \(error)")
+                    print("[AHP]   Raw data: \(String(data: data.prefix(1000), encoding: .utf8) ?? "<binary>")")
                 }
             default:
+                print("[AHP] Unknown method: \(method)")
                 break
             }
         }

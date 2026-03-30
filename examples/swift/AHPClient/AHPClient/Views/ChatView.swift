@@ -25,101 +25,101 @@ struct ChatView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Message list
-            ScrollViewReader { proxy in
-                ZStack(alignment: .bottomTrailing) {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 8) {
-                            if let session = store.currentSession {
-                                // Completed turns
-                                ForEach(session.turns, id: \.id) { turn in
-                                    TurnView(turn: turn, activeTurnId: nil)
-                                        .id(turn.id)
-                                }
-
-                                // Active turn (streaming)
-                                if let activeTurn = session.activeTurn {
-                                    ActiveTurnView(turn: activeTurn)
-                                        .id("active-\(activeTurn.id)")
-                                }
+        ScrollViewReader { proxy in
+            ZStack(alignment: .bottomTrailing) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if let session = store.currentSession {
+                            // Completed turns
+                            ForEach(session.turns, id: \.id) { turn in
+                                TurnView(turn: turn, activeTurnId: nil)
+                                    .id(turn.id)
                             }
 
-                            // Bottom sentinel — scroll target and at-bottom detection.
-                            Color.clear
-                                .frame(height: 1)
-                                .id(bottomID)
-                                .onAppear  { isAtBottom = true }
-                                .onDisappear { isAtBottom = false }
+                            // Active turn (streaming)
+                            if let activeTurn = session.activeTurn {
+                                ActiveTurnView(turn: activeTurn)
+                                    .id("active-\(activeTurn.id)")
+                            }
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.top, 8)
-                        .padding(.bottom, 100) // extra space so content isn't hidden behind floating input
+
+                        // Bottom sentinel — scroll target and at-bottom detection.
+                        Color.clear
+                            .frame(height: 1)
+                            .id(bottomID)
+                            .onAppear  { isAtBottom = true }
+                            .onDisappear { isAtBottom = false }
                     }
-                    .defaultScrollAnchor(.bottom)
-                    .onAppear {
-                        isAtBottom = true
-                        scrollToBottom(proxy, animated: false)
+                    .padding(.horizontal, 14)
+                    .padding(.top, 8)
+                    .padding(.bottom, 8)
+                }
+                .defaultScrollAnchor(.bottom)
+                .onAppear {
+                    isAtBottom = true
+                    scrollToBottom(proxy, animated: false)
+                }
+                .onChange(of: store.selectedSessionURI) {
+                    isAtBottom = true
+                    scrollToBottom(proxy, animated: false)
+                }
+                .onChange(of: store.currentSession?.activeTurn?.responseParts.count) {
+                    if isAtBottom {
+                        scrollToBottom(proxy, animated: true)
                     }
-                    .onChange(of: store.selectedSessionURI) {
-                        isAtBottom = true
-                        scrollToBottom(proxy, animated: false)
-                    }
-                    .onChange(of: store.currentSession?.activeTurn?.responseParts.count) {
-                        if isAtBottom {
+                }
+                .onChange(of: store.currentSession?.turns.count) {
+                    if isAtBottom {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                             scrollToBottom(proxy, animated: true)
                         }
                     }
-                    .onChange(of: store.currentSession?.turns.count) {
-                        if isAtBottom {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                                scrollToBottom(proxy, animated: true)
-                            }
-                        }
-                    }
+                }
 
-                    // Scroll-to-bottom button — visible when the user has scrolled up.
-                    if !isAtBottom {
-                        Button {
-                            scrollToBottom(proxy, animated: true)
-                        } label: {
-                            if #available(iOS 26, *) {
-                                Image(systemName: "arrow.down")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(.primary)
-                                    .padding(12)
-                                    .glassEffect(.regular.interactive(), in: .circle)
-                            } else {
-                                Image(systemName: "arrow.down")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(.primary)
-                                    .padding(10)
-                                    .background(.ultraThinMaterial, in: Circle())
-                            }
+                // Scroll-to-bottom button — visible when the user has scrolled up.
+                if !isAtBottom {
+                    Button {
+                        scrollToBottom(proxy, animated: true)
+                    } label: {
+                        if #available(iOS 26, *) {
+                            Image(systemName: "arrow.down")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.primary)
+                                .padding(12)
+                                .glassEffect(.regular.interactive(), in: .circle)
+                        } else {
+                            Image(systemName: "arrow.down")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.primary)
+                                .padding(10)
+                                .background(.ultraThinMaterial, in: Circle())
                         }
-                        .padding(.trailing, 16)
-                        .padding(.bottom, 80) // above the floating input bar
-                        .accessibilityLabel("Scroll to bottom")
-                        .transition(.scale.combined(with: .opacity))
-                        .animation(.easeOut(duration: 0.15), value: isAtBottom)
                     }
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 16)
+                    .accessibilityLabel("Scroll to bottom")
+                    .transition(.scale.combined(with: .opacity))
+                    .animation(.easeOut(duration: 0.15), value: isAtBottom)
                 }
-                .overlay(alignment: .top) {
-                    // Floating reconnect progress bar
-                    if store.isReconnecting {
-                        ReconnectProgressBar()
-                            .transition(.move(edge: .top).combined(with: .opacity))
-                    }
-                }
-                .animation(.easeInOut(duration: 0.25), value: store.isReconnecting)
             }
-
-            // Floating input bar
-            InputBar(text: $inputText, isFocused: $inputFocused) {
-                guard !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-                let message = inputText
-                inputText = ""
-                Task { await store.sendMessage(message) }
+            .overlay(alignment: .top) {
+                // Floating reconnect progress bar
+                if store.isReconnecting {
+                    ReconnectProgressBar()
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .animation(.easeInOut(duration: 0.25), value: store.isReconnecting)
+            // InputBar is declared as a safe-area inset so the scroll view
+            // shrinks its visible frame to end above the bar. This ensures
+            // scrollToBottom lands at the true visible bottom, not behind the bar.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                InputBar(text: $inputText, isFocused: $inputFocused) {
+                    guard !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                    let message = inputText
+                    inputText = ""
+                    Task { await store.sendMessage(message) }
+                }
             }
         }
         .navigationTitle(store.currentSession?.summary.title.isEmpty == false ? store.currentSession!.summary.title : "New Chat")

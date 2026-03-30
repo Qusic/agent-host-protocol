@@ -249,6 +249,14 @@ final class AppStore {
         }
         do {
             errorMessage = nil
+
+            // Reset all session state before connecting so that stale session URIs
+            // from a previous connection (e.g. after a server restart) cannot be
+            // used to send messages that the new server knows nothing about.
+            sessions.removeAll()
+            selectedSessionURI = nil
+            rootState = RootState(agents: [])
+
             let result = try await connection.connect(to: url)
             defaultDirectory = result.defaultDirectory
 
@@ -518,6 +526,7 @@ final class AppStore {
 
     func handleAction(_ envelope: ActionEnvelope) {
         let action = envelope.action
+        print("[AHP] Received action: \(action), serverSeq: \(envelope.serverSeq)")
 
         // Apply to root state
         rootState = rootReducer(state: rootState, action: action)
@@ -530,7 +539,10 @@ final class AppStore {
     }
 
     private func applySessionAction(_ action: StateAction, sessionURI: String) {
-        guard var state = sessions[sessionURI] else { return }
+        guard var state = sessions[sessionURI] else {
+            print("[AHP] WARNING: No session found for URI \(sessionURI), dropping action: \(action)")
+            return
+        }
         sessionReducer_.reduce(into: &state, action: action)
         sessions[sessionURI] = state
     }
