@@ -1,7 +1,23 @@
 node_modules
 docs/.vitepress/dist
 docs/.vitepress/cache
+.DS_Store
 
 # Generated files (npm run generate)
 docs/reference/
 docs/public/schema/
+examples/swift/AgentHostProtocol/Sources/AgentHostProtocol/Generated/
+examples/swift/AgentHostProtocol/.build/
+examples/swift/AgentHostProtocol/.swiftpm/
+examples/swift/AHPApp/.build/
+examples/swift/AHPClient/.build/
+examples/swift/AHPClient/AHPClient/Config/Signing.local.xcconfig
+
+# Xcode / Swift
+DerivedData
+.DerivedDataDevice
+**/xcuserdata/
+**/*.xcbkptlist
+**/*.xcuserstate
+**/*.xcsettings
+**/.swiftpm/xcode/xcuserdata/
