@@ -744,8 +744,12 @@ const COMMAND_STRUCTS = [
   'ISubscribeParams', 'ISubscribeResult',
   'ICreateSessionParams', 'IDisposeSessionParams',
   'IListSessionsParams', 'IListSessionsResult',
-  'IFetchContentParams', 'IFetchContentResult',
-  'IBrowseDirectoryParams', 'IBrowseDirectoryResult', 'IDirectoryEntry',
+  'IResourceReadParams', 'IResourceReadResult',
+  'IResourceWriteParams', 'IResourceWriteResult',
+  'IResourceListParams', 'IResourceListResult', 'IDirectoryEntry',
+  'IResourceCopyParams', 'IResourceCopyResult',
+  'IResourceDeleteParams', 'IResourceDeleteResult',
+  'IResourceMoveParams', 'IResourceMoveResult',
   'IFetchTurnsParams', 'IFetchTurnsResult',
   'IUnsubscribeParams', 'IDispatchActionParams',
   'IAuthenticateParams', 'IAuthenticateResult',
@@ -994,12 +998,28 @@ public enum AHPCommands {
         JsonRpcRequest(id: id, method: "listSessions", params: params)
     }
 
-    public static func fetchContent(id: Int, params: FetchContentParams) -> JsonRpcRequest<FetchContentParams> {
-        JsonRpcRequest(id: id, method: "fetchContent", params: params)
+    public static func resourceRead(id: Int, params: ResourceReadParams) -> JsonRpcRequest<ResourceReadParams> {
+        JsonRpcRequest(id: id, method: "resourceRead", params: params)
     }
 
-    public static func browseDirectory(id: Int, params: BrowseDirectoryParams) -> JsonRpcRequest<BrowseDirectoryParams> {
-        JsonRpcRequest(id: id, method: "browseDirectory", params: params)
+    public static func resourceWrite(id: Int, params: ResourceWriteParams) -> JsonRpcRequest<ResourceWriteParams> {
+        JsonRpcRequest(id: id, method: "resourceWrite", params: params)
+    }
+
+    public static func resourceList(id: Int, params: ResourceListParams) -> JsonRpcRequest<ResourceListParams> {
+        JsonRpcRequest(id: id, method: "resourceList", params: params)
+    }
+
+    public static func resourceCopy(id: Int, params: ResourceCopyParams) -> JsonRpcRequest<ResourceCopyParams> {
+        JsonRpcRequest(id: id, method: "resourceCopy", params: params)
+    }
+
+    public static func resourceDelete(id: Int, params: ResourceDeleteParams) -> JsonRpcRequest<ResourceDeleteParams> {
+        JsonRpcRequest(id: id, method: "resourceDelete", params: params)
+    }
+
+    public static func resourceMove(id: Int, params: ResourceMoveParams) -> JsonRpcRequest<ResourceMoveParams> {
+        JsonRpcRequest(id: id, method: "resourceMove", params: params)
     }
 
     public static func fetchTurns(id: Int, params: FetchTurnsParams) -> JsonRpcRequest<FetchTurnsParams> {

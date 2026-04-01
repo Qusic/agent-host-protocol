@@ -239,9 +239,9 @@
         "items"
       ]
     },
-    "IFetchContentParams": {
+    "IResourceReadParams": {
       "type": "object",
-      "description": "Fetches large content referenced by a `ContentRef` in the state tree.\n\nContent references keep the state tree small by storing large data (images,\nlong tool outputs) by reference rather than inline.\n\nBinary content (images, etc.) MUST use `base64` encoding. Text content MAY\nuse `utf-8` encoding.",
+      "description": "Reads the content of a resource by URI.\n\nContent references keep the state tree small by storing large data (images,\nlong tool outputs) by reference rather than inline.\n\nBinary content (images, etc.) MUST use `base64` encoding. Text content MAY\nuse `utf-8` encoding.",
       "properties": {
         "uri": {
           "type": "string",
@@ -256,9 +256,9 @@
         "uri"
       ]
     },
-    "IFetchContentResult": {
+    "IResourceReadResult": {
       "type": "object",
-      "description": "Result of the `fetchContent` command.\n\nThe server SHOULD honor the `encoding` requested in the params. If the\nserver cannot provide the requested encoding, it MUST fall back to either\n`base64` or `utf-8`.",
+      "description": "Result of the `resourceRead` command.\n\nThe server SHOULD honor the `encoding` requested in the params. If the\nserver cannot provide the requested encoding, it MUST fall back to either\n`base64` or `utf-8`.",
       "properties": {
         "data": {
           "type": "string",
@@ -278,7 +278,7 @@
         "encoding"
       ]
     },
-    "IWriteFileParams": {
+    "IResourceWriteParams": {
       "type": "object",
       "description": "Writes content to a file on the server's filesystem.\n\nBinary content (images, etc.) MUST use `base64` encoding. Text content MAY\nuse `utf-8` encoding.\n\nIf the file does not exist, it is created. If the file already exists, it is\noverwritten unless `createOnly` is set.",
       "properties": {
@@ -309,24 +309,27 @@
         "encoding"
       ]
     },
-    "IWriteFileResult": {
+    "IResourceWriteResult": {
       "type": "object",
-      "description": "Result of the `writeFile` command.\n\nAn empty object on success.",
+      "description": "Result of the `resourceWrite` command.\n\nAn empty object on success.",
       "properties": {}
     },
-    "IBrowseDirectoryParams": {
+    "IResourceListParams": {
       "type": "object",
-      "description": "Lists the contents of a directory on the server. Used by clients to\npresent directory pickers or file browsers.",
+      "description": "Lists directory entries at a file URI on the server's filesystem.\n\nThis is intended for remote folder pickers and similar UI that needs to let\nusers navigate the server's local filesystem.\n\nThe server MUST return success only if the target exists and is a directory.\nIf the target does not exist, is not a directory, or cannot be accessed, the\nserver MUST return a JSON-RPC error.",
       "properties": {
-        "directory": {
-          "type": "string",
-          "description": "Directory path to browse. Omit to list the default/root directory."
+        "uri": {
+          "$ref": "#/$defs/URI",
+          "description": "Directory URI on the server filesystem"
         }
-      }
+      },
+      "required": [
+        "uri"
+      ]
     },
     "IDirectoryEntry": {
       "type": "object",
-      "description": "Directory entry returned by `browseDirectory`.",
+      "description": "Directory entry returned by `resourceList`.",
       "properties": {
         "name": {
           "type": "string",
@@ -346,9 +349,9 @@
         "type"
       ]
     },
-    "IBrowseDirectoryResult": {
+    "IResourceListResult": {
       "type": "object",
-      "description": "Result of the `browseDirectory` command.",
+      "description": "Result of the `resourceList` command.",
       "properties": {
         "entries": {
           "type": "array",
@@ -435,23 +438,81 @@
         "action"
       ]
     },
-    "IBrowseDirectoryEntry": {
+    "IResourceCopyParams": {
       "type": "object",
-      "description": "A single entry in a directory listing.",
+      "description": "Copies a resource from one URI to another on the server's filesystem.\n\nIf the destination already exists, it is overwritten unless `failIfExists`\nis set.",
       "properties": {
-        "name": {
-          "type": "string",
-          "description": "Entry name (not a full path)"
+        "source": {
+          "$ref": "#/$defs/URI",
+          "description": "Source URI to copy from"
         },
-        "isDirectory": {
+        "destination": {
+          "$ref": "#/$defs/URI",
+          "description": "Destination URI to copy to"
+        },
+        "failIfExists": {
           "type": "boolean",
-          "description": "Whether this entry is a directory"
+          "description": "If `true`, the server MUST fail if the destination already exists instead\nof overwriting it."
         }
       },
       "required": [
-        "name",
-        "isDirectory"
+        "source",
+        "destination"
       ]
+    },
+    "IResourceCopyResult": {
+      "type": "object",
+      "description": "Result of the `resourceCopy` command.\n\nAn empty object on success.",
+      "properties": {}
+    },
+    "IResourceDeleteParams": {
+      "type": "object",
+      "description": "Deletes a resource at a URI on the server's filesystem.",
+      "properties": {
+        "uri": {
+          "$ref": "#/$defs/URI",
+          "description": "URI of the resource to delete"
+        },
+        "recursive": {
+          "type": "boolean",
+          "description": "If `true` and the target is a directory, delete it and all its contents\nrecursively. If `false` (default), deleting a non-empty directory MUST fail."
+        }
+      },
+      "required": [
+        "uri"
+      ]
+    },
+    "IResourceDeleteResult": {
+      "type": "object",
+      "description": "Result of the `resourceDelete` command.\n\nAn empty object on success.",
+      "properties": {}
+    },
+    "IResourceMoveParams": {
+      "type": "object",
+      "description": "Moves (renames) a resource from one URI to another on the server's filesystem.\n\nIf the destination already exists, it is overwritten unless `failIfExists`\nis set.",
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/URI",
+          "description": "Source URI to move from"
+        },
+        "destination": {
+          "$ref": "#/$defs/URI",
+          "description": "Destination URI to move to"
+        },
+        "failIfExists": {
+          "type": "boolean",
+          "description": "If `true`, the server MUST fail if the destination already exists instead\nof overwriting it."
+        }
+      },
+      "required": [
+        "source",
+        "destination"
+      ]
+    },
+    "IResourceMoveResult": {
+      "type": "object",
+      "description": "Result of the `resourceMove` command.\n\nAn empty object on success.",
+      "properties": {}
     },
     "IAuthenticateParams": {
       "type": "object",
