@@ -18,12 +18,18 @@ import type {
   IDisposeSessionParams,
   IListSessionsParams,
   IListSessionsResult,
-  IFetchContentParams,
-  IFetchContentResult,
-  IWriteFileParams,
-  IWriteFileResult,
-  IBrowseDirectoryParams,
-  IBrowseDirectoryResult,
+  IResourceReadParams,
+  IResourceReadResult,
+  IResourceWriteParams,
+  IResourceWriteResult,
+  IResourceListParams,
+  IResourceListResult,
+  IResourceCopyParams,
+  IResourceCopyResult,
+  IResourceDeleteParams,
+  IResourceDeleteResult,
+  IResourceMoveParams,
+  IResourceMoveResult,
   IFetchTurnsParams,
   IFetchTurnsResult,
   IUnsubscribeParams,
@@ -87,9 +93,12 @@ export interface ICommandMap {
   'createSession': { params: ICreateSessionParams; result: null };
   'disposeSession': { params: IDisposeSessionParams; result: null };
   'listSessions': { params: IListSessionsParams; result: IListSessionsResult };
-  'fetchContent': { params: IFetchContentParams; result: IFetchContentResult };
-  'writeFile': { params: IWriteFileParams; result: IWriteFileResult };
-  'browseDirectory': { params: IBrowseDirectoryParams; result: IBrowseDirectoryResult };
+  'resourceRead': { params: IResourceReadParams; result: IResourceReadResult };
+  'resourceWrite': { params: IResourceWriteParams; result: IResourceWriteResult };
+  'resourceList': { params: IResourceListParams; result: IResourceListResult };
+  'resourceCopy': { params: IResourceCopyParams; result: IResourceCopyResult };
+  'resourceDelete': { params: IResourceDeleteParams; result: IResourceDeleteResult };
+  'resourceMove': { params: IResourceMoveParams; result: IResourceMoveResult };
   'fetchTurns': { params: IFetchTurnsParams; result: IFetchTurnsResult };
   'authenticate': { params: IAuthenticateParams; result: IAuthenticateResult };
 }

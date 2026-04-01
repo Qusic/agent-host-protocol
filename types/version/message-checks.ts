@@ -29,9 +29,12 @@ type _ExpectedCommands =
   | 'createSession'
   | 'disposeSession'
   | 'listSessions'
-  | 'fetchContent'
-  | 'writeFile'
-  | 'browseDirectory'
+  | 'resourceRead'
+  | 'resourceWrite'
+  | 'resourceList'
+  | 'resourceCopy'
+  | 'resourceDelete'
+  | 'resourceMove'
   | 'fetchTurns'
   | 'authenticate';
 

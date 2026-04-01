@@ -37,7 +37,8 @@ import type {
   IToolDefinition,
   IToolAnnotations,
   IToolResultTextContent,
-  IToolResultBinaryContent,
+  IToolResultEmbeddedResourceContent,
+  IToolResultResourceContent,
   IToolResultFileEditContent,
   IUsageInfo,
   IErrorInfo,
@@ -75,9 +76,19 @@ import type {
   IListSessionsResult,
   IAuthenticateParams,
   IAuthenticateResult,
-  IWriteFileParams,
-  IWriteFileResult,
+  IResourceWriteParams,
+  IResourceWriteResult,
   ISessionForkSource,
+  IResourceReadParams,
+  IResourceReadResult,
+  IResourceListParams,
+  IResourceListResult,
+  IResourceCopyParams,
+  IResourceCopyResult,
+  IResourceDeleteParams,
+  IResourceDeleteResult,
+  IResourceMoveParams,
+  IResourceMoveResult,
 } from '../commands.js';
 
 import type {
@@ -132,7 +143,8 @@ type V1_IToolCallState = IToolCallState;
 type V1_IToolDefinition = IToolDefinition;
 type V1_IToolAnnotations = IToolAnnotations;
 type V1_IToolResultTextContent = IToolResultTextContent;
-type V1_IToolResultBinaryContent = IToolResultBinaryContent;
+type V1_IToolResultEmbeddedResourceContent = IToolResultEmbeddedResourceContent;
+type V1_IToolResultResourceContent = IToolResultResourceContent;
 type V1_IToolResultFileEditContent = IToolResultFileEditContent;
 type V1_IUsageInfo = IUsageInfo;
 type V1_IErrorInfo = IErrorInfo;
@@ -162,8 +174,18 @@ type V1_IAuthRequiredNotification = IAuthRequiredNotification;
 type V1_IListSessionsResult = IListSessionsResult;
 type V1_IAuthenticateParams = IAuthenticateParams;
 type V1_IAuthenticateResult = IAuthenticateResult;
-type V1_IWriteFileParams = IWriteFileParams;
-type V1_IWriteFileResult = IWriteFileResult;
+type V1_IResourceWriteParams = IResourceWriteParams;
+type V1_IResourceWriteResult = IResourceWriteResult;
+type V1_IResourceReadParams = IResourceReadParams;
+type V1_IResourceReadResult = IResourceReadResult;
+type V1_IResourceListParams = IResourceListParams;
+type V1_IResourceListResult = IResourceListResult;
+type V1_IResourceCopyParams = IResourceCopyParams;
+type V1_IResourceCopyResult = IResourceCopyResult;
+type V1_IResourceDeleteParams = IResourceDeleteParams;
+type V1_IResourceDeleteResult = IResourceDeleteResult;
+type V1_IResourceMoveParams = IResourceMoveParams;
+type V1_IResourceMoveResult = IResourceMoveResult;
 type V1_ICommandMap = ICommandMap;
 type V1_IClientNotificationMap = IClientNotificationMap;
 type V1_IServerNotificationMap = IServerNotificationMap;
@@ -245,7 +267,9 @@ type _CheckToolAnnotations = AssertCompatible<V1_IToolAnnotations, IToolAnnotati
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckToolResultTextContent = AssertCompatible<V1_IToolResultTextContent, IToolResultTextContent>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-type _CheckToolResultBinaryContent = AssertCompatible<V1_IToolResultBinaryContent, IToolResultBinaryContent>;
+type _CheckToolResultEmbeddedResourceContent = AssertCompatible<V1_IToolResultEmbeddedResourceContent, IToolResultEmbeddedResourceContent>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckToolResultResourceContent = AssertCompatible<V1_IToolResultResourceContent, IToolResultResourceContent>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckToolResultFileEditContent = AssertCompatible<V1_IToolResultFileEditContent, IToolResultFileEditContent>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -285,9 +309,29 @@ type _CheckAuthenticateParams = AssertCompatible<V1_IAuthenticateParams, IAuthen
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckAuthenticateResult = AssertCompatible<V1_IAuthenticateResult, IAuthenticateResult>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-type _CheckWriteFileParams = AssertCompatible<V1_IWriteFileParams, IWriteFileParams>;
+type _CheckResourceWriteParams = AssertCompatible<V1_IResourceWriteParams, IResourceWriteParams>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-type _CheckWriteFileResult = AssertCompatible<V1_IWriteFileResult, IWriteFileResult>;
+type _CheckResourceWriteResult = AssertCompatible<V1_IResourceWriteResult, IResourceWriteResult>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckResourceReadParams = AssertCompatible<V1_IResourceReadParams, IResourceReadParams>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckResourceReadResult = AssertCompatible<V1_IResourceReadResult, IResourceReadResult>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckResourceListParams = AssertCompatible<V1_IResourceListParams, IResourceListParams>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckResourceListResult = AssertCompatible<V1_IResourceListResult, IResourceListResult>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckResourceCopyParams = AssertCompatible<V1_IResourceCopyParams, IResourceCopyParams>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckResourceCopyResult = AssertCompatible<V1_IResourceCopyResult, IResourceCopyResult>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckResourceDeleteParams = AssertCompatible<V1_IResourceDeleteParams, IResourceDeleteParams>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckResourceDeleteResult = AssertCompatible<V1_IResourceDeleteResult, IResourceDeleteResult>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckResourceMoveParams = AssertCompatible<V1_IResourceMoveParams, IResourceMoveParams>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckResourceMoveResult = AssertCompatible<V1_IResourceMoveResult, IResourceMoveResult>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckProtectedResourceMetadata = AssertCompatible<V1_IProtectedResourceMetadata, IProtectedResourceMetadata>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

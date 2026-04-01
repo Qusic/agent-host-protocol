@@ -89,8 +89,7 @@ const messagesSrc = readSource('messages.ts');
 const messageChecksSrc = readSource('version/message-checks.ts');
 
 const allMethods = parseCommandMethods(commandsSrc);
-// Deduplicate (browseDirectory appears twice in commands.ts)
-const requests = [...new Set(allMethods.filter(m => m.messageType === 'Request').map(m => m.method))];
+const requests = allMethods.filter(m => m.messageType === 'Request').map(m => m.method);
 const clientNotifications = [...new Set(allMethods.filter(m => m.messageType === 'Notification').map(m => m.method))];
 
 describe('ICommandMap', () => {

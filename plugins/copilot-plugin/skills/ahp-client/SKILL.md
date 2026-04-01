@@ -152,7 +152,12 @@ Resolve permissions with:
 |---------------------|---------|
 | `listSessions`      | List all session summaries |
 | `disposeSession`    | Tear down a session |
-| `fetchContent`      | Fetch large content by URI reference |
+| `resourceRead`      | Read content by URI reference |
+| `resourceList`      | List directory entries |
+| `resourceCopy`      | Copy a resource |
+| `resourceDelete`    | Delete a resource |
+| `resourceMove`      | Move/rename a resource |
+| `resourceWrite`     | Write content to a file |
 | `fetchTurns`        | Fetch historical turns for a session |
 
 ### 7. Reconnection

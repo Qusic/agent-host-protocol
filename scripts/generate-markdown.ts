@@ -588,9 +588,12 @@ const COMMAND_ORDER: CommandMeta[] = [
   { method: 'createSession', paramsInterface: 'ICreateSessionParams', resultText: '`null` on success.' },
   { method: 'disposeSession', paramsInterface: 'IDisposeSessionParams', resultText: '`null` on success.' },
   { method: 'listSessions', paramsInterface: 'IListSessionsParams', resultInterface: 'IListSessionsResult' },
-  { method: 'fetchContent', paramsInterface: 'IFetchContentParams', resultInterface: 'IFetchContentResult' },
-  { method: 'writeFile', paramsInterface: 'IWriteFileParams', resultInterface: 'IWriteFileResult' },
-  { method: 'browseDirectory', paramsInterface: 'IBrowseDirectoryParams', resultInterface: 'IBrowseDirectoryResult' },
+  { method: 'resourceRead', paramsInterface: 'IResourceReadParams', resultInterface: 'IResourceReadResult' },
+  { method: 'resourceWrite', paramsInterface: 'IResourceWriteParams', resultInterface: 'IResourceWriteResult' },
+  { method: 'resourceList', paramsInterface: 'IResourceListParams', resultInterface: 'IResourceListResult' },
+  { method: 'resourceCopy', paramsInterface: 'IResourceCopyParams', resultInterface: 'IResourceCopyResult' },
+  { method: 'resourceDelete', paramsInterface: 'IResourceDeleteParams', resultInterface: 'IResourceDeleteResult' },
+  { method: 'resourceMove', paramsInterface: 'IResourceMoveParams', resultInterface: 'IResourceMoveResult' },
   { method: 'fetchTurns', paramsInterface: 'IFetchTurnsParams', resultInterface: 'IFetchTurnsResult' },
 ];
 
@@ -870,9 +873,12 @@ function generateMessagesPage(_project: Project): string {
   lines.push('| `disposeSession` | Dispose a session and clean up resources | [Commands](/reference/commands) |');
   lines.push('| `listSessions` | Fetch session summaries | [Commands](/reference/commands) |');
   lines.push('| `fetchTurns` | Fetch historical turns for a session | [Commands](/reference/commands) |');
-  lines.push('| `fetchContent` | Fetch large content by reference | [Commands](/reference/commands) |');
-  lines.push('| `writeFile` | Write content to a file on the server filesystem | [Commands](/reference/commands) |');
-  lines.push('| `browseDirectory` | List directory entries on the server filesystem | [Commands](/reference/commands) |\n');
+  lines.push('| `resourceRead` | Read content by URI | [Commands](/reference/commands) |');
+  lines.push('| `resourceWrite` | Write content to a file on the server filesystem | [Commands](/reference/commands) |');
+  lines.push('| `resourceList` | List directory entries on the server filesystem | [Commands](/reference/commands) |');
+  lines.push('| `resourceCopy` | Copy a resource from one URI to another | [Commands](/reference/commands) |');
+  lines.push('| `resourceDelete` | Delete a resource at a URI | [Commands](/reference/commands) |');
+  lines.push('| `resourceMove` | Move a resource from one URI to another | [Commands](/reference/commands) |\n');
 
   lines.push('## Client → Server Notifications\n');
   lines.push('These methods have no `id` and expect no response.\n');
