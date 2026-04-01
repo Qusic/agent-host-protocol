@@ -37,7 +37,8 @@ import type {
   IToolDefinition,
   IToolAnnotations,
   IToolResultTextContent,
-  IToolResultBinaryContent,
+  IToolResultEmbeddedResourceContent,
+  IToolResultResourceContent,
   IToolResultFileEditContent,
   IUsageInfo,
   IErrorInfo,
@@ -132,7 +133,8 @@ type V1_IToolCallState = IToolCallState;
 type V1_IToolDefinition = IToolDefinition;
 type V1_IToolAnnotations = IToolAnnotations;
 type V1_IToolResultTextContent = IToolResultTextContent;
-type V1_IToolResultBinaryContent = IToolResultBinaryContent;
+type V1_IToolResultEmbeddedResourceContent = IToolResultEmbeddedResourceContent;
+type V1_IToolResultResourceContent = IToolResultResourceContent;
 type V1_IToolResultFileEditContent = IToolResultFileEditContent;
 type V1_IUsageInfo = IUsageInfo;
 type V1_IErrorInfo = IErrorInfo;
@@ -245,7 +247,9 @@ type _CheckToolAnnotations = AssertCompatible<V1_IToolAnnotations, IToolAnnotati
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckToolResultTextContent = AssertCompatible<V1_IToolResultTextContent, IToolResultTextContent>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-type _CheckToolResultBinaryContent = AssertCompatible<V1_IToolResultBinaryContent, IToolResultBinaryContent>;
+type _CheckToolResultEmbeddedResourceContent = AssertCompatible<V1_IToolResultEmbeddedResourceContent, IToolResultEmbeddedResourceContent>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckToolResultResourceContent = AssertCompatible<V1_IToolResultResourceContent, IToolResultResourceContent>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckToolResultFileEditContent = AssertCompatible<V1_IToolResultFileEditContent, IToolResultFileEditContent>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

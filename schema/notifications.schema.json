@@ -582,12 +582,8 @@
       "type": "object",
       "description": "A reference to large content stored outside the state tree.",
       "properties": {
-        "kind": {
-          "$ref": "#/$defs/ResponsePartKind.ContentRef",
-          "description": "Discriminant"
-        },
         "uri": {
-          "type": "string",
+          "$ref": "#/$defs/URI",
           "description": "Content URI"
         },
         "sizeHint": {
@@ -600,8 +596,20 @@
         }
       },
       "required": [
-        "kind",
         "uri"
+      ]
+    },
+    "IResourceReponsePart": {
+      "type": "object",
+      "description": "A content part that's a reference to large content stored outside the state tree.",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ResponsePartKind.ContentRef",
+          "description": "Discriminant"
+        }
+      },
+      "required": [
+        "kind"
       ]
     },
     "IToolCallResponsePart": {
@@ -960,12 +968,12 @@
         "text"
       ]
     },
-    "IToolResultBinaryContent": {
+    "IToolResultEmbeddedResourceContent": {
       "type": "object",
-      "description": "Base64-encoded binary content in a tool result.\n\nMirrors MCP `ImageContent` but generalized to any binary content type.",
+      "description": "Base64-encoded binary content embedded in a tool result.\n\nMirrors MCP `EmbeddedResource` for inline binary data.",
       "properties": {
         "type": {
-          "$ref": "#/$defs/ToolResultContentType.Binary"
+          "$ref": "#/$defs/ToolResultContentType.EmbeddedResource"
         },
         "data": {
           "type": "string",
@@ -982,20 +990,56 @@
         "contentType"
       ]
     },
+    "IToolResultResourceContent": {
+      "type": "object",
+      "description": "A reference to a resource stored outside the tool result.\n\nWraps {@link IContentRef} for lazy-loading large results.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ToolResultContentType.Resource"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
     "IToolResultFileEditContent": {
       "type": "object",
-      "description": "Describes a file modification performed by a tool.\n\nClients can use the `beforeURI`/`afterURI` pair to render a diff view.",
+      "description": "Describes a file modification performed by a tool.\n\nSupports creates (only `after`), deletes (only `before`), renames/moves\n(different `uri` in `before` and `after`), and edits (same `uri`, different content).",
       "properties": {
         "type": {
           "$ref": "#/$defs/ToolResultContentType.FileEdit"
         },
-        "beforeURI": {
-          "$ref": "#/$defs/URI",
-          "description": "URI of the file content before the edit"
+        "before": {
+          "type": "object",
+          "properties": {
+            "uri": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "uri",
+            "content"
+          ],
+          "description": "The file state before the edit. Absent for file creations or for in-place file edits."
         },
-        "afterURI": {
-          "$ref": "#/$defs/URI",
-          "description": "URI of the file content after the edit"
+        "after": {
+          "type": "object",
+          "properties": {
+            "uri": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "uri",
+            "content"
+          ],
+          "description": "The file state after the edit. Absent for file deletions."
         },
         "diff": {
           "type": "object",
@@ -1011,9 +1055,7 @@
         }
       },
       "required": [
-        "type",
-        "beforeURI",
-        "afterURI"
+        "type"
       ]
     },
     "ICustomizationRef": {
