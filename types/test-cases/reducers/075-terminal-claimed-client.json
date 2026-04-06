@@ -1,0 +1,27 @@
+{
+  "description": "terminal/claimed transfers to client claim",
+  "reducer": "terminal",
+  "initial": {
+    "title": "bash",
+    "content": "",
+    "claim": { "kind": "session", "session": "copilot:/s1" }
+  },
+  "actions": [
+    {
+      "type": "terminal/claimed",
+      "terminal": "agenthost:/terminal/1",
+      "claim": {
+        "kind": "client",
+        "clientId": "vscode-1"
+      }
+    }
+  ],
+  "expected": {
+    "title": "bash",
+    "content": "",
+    "claim": {
+      "kind": "client",
+      "clientId": "vscode-1"
+    }
+  }
+}

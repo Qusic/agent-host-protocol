@@ -1,0 +1,26 @@
+{
+  "description": "terminal/resized updates cols and rows",
+  "reducer": "terminal",
+  "initial": {
+    "title": "bash",
+    "cols": 80,
+    "rows": 24,
+    "content": "",
+    "claim": { "kind": "client", "clientId": "c1" }
+  },
+  "actions": [
+    {
+      "type": "terminal/resized",
+      "terminal": "agenthost:/terminal/1",
+      "cols": 120,
+      "rows": 40
+    }
+  ],
+  "expected": {
+    "title": "bash",
+    "cols": 120,
+    "rows": 40,
+    "content": "",
+    "claim": { "kind": "client", "clientId": "c1" }
+  }
+}

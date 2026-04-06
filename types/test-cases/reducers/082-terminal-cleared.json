@@ -1,0 +1,20 @@
+{
+  "description": "terminal/cleared empties content",
+  "reducer": "terminal",
+  "initial": {
+    "title": "bash",
+    "content": "$ hello world\r\n$ ",
+    "claim": { "kind": "client", "clientId": "c1" }
+  },
+  "actions": [
+    {
+      "type": "terminal/cleared",
+      "terminal": "agenthost:/terminal/1"
+    }
+  ],
+  "expected": {
+    "title": "bash",
+    "content": "",
+    "claim": { "kind": "client", "clientId": "c1" }
+  }
+}
