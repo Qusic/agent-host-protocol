@@ -103,6 +103,8 @@ export type {
   ISessionPendingMessageRemovedAction,
   ISessionQueuedMessagesReorderedAction,
   ISessionTruncatedAction,
+  ISessionIsReadChangedAction,
+  ISessionIsDoneChangedAction,
   IStateAction,
   IRootTerminalsChangedAction,
   ITerminalDataAction,
