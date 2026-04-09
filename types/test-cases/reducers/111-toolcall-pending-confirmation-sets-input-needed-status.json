@@ -1,5 +1,5 @@
 {
-  "description": "toolCallReady transitions running tool back to pending-confirmation",
+  "description": "tool call awaiting confirmation sets session status to input-needed",
   "reducer": "session",
   "initial": {
     "summary": {
@@ -35,19 +35,8 @@
       "session": "copilot:/test-session",
       "turnId": "turn-1",
       "toolCallId": "tc-1",
-      "invocationMessage": "Run",
-      "confirmed": "not-needed"
-    },
-    {
-      "type": "session/toolCallReady",
-      "session": "copilot:/test-session",
-      "turnId": "turn-1",
-      "toolCallId": "tc-1",
       "invocationMessage": "Run: rm -rf /tmp/test",
-      "_meta": {
-        "permissionKind": "shell",
-        "fullCommandText": "rm -rf /tmp/test"
-      }
+      "toolInput": "rm -rf /tmp/test"
     }
   ],
   "expected": {
@@ -77,7 +66,7 @@
             "toolClientId": null,
             "_meta": null,
             "invocationMessage": "Run: rm -rf /tmp/test",
-            "toolInput": null,
+            "toolInput": "rm -rf /tmp/test",
             "confirmationTitle": null
           }
         }

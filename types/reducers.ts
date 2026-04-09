@@ -36,18 +36,43 @@ function tcBase(tc: IToolCallState) {
   };
 }
 
+/** Returns `true` if the active turn has any tool call awaiting user confirmation. */
+function hasPendingToolCallConfirmation(state: ISessionState): boolean {
+  if (!state.activeTurn) {
+    return false;
+  }
+  return state.activeTurn.responseParts.some(part =>
+    part.kind === ResponsePartKind.ToolCall
+    && (part.toolCall.status === ToolCallStatus.PendingConfirmation
+      || part.toolCall.status === ToolCallStatus.PendingResultConfirmation),
+  );
+}
+
 /** Derives the summary status from live session work. */
 function summaryStatus(state: ISessionState, terminalStatus?: SessionStatus.Error): SessionStatus {
   if (terminalStatus) {
     return terminalStatus;
   }
-  if ((state.inputRequests?.length ?? 0) > 0) {
+  if ((state.inputRequests?.length ?? 0) > 0 || hasPendingToolCallConfirmation(state)) {
     return SessionStatus.InputNeeded;
   }
   if (state.activeTurn) {
     return SessionStatus.InProgress;
   }
   return SessionStatus.Idle;
+}
+
+/**
+ * Returns a state with `summary.status` recomputed. Use this after reducers
+ * that change data which feeds into {@link summaryStatus} (e.g. tool call
+ * lifecycle transitions that may enter or leave a pending-confirmation state).
+ */
+function refreshSummaryStatus(state: ISessionState): ISessionState {
+  const status = summaryStatus(state);
+  if (status === state.summary.status) {
+    return state;
+  }
+  return { ...state, summary: { ...state.summary, status } };
 }
 
 /**
@@ -349,7 +374,7 @@ export function sessionReducer(state: ISessionState, action: ISessionAction, log
       });
 
     case ActionType.SessionToolCallReady:
-      return updateToolCallInParts(state, action.turnId, action.toolCallId, tc => {
+      return refreshSummaryStatus(updateToolCallInParts(state, action.turnId, action.toolCallId, tc => {
         if (tc.status !== ToolCallStatus.Streaming && tc.status !== ToolCallStatus.Running) {
           return tc;
         }
@@ -370,10 +395,10 @@ export function sessionReducer(state: ISessionState, action: ISessionAction, log
           toolInput: action.toolInput,
           confirmationTitle: action.confirmationTitle,
         };
-      });
+      }));
 
     case ActionType.SessionToolCallConfirmed:
-      return updateToolCallInParts(state, action.turnId, action.toolCallId, tc => {
+      return refreshSummaryStatus(updateToolCallInParts(state, action.turnId, action.toolCallId, tc => {
         if (tc.status !== ToolCallStatus.PendingConfirmation) {
           return tc;
         }
@@ -396,10 +421,10 @@ export function sessionReducer(state: ISessionState, action: ISessionAction, log
           reasonMessage: action.reasonMessage,
           userSuggestion: action.userSuggestion,
         };
-      });
+      }));
 
     case ActionType.SessionToolCallComplete:
-      return updateToolCallInParts(state, action.turnId, action.toolCallId, tc => {
+      return refreshSummaryStatus(updateToolCallInParts(state, action.turnId, action.toolCallId, tc => {
         if (tc.status !== ToolCallStatus.Running && tc.status !== ToolCallStatus.PendingConfirmation) {
           return tc;
         }
@@ -425,10 +450,10 @@ export function sessionReducer(state: ISessionState, action: ISessionAction, log
           confirmed,
           ...action.result,
         };
-      });
+      }));
 
     case ActionType.SessionToolCallResultConfirmed:
-      return updateToolCallInParts(state, action.turnId, action.toolCallId, tc => {
+      return refreshSummaryStatus(updateToolCallInParts(state, action.turnId, action.toolCallId, tc => {
         if (tc.status !== ToolCallStatus.PendingResultConfirmation) {
           return tc;
         }
@@ -454,7 +479,7 @@ export function sessionReducer(state: ISessionState, action: ISessionAction, log
           toolInput: tc.toolInput,
           reason: ToolCallCancellationReason.ResultDenied,
         };
-      });
+      }));
 
     case ActionType.SessionToolCallContentChanged:
       return updateToolCallInParts(state, action.turnId, action.toolCallId, tc => {

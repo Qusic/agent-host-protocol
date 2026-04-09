@@ -81,12 +81,12 @@ The optional `isRead` flag indicates whether the client has viewed the session s
 
 `summary.status` is a numeric bitset. Clients SHOULD use bitwise checks instead of string or equality checks for activity states:
 
-| Name | Value | Meaning |
-|---|---:|---|
-| `SessionStatus.Idle` | `1` | No active turn and no pending input request. |
-| `SessionStatus.Error` | `2` | The most recent turn ended with an error. |
-| `SessionStatus.InProgress` | `8` | A turn is active. |
-| `SessionStatus.InputNeeded` | `24` | A turn is active and at least one user input request is open. Includes the `InProgress` bit. |
+| Name | Value | Bits | Meaning |
+|---|---:|---|---|
+| `SessionStatus.Idle` | `1` | `1 << 0` | No active turn and no pending input request. |
+| `SessionStatus.Error` | `2` | `1 << 1` | The most recent turn ended with an error. |
+| `SessionStatus.InProgress` | `8` | `1 << 3` | A turn is active. |
+| `SessionStatus.InputNeeded` | `24` | `(1 << 3) \| (1 << 4)` | A turn is active and either at least one user input request is open, or at least one tool call is awaiting user confirmation (pre- or post-execution). Includes the `InProgress` bit. |
 
 For example, `(status & SessionStatus.InProgress) !== 0` is true for both `InProgress` and `InputNeeded`.
 
