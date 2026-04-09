@@ -133,7 +133,6 @@ public struct AHPSessionReducer: Reducer {
         // ── Turn Lifecycle ────────────────────────────────────────────────────
 
         case .sessionTurnStarted(let a):
-            state.summary.status = .inProgress
             state.summary.modifiedAt = currentTimestamp()
             state.activeTurn = ActiveTurn(
                 id: a.turnId,
@@ -151,6 +150,7 @@ public struct AHPSessionReducer: Reducer {
                     state.queuedMessages = queued.isEmpty ? nil : queued
                 }
             }
+            state.summary.status = Self.sessionSummaryStatus(state)
 
         case .sessionDelta(let a):
             Self.updateResponsePartInPlace(state: &state, turnId: a.turnId, partId: a.partId) { part in
@@ -164,13 +164,13 @@ public struct AHPSessionReducer: Reducer {
             state.activeTurn?.responseParts.append(a.part)
 
         case .sessionTurnComplete(let a):
-            Self.endTurn(state: &state, turnId: a.turnId, turnState: .complete, summaryStatus: .idle)
+            Self.endTurn(state: &state, turnId: a.turnId, turnState: .complete)
 
         case .sessionTurnCancelled(let a):
-            Self.endTurn(state: &state, turnId: a.turnId, turnState: .cancelled, summaryStatus: .idle)
+            Self.endTurn(state: &state, turnId: a.turnId, turnState: .cancelled)
 
         case .sessionError(let a):
-            Self.endTurn(state: &state, turnId: a.turnId, turnState: .error, summaryStatus: .error, error: a.error)
+            Self.endTurn(state: &state, turnId: a.turnId, turnState: .error, terminalStatus: .error, error: a.error)
 
         // ── Tool Call State Machine ───────────────────────────────────────────
 
@@ -399,6 +399,27 @@ public struct AHPSessionReducer: Reducer {
             guard let idx = state.customizations?.firstIndex(where: { $0.customization.uri == a.uri }) else { return }
             state.customizations?[idx].enabled = a.enabled
 
+        // ── Truncation ────────────────────────────────────────────────────────
+
+        case .sessionTruncated(let a):
+            let turns: [Turn]
+            let keptTurnIds: Set<String>
+            if let turnId = a.turnId {
+                guard let idx = state.turns.firstIndex(where: { $0.id == turnId }) else {
+                    return
+                }
+                turns = Array(state.turns.prefix(idx + 1))
+                keptTurnIds = Set(turns.map { $0.id })
+            } else {
+                turns = []
+                keptTurnIds = []
+            }
+            state.turns = turns
+            state.activeTurn = nil
+            state.inputRequests = nil
+            state.summary.status = Self.sessionSummaryStatus(state)
+            state.summary.modifiedAt = currentTimestamp()
+
         // ── Pending Messages ──────────────────────────────────────────────────
 
         case .sessionPendingMessageSet(let a):
@@ -441,6 +462,38 @@ public struct AHPSessionReducer: Reducer {
             }
             state.queuedMessages = reordered
 
+        // ── Session Input Requests ─────────────────────────────────────────────
+
+        case .sessionInputRequested(let a):
+            Self.upsertInputRequest(state: &state, request: a.request)
+
+        case .sessionInputAnswerChanged(let a):
+            guard var existing = state.inputRequests,
+                  let idx = existing.firstIndex(where: { $0.id == a.requestId }) else {
+                return
+            }
+            var request = existing[idx]
+            var answers = request.answers ?? [:]
+            if let answer = a.answer {
+                answers[a.questionId] = answer
+            } else {
+                answers.removeValue(forKey: a.questionId)
+            }
+            request.answers = answers.isEmpty ? nil : answers
+            existing[idx] = request
+            state.inputRequests = existing
+            state.summary.modifiedAt = currentTimestamp()
+
+        case .sessionInputCompleted(let a):
+            guard var existing = state.inputRequests,
+                  existing.contains(where: { $0.id == a.requestId }) else {
+                return
+            }
+            existing.removeAll { $0.id == a.requestId }
+            state.inputRequests = existing.isEmpty ? nil : existing
+            state.summary.status = Self.sessionSummaryStatus(state)
+            state.summary.modifiedAt = currentTimestamp()
+
         default:
             break
         }
@@ -457,7 +510,7 @@ public struct AHPSessionReducer: Reducer {
         state: inout SessionState,
         turnId: String,
         turnState: TurnState,
-        summaryStatus: SessionStatus,
+        terminalStatus: SessionStatus? = nil,
         error: ErrorInfo? = nil
     ) {
         guard let activeTurn = state.activeTurn, activeTurn.id == turnId else { return }
@@ -517,8 +570,37 @@ public struct AHPSessionReducer: Reducer {
 
         state.turns.append(turn)
         state.activeTurn = nil
-        state.summary.status = summaryStatus
+        state.inputRequests = nil
+        state.summary.status = Self.sessionSummaryStatus(state, terminalStatus: terminalStatus)
         state.summary.modifiedAt = currentTimestamp()
+    }
+
+    private static func sessionSummaryStatus(_ state: SessionState, terminalStatus: SessionStatus? = nil) -> SessionStatus {
+        if let terminalStatus {
+            return terminalStatus
+        }
+        if state.inputRequests?.isEmpty == false {
+            return .inputNeeded
+        }
+        if state.activeTurn != nil {
+            return .inProgress
+        }
+        return .idle
+    }
+
+    private static func upsertInputRequest(state: inout SessionState, request: SessionInputRequest) {
+        var existing = state.inputRequests ?? []
+        if let idx = existing.firstIndex(where: { $0.id == request.id }) {
+            var replacement = request
+            replacement.answers = request.answers ?? existing[idx].answers
+            existing[idx] = replacement
+        } else {
+            existing.append(request)
+        }
+        state.inputRequests = existing
+        state.summary.status = Self.sessionSummaryStatus(state)
+        state.summary.modifiedAt = currentTimestamp()
+        state.summary.isRead = false
     }
 
     /// Updates a tool call inside the active turn's response parts in place.

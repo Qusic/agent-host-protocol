@@ -5,7 +5,7 @@
  */
 
 import { ActionType } from './actions.js';
-import type { IRootState, ISessionState, ITerminalState, IToolCallState, IResponsePart, IToolCallResponsePart, ITurn, IPendingMessage } from './state.js';
+import type { IRootState, ISessionInputRequest, ISessionState, ITerminalState, IToolCallState, IResponsePart, IToolCallResponsePart, ITurn, IPendingMessage } from './state.js';
 import { SessionLifecycle, SessionStatus, TurnState, ToolCallStatus, ToolCallConfirmationReason, ToolCallCancellationReason, ResponsePartKind, PendingMessageKind } from './state.js';
 import type { IRootAction, ISessionAction, IClientSessionAction, ITerminalAction, IClientTerminalAction } from './action-origin.generated.js';
 import { IS_CLIENT_DISPATCHABLE } from './action-origin.generated.js';
@@ -36,6 +36,20 @@ function tcBase(tc: IToolCallState) {
   };
 }
 
+/** Derives the summary status from live session work. */
+function summaryStatus(state: ISessionState, terminalStatus?: SessionStatus.Error): SessionStatus {
+  if (terminalStatus) {
+    return terminalStatus;
+  }
+  if ((state.inputRequests?.length ?? 0) > 0) {
+    return SessionStatus.InputNeeded;
+  }
+  if (state.activeTurn) {
+    return SessionStatus.InProgress;
+  }
+  return SessionStatus.Idle;
+}
+
 /**
  * Ends the active turn, finalizing it into a completed turn record.
  *
@@ -46,7 +60,7 @@ function endTurn(
   state: ISessionState,
   turnId: string,
   turnState: TurnState,
-  summaryStatus: SessionStatus,
+  terminalStatus?: SessionStatus.Error,
   error?: { errorType: string; message: string; stack?: string },
 ): ISessionState {
   if (!state.activeTurn || state.activeTurn.id !== turnId) {
@@ -84,12 +98,31 @@ function endTurn(
     error,
   };
 
-  return {
+  const next: ISessionState = {
     ...state,
     turns: [...state.turns, turn],
     activeTurn: undefined,
-    summary: { ...state.summary, status: summaryStatus, modifiedAt: Date.now() },
+    summary: { ...state.summary, modifiedAt: Date.now() },
   };
+  delete next.inputRequests;
+  return {
+    ...next,
+    summary: { ...next.summary, status: summaryStatus(next, terminalStatus) },
+  };
+}
+
+function upsertInputRequest(state: ISessionState, request: ISessionInputRequest): ISessionState {
+  const existing = state.inputRequests ?? [];
+  const idx = existing.findIndex(r => r.id === request.id);
+  const inputRequests = [...existing];
+  if (idx >= 0) {
+    const answers = request.answers ?? inputRequests[idx].answers;
+    inputRequests[idx] = { ...request, answers };
+  } else {
+    inputRequests.push(request);
+  }
+  const next = { ...state, inputRequests };
+  return { ...next, summary: { ...next.summary, status: summaryStatus(next), modifiedAt: Date.now(), isRead: false } };
 }
 
 /**
@@ -221,13 +254,16 @@ export function sessionReducer(state: ISessionState, action: ISessionAction, log
     case ActionType.SessionTurnStarted: {
       let next: ISessionState = {
         ...state,
-        summary: { ...state.summary, status: SessionStatus.InProgress, modifiedAt: Date.now(), isRead: false },
         activeTurn: {
           id: action.turnId,
           userMessage: action.userMessage,
           responseParts: [],
           usage: undefined,
         },
+      };
+      next = {
+        ...next,
+        summary: { ...next.summary, status: summaryStatus(next), modifiedAt: Date.now(), isRead: false },
       };
 
       // If this turn was auto-started from a pending message, remove it
@@ -265,10 +301,10 @@ export function sessionReducer(state: ISessionState, action: ISessionAction, log
       };
 
     case ActionType.SessionTurnComplete:
-      return endTurn(state, action.turnId, TurnState.Complete, SessionStatus.Idle);
+      return endTurn(state, action.turnId, TurnState.Complete);
 
     case ActionType.SessionTurnCancelled:
-      return endTurn(state, action.turnId, TurnState.Cancelled, SessionStatus.Idle);
+      return endTurn(state, action.turnId, TurnState.Cancelled);
 
     case ActionType.SessionError:
       return endTurn(state, action.turnId, TurnState.Error, SessionStatus.Error, action.error);
@@ -530,11 +566,66 @@ export function sessionReducer(state: ISessionState, action: ISessionAction, log
         }
         turns = state.turns.slice(0, idx + 1);
       }
-      return {
+      const next: ISessionState = {
         ...state,
         turns,
         activeTurn: undefined,
-        summary: { ...state.summary, status: SessionStatus.Idle, modifiedAt: Date.now() },
+        summary: { ...state.summary, modifiedAt: Date.now() },
+      };
+      delete next.inputRequests;
+      return {
+        ...next,
+        summary: { ...next.summary, status: summaryStatus(next) },
+      };
+    }
+
+    // ── Session Input Requests ─────────────────────────────────────────────
+
+    case ActionType.SessionInputRequested:
+      return upsertInputRequest(state, action.request);
+
+    case ActionType.SessionInputAnswerChanged: {
+      const existing = state.inputRequests;
+      const idx = existing?.findIndex(request => request.id === action.requestId) ?? -1;
+      if (!existing || idx < 0) {
+        return state;
+      }
+      const request = existing[idx];
+      const answers = { ...(request.answers ?? {}) };
+      if (action.answer === undefined) {
+        delete answers[action.questionId];
+      } else {
+        answers[action.questionId] = action.answer;
+      }
+      const updated = [...existing];
+      updated[idx] = {
+        ...request,
+        answers: Object.keys(answers).length > 0 ? answers : undefined,
+      };
+      return {
+        ...state,
+        inputRequests: updated,
+        summary: { ...state.summary, modifiedAt: Date.now() },
+      };
+    }
+
+    case ActionType.SessionInputCompleted: {
+      const existing = state.inputRequests;
+      if (!existing?.some(request => request.id === action.requestId)) {
+        return state;
+      }
+      const inputRequests = existing.filter(request => request.id !== action.requestId);
+      const next: ISessionState = {
+        ...state,
+      };
+      if (inputRequests.length > 0) {
+        next.inputRequests = inputRequests;
+      } else {
+        delete next.inputRequests;
+      }
+      return {
+        ...next,
+        summary: { ...next.summary, status: summaryStatus(next), modifiedAt: Date.now() },
       };
     }
 
