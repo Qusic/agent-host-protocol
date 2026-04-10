@@ -546,7 +546,7 @@ export function sessionReducer(state: ISessionState, action: ISessionAction, log
         ...state,
         summary: {
           ...state.summary,
-          config: { ...state.summary.config, ...action.config },
+          config: { ...(state.summary.config ?? {}), ...action.config },
           modifiedAt: Date.now(),
         },
       };

@@ -6,8 +6,10 @@
  * They return a result or a JSON-RPC error.
  */
 
-import type { URI, ISnapshot, ISessionSummary, ITurn, ITerminalClaim } from './state.js';
+import type { URI, ISnapshot, ISessionConfigSchema, ISessionSummary, ITurn, ITerminalClaim } from './state.js';
 import type { IActionEnvelope, IStateAction } from './actions.js';
+
+export type { ISessionConfigPropertySchema, ISessionConfigSchema } from './state.js';
 
 // ─── initialize ──────────────────────────────────────────────────────────────
 
@@ -694,60 +696,6 @@ export interface IAuthenticateResult {
 }
 
 // ─── resolveSessionConfig ────────────────────────────────────────────────────
-
-/**
- * A JSON Schema-compatible property descriptor with display extensions.
- *
- * Standard JSON Schema fields (`type`, `title`, `description`, `default`,
- * `enum`) allow validators to process the schema. Display extensions
- * (`enumLabels`, `enumDescriptions`, `enumIcons`) are parallel arrays that
- * provide UI metadata for each `enum` value.
- *
- * @category Commands
- */
-export interface ISessionConfigPropertySchema {
-  /** JSON Schema: property type */
-  type: 'string' | 'boolean';
-  /** JSON Schema: human-readable label for the property */
-  title: string;
-  /** JSON Schema: description / tooltip */
-  description?: string;
-  /** JSON Schema: default value */
-  default?: string | boolean;
-  /** JSON Schema: allowed values (for pick-style properties) */
-  enum?: string[];
-  /** Display extension: human-readable label per enum value (parallel array) */
-  enumLabels?: string[];
-  /** Display extension: description per enum value (parallel array) */
-  enumDescriptions?: string[];
-  /** Display extension: icon identifier per enum value (parallel array) */
-  enumIcons?: string[];
-  /**
-   * Display extension: when `true`, the full set of allowed values is too large
-   * to enumerate statically. The client SHOULD use `sessionConfigCompletions`
-   * to fetch matching values based on user input. Any values in `enum` are
-   * seed/recent values for initial display.
-   */
-  enumDynamic?: boolean;
-  /** JSON Schema: when `true`, the property is displayed but cannot be modified by the user */
-  readOnly?: boolean;
-  /** When `true`, the user may change this property after session creation */
-  sessionMutable?: boolean;
-}
-
-/**
- * A JSON Schema object describing available session configuration metadata.
- *
- * @category Commands
- */
-export interface ISessionConfigSchema {
-  /** JSON Schema: always `'object'` */
-  type: 'object';
-  /** JSON Schema: property descriptors keyed by property id */
-  properties: Record<string, ISessionConfigPropertySchema>;
-  /** JSON Schema: list of required property ids */
-  required?: string[];
-}
 
 /**
  * Iteratively resolves the session configuration schema. The client sends the
