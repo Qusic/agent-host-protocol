@@ -207,6 +207,9 @@ export type {
   IResolveSessionConfigResult,
   ISessionConfigPropertySchema,
   ISessionConfigSchema,
+  ISessionConfigCompletionsParams,
+  ISessionConfigCompletionsResult,
+  ISessionConfigValueItem,
 } from './commands.js';
 
 export { ReconnectResultType, ContentEncoding } from './commands.js';

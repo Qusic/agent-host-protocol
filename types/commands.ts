@@ -192,10 +192,10 @@ export interface ICreateSessionParams {
    */
   fork?: ISessionForkSource;
   /**
-   * Agent-specific metadata values collected via `resolveSessionConfig`.
+   * Agent-specific configuration values collected via `resolveSessionConfig`.
    * Keys and values correspond to the schema returned by the server.
    */
-  metadata?: Record<string, string | boolean>;
+  config?: Record<string, string | boolean>;
 }
 
 // ─── disposeSession ──────────────────────────────────────────────────────────
@@ -722,6 +722,15 @@ export interface ISessionConfigPropertySchema {
   enumDescriptions?: string[];
   /** Display extension: icon identifier per enum value (parallel array) */
   enumIcons?: string[];
+  /**
+   * Display extension: when `true`, the full set of allowed values is too large
+   * to enumerate statically. The client SHOULD use `sessionConfigCompletions`
+   * to fetch matching values based on user input. Any values in `enum` are
+   * seed/recent values for initial display.
+   */
+  enumDynamic?: boolean;
+  /** JSON Schema: when `true`, the property is displayed but cannot be modified by the user */
+  readOnly?: boolean;
 }
 
 /**
@@ -747,7 +756,7 @@ export interface ISessionConfigSchema {
  * The client calls this command whenever the user changes a significant input
  * (e.g. picks a working directory, toggles a property). Each response returns
  * the full current property set (not a delta). When `ready` is `true`, the
- * client may call `createSession` with the accumulated metadata.
+ * client may call `createSession` with the accumulated config.
  *
  * @category Commands
  * @method resolveSessionConfig
@@ -777,7 +786,7 @@ export interface ISessionConfigSchema {
  * // Client → Server
  * { "jsonrpc": "2.0", "id": 6, "method": "resolveSessionConfig",
  *   "params": { "workingDirectory": "file:///home/user/my-project",
- *               "metadata": { "useWorktree": true } } }
+ *               "config": { "useWorktree": true } } }
  *
  * // Server → Client (now requires branch selection)
  * { "jsonrpc": "2.0", "id": 6, "result": {
@@ -801,18 +810,86 @@ export interface IResolveSessionConfigParams {
   provider?: string;
   /** Working directory for the session */
   workingDirectory?: URI;
-  /** Current user-filled metadata values */
-  metadata?: Record<string, string | boolean>;
+  /** Current user-filled configuration values */
+  config?: Record<string, string | boolean>;
 }
 
 /**
  * Result of the `resolveSessionConfig` command.
  */
 export interface IResolveSessionConfigResult {
-  /** True when all required metadata is satisfied and `createSession` can be called */
+  /** True when all required configuration is satisfied and `createSession` can be called */
   ready: boolean;
-  /** JSON Schema describing available metadata properties given the current context */
+  /** JSON Schema describing available configuration properties given the current context */
   schema: ISessionConfigSchema;
-  /** Current metadata values (echoed back with server-resolved defaults applied) */
+  /** Current configuration values (echoed back with server-resolved defaults applied) */
   values: Record<string, string | boolean>;
+}
+
+// ─── sessionConfigCompletions ────────────────────────────────────────────────
+
+/**
+ * A single value item returned by `sessionConfigCompletions`.
+ *
+ * @category Commands
+ */
+export interface ISessionConfigValueItem {
+  /** The value to store in config */
+  value: string;
+  /** Human-readable display label */
+  label: string;
+  /** Optional secondary description */
+  description?: string;
+  /** Optional icon identifier */
+  icon?: string;
+}
+
+/**
+ * Queries the server for allowed values of a dynamic session config property.
+ *
+ * Used when a property in the schema returned by `resolveSessionConfig` has
+ * `enumDynamic: true`. The client sends a search query and receives matching
+ * values with display metadata.
+ *
+ * @category Commands
+ * @method sessionConfigCompletions
+ * @direction Client → Server
+ * @messageType Request
+ * @version 1
+ * @example
+ * ```jsonc
+ * // Client → Server (user types "ma" in branch picker)
+ * { "jsonrpc": "2.0", "id": 7, "method": "sessionConfigCompletions",
+ *   "params": { "workingDirectory": "file:///home/user/my-project",
+ *               "config": { "useWorktree": true },
+ *               "property": "baseBranch", "query": "ma" } }
+ *
+ * // Server → Client
+ * { "jsonrpc": "2.0", "id": 7, "result": {
+ *   "items": [
+ *     { "value": "main", "label": "main", "icon": "git-branch" },
+ *     { "value": "main-v2", "label": "main-v2", "icon": "git-branch" }
+ *   ]
+ * }}
+ * ```
+ */
+export interface ISessionConfigCompletionsParams {
+  /** Agent provider ID */
+  provider?: string;
+  /** Working directory for the session */
+  workingDirectory?: URI;
+  /** Current user-filled configuration values (provides context for the query) */
+  config?: Record<string, string | boolean>;
+  /** Property id from the schema to query values for */
+  property: string;
+  /** Search filter text (empty or omitted returns default/recent values) */
+  query?: string;
+}
+
+/**
+ * Result of the `sessionConfigCompletions` command.
+ */
+export interface ISessionConfigCompletionsResult {
+  /** Matching value items */
+  items: ISessionConfigValueItem[];
 }

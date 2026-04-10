@@ -137,6 +137,9 @@ import type {
   IResolveSessionConfigResult,
   ISessionConfigPropertySchema,
   ISessionConfigSchema,
+  ISessionConfigCompletionsParams,
+  ISessionConfigCompletionsResult,
+  ISessionConfigValueItem,
 } from '../commands.js';
 
 import type {
@@ -282,6 +285,9 @@ type V1_IResolveSessionConfigParams = IResolveSessionConfigParams;
 type V1_IResolveSessionConfigResult = IResolveSessionConfigResult;
 type V1_ISessionConfigPropertySchema = ISessionConfigPropertySchema;
 type V1_ISessionConfigSchema = ISessionConfigSchema;
+type V1_ISessionConfigCompletionsParams = ISessionConfigCompletionsParams;
+type V1_ISessionConfigCompletionsResult = ISessionConfigCompletionsResult;
+type V1_ISessionConfigValueItem = ISessionConfigValueItem;
 type V1_ICommandMap = ICommandMap;
 type V1_IClientNotificationMap = IClientNotificationMap;
 type V1_IServerNotificationMap = IServerNotificationMap;
@@ -536,3 +542,9 @@ type _CheckResolveSessionConfigResult = AssertCompatible<V1_IResolveSessionConfi
 type _CheckSessionConfigPropertySchema = AssertCompatible<V1_ISessionConfigPropertySchema, ISessionConfigPropertySchema>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckSessionConfigSchema = AssertCompatible<V1_ISessionConfigSchema, ISessionConfigSchema>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckSessionConfigCompletionsParams = AssertCompatible<V1_ISessionConfigCompletionsParams, ISessionConfigCompletionsParams>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckSessionConfigCompletionsResult = AssertCompatible<V1_ISessionConfigCompletionsResult, ISessionConfigCompletionsResult>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckSessionConfigValueItem = AssertCompatible<V1_ISessionConfigValueItem, ISessionConfigValueItem>;
