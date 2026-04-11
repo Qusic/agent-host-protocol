@@ -1,5 +1,5 @@
 {
-  "description": "session/configChanged merges new values into summary.config",
+  "description": "session/configChanged merges new values into config.values",
   "reducer": "session",
   "initial": {
     "summary": {
@@ -8,8 +8,17 @@
       "title": "Test",
       "status": 1,
       "createdAt": 1000,
-      "modifiedAt": 2000,
-      "config": { "useWorktree": true, "baseBranch": "main" }
+      "modifiedAt": 2000
+    },
+    "config": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "useWorktree": { "type": "boolean", "title": "Use Worktree" },
+          "baseBranch": { "type": "string", "title": "Base Branch" }
+        }
+      },
+      "values": { "useWorktree": true, "baseBranch": "main" }
     },
     "lifecycle": "ready",
     "turns": []
@@ -28,8 +37,17 @@
       "title": "Test",
       "status": 1,
       "createdAt": 1000,
-      "modifiedAt": 9999,
-      "config": { "useWorktree": true, "baseBranch": "develop" }
+      "modifiedAt": 9999
+    },
+    "config": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "useWorktree": { "type": "boolean", "title": "Use Worktree" },
+          "baseBranch": { "type": "string", "title": "Base Branch" }
+        }
+      },
+      "values": { "useWorktree": true, "baseBranch": "develop" }
     },
     "lifecycle": "ready",
     "turns": []

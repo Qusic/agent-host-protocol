@@ -432,7 +432,7 @@ const STATE_ENUMS = [
 const STATE_STRUCTS = [
   'Icon', 'IProtectedResourceMetadata', 'IRootState', 'IAgentInfo',
   'ISessionModelInfo', 'IPendingMessage', 'ISessionState', 'ISessionActiveClient',
-  'ISessionSummary', 'IProjectInfo', 'ITurn', 'IActiveTurn', 'IUserMessage',
+  'ISessionSummary', 'IProjectInfo', 'ISessionConfigState', 'ITurn', 'IActiveTurn', 'IUserMessage',
   'ISessionInputOption',
   'ISessionInputTextAnswerValue', 'ISessionInputNumberAnswerValue',
   'ISessionInputBooleanAnswerValue', 'ISessionInputSelectedAnswerValue',

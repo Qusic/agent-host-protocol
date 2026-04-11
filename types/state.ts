@@ -293,8 +293,8 @@ export interface ISessionState {
   queuedMessages?: IPendingMessage[];
   /** Requests for user input that are currently blocking or informing session progress */
   inputRequests?: ISessionInputRequest[];
-  /** Config schema resolved during session creation, persisted for reconnecting clients */
-  configSchema?: ISessionConfigSchema;
+  /** Session configuration schema and current values */
+  config?: ISessionConfigState;
   /**
    * Server-provided customizations active in this session.
    *
@@ -377,8 +377,6 @@ export interface ISessionSummary {
   isDone?: boolean;
   /** Files changed during this session with diff statistics */
   diffs?: ISessionFileDiff[];
-  /** Agent-specific configuration values resolved during session creation */
-  config?: Record<string, string | boolean>;
 }
 
 // ─── Session Config Types ────────────────────────────────────────────────────
@@ -435,6 +433,21 @@ export interface ISessionConfigSchema {
   properties: Record<string, ISessionConfigPropertySchema>;
   /** JSON Schema: list of required property ids */
   required?: string[];
+}
+
+/**
+ * Live session configuration metadata.
+ *
+ * The schema describes the available configuration properties and the values
+ * contain the current value for each resolved property.
+ *
+ * @category Session Config Types
+ */
+export interface ISessionConfigState {
+  /** JSON Schema describing available configuration properties */
+  schema: ISessionConfigSchema;
+  /** Current configuration values */
+  values: Record<string, string | boolean>;
 }
 
 // ─── Session Input Types ────────────────────────────────────────────────────

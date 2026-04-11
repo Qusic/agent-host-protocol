@@ -691,7 +691,7 @@ export interface ISessionCustomizationToggledAction {
  *
  * Only properties with `sessionMutable: true` in the config schema may be
  * changed. The server validates and broadcasts the action; the reducer merges
- * the new values into `summary.config`.
+ * the new values into `state.config.values`.
  *
  * @category Session Actions
  * @version 1

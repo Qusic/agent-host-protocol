@@ -542,11 +542,17 @@ export function sessionReducer(state: ISessionState, action: ISessionAction, log
       };
 
     case ActionType.SessionConfigChanged:
+      if (!state.config) {
+        return state;
+      }
       return {
         ...state,
+        config: {
+          ...state.config,
+          values: { ...state.config.values, ...action.config },
+        },
         summary: {
           ...state.summary,
-          config: { ...(state.summary.config ?? {}), ...action.config },
           modifiedAt: Date.now(),
         },
       };

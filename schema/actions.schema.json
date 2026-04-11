@@ -983,7 +983,7 @@
     },
     "ISessionConfigChangedAction": {
       "type": "object",
-      "description": "Client changed a mutable config value mid-session.\n\nOnly properties with `sessionMutable: true` in the config schema may be\nchanged. The server validates and broadcasts the action; the reducer merges\nthe new values into `summary.config`.",
+      "description": "Client changed a mutable config value mid-session.\n\nOnly properties with `sessionMutable: true` in the config schema may be\nchanged. The server validates and broadcasts the action; the reducer merges\nthe new values into `state.config.values`.",
       "properties": {
         "type": {
           "$ref": "#/$defs/ActionType.SessionConfigChanged"
@@ -1686,9 +1686,9 @@
           },
           "description": "Requests for user input that are currently blocking or informing session progress"
         },
-        "configSchema": {
-          "$ref": "#/$defs/ISessionConfigSchema",
-          "description": "Config schema resolved during session creation, persisted for reconnecting clients"
+        "config": {
+          "$ref": "#/$defs/ISessionConfigState",
+          "description": "Session configuration schema and current values"
         },
         "customizations": {
           "type": "array",
@@ -1828,20 +1828,6 @@
             "$ref": "#/$defs/ISessionFileDiff"
           },
           "description": "Files changed during this session with diff statistics"
-        },
-        "config": {
-          "type": "object",
-          "additionalProperties": {
-            "oneOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "boolean"
-              }
-            ]
-          },
-          "description": "Agent-specific configuration values resolved during session creation"
         }
       },
       "required": [
@@ -1959,6 +1945,34 @@
       "required": [
         "type",
         "properties"
+      ]
+    },
+    "ISessionConfigState": {
+      "type": "object",
+      "description": "Live session configuration metadata.\n\nThe schema describes the available configuration properties and the values\ncontain the current value for each resolved property.",
+      "properties": {
+        "schema": {
+          "$ref": "#/$defs/ISessionConfigSchema",
+          "description": "JSON Schema describing available configuration properties"
+        },
+        "values": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          },
+          "description": "Current configuration values"
+        }
+      },
+      "required": [
+        "schema",
+        "values"
       ]
     },
     "ISessionInputOption": {

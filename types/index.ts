@@ -19,6 +19,7 @@ export type {
   ISessionState,
   ISessionSummary,
   ISessionFileDiff,
+  ISessionConfigState,
   ITurn,
   IActiveTurn,
   IUserMessage,

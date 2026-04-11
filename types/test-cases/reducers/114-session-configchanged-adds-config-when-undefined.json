@@ -1,5 +1,5 @@
 {
-  "description": "session/configChanged adds config when summary.config was undefined",
+  "description": "session/configChanged is a no-op when config is undefined",
   "reducer": "session",
   "initial": {
     "summary": {
@@ -27,8 +27,7 @@
       "title": "Test",
       "status": 1,
       "createdAt": 1000,
-      "modifiedAt": 9999,
-      "config": { "verbose": true }
+      "modifiedAt": 2000
     },
     "lifecycle": "ready",
     "turns": []
