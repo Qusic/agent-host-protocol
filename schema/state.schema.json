@@ -454,7 +454,7 @@
     },
     "ISessionConfigPropertySchema": {
       "type": "object",
-      "description": "A JSON Schema-compatible string enum property descriptor with display extensions.\n\nStandard JSON Schema fields (`type`, `title`, `description`, `default`,\n`enum`) allow validators to process the schema. Display extensions\n(`enumLabels`, `enumDescriptions`, `enumIcons`) are parallel arrays that provide UI metadata for each `enum` value.",
+      "description": "A JSON Schema-compatible string enum property descriptor with display extensions.\n\nStandard JSON Schema fields (`type`, `title`, `description`, `default`,\n`enum`) allow validators to process the schema. Display extensions\n(`enumLabels`, `enumDescriptions`) are parallel arrays that provide UI metadata for each `enum` value.",
       "properties": {
         "type": {
           "type": "string",
@@ -495,13 +495,6 @@
             "type": "string"
           },
           "description": "Display extension: description per enum value (parallel array)"
-        },
-        "enumIcons": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Display extension: icon identifier per enum value (parallel array)"
         },
         "enumDynamic": {
           "type": "boolean",
