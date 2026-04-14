@@ -44,13 +44,41 @@ TerminalState {
   cwd?: URI                 // current working directory
   cols?: number             // width in columns
   rows?: number             // height in rows
-  content: string           // accumulated output (may contain ANSI escapes)
+  content: TerminalContentPart[]  // structured content parts
   exitCode?: number         // set when process exits
   claim: TerminalClaim      // ownership
+  supportsCommandDetection?: boolean  // true when command lifecycle actions are emitted
 }
 ```
 
-The `content` field accumulates terminal output. Scrollback length is implementation-defined — the server controls how much history to retain.
+The `content` field is an ordered array of typed content parts. Each part is either unstructured terminal output or a structured command with its command line and output:
+
+```typescript
+// Raw terminal output (prompts, gaps between commands, etc.)
+TerminalUnclassifiedPart {
+  type: 'unclassified'
+  value: string             // accumulated VT output
+}
+
+// A command with its lifecycle metadata
+TerminalCommandPart {
+  type: 'command'
+  commandId: string         // correlates with commandExecuted/commandFinished actions
+  commandLine: string       // the command text submitted to the shell
+  output: string            // accumulated VT output from the command
+  timestamp: number         // Unix ms when execution started (server clock)
+  isComplete: boolean       // false while executing, true after commandFinished
+  exitCode?: number         // set at completion
+  durationMs?: number       // wall-clock duration, set at completion
+}
+```
+
+Naive consumers that only need the raw VT stream can reconstruct it with:
+```typescript
+content.map(p => p.type === 'command' ? p.output : p.value).join('')
+```
+
+Scrollback length is implementation-defined — the server controls how much history to retain. Both sides MAY independently trim their `content` to bound memory.
 
 ::: info Server-Side Metadata
 The agent host MAY maintain internal metadata about a terminal's provenance — for example, knowing that a particular terminal was started as a dev server, or tracking the original command that launched it. This metadata is not part of the terminal state exposed to clients, but the server MAY expose it to the model to give the agent richer context when reasoning about terminals.
@@ -94,16 +122,50 @@ All terminal actions carry a `terminal: URI` field identifying the target termin
 
 | Action | Client-dispatchable | Reducer Effect |
 |---|:---:|---|
-| `terminal/data` | No | Appends `data` to `content` |
+| `terminal/data` | No | Appends to tail content part |
 | `terminal/input` | Yes | No-op (server forwards to pty) |
 
 `terminal/data` is **server-only**: the server dispatches it for pty output flowing to clients.
+
+When `terminal/data` arrives, the reducer appends the data to the last content part:
+- If the tail is an incomplete `command` part, data is appended to its `output`.
+- If the tail is an `unclassified` part, data is appended to its `value`.
+- Otherwise, a new `unclassified` part is created.
 
 `terminal/input` is a **client-only, side-effect-only action**: the client dispatches keyboard input, the server forwards it to the pty process. The reducer does not modify state — any resulting output arrives later via `terminal/data`.
 
 ::: tip Why two separate actions?
 Terminal I/O is intentionally split into `terminal/input` (client → pty) and `terminal/data` (pty → client) because **standard write-ahead reconciliation is not safe for terminals**. A pty is a stateful, mutable process — optimistically applying input or predicting output would produce incorrect state. By keeping input as a side-effect-only action and output as server-authoritative, clients avoid the reconciliation pitfalls that would arise from treating terminal I/O like normal state actions.
 :::
+
+### Command Detection
+
+Terminals that support **shell integration** can report command boundaries, enabling clients to show per-command status decorations, auto-expand/collapse output, and persist command snapshots.
+
+| Action | Client-dispatchable | Reducer Effect |
+|---|:---:|---|
+| `terminal/commandExecuted` | No | Appends `command` part, sets `supportsCommandDetection` |
+| `terminal/commandFinished` | No | Marks matching `command` part as complete |
+
+The lifecycle of a single command:
+
+```mermaid
+sequenceDiagram
+  participant C as Client
+  participant S as Server
+
+  S->>C: terminal/commandExecuted { commandId, commandLine, timestamp }
+  Note over C: New command part (isComplete: false)
+  S->>C: terminal/data { data: "output chunk 1..." }
+  S->>C: terminal/data { data: "output chunk 2..." }
+  Note over C: Data appends to command's output
+  S->>C: terminal/commandFinished { commandId, exitCode, durationMs }
+  Note over C: Command part marked complete
+```
+
+The server MUST NOT include shell integration escape sequences in `terminal/data` actions — these must be stripped before dispatch. Failure to strip them causes false positives in "has real output" checks on the client.
+
+Clients MUST check `supportsCommandDetection` before relying on command boundaries. When absent, all data flows into `unclassified` parts and no command lifecycle is available.
 
 ### Control
 
@@ -114,7 +176,7 @@ Terminal I/O is intentionally split into `terminal/input` (client → pty) and `
 | `terminal/titleChanged` | Yes | Sets `title` |
 | `terminal/cwdChanged` | No | Sets `cwd` |
 | `terminal/exited` | No | Sets `exitCode` |
-| `terminal/cleared` | Yes | Empties `content` |
+| `terminal/cleared` | Yes | Resets `content` to `[]` |
 
 The root terminal list is managed by the server via `root/terminalsChanged`, which uses full-replacement semantics.
 

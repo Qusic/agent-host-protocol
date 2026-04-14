@@ -5,7 +5,7 @@
  */
 
 import { ActionType } from './actions.js';
-import type { IRootState, ISessionInputRequest, ISessionState, ITerminalState, IToolCallState, IResponsePart, IToolCallResponsePart, ITurn, IPendingMessage } from './state.js';
+import type { IRootState, ISessionInputRequest, ISessionState, ITerminalState, ITerminalContentPart, IToolCallState, IResponsePart, IToolCallResponsePart, ITurn, IPendingMessage } from './state.js';
 import { SessionLifecycle, SessionStatus, TurnState, ToolCallStatus, ToolCallConfirmationReason, ToolCallCancellationReason, ResponsePartKind, PendingMessageKind } from './state.js';
 import type { IRootAction, ISessionAction, IClientSessionAction, ITerminalAction, IClientTerminalAction } from './action-origin.generated.js';
 import { IS_CLIENT_DISPATCHABLE } from './action-origin.generated.js';
@@ -742,8 +742,18 @@ export function sessionReducer(state: ISessionState, action: ISessionAction, log
  */
 export function terminalReducer(state: ITerminalState, action: ITerminalAction, log?: (msg: string) => void): ITerminalState {
   switch (action.type) {
-    case ActionType.TerminalData:
-      return { ...state, content: state.content + action.data };
+    case ActionType.TerminalData: {
+      const content = [...state.content];
+      const tail = content.length > 0 ? content[content.length - 1] : undefined;
+      if (tail && tail.type === 'command' && !tail.isComplete) {
+        content[content.length - 1] = { ...tail, output: tail.output + action.data };
+      } else if (tail && tail.type === 'unclassified') {
+        content[content.length - 1] = { ...tail, value: tail.value + action.data };
+      } else {
+        content.push({ type: 'unclassified', value: action.data });
+      }
+      return { ...state, content };
+    }
 
     case ActionType.TerminalInput:
       // Side-effect-only: the server forwards to the pty.
@@ -766,7 +776,41 @@ export function terminalReducer(state: ITerminalState, action: ITerminalAction, 
       return { ...state, exitCode: action.exitCode };
 
     case ActionType.TerminalCleared:
-      return { ...state, content: '' };
+      return { ...state, content: [] };
+
+    case ActionType.TerminalCommandDetectionAvailable:
+      return { ...state, supportsCommandDetection: true };
+
+    case ActionType.TerminalCommandExecuted: {
+      const part: ITerminalContentPart = {
+        type: 'command',
+        commandId: action.commandId,
+        commandLine: action.commandLine,
+        output: '',
+        timestamp: action.timestamp,
+        isComplete: false,
+      };
+      return {
+        ...state,
+        content: [...state.content, part],
+        supportsCommandDetection: true,
+      };
+    }
+
+    case ActionType.TerminalCommandFinished: {
+      const content = state.content.map(p => {
+        if (p.type === 'command' && p.commandId === action.commandId) {
+          return {
+            ...p,
+            isComplete: true as const,
+            exitCode: action.exitCode,
+            durationMs: action.durationMs,
+          };
+        }
+        return p;
+      });
+      return { ...state, content };
+    }
 
     default:
       softAssertNever(action, log);

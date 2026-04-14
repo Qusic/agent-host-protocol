@@ -453,6 +453,7 @@ const STATE_STRUCTS = [
   'IToolResultTerminalContent', 'IToolResultSubagentContent', 'ICustomizationRef',
   'ISessionCustomization', 'ISessionFileDiff', 'ITerminalInfo',
   'ITerminalClientClaim', 'ITerminalSessionClaim', 'ITerminalState',
+  'ITerminalUnclassifiedPart', 'ITerminalCommandPart',
   'IUsageInfo', 'IErrorInfo', 'ISnapshot',
 ];
 
@@ -486,6 +487,15 @@ const TERMINAL_CLAIM_UNION: UnionConfig = {
   variants: [
     { caseName: 'client', structName: 'TerminalClientClaim', discriminantValue: 'client' },
     { caseName: 'session', structName: 'TerminalSessionClaim', discriminantValue: 'session' },
+  ],
+};
+
+const TERMINAL_CONTENT_PART_UNION: UnionConfig = {
+  name: 'TerminalContentPart',
+  discriminantField: 'type',
+  variants: [
+    { caseName: 'unclassified', structName: 'TerminalUnclassifiedPart', discriminantValue: 'unclassified' },
+    { caseName: 'command', structName: 'TerminalCommandPart', discriminantValue: 'command' },
   ],
 };
 
@@ -678,6 +688,8 @@ function generateStateFile(project: Project): string {
   lines.push('');
   lines.push(generateDiscriminatedUnion(TERMINAL_CLAIM_UNION));
   lines.push('');
+  lines.push(generateDiscriminatedUnion(TERMINAL_CONTENT_PART_UNION));
+  lines.push('');
   lines.push(generateDiscriminatedUnion(SESSION_INPUT_QUESTION_UNION));
   lines.push('');
   lines.push(generateDiscriminatedUnion(SESSION_INPUT_ANSWER_VALUE_UNION));
@@ -742,6 +754,9 @@ const ACTION_VARIANTS: { type: string; caseName: string; tsInterface: string }[]
   { type: 'terminal/cwdChanged', caseName: 'terminalCwdChanged', tsInterface: 'ITerminalCwdChangedAction' },
   { type: 'terminal/exited', caseName: 'terminalExited', tsInterface: 'ITerminalExitedAction' },
   { type: 'terminal/cleared', caseName: 'terminalCleared', tsInterface: 'ITerminalClearedAction' },
+  { type: 'terminal/commandDetectionAvailable', caseName: 'terminalCommandDetectionAvailable', tsInterface: 'ITerminalCommandDetectionAvailableAction' },
+  { type: 'terminal/commandExecuted', caseName: 'terminalCommandExecuted', tsInterface: 'ITerminalCommandExecutedAction' },
+  { type: 'terminal/commandFinished', caseName: 'terminalCommandFinished', tsInterface: 'ITerminalCommandFinishedAction' },
 ];
 
 /** Merged struct for the approved/denied tool call confirmed action */
@@ -1383,6 +1398,7 @@ function checkExhaustiveness(project: Project): void {
     'ISessionToolCallDeniedAction',   // merged into SessionToolCallConfirmedAction
     'IProtocolNotification',         // PROTOCOL_NOTIFICATION_UNION discriminated union
     'ITerminalClaim',                // TERMINAL_CLAIM_UNION discriminated union
+    'ITerminalContentPart',           // TERMINAL_CONTENT_PART_UNION discriminated union
     'ISessionInputQuestion',         // SESSION_INPUT_QUESTION_UNION discriminated union
     'ISessionInputAnswerValue',      // SESSION_INPUT_ANSWER_VALUE_UNION discriminated union
     'ISessionInputAnswer',           // SESSION_INPUT_ANSWER_UNION discriminated union

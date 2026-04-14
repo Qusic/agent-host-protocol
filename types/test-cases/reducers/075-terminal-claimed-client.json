@@ -3,7 +3,7 @@
   "reducer": "terminal",
   "initial": {
     "title": "bash",
-    "content": "",
+    "content": [],
     "claim": { "kind": "session", "session": "copilot:/s1" }
   },
   "actions": [
@@ -18,7 +18,7 @@
   ],
   "expected": {
     "title": "bash",
-    "content": "",
+    "content": [],
     "claim": {
       "kind": "client",
       "clientId": "vscode-1"
