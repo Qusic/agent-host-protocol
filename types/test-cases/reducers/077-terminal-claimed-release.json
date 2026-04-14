@@ -3,7 +3,7 @@
   "reducer": "terminal",
   "initial": {
     "title": "bash",
-    "content": "",
+    "content": [],
     "claim": {
       "kind": "session",
       "session": "copilot:/s1",
@@ -23,7 +23,7 @@
   ],
   "expected": {
     "title": "bash",
-    "content": "",
+    "content": [],
     "claim": {
       "kind": "session",
       "session": "copilot:/s1"

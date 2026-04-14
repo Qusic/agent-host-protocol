@@ -49,6 +49,9 @@ import type {
   ITerminalCwdChangedAction,
   ITerminalExitedAction,
   ITerminalClearedAction,
+  ITerminalCommandDetectionAvailableAction,
+  ITerminalCommandExecutedAction,
+  ITerminalCommandFinishedAction,
 } from './actions.js';
 
 import { ActionType } from './actions.js';
@@ -154,6 +157,9 @@ export type ITerminalAction =
   | ITerminalCwdChangedAction
   | ITerminalExitedAction
   | ITerminalClearedAction
+  | ITerminalCommandDetectionAvailableAction
+  | ITerminalCommandExecutedAction
+  | ITerminalCommandFinishedAction
 ;
 
 /** Union of terminal actions that clients may dispatch. */
@@ -170,6 +176,9 @@ export type IServerTerminalAction =
   | ITerminalDataAction
   | ITerminalCwdChangedAction
   | ITerminalExitedAction
+  | ITerminalCommandDetectionAvailableAction
+  | ITerminalCommandExecutedAction
+  | ITerminalCommandFinishedAction
 ;
 
 // ─── Client-Dispatchable Map ─────────────────────────────────────────────────
@@ -225,4 +234,7 @@ export const IS_CLIENT_DISPATCHABLE: { readonly [K in IStateAction['type']]: boo
   [ActionType.TerminalCwdChanged]: false,
   [ActionType.TerminalExited]: false,
   [ActionType.TerminalCleared]: true,
+  [ActionType.TerminalCommandDetectionAvailable]: false,
+  [ActionType.TerminalCommandExecuted]: false,
+  [ActionType.TerminalCommandFinished]: false,
 };

@@ -3,7 +3,7 @@
   "reducer": "terminal",
   "initial": {
     "title": "bash",
-    "content": "$ ",
+    "content": [{ "type": "unclassified", "value": "$ " }],
     "claim": { "kind": "client", "clientId": "c1" }
   },
   "actions": [
@@ -15,7 +15,7 @@
   ],
   "expected": {
     "title": "bash",
-    "content": "$ ",
+    "content": [{ "type": "unclassified", "value": "$ " }],
     "claim": { "kind": "client", "clientId": "c1" }
   }
 }

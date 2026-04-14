@@ -73,6 +73,9 @@ export type {
   ITerminalSessionClaim,
   ITerminalClaim,
   ITerminalState,
+  ITerminalContentPart,
+  ITerminalUnclassifiedPart,
+  ITerminalCommandPart,
 } from './state.js';
 
 export {
@@ -145,6 +148,9 @@ export type {
   ITerminalCwdChangedAction,
   ITerminalExitedAction,
   ITerminalClearedAction,
+  ITerminalCommandExecutedAction,
+  ITerminalCommandFinishedAction,
+  ITerminalCommandDetectionAvailableAction,
 } from './actions.js';
 
 export { ActionType } from './actions.js';

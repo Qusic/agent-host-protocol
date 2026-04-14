@@ -2821,8 +2821,11 @@
           "description": "Terminal height in rows"
         },
         "content": {
-          "type": "string",
-          "description": "Accumulated terminal output. May contain ANSI escape sequences.\nThe scrollback length is implementation-defined."
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ITerminalContentPart"
+          },
+          "description": "Typed content parts, replacing the flat `content: string`.\n\nNaive consumers that only need the raw VT stream can reconstruct it with:\n  `content.map(p => p.type === 'command' ? p.output : p.value).join('')`\n\nConsumers that need command boundaries can filter by part type."
         },
         "exitCode": {
           "type": "number",
@@ -2831,12 +2834,84 @@
         "claim": {
           "$ref": "#/$defs/ITerminalClaim",
           "description": "Who currently holds this terminal"
+        },
+        "supportsCommandDetection": {
+          "type": "boolean",
+          "description": "Whether this terminal emits `terminal/commandExecuted` and\n`terminal/commandFinished` actions and populates `command`-typed parts.\n\nClients MUST check this flag before relying on command detection.\nDo NOT use the presence of a `command` part as a feature flag — parts\nare absent in the normal idle state."
         }
       },
       "required": [
         "title",
         "content",
         "claim"
+      ]
+    },
+    "ITerminalUnclassifiedPart": {
+      "type": "object",
+      "description": "Unstructured terminal output — content before, between, or after commands,\nor from terminals that do not support command detection.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "unclassified"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "description": "Accumulated VT output. Appended to by `terminal/data` when no command is executing."
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ]
+    },
+    "ITerminalCommandPart": {
+      "type": "object",
+      "description": "A single command: its command line and the output it produced.\n\nWhile `isComplete` is false the command is still executing; `output` grows\nas `terminal/data` actions arrive. At `terminal/commandFinished` the part\nis mutated in-place with `isComplete: true` and the completion metadata.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "command"
+          ]
+        },
+        "commandId": {
+          "type": "string",
+          "description": "Stable id matching the `commandId` on the corresponding\n`terminal/commandExecuted` and `terminal/commandFinished` actions."
+        },
+        "commandLine": {
+          "type": "string",
+          "description": "The command line submitted to the shell."
+        },
+        "output": {
+          "type": "string",
+          "description": "Accumulated VT output. Appended to by `terminal/data` while `isComplete`\nis false. Shell integration escape sequences are stripped by the server."
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "Unix timestamp (ms) when execution started, as reported by the server."
+        },
+        "isComplete": {
+          "type": "boolean",
+          "description": "Whether the command has finished."
+        },
+        "exitCode": {
+          "type": "number",
+          "description": "Shell exit code. Set at completion. `undefined` if unknown."
+        },
+        "durationMs": {
+          "type": "number",
+          "description": "Wall-clock duration in milliseconds. Set at completion."
+        }
+      },
+      "required": [
+        "type",
+        "commandId",
+        "commandLine",
+        "output",
+        "timestamp",
+        "isComplete"
       ]
     },
     "IUsageInfo": {
@@ -4280,6 +4355,85 @@
       "required": [
         "type",
         "terminal"
+      ]
+    },
+    "ITerminalCommandDetectionAvailableAction": {
+      "type": "object",
+      "description": "Shell integration has loaded and the terminal now supports command\ndetection. The server dispatches this when shell integration becomes\navailable (which may happen asynchronously after the terminal is created).\n\nClients MUST NOT assume command detection is available until this action\n(or `terminal/commandExecuted`) has been received.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ActionType.TerminalCommandDetectionAvailable"
+        },
+        "terminal": {
+          "$ref": "#/$defs/URI",
+          "description": "Terminal URI"
+        }
+      },
+      "required": [
+        "type",
+        "terminal"
+      ]
+    },
+    "ITerminalCommandExecutedAction": {
+      "type": "object",
+      "description": "A command has been submitted to the shell and is now executing.\nAll subsequent `terminal/data` actions (until the matching\n`terminal/commandFinished`) constitute this command's output.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ActionType.TerminalCommandExecuted"
+        },
+        "terminal": {
+          "$ref": "#/$defs/URI",
+          "description": "Terminal URI"
+        },
+        "commandId": {
+          "type": "string",
+          "description": "Stable identifier for this command, scoped to the terminal URI.\nAllows correlating `commandExecuted` → `commandFinished` pairs."
+        },
+        "commandLine": {
+          "type": "string",
+          "description": "The command line text that was submitted"
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "Unix timestamp (ms) of when the command started executing, as measured\non the server."
+        }
+      },
+      "required": [
+        "type",
+        "terminal",
+        "commandId",
+        "commandLine",
+        "timestamp"
+      ]
+    },
+    "ITerminalCommandFinishedAction": {
+      "type": "object",
+      "description": "A command has finished executing.\n\nThe sequence of `terminal/data` actions between the preceding\n`terminal/commandExecuted` (same `commandId`) and this action constitutes\nthe complete output of the command.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ActionType.TerminalCommandFinished"
+        },
+        "terminal": {
+          "$ref": "#/$defs/URI",
+          "description": "Terminal URI"
+        },
+        "commandId": {
+          "type": "string",
+          "description": "Matches the `commandId` from the corresponding `commandExecuted`"
+        },
+        "exitCode": {
+          "type": "number",
+          "description": "Shell exit code. `undefined` if the shell did not report one."
+        },
+        "durationMs": {
+          "type": "number",
+          "description": "Wall-clock duration of the command in milliseconds, as measured by the\nshell integration script on the server side."
+        }
+      },
+      "required": [
+        "type",
+        "terminal",
+        "commandId"
       ]
     }
   }

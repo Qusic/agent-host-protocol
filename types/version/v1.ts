@@ -57,6 +57,9 @@ import type {
   ITerminalSessionClaim,
   ITerminalClaim,
   ITerminalState,
+  ITerminalContentPart,
+  ITerminalUnclassifiedPart,
+  ITerminalCommandPart,
   ISessionInputAnswer,
   ISessionInputAnswerValue,
   ISessionInputTextAnswerValue,
@@ -106,6 +109,9 @@ import type {
   ITerminalCwdChangedAction,
   ITerminalExitedAction,
   ITerminalClearedAction,
+  ITerminalCommandDetectionAvailableAction,
+  ITerminalCommandExecutedAction,
+  ITerminalCommandFinishedAction,
   ISessionInputAnswerChangedAction,
   ISessionInputCompletedAction,
   ISessionInputRequestedAction,
@@ -261,11 +267,17 @@ type V1_ITerminalTitleChangedAction = ITerminalTitleChangedAction;
 type V1_ITerminalCwdChangedAction = ITerminalCwdChangedAction;
 type V1_ITerminalExitedAction = ITerminalExitedAction;
 type V1_ITerminalClearedAction = ITerminalClearedAction;
+type V1_ITerminalCommandDetectionAvailableAction = ITerminalCommandDetectionAvailableAction;
+type V1_ITerminalCommandExecutedAction = ITerminalCommandExecutedAction;
+type V1_ITerminalCommandFinishedAction = ITerminalCommandFinishedAction;
 type V1_ITerminalInfo = ITerminalInfo;
 type V1_ITerminalClientClaim = ITerminalClientClaim;
 type V1_ITerminalSessionClaim = ITerminalSessionClaim;
 type V1_ITerminalClaim = ITerminalClaim;
 type V1_ITerminalState = ITerminalState;
+type V1_ITerminalContentPart = ITerminalContentPart;
+type V1_ITerminalUnclassifiedPart = ITerminalUnclassifiedPart;
+type V1_ITerminalCommandPart = ITerminalCommandPart;
 type V1_ICreateTerminalParams = ICreateTerminalParams;
 type V1_IDisposeTerminalParams = IDisposeTerminalParams;
 type V1_ISessionForkSource = ISessionForkSource;
@@ -533,6 +545,12 @@ type _CheckTerminalExitedAction = AssertCompatible<V1_ITerminalExitedAction, ITe
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckTerminalClearedAction = AssertCompatible<V1_ITerminalClearedAction, ITerminalClearedAction>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckTerminalCommandDetectionAvailableAction = AssertCompatible<V1_ITerminalCommandDetectionAvailableAction, ITerminalCommandDetectionAvailableAction>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckTerminalCommandExecutedAction = AssertCompatible<V1_ITerminalCommandExecutedAction, ITerminalCommandExecutedAction>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckTerminalCommandFinishedAction = AssertCompatible<V1_ITerminalCommandFinishedAction, ITerminalCommandFinishedAction>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckTerminalInfo = AssertCompatible<V1_ITerminalInfo, ITerminalInfo>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckTerminalClientClaim = AssertCompatible<V1_ITerminalClientClaim, ITerminalClientClaim>;
@@ -542,6 +560,12 @@ type _CheckTerminalSessionClaim = AssertCompatible<V1_ITerminalSessionClaim, ITe
 type _CheckTerminalClaim = AssertCompatible<V1_ITerminalClaim, ITerminalClaim>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckTerminalState = AssertCompatible<V1_ITerminalState, ITerminalState>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckTerminalContentPart = AssertCompatible<V1_ITerminalContentPart, ITerminalContentPart>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckTerminalUnclassifiedPart = AssertCompatible<V1_ITerminalUnclassifiedPart, ITerminalUnclassifiedPart>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckTerminalCommandPart = AssertCompatible<V1_ITerminalCommandPart, ITerminalCommandPart>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckCreateTerminalParams = AssertCompatible<V1_ICreateTerminalParams, ICreateTerminalParams>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

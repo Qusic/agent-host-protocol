@@ -2,7 +2,7 @@
   "description": "terminal unknown action type is no-op",
   "reducer": "terminal",
   "initial": {
-    "content": "",
+    "content": [],
     "cols": 80,
     "rows": 24
   },
@@ -12,7 +12,7 @@
     }
   ],
   "expected": {
-    "content": "",
+    "content": [],
     "cols": 80,
     "rows": 24
   }
