@@ -451,7 +451,7 @@ const STATE_STRUCTS = [
   'IToolResultTextContent', 'IToolResultEmbeddedResourceContent',
   'IToolResultResourceContent', 'IToolResultFileEditContent',
   'IToolResultTerminalContent', 'IToolResultSubagentContent', 'ICustomizationRef',
-  'ISessionCustomization', 'ISessionFileDiff', 'ITerminalInfo',
+  'ISessionCustomization', 'IFileEdit', 'ITerminalInfo',
   'ITerminalClientClaim', 'ITerminalSessionClaim', 'ITerminalState',
   'ITerminalUnclassifiedPart', 'ITerminalCommandPart',
   'IUsageInfo', 'IErrorInfo', 'ISnapshot',

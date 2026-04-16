@@ -345,27 +345,6 @@
         "tools"
       ]
     },
-    "ISessionFileDiff": {
-      "type": "object",
-      "description": "A summary of changes to a single file within a session.",
-      "properties": {
-        "uri": {
-          "$ref": "#/$defs/URI",
-          "description": "URI of the affected file"
-        },
-        "added": {
-          "type": "number",
-          "description": "Number of items added (e.g., lines for text files, cells for notebooks)"
-        },
-        "removed": {
-          "type": "number",
-          "description": "Number of items removed (e.g., lines for text files, cells for notebooks)"
-        }
-      },
-      "required": [
-        "uri"
-      ]
-    },
     "IProjectInfo": {
       "type": "object",
       "description": "Server-owned project metadata for a session.",
@@ -434,7 +413,7 @@
         "diffs": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/ISessionFileDiff"
+            "$ref": "#/$defs/IFileEdit"
           },
           "description": "Files changed during this session with diff statistics"
         }
@@ -1405,6 +1384,22 @@
         "confirmationTitle": {
           "$ref": "#/$defs/StringOrMarkdown",
           "description": "Short title for the confirmation prompt (e.g. `\"Run in terminal\"`, `\"Write file\"`)"
+        },
+        "edits": {
+          "type": "object",
+          "properties": {
+            "items": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "description": "File edits that this tool call will perform, for preview before confirmation"
+        },
+        "editable": {
+          "type": "boolean",
+          "description": "Whether the agent host allows the client to edit the tool's input parameters before confirming"
         }
       },
       "required": [
@@ -1860,13 +1855,10 @@
         "type"
       ]
     },
-    "IToolResultFileEditContent": {
+    "IFileEdit": {
       "type": "object",
-      "description": "Describes a file modification performed by a tool.\n\nSupports creates (only `after`), deletes (only `before`), renames/moves\n(different `uri` in `before` and `after`), and edits (same `uri`, different content).",
+      "description": "Describes a file modification with before/after state and diff metadata.\n\nSupports creates (only `after`), deletes (only `before`), renames/moves\n(different `uri` in `before` and `after`), and edits (same `uri`, different content).",
       "properties": {
-        "type": {
-          "$ref": "#/$defs/ToolResultContentType.FileEdit"
-        },
         "before": {
           "type": "object",
           "properties": {
@@ -1910,6 +1902,59 @@
             }
           },
           "description": "Optional diff display metadata"
+        }
+      }
+    },
+    "IToolResultFileEditContent": {
+      "type": "object",
+      "description": "Describes a file modification performed by a tool.",
+      "properties": {
+        "before": {
+          "type": "object",
+          "properties": {
+            "uri": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "uri",
+            "content"
+          ],
+          "description": "The file state before the edit. Absent for file creations or for in-place file edits."
+        },
+        "after": {
+          "type": "object",
+          "properties": {
+            "uri": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "uri",
+            "content"
+          ],
+          "description": "The file state after the edit. Absent for file deletions."
+        },
+        "diff": {
+          "type": "object",
+          "properties": {
+            "added": {
+              "type": "number"
+            },
+            "removed": {
+              "type": "number"
+            }
+          },
+          "description": "Optional diff display metadata"
+        },
+        "type": {
+          "$ref": "#/$defs/ToolResultContentType.FileEdit"
         }
       },
       "required": [
