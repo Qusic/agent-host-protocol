@@ -322,20 +322,6 @@ export interface ISessionActiveClient {
 }
 
 /**
- * A summary of changes to a single file within a session.
- *
- * @category Session State
- */
-export interface ISessionFileDiff {
-  /** URI of the affected file */
-  uri: URI;
-  /** Number of items added (e.g., lines for text files, cells for notebooks) */
-  added?: number;
-  /** Number of items removed (e.g., lines for text files, cells for notebooks) */
-  removed?: number;
-}
-
-/**
  * Server-owned project metadata for a session.
  *
  * @category Session State
@@ -374,7 +360,7 @@ export interface ISessionSummary {
   /** Whether the session has been marked as done by the client */
   isDone?: boolean;
   /** Files changed during this session with diff statistics */
-  diffs?: ISessionFileDiff[];
+  diffs?: IFileEdit[];
 }
 
 // ─── Session Config Types ────────────────────────────────────────────────────

@@ -19,12 +19,11 @@ import type {
   ISessionActiveClient,
   IUsageInfo,
   ISessionCustomization,
-  ISessionFileDiff,
+  IFileEdit,
   ISessionInputAnswer,
   ISessionInputRequest,
   ITerminalInfo,
   ITerminalClaim,
-  IFileEdit,
   SessionInputResponseKind,
 } from './state.js';
 
@@ -603,7 +602,7 @@ export interface ISessionDiffsChangedAction {
   /** Session URI */
   session: URI;
   /** Updated file diffs for the session */
-  diffs: ISessionFileDiff[];
+  diffs: IFileEdit[];
 }
 
 /**

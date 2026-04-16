@@ -18,7 +18,6 @@ export type {
   ISessionModelInfo,
   ISessionState,
   ISessionSummary,
-  ISessionFileDiff,
   ISessionConfigState,
   ITurn,
   IActiveTurn,
