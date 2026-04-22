@@ -76,6 +76,7 @@ export const enum ActionType {
   SessionDiffsChanged = 'session/diffsChanged',
   SessionConfigChanged = 'session/configChanged',
   RootTerminalsChanged = 'root/terminalsChanged',
+  RootConfigChanged = 'root/configChanged',
   TerminalData = 'terminal/data',
   TerminalInput = 'terminal/input',
   TerminalResized = 'terminal/resized',
@@ -172,6 +173,22 @@ export interface IRootTerminalsChangedAction {
   type: ActionType.RootTerminalsChanged;
   /** Updated terminal list (full replacement) */
   terminals: ITerminalInfo[];
+}
+
+/**
+ * Fired when agent-host configuration values change.
+ *
+ * Only the changed values are included; the reducer merges
+ * the new values into `state.config.values`.
+ *
+ * @category Root Actions
+ * @version 1
+ * @clientDispatchable
+ */
+export interface IRootConfigChangedAction {
+  type: ActionType.RootConfigChanged;
+  /** Updated config values (merged into existing config) */
+  config: Record<string, any>;
 }
 
 // ─── Session Actions ─────────────────────────────────────────────────────────
@@ -718,7 +735,7 @@ export interface ISessionConfigChangedAction {
   /** Session URI */
   session: URI;
   /** Updated config values (merged into existing config) */
-  config: Record<string, string>;
+  config: Record<string, any>;
 }
 
 // ─── Truncation ──────────────────────────────────────────────────────────────
@@ -1098,6 +1115,7 @@ export type IStateAction =
   | IRootAgentsChangedAction
   | IRootActiveSessionsChangedAction
   | IRootTerminalsChangedAction
+  | IRootConfigChangedAction
   | ISessionReadyAction
   | ISessionCreationFailedAction
   | ISessionTurnStartedAction

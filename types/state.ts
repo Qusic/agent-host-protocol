@@ -153,6 +153,8 @@ export interface IRootState {
   activeSessions?: number;
   /** Known terminals on the server. Subscribe to individual terminal URIs for full state. */
   terminals?: ITerminalInfo[];
+  /** Agent host configuration schema and current values */
+  config?: IRootConfigState;
 }
 
 /**
@@ -434,6 +436,23 @@ export interface IConfigSchema {
   required?: string[];
 }
 
+// ─── Root Config Types ───────────────────────────────────────────────────────
+
+/**
+ * Live agent-host configuration metadata.
+ *
+ * The schema describes the available configuration properties and the values
+ * contain the current value for each resolved property.
+ *
+ * @category Root State
+ */
+export interface IRootConfigState {
+  /** JSON Schema describing available configuration properties */
+  schema: IConfigSchema;
+  /** Current configuration values */
+  values: Record<string, any>;
+}
+
 // ─── Session Config Types ────────────────────────────────────────────────────
 
 /**
@@ -482,7 +501,7 @@ export interface ISessionConfigState {
   /** JSON Schema describing available configuration properties */
   schema: ISessionConfigSchema;
   /** Current configuration values */
-  values: Record<string, string>;
+  values: Record<string, any>;
 }
 
 // ─── Session Input Types ────────────────────────────────────────────────────

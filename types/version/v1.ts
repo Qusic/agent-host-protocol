@@ -11,6 +11,7 @@
 
 import type {
   IRootState,
+  IRootConfigState,
   IAgentInfo,
   ISessionModelInfo,
   IModelSelection,
@@ -103,6 +104,7 @@ import type {
   ISessionDiffsChangedAction,
   ISessionConfigChangedAction,
   IRootTerminalsChangedAction,
+  IRootConfigChangedAction,
   ISessionToolCallContentChangedAction,
   ITerminalDataAction,
   ITerminalInputAction,
@@ -181,6 +183,7 @@ type AssertCompatible<Frozen, _Current extends Frozen> =
 // will surface it here.
 
 type V1_IRootState = IRootState;
+type V1_IRootConfigState = IRootConfigState;
 type V1_StringOrMarkdown = StringOrMarkdown;
 type V1_IAgentInfo = IAgentInfo;
 type V1_IProtectedResourceMetadata = IProtectedResourceMetadata;
@@ -264,6 +267,7 @@ type V1_ISessionInputRequestedAction = ISessionInputRequestedAction;
 type V1_ISessionInputAnswerChangedAction = ISessionInputAnswerChangedAction;
 type V1_ISessionInputCompletedAction = ISessionInputCompletedAction;
 type V1_IRootTerminalsChangedAction = IRootTerminalsChangedAction;
+type V1_IRootConfigChangedAction = IRootConfigChangedAction;
 type V1_ITerminalDataAction = ITerminalDataAction;
 type V1_ITerminalInputAction = ITerminalInputAction;
 type V1_ITerminalResizedAction = ITerminalResizedAction;
@@ -326,6 +330,8 @@ type V1_INotificationMethodParams = INotificationMethodParams;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckRootState = AssertCompatible<V1_IRootState, IRootState>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckRootConfigState = AssertCompatible<V1_IRootConfigState, IRootConfigState>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckStringOrMarkdown = AssertCompatible<V1_StringOrMarkdown, StringOrMarkdown>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -538,6 +544,8 @@ type _CheckServerNotificationMap = AssertCompatible<V1_IServerNotificationMap, I
 type _CheckNotificationMethodParams = AssertCompatible<V1_INotificationMethodParams, INotificationMethodParams>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckTerminalsChangedAction = AssertCompatible<V1_IRootTerminalsChangedAction, IRootTerminalsChangedAction>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckRootConfigChangedAction = AssertCompatible<V1_IRootConfigChangedAction, IRootConfigChangedAction>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckTerminalDataAction = AssertCompatible<V1_ITerminalDataAction, ITerminalDataAction>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

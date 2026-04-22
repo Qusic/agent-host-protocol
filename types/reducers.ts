@@ -245,6 +245,18 @@ export function rootReducer(state: IRootState, action: IRootAction, log?: (msg: 
     case ActionType.RootTerminalsChanged:
       return { ...state, terminals: action.terminals };
 
+    case ActionType.RootConfigChanged:
+      if (!state.config) {
+        return state;
+      }
+      return {
+        ...state,
+        config: {
+          ...state.config,
+          values: { ...state.config.values, ...action.config },
+        },
+      };
+
     default:
       softAssertNever(action, log);
       return state;

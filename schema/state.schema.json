@@ -137,6 +137,10 @@
             "$ref": "#/$defs/ITerminalInfo"
           },
           "description": "Known terminals on the server. Subscribe to individual terminal URIs for full state."
+        },
+        "config": {
+          "$ref": "#/$defs/IRootConfigState",
+          "description": "Agent host configuration schema and current values"
         }
       },
       "required": [
@@ -537,6 +541,25 @@
         "properties"
       ]
     },
+    "IRootConfigState": {
+      "type": "object",
+      "description": "Live agent-host configuration metadata.\n\nThe schema describes the available configuration properties and the values\ncontain the current value for each resolved property.",
+      "properties": {
+        "schema": {
+          "$ref": "#/$defs/IConfigSchema",
+          "description": "JSON Schema describing available configuration properties"
+        },
+        "values": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Current configuration values"
+        }
+      },
+      "required": [
+        "schema",
+        "values"
+      ]
+    },
     "ISessionConfigPropertySchema": {
       "type": "object",
       "description": "A session configuration property descriptor.\n\nExtends the generic {@link IConfigPropertySchema} with session-specific\ndisplay extensions.",
@@ -641,9 +664,7 @@
         },
         "values": {
           "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
+          "additionalProperties": {},
           "description": "Current configuration values"
         }
       },

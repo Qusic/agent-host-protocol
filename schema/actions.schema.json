@@ -129,6 +129,24 @@
         "terminals"
       ]
     },
+    "IRootConfigChangedAction": {
+      "type": "object",
+      "description": "Fired when agent-host configuration values change.\n\nOnly the changed values are included; the reducer merges\nthe new values into `state.config.values`.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ActionType.RootConfigChanged"
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Updated config values (merged into existing config)"
+        }
+      },
+      "required": [
+        "type",
+        "config"
+      ]
+    },
     "ISessionReadyAction": {
       "type": "object",
       "description": "Session backend initialized successfully.",
@@ -1014,9 +1032,7 @@
         },
         "config": {
           "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
+          "additionalProperties": {},
           "description": "Updated config values (merged into existing config)"
         }
       },
@@ -1616,6 +1632,10 @@
             "$ref": "#/$defs/ITerminalInfo"
           },
           "description": "Known terminals on the server. Subscribe to individual terminal URIs for full state."
+        },
+        "config": {
+          "$ref": "#/$defs/IRootConfigState",
+          "description": "Agent host configuration schema and current values"
         }
       },
       "required": [
@@ -2016,6 +2036,25 @@
         "properties"
       ]
     },
+    "IRootConfigState": {
+      "type": "object",
+      "description": "Live agent-host configuration metadata.\n\nThe schema describes the available configuration properties and the values\ncontain the current value for each resolved property.",
+      "properties": {
+        "schema": {
+          "$ref": "#/$defs/IConfigSchema",
+          "description": "JSON Schema describing available configuration properties"
+        },
+        "values": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Current configuration values"
+        }
+      },
+      "required": [
+        "schema",
+        "values"
+      ]
+    },
     "ISessionConfigPropertySchema": {
       "type": "object",
       "description": "A session configuration property descriptor.\n\nExtends the generic {@link IConfigPropertySchema} with session-specific\ndisplay extensions.",
@@ -2120,9 +2159,7 @@
         },
         "values": {
           "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
+          "additionalProperties": {},
           "description": "Current configuration values"
         }
       },
@@ -4091,6 +4128,9 @@
         },
         {
           "$ref": "#/$defs/IRootTerminalsChangedAction"
+        },
+        {
+          "$ref": "#/$defs/IRootConfigChangedAction"
         },
         {
           "$ref": "#/$defs/ISessionReadyAction"
