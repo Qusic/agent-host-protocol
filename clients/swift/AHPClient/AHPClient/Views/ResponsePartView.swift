@@ -396,7 +396,7 @@ struct ToolResultContentView: View {
                 .padding(8)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 6))
-        case .binary(let b):
+        case .embeddedResource(let b):
             if b.contentType.hasPrefix("image/") == true,
                let data = Data(base64Encoded: b.data),
                let uiImage = UIImage(data: data) {
@@ -410,6 +410,10 @@ struct ToolResultContentView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+        case .resource(let r):
+            Label(r.uri, systemImage: "doc")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         case .fileEdit(let edit):
             HStack {
                 Image(systemName: "doc.badge.gearshape")
@@ -429,8 +433,92 @@ struct ToolResultContentView: View {
             }
             .padding(8)
             .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 8))
-        case .contentRef(let ref):
-            ContentRefView(ref: ref)
+        case .terminal(let t):
+            TerminalToolResultView(ref: t)
+        case .subagent(let s):
+            Label(s.resource, systemImage: "person.2")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+// MARK: - TerminalToolResultView
+
+/// Renders the live state of a terminal referenced by a tool result. Subscribes
+/// to the terminal URI on appearance and streams its content parts inline.
+struct TerminalToolResultView: View {
+    let ref: ToolResultTerminalContent
+    @Environment(AppStore.self) private var store
+
+    private var state: TerminalState? {
+        store.terminals[ref.resource]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(ref.title, systemImage: "terminal")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            if let state {
+                if state.content.isEmpty {
+                    Text(state.exitCode != nil ? "(no output)" : "(waiting for output…)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(Array(state.content.enumerated()), id: \.offset) { _, part in
+                            TerminalContentPartView(part: part)
+                        }
+                    }
+                }
+                if let code = state.exitCode {
+                    Text("Exited with code \(code)")
+                        .font(.caption2)
+                        .foregroundStyle(code == 0 ? AnyShapeStyle(.secondary) : AnyShapeStyle(Color.red))
+                }
+            } else {
+                ProgressView()
+                    .controlSize(.small)
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 8))
+        .task(id: ref.resource) {
+            await store.ensureTerminalSubscribed(uri: ref.resource)
+        }
+    }
+}
+
+private struct TerminalContentPartView: View {
+    let part: TerminalContentPart
+
+    var body: some View {
+        switch part {
+        case .unclassified(let u):
+            Text(u.value)
+                .font(.system(.caption, design: .monospaced))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        case .command(let c):
+            VStack(alignment: .leading, spacing: 2) {
+                Text("$ \(c.commandLine)")
+                    .font(.system(.caption, design: .monospaced).weight(.semibold))
+                    .textSelection(.enabled)
+                if !c.output.isEmpty {
+                    Text(c.output)
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                if c.isComplete, let code = c.exitCode, code != 0 {
+                    Text("exit \(code)")
+                        .font(.caption2)
+                        .foregroundStyle(.red)
+                }
+            }
         }
     }
 }
@@ -438,7 +526,7 @@ struct ToolResultContentView: View {
 // MARK: - ContentRefView
 
 struct ContentRefView: View {
-    let ref: ContentRef
+    let ref: ResourceReponsePart
 
     var body: some View {
         HStack {
@@ -597,10 +685,10 @@ struct ContentRefView: View {
 
             // Content Ref
             Text("Content Ref").font(.caption.bold()).foregroundStyle(.secondary)
-            ContentRefView(ref: ContentRef(
-                kind: .contentRef,
+            ContentRefView(ref: ResourceReponsePart(
                 uri: "file:///Users/me/project/README.md",
-                contentType: "text/markdown"
+                contentType: "text/markdown",
+                kind: .contentRef
             ))
         }
         .padding()

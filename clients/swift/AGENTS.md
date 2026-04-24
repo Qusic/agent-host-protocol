@@ -5,7 +5,7 @@
 This directory contains two Swift packages for the Agent Host Protocol (AHP):
 
 1. **AgentHostProtocol** — A pure Swift library (no external dependencies) providing auto-generated types, actions, and reducers for the protocol. Targets iOS 16+, macOS 13+, Swift 5.9+.
-2. **AHPClient** — An example iOS app (Xcode project) demonstrating a full AHP client with WebSocket transport, state synchronization, reconnection, and a SwiftUI chat UI.
+2. **AHPClient** — An example iOS app (Xcode project) demonstrating a full AHP client with WebSocket transport, state synchronization, reconnection, and a SwiftUI chat UI. Uses [dev-tunnels-swift](https://github.com/rebornix/dev-tunnels-swift) (remote Swift Package) for tunnel discovery, authentication, and relay connections.
 
 ## Code Generation
 
@@ -106,6 +106,8 @@ The app uses `#available(iOS 26.0, *)` checks for:
 
 ### Build & Run
 
-Open `AHPClient/AHPClient.xcodeproj` in Xcode. The project references `AgentHostProtocol` as a local Swift package dependency. Code signing requires a `Signing.local.xcconfig` file (see `Config/Signing.local.xcconfig.example`).
+Open `AHPClient/AHPClient.xcodeproj` in Xcode. The project references `AgentHostProtocol` as a local Swift package dependency and `DevTunnelsClient` as a remote Swift package from [rebornix/dev-tunnels-swift](https://github.com/rebornix/dev-tunnels-swift). Code signing requires a `Signing.local.xcconfig` file (see `Config/Signing.local.xcconfig.example`).
+
+**Dev Tunnels integration:** `TunnelListView.swift` uses the `DevTunnelsClient` library directly — `TunnelManagementClient` for tunnel listing/details, `DeviceCodeAuth` for GitHub OAuth, and `TunnelConnection` helpers for relay URIs and connect tokens. All calls are `async` — no shim layer or Rust FFI needed.
 
 For development, `AHPClient` uses a native `NWConnection` WebSocket transport instead of `URLSessionWebSocketTask`,  avoiding `URLSession` ATS enforcement for direct `ws://` development targets such as local LAN addresses or Tailscale tailnet IPs. Public or internet-exposed deployments should still prefer `wss://`.

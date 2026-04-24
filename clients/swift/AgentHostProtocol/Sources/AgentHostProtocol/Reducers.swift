@@ -10,6 +10,16 @@ public var currentTimestampProvider: () -> Int = {
     Int(Date().timeIntervalSince1970 * 1000)
 }
 
+// MARK: - Status Bitset Helpers
+
+/// Bitmask covering the mutually-exclusive activity bits (bits 0–4).
+private let statusActivityMask = SessionStatus(rawValue: (1 << 5) - 1)
+
+/// Sets or clears a metadata flag on a status value.
+private func withStatusFlag(_ status: SessionStatus, _ flag: SessionStatus, _ set: Bool) -> SessionStatus {
+    set ? status.union(flag) : status.subtracting(flag)
+}
+
 // MARK: - Root Reducer
 
 /// Pure reducer for root state.
@@ -60,7 +70,6 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
     case .sessionTurnStarted(let a):
         var next = state
         next.summary.modifiedAt = currentTimestamp()
-        next.summary.isRead = false
         next.activeTurn = ActiveTurn(
             id: a.turnId,
             userMessage: a.userMessage,
@@ -77,7 +86,7 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
                 next.queuedMessages = queued.isEmpty ? nil : queued
             }
         }
-        next.summary.status = sessionSummaryStatus(next)
+        next.summary.status = withStatusFlag(sessionSummaryStatus(next), .isRead, false)
         return next
 
     case .sessionDelta(let a):
@@ -377,16 +386,16 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
         next.summary.modifiedAt = currentTimestamp()
         return next
 
-    // ── Read / Done ──────────────────────────────────────────────────────
+    // ── Read / Archived ─────────────────────────────────────────────────
 
     case .sessionIsReadChanged(let a):
         var next = state
-        next.summary.isRead = a.isRead
+        next.summary.status = withStatusFlag(next.summary.status, .isRead, a.isRead)
         return next
 
-    case .sessionIsDoneChanged(let a):
+    case .sessionIsArchivedChanged(let a):
         var next = state
-        next.summary.isDone = a.isDone
+        next.summary.status = withStatusFlag(next.summary.status, .isArchived, a.isArchived)
         return next
 
     // ── Diffs ─────────────────────────────────────────────────────────────
@@ -514,7 +523,7 @@ public let clientDispatchableActions: Set<String> = [
     "session/inputCompleted",
     "session/customizationToggled",
     "session/isReadChanged",
-    "session/isDoneChanged",
+    "session/isArchivedChanged",
 ]
 
 /// Checks whether an action may be dispatched by a client.
@@ -527,7 +536,7 @@ public func isClientDispatchable(_ action: StateAction) -> Bool {
          .sessionPendingMessageRemoved, .sessionQueuedMessagesReordered,
          .sessionInputAnswerChanged, .sessionInputCompleted,
          .sessionCustomizationToggled, .sessionIsReadChanged,
-         .sessionIsDoneChanged:
+         .sessionIsArchivedChanged:
         return true
     default:
         return false
@@ -541,16 +550,17 @@ private func currentTimestamp() -> Int {
 }
 
 private func sessionSummaryStatus(_ state: SessionState, terminalStatus: SessionStatus? = nil) -> SessionStatus {
+    let activity: SessionStatus
     if let terminalStatus {
-        return terminalStatus
+        activity = terminalStatus
+    } else if state.inputRequests?.isEmpty == false || hasPendingToolCallConfirmation(state) {
+        activity = .inputNeeded
+    } else if state.activeTurn != nil {
+        activity = .inProgress
+    } else {
+        activity = .idle
     }
-    if state.inputRequests?.isEmpty == false || hasPendingToolCallConfirmation(state) {
-        return .inputNeeded
-    }
-    if state.activeTurn != nil {
-        return .inProgress
-    }
-    return .idle
+    return state.summary.status.subtracting(statusActivityMask).union(activity)
 }
 
 /// Returns `true` if the active turn has any tool call awaiting user confirmation.
@@ -590,9 +600,8 @@ private func upsertInputRequest(state: SessionState, request: SessionInputReques
         existing.append(request)
     }
     next.inputRequests = existing
-    next.summary.status = sessionSummaryStatus(next)
+    next.summary.status = withStatusFlag(sessionSummaryStatus(next), .isRead, false)
     next.summary.modifiedAt = currentTimestamp()
-    next.summary.isRead = false
     return next
 }
 
@@ -725,4 +734,103 @@ private func updateResponsePart(
     var next = state
     next.activeTurn = activeTurn
     return next
+}
+
+// MARK: - Terminal Reducer
+
+/// Pure reducer for terminal state. Handles all terminal-scoped actions.
+public func terminalReducer(state: TerminalState, action: StateAction) -> TerminalState {
+    switch action {
+    case .terminalData(let a):
+        var content = state.content
+        if let tail = content.last {
+            switch tail {
+            case .command(var cmd) where !cmd.isComplete:
+                cmd.output += a.data
+                content[content.count - 1] = .command(cmd)
+            case .unclassified(var u):
+                u.value += a.data
+                content[content.count - 1] = .unclassified(u)
+            default:
+                content.append(.unclassified(TerminalUnclassifiedPart(type: "unclassified", value: a.data)))
+            }
+        } else {
+            content.append(.unclassified(TerminalUnclassifiedPart(type: "unclassified", value: a.data)))
+        }
+        var next = state
+        next.content = content
+        return next
+
+    case .terminalInput:
+        // Side-effect-only: forwarded to pty by the server.
+        return state
+
+    case .terminalResized(let a):
+        var next = state
+        next.cols = a.cols
+        next.rows = a.rows
+        return next
+
+    case .terminalClaimed(let a):
+        var next = state
+        next.claim = a.claim
+        return next
+
+    case .terminalTitleChanged(let a):
+        var next = state
+        next.title = a.title
+        return next
+
+    case .terminalCwdChanged(let a):
+        var next = state
+        next.cwd = a.cwd
+        return next
+
+    case .terminalExited(let a):
+        var next = state
+        next.exitCode = a.exitCode
+        return next
+
+    case .terminalCleared:
+        var next = state
+        next.content = []
+        return next
+
+    case .terminalCommandDetectionAvailable:
+        var next = state
+        next.supportsCommandDetection = true
+        return next
+
+    case .terminalCommandExecuted(let a):
+        let part = TerminalCommandPart(
+            type: "command",
+            commandId: a.commandId,
+            commandLine: a.commandLine,
+            output: "",
+            timestamp: a.timestamp,
+            isComplete: false,
+            exitCode: nil,
+            durationMs: nil
+        )
+        var next = state
+        next.content.append(.command(part))
+        next.supportsCommandDetection = true
+        return next
+
+    case .terminalCommandFinished(let a):
+        var next = state
+        next.content = next.content.map { part in
+            if case .command(var cmd) = part, cmd.commandId == a.commandId {
+                cmd.isComplete = true
+                cmd.exitCode = a.exitCode
+                cmd.durationMs = a.durationMs
+                return .command(cmd)
+            }
+            return part
+        }
+        return next
+
+    default:
+        return state
+    }
 }

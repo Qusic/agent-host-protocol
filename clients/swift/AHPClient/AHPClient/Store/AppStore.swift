@@ -1,4 +1,5 @@
 import AgentHostProtocol
+import DevTunnelsClient
 import Foundation
 import Observation
 import SwiftUI
@@ -21,6 +22,13 @@ final class AppStore {
 
     /// Per-session state keyed by session URI.
     var sessions: [String: SessionState] = [:]
+
+    /// Per-terminal state keyed by terminal URI. Populated lazily when a tool
+    /// result references a terminal resource.
+    var terminals: [String: TerminalState] = [:]
+
+    /// Terminal URIs we have in-flight subscriptions for, to avoid duplicate subscribes.
+    private var subscribingTerminals: Set<String> = []
 
     /// Currently selected session URI.
     var selectedSessionURI: String?
@@ -126,7 +134,24 @@ final class AppStore {
     // MARK: - Server Management
 
     /// Add a new server configuration and persist it.
+    /// For tunnel servers, if a server with the same host already exists, updates it instead.
     func addServer(_ server: ServerConfiguration) {
+        if server.isTunnel,
+           let existingIndex = servers.firstIndex(where: { $0.host == server.host }) {
+            var updated = server
+            updated = ServerConfiguration(
+                id: servers[existingIndex].id,
+                name: server.name,
+                scheme: server.scheme,
+                host: server.host,
+                token: server.token,
+                tunnelId: server.tunnelId,
+                clusterId: server.clusterId
+            )
+            servers[existingIndex] = updated
+            serverStorage.saveServer(updated)
+            return
+        }
         servers.append(server)
         serverStorage.saveServer(server)
     }
@@ -239,10 +264,47 @@ final class AppStore {
 
     /// Connect to the selected AHP server.
     func connect() async {
-        guard let server = selectedServer else {
+        guard var server = selectedServer else {
             errorMessage = "No server selected"
             return
         }
+
+        // For tunnel servers, refresh the connect access token by re-fetching
+        // the tunnel details with "connect" token scope. This gives us a fresh JWT.
+        // The GitHub token (server.token) is kept for management API calls.
+        if server.isTunnel, let tunnelId = server.tunnelId, let clusterId = server.clusterId {
+            if let cachedToken = TunnelTokenStore.load() {
+                // Keep the GitHub token up-to-date
+                if server.token != cachedToken {
+                    server.token = cachedToken
+                    if let index = servers.firstIndex(where: { $0.id == server.id }) {
+                        servers[index].token = cachedToken
+                        serverStorage.saveServer(servers[index])
+                    }
+                }
+                // Fetch a fresh connect access token from the management API
+                do {
+                    let client = TunnelManagementClient(accessToken: cachedToken)
+                    let tunnel = try await client.getTunnel(
+                        clusterId: clusterId,
+                        tunnelId: tunnelId,
+                        options: TunnelRequestOptions(
+                            includePorts: true,
+                            tokenScopes: [TunnelAccessScopes.connect]
+                        )
+                    )
+                    let connectToken = TunnelConnection.connectToken(from: tunnel)
+                    server.connectAccessToken = connectToken
+                    if let index = servers.firstIndex(where: { $0.id == server.id }) {
+                        servers[index].connectAccessToken = connectToken
+                    }
+                } catch {
+                    // If we can't refresh, try with whatever we have
+                    print("[AHP] Warning: failed to refresh connect token: \(error)")
+                }
+            }
+        }
+
         guard let url = URL(string: server.endpointURLString) else {
             errorMessage = "Invalid server URL"
             return
@@ -257,7 +319,14 @@ final class AppStore {
             selectedSessionURI = nil
             rootState = RootState(agents: [])
 
-            let result = try await connection.connect(to: url)
+            // For tunnel servers, send the connect access token so the
+            // devtunnels.ms relay authenticates the WebSocket upgrade.
+            var headers: [String: String] = [:]
+            if server.isTunnel, let connectToken = server.connectAccessToken, !connectToken.isEmpty {
+                headers["X-Tunnel-Authorization"] = "tunnel \(connectToken)"
+            }
+
+            let result = try await connection.connect(to: url, headers: headers)
             defaultDirectory = result.defaultDirectory
 
             // Process initial snapshots
@@ -276,17 +345,46 @@ final class AppStore {
     /// can replay only the actions missed during the outage. Falls back to a full `connect()` if
     /// no prior connection state is available or if the reconnect handshake itself fails.
     func reconnect() async {
-        guard let server = selectedServer,
+        guard var server = selectedServer,
               let url = URL(string: server.endpointURLString) else { return }
 
         isReconnecting = true
         defer { isReconnecting = false }
 
+        // For tunnel servers, fetch a fresh connect access token
+        if server.isTunnel, let tunnelId = server.tunnelId, let clusterId = server.clusterId,
+           let cachedToken = TunnelTokenStore.load() {
+            do {
+                let client = TunnelManagementClient(accessToken: cachedToken)
+                let tunnel = try await client.getTunnel(
+                    clusterId: clusterId,
+                    tunnelId: tunnelId,
+                    options: TunnelRequestOptions(
+                        includePorts: true,
+                        tokenScopes: [TunnelAccessScopes.connect]
+                    )
+                )
+                let connectToken = TunnelConnection.connectToken(from: tunnel)
+                server.connectAccessToken = connectToken
+                if let index = servers.firstIndex(where: { $0.id == server.id }) {
+                    servers[index].connectAccessToken = connectToken
+                }
+            } catch {
+                print("[AHP] Warning: failed to refresh connect token on reconnect: \(error)")
+            }
+        }
+
+        // Build tunnel auth headers if needed
+        var headers: [String: String] = [:]
+        if server.isTunnel, let connectToken = server.connectAccessToken, !connectToken.isEmpty {
+            headers["X-Tunnel-Authorization"] = "tunnel \(connectToken)"
+        }
+
         let canReconnect = await connection.canReconnect
         if canReconnect {
             do {
                 errorMessage = nil
-                let result = try await connection.reconnect(to: url)
+                let result = try await connection.reconnect(to: url, headers: headers)
                 applyReconnectResult(result)
                 // Subscribe to any sessions that appeared while we were offline.
                 await fetchAndSubscribeSessions()
@@ -359,7 +457,7 @@ final class AppStore {
             try await connection.createSession(params: CreateSessionParams(
                 session: uri,
                 provider: provider,
-                model: model,
+                model: model.map { ModelSelection(id: $0) },
                 workingDirectory: workingDirectory
             ))
 
@@ -497,13 +595,55 @@ final class AppStore {
         }
     }
 
+    // MARK: - Input Requests
+
+    /// Update a draft or submitted answer for a question on an input request.
+    func setInputAnswer(requestId: String, questionId: String, answer: SessionInputAnswer?) async {
+        guard let uri = selectedSessionURI else { return }
+        let action = StateAction.sessionInputAnswerChanged(SessionInputAnswerChangedAction(
+            type: .sessionInputAnswerChanged,
+            session: uri,
+            requestId: requestId,
+            questionId: questionId,
+            answer: answer
+        ))
+        applySessionAction(action, sessionURI: uri)
+        do {
+            try await connection.dispatchAction(action)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Complete an input request with the given response.
+    func completeInputRequest(
+        requestId: String,
+        response: SessionInputResponseKind,
+        answers: [String: SessionInputAnswer]? = nil
+    ) async {
+        guard let uri = selectedSessionURI else { return }
+        let action = StateAction.sessionInputCompleted(SessionInputCompletedAction(
+            type: .sessionInputCompleted,
+            session: uri,
+            requestId: requestId,
+            response: response,
+            answers: answers
+        ))
+        applySessionAction(action, sessionURI: uri)
+        do {
+            try await connection.dispatchAction(action)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     /// Change the model for the current session.
     func changeModel(_ modelId: String) async {
         guard let uri = selectedSessionURI else { return }
         let action = StateAction.sessionModelChanged(SessionModelChangedAction(
             type: .sessionModelChanged,
             session: uri,
-            model: modelId
+            model: ModelSelection(id: modelId)
         ))
         applySessionAction(action, sessionURI: uri)
         do {
@@ -521,6 +661,8 @@ final class AppStore {
             rootState = state
         case .session(let state):
             sessions[snapshot.resource] = state
+        case .terminal(let state):
+            terminals[snapshot.resource] = state
         }
     }
 
@@ -535,6 +677,12 @@ final class AppStore {
         let sessionURI = extractSessionURI(from: action)
         if let uri = sessionURI {
             applySessionAction(action, sessionURI: uri)
+        }
+
+        // Figure out which terminal this action targets
+        if let uri = extractTerminalURI(from: action),
+           let state = terminals[uri] {
+            terminals[uri] = terminalReducer(state: state, action: action)
         }
     }
 
@@ -563,8 +711,45 @@ final class AppStore {
             if selectedSessionURI == note.session {
                 selectedSessionURI = sessionSummaries.first?.resource
             }
+        case .sessionSummaryChanged:
+            // Summary updates are applied via reducer actions; nothing to do here.
+            break
         case .authRequired:
             errorMessage = "Authentication required"
+        }
+    }
+
+    /// Extract the terminal URI from an action, if applicable.
+    private func extractTerminalURI(from action: StateAction) -> String? {
+        switch action {
+        case .terminalData(let a): return a.terminal
+        case .terminalInput(let a): return a.terminal
+        case .terminalResized(let a): return a.terminal
+        case .terminalClaimed(let a): return a.terminal
+        case .terminalTitleChanged(let a): return a.terminal
+        case .terminalCwdChanged(let a): return a.terminal
+        case .terminalExited(let a): return a.terminal
+        case .terminalCleared(let a): return a.terminal
+        case .terminalCommandDetectionAvailable(let a): return a.terminal
+        case .terminalCommandExecuted(let a): return a.terminal
+        case .terminalCommandFinished(let a): return a.terminal
+        default:
+            return nil
+        }
+    }
+
+    /// Ensure we are subscribed to a terminal URI (no-op if already subscribed or
+    /// a subscribe is in flight). Safe to call repeatedly from view `.task` handlers.
+    func ensureTerminalSubscribed(uri: String) async {
+        if terminals[uri] != nil { return }
+        if subscribingTerminals.contains(uri) { return }
+        subscribingTerminals.insert(uri)
+        defer { subscribingTerminals.remove(uri) }
+        do {
+            let snapshot = try await connection.subscribe(resource: uri)
+            applySnapshot(snapshot)
+        } catch {
+            print("[AHP] Terminal subscribe failed for \(uri): \(error)")
         }
     }
 
@@ -599,6 +784,18 @@ final class AppStore {
         case .sessionQueuedMessagesReordered(let a): return a.session
         case .sessionCustomizationsChanged(let a): return a.session
         case .sessionCustomizationToggled(let a): return a.session
+        case .sessionIsReadChanged(let a): return a.session
+        case .sessionIsArchivedChanged(let a): return a.session
+        case .sessionActivityChanged(let a): return a.session
+        case .sessionInputRequested(let a): return a.session
+        case .sessionInputAnswerChanged(let a): return a.session
+        case .sessionInputCompleted(let a): return a.session
+        case .sessionTruncated(let a): return a.session
+        case .sessionDiffsChanged(let a): return a.session
+        case .sessionConfigChanged(let a): return a.session
+        case .sessionToolCallContentChanged(let a): return a.session
+        default:
+            return nil
         }
     }
 }

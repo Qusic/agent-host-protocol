@@ -79,6 +79,7 @@ struct SidebarView: View {
     @State private var showingNewSession = false
     @State private var newSessionDirectory: String?
     @State private var editingServer: ServerConfiguration?
+    @State private var showingTunnels = false
     @AppStorage("sessionGroupingMode") private var groupingMode: SessionGroupingMode = .byTime
 
     private var filteredSummaries: [SessionSummary] {
@@ -87,7 +88,7 @@ struct SidebarView: View {
         return summaries.filter {
             $0.title.localizedCaseInsensitiveContains(searchText)
             || $0.provider.localizedCaseInsensitiveContains(searchText)
-            || ($0.model ?? "").localizedCaseInsensitiveContains(searchText)
+            || ($0.model?.id ?? "").localizedCaseInsensitiveContains(searchText)
             || ($0.workingDirectory ?? "").localizedCaseInsensitiveContains(searchText)
         }
     }
@@ -249,45 +250,10 @@ struct SidebarView: View {
                 }
             }
             ToolbarItem(placement: .principal) {
-                connectionPill
+                serverSwitcherMenu
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
-                    // Server list
-                    if store.servers.count > 1 {
-                        Section("Servers") {
-                            ForEach(store.servers) { server in
-                                Button {
-                                    store.selectServer(server.id)
-                                    Task { await store.connect() }
-                                } label: {
-                                    HStack {
-                                        Text(server.name)
-                                        if server.id == store.selectedServerId {
-                                            Image(systemName: "checkmark")
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Section {
-                        Button {
-                            showingAddServer = true
-                        } label: {
-                            Label("Add Server", systemImage: "plus")
-                        }
-
-                        if let server = store.selectedServer {
-                            Button {
-                                editingServer = server
-                            } label: {
-                                Label("Edit Server", systemImage: "pencil")
-                            }
-                        }
-                    }
-
                     if store.selectedServer != nil {
                         Section {
                             Button {
@@ -309,6 +275,12 @@ struct SidebarView: View {
 
                     if let server = store.selectedServer {
                         Section {
+                            Button {
+                                editingServer = server
+                            } label: {
+                                Label("Edit Server", systemImage: "pencil")
+                            }
+
                             Button(role: .destructive) {
                                 store.deleteServer(id: server.id)
                             } label: {
@@ -352,6 +324,23 @@ struct SidebarView: View {
             // Force fresh @State when switching between folder/non-folder creation
             .id(newSessionDirectory)
             .environment(store)
+        }
+        .sheet(isPresented: $showingTunnels) {
+            NavigationStack {
+                TunnelListView(onConnectToTunnel: { server in
+                    showingTunnels = false
+                    store.addServer(server)
+                    // Find by host — addServer may have deduplicated to an existing entry.
+                    let serverId = store.servers.first(where: { $0.host == server.host })?.id ?? server.id
+                    store.selectServer(serverId)
+                    Task { await store.connect() }
+                })
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") { showingTunnels = false }
+                        }
+                    }
+            }
         }
     }
 
@@ -436,19 +425,56 @@ struct SidebarView: View {
         }
     }
 
-    // MARK: - Connection Pill
+    // MARK: - Server Switcher Menu
 
-    private var connectionPill: some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(connectionDotColor)
-                .frame(width: 9, height: 9)
-            Text(connectionLabel)
-                .font(.headline.weight(.semibold))
-                .lineLimit(1)
+    private var serverSwitcherMenu: some View {
+        Menu {
+            if !store.servers.isEmpty {
+                Section("Servers") {
+                    ForEach(store.servers) { server in
+                        Button {
+                            store.selectServer(server.id)
+                            Task { await store.connect() }
+                        } label: {
+                            HStack {
+                                Text(server.name)
+                                if server.id == store.selectedServerId {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Section {
+                Button {
+                    showingAddServer = true
+                } label: {
+                    Label("Add Server", systemImage: "plus")
+                }
+
+                Button {
+                    showingTunnels = true
+                } label: {
+                    Label("Dev Tunnels", systemImage: "network")
+                }
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(connectionDotColor)
+                    .frame(width: 9, height: 9)
+                Text(connectionLabel)
+                    .font(.headline.weight(.semibold))
+                    .lineLimit(1)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
     }
 
     private var connectionDotColor: Color {
@@ -610,7 +636,7 @@ struct SessionRow: View {
                         Text("·")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
-                        Text(model)
+                        Text(model.id)
                             .font(.caption)
                     }
                 }
