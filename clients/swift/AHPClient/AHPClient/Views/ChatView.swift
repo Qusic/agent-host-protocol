@@ -8,6 +8,8 @@ struct ChatView: View {
     @FocusState private var inputFocused: Bool
     /// Tracks whether the scroll position is at (or near) the bottom.
     @State private var isAtBottom = true
+    /// URI of an interactive terminal to navigate to.
+    @State private var activeTerminalURI: String?
 
     // MARK: - Scroll helpers
 
@@ -138,8 +140,25 @@ struct ChatView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                ReconnectButton()
+                HStack(spacing: 12) {
+                    Button {
+                        Task {
+                            if let uri = await store.createTerminal() {
+                                activeTerminalURI = uri
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "terminal")
+                            .accessibilityLabel("New terminal")
+                    }
+                    .disabled(store.connectionState != .connected)
+
+                    ReconnectButton()
+                }
             }
+        }
+        .navigationDestination(item: $activeTerminalURI) { uri in
+            InteractiveTerminalView(terminalURI: uri)
         }
     }
 }

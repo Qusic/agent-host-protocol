@@ -566,8 +566,9 @@ struct ToolResultContentView: View {
 
 // MARK: - TerminalToolResultView
 
-/// Renders the live state of a terminal referenced by a tool result. Subscribes
-/// to the terminal URI on appearance and streams its content parts inline.
+/// Renders the live state of a terminal referenced by a tool result using
+/// SwiftTerm for proper VT100 rendering. Subscribes to the terminal URI
+/// on appearance and streams its content into the native terminal emulator.
 struct TerminalToolResultView: View {
     let ref: ToolResultTerminalContent
     @Environment(AppStore.self) private var store
@@ -583,16 +584,17 @@ struct TerminalToolResultView: View {
                 .foregroundStyle(.secondary)
 
             if let state {
-                if state.content.isEmpty {
-                    Text(state.exitCode != nil ? "(no output)" : "(waiting for output…)")
+                if state.content.isEmpty && state.exitCode == nil {
+                    Text("(waiting for output…)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if state.content.isEmpty {
+                    Text("(no output)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    VStack(alignment: .leading, spacing: 4) {
-                        ForEach(Array(state.content.enumerated()), id: \.offset) { _, part in
-                            TerminalContentPartView(part: part)
-                        }
-                    }
+                    AHPTerminalSwiftUIView(terminalURI: ref.resource)
+                        .frame(height: terminalHeight(for: state))
                 }
                 if let code = state.exitCode {
                     Text("Exited with code \(code)")
@@ -611,36 +613,14 @@ struct TerminalToolResultView: View {
             await store.ensureTerminalSubscribed(uri: ref.resource)
         }
     }
-}
 
-private struct TerminalContentPartView: View {
-    let part: TerminalContentPart
-
-    var body: some View {
-        switch part {
-        case .unclassified(let u):
-            Text(u.value)
-                .font(.system(.caption, design: .monospaced))
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        case .command(let c):
-            VStack(alignment: .leading, spacing: 2) {
-                Text("$ \(c.commandLine)")
-                    .font(.system(.caption, design: .monospaced).weight(.semibold))
-                    .textSelection(.enabled)
-                if !c.output.isEmpty {
-                    Text(c.output)
-                        .font(.system(.caption, design: .monospaced))
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                if c.isComplete, let code = c.exitCode, code != 0 {
-                    Text("exit \(code)")
-                        .font(.caption2)
-                        .foregroundStyle(.red)
-                }
-            }
-        }
+    /// Compute a reasonable height for the terminal view based on content.
+    private func terminalHeight(for state: TerminalState) -> CGFloat {
+        let rows = state.rows ?? 24
+        // 13pt monospaced font → ~17pt cell height (ascent + descent + leading).
+        let cellHeight: CGFloat = 17
+        let height = CGFloat(min(rows, 40)) * cellHeight
+        return max(200, min(height, 680))
     }
 }
 

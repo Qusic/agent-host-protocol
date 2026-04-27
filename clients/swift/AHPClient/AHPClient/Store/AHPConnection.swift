@@ -39,7 +39,7 @@ actor AHPConnection {
 
     // MARK: - Properties
 
-    private let clientId: String
+    private(set) var clientId: String
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
@@ -221,6 +221,19 @@ actor AHPConnection {
         let _: AnyCodable? = try await sendRequest(
             method: "disposeSession",
             params: DisposeSessionParams(session: session)
+        )
+    }
+
+    /// Create a new terminal on the server.
+    func createTerminal(params: CreateTerminalParams) async throws {
+        let _: AnyCodable? = try await sendRequest(method: "createTerminal", params: params)
+    }
+
+    /// Dispose a terminal and kill its process.
+    func disposeTerminal(terminal: String) async throws {
+        let _: AnyCodable? = try await sendRequest(
+            method: "disposeTerminal",
+            params: DisposeTerminalParams(terminal: terminal)
         )
     }
 

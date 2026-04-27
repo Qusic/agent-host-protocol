@@ -766,6 +766,72 @@ final class AppStore {
         }
     }
 
+    /// Create a new interactive terminal, subscribe to it, and return its URI.
+    @discardableResult
+    func createTerminal(name: String = "Terminal", cols: Int = 80, rows: Int = 24) async -> String? {
+        let terminalId = UUID().uuidString
+        let uri = "terminal:/\(terminalId)"
+        do {
+            try await connection.createTerminal(params: CreateTerminalParams(
+                terminal: uri,
+                claim: .client(TerminalClientClaim(kind: .client, clientId: connection.clientId)),
+                name: name,
+                cols: cols,
+                rows: rows
+            ))
+            await ensureTerminalSubscribed(uri: uri)
+            return uri
+        } catch {
+            errorMessage = "Failed to create terminal: \(error.localizedDescription)"
+            return nil
+        }
+    }
+
+    /// Dispose a terminal and remove local state.
+    func disposeTerminal(uri: String) async {
+        do {
+            try await connection.disposeTerminal(terminal: uri)
+        } catch {
+            print("[AHP] Terminal dispose failed: \(error)")
+        }
+        terminals.removeValue(forKey: uri)
+    }
+
+    // MARK: - Terminal Actions
+
+    /// Dispatch user input to a terminal (side-effect-only — reducer is a no-op).
+    func dispatchTerminalInput(terminal: String, data: String) async {
+        let action = StateAction.terminalInput(TerminalInputAction(
+            type: .terminalInput,
+            terminal: terminal,
+            data: data
+        ))
+        do {
+            try await connection.dispatchAction(action)
+        } catch {
+            print("[AHP] Terminal input dispatch failed: \(error)")
+        }
+    }
+
+    /// Dispatch a terminal resize event.
+    func dispatchTerminalResize(terminal: String, cols: Int, rows: Int) async {
+        let action = StateAction.terminalResized(TerminalResizedAction(
+            type: .terminalResized,
+            terminal: terminal,
+            cols: cols,
+            rows: rows
+        ))
+        // Apply locally
+        if let state = terminals[terminal] {
+            terminals[terminal] = terminalReducer(state: state, action: action)
+        }
+        do {
+            try await connection.dispatchAction(action)
+        } catch {
+            print("[AHP] Terminal resize dispatch failed: \(error)")
+        }
+    }
+
     /// Extract the session URI from an action, if applicable.
     private func extractSessionURI(from action: StateAction) -> String? {
         switch action {
