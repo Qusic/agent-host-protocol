@@ -3,7 +3,6 @@
 // Regenerate with: npm run generate:rust
 
 #![allow(missing_docs)]
-#![rustfmt::skip]
 
 /// Current protocol version.
 pub const PROTOCOL_VERSION: u32 = 1;

@@ -3,14 +3,13 @@
 // Regenerate with: npm run generate:rust
 
 #![allow(missing_docs)]
-#![rustfmt::skip]
 
+#[allow(unused_imports)]
+use crate::common::{AnyValue, JsonObject, StringOrMarkdown, Uri};
 #[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use serde_repr::{Deserialize_repr, Serialize_repr};
-#[allow(unused_imports)]
-use crate::common::{AnyValue, JsonObject, StringOrMarkdown, Uri};
 
 use crate::actions::ActionEnvelope;
 use crate::notifications::ProtocolNotification;
