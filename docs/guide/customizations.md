@@ -104,6 +104,19 @@ sequenceDiagram
 
 When the active client disconnects or is replaced, its customizations are no longer available. The server SHOULD update `SessionState.customizations` accordingly.
 
+## Session-Scoped Host Configuration
+
+The protocol intentionally treats plugin resolution as implementation-defined. For remote/browser clients, a useful pattern is to let the host resolve plugins from session configuration or workspace/server files, then publish the effective set through `SessionState.customizations`.
+
+For example, a host might:
+
+1. read a workspace file such as `.vscode/agent-host.json`
+2. expose the effective plugin list through `resolveSessionConfig`
+3. load those plugins when creating or resuming the session
+4. publish them as `SessionCustomization` entries (without `clientId`)
+
+This keeps plugin configuration usable from thin clients without extending AHP with plugin-install semantics.
+
 ## Toggling Customizations
 
 Any client can enable or disable a customization by dispatching `session/customizationToggled`:
