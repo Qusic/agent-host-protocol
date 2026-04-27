@@ -20,6 +20,14 @@ private func withStatusFlag(_ status: SessionStatus, _ flag: SessionStatus, _ se
     set ? status.union(flag) : status.subtracting(flag)
 }
 
+/// Resolves a selected confirmation option by ID from a pending-confirmation state.
+private func resolveSelectedOption(_ options: [ConfirmationOption]?, id: String?) -> ConfirmationOption? {
+    guard let id, let options else {
+        return nil
+    }
+    return options.first { $0.id == id }
+}
+
 // MARK: - Root Reducer
 
 /// Pure reducer for root state.
@@ -38,6 +46,15 @@ public func rootReducer(state: RootState, action: StateAction) -> RootState {
     case .rootTerminalsChanged(let a):
         var next = state
         next.terminals = a.terminals
+        return next
+
+    case .rootConfigChanged(let a):
+        guard var config = state.config else {
+            return state
+        }
+        config.values = a.replace == true ? a.config : config.values.merging(a.config) { _, new in new }
+        var next = state
+        next.config = config
         return next
 
     default:
@@ -176,7 +193,10 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
                 invocationMessage: a.invocationMessage,
                 toolInput: a.toolInput,
                 status: .pendingConfirmation,
-                confirmationTitle: a.confirmationTitle
+                confirmationTitle: a.confirmationTitle,
+                edits: a.edits,
+                editable: a.editable,
+                options: a.options
             ))
         })
 
@@ -184,6 +204,7 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
         return refreshSummaryStatus(updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
             guard case .pendingConfirmation(let pending) = tc else { return tc }
             let base = tc.baseFields
+            let selectedOption = resolveSelectedOption(pending.options, id: a.selectedOptionId)
             if a.approved {
                 return .running(ToolCallRunningState(
                     toolCallId: base.toolCallId,
@@ -192,9 +213,10 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
                     toolClientId: base.toolClientId,
                     meta: base.meta,
                     invocationMessage: pending.invocationMessage,
-                    toolInput: pending.toolInput,
+                    toolInput: a.editedToolInput ?? pending.toolInput,
                     status: .running,
-                    confirmed: a.confirmed ?? .notNeeded
+                    confirmed: a.confirmed ?? .notNeeded,
+                    selectedOption: selectedOption
                 ))
             }
             return .cancelled(ToolCallCancelledState(
@@ -208,7 +230,8 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
                 status: .cancelled,
                 reason: a.reason ?? .denied,
                 reasonMessage: a.reasonMessage,
-                userSuggestion: a.userSuggestion
+                userSuggestion: a.userSuggestion,
+                selectedOption: selectedOption
             ))
         })
 
@@ -218,15 +241,18 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
             let confirmed: ToolCallConfirmationReason
             let invocationMessage: StringOrMarkdown
             let toolInput: String?
+            let selectedOption: ConfirmationOption?
             switch tc {
             case .running(let r):
                 confirmed = r.confirmed
                 invocationMessage = r.invocationMessage
                 toolInput = r.toolInput
+                selectedOption = r.selectedOption
             case .pendingConfirmation(let p):
                 confirmed = .notNeeded
                 invocationMessage = p.invocationMessage
                 toolInput = p.toolInput
+                selectedOption = nil
             default:
                 return tc
             }
@@ -246,7 +272,8 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
                     structuredContent: a.result.structuredContent,
                     error: a.result.error,
                     status: .pendingResultConfirmation,
-                    confirmed: confirmed
+                    confirmed: confirmed,
+                    selectedOption: selectedOption
                 ))
             }
             return .completed(ToolCallCompletedState(
@@ -263,7 +290,8 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
                 structuredContent: a.result.structuredContent,
                 error: a.result.error,
                 status: .completed,
-                confirmed: confirmed
+                confirmed: confirmed,
+                selectedOption: selectedOption
             ))
         })
 
@@ -286,7 +314,8 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
                     structuredContent: prc.structuredContent,
                     error: prc.error,
                     status: .completed,
-                    confirmed: prc.confirmed
+                    confirmed: prc.confirmed,
+                    selectedOption: prc.selectedOption
                 ))
             }
             return .cancelled(ToolCallCancelledState(
@@ -298,7 +327,8 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
                 invocationMessage: prc.invocationMessage,
                 toolInput: prc.toolInput,
                 status: .cancelled,
-                reason: .resultDenied
+                reason: .resultDenied,
+                selectedOption: prc.selectedOption
             ))
         })
 
@@ -330,6 +360,24 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
         var next = state
         next.summary.model = a.model
         next.summary.modifiedAt = currentTimestamp()
+        return next
+
+    case .sessionActivityChanged(let a):
+        var next = state
+        next.summary.activity = a.activity
+        return next
+
+    case .sessionConfigChanged(let a):
+        guard var config = state.config else { return state }
+        config.values = a.replace == true ? a.config : config.values.merging(a.config) { _, new in new }
+        var next = state
+        next.config = config
+        next.summary.modifiedAt = currentTimestamp()
+        return next
+
+    case .sessionMetaChanged(let a):
+        var next = state
+        next.meta = a.meta
         return next
 
     case .sessionServerToolsChanged(let a):

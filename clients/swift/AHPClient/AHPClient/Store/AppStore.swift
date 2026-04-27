@@ -541,14 +541,21 @@ final class AppStore {
     }
 
     /// Approve a tool call.
-    func approveToolCall(toolCallId: String, turnId: String) async {
+    func approveToolCall(
+        toolCallId: String,
+        turnId: String,
+        editedToolInput: String? = nil,
+        selectedOptionId: String? = nil
+    ) async {
         guard let uri = selectedSessionURI else { return }
         let action = StateAction.sessionToolCallConfirmed(SessionToolCallConfirmedAction(
             session: uri,
             turnId: turnId,
             toolCallId: toolCallId,
             approved: true,
-            confirmed: .userAction
+            confirmed: .userAction,
+            editedToolInput: editedToolInput,
+            selectedOptionId: selectedOptionId
         ))
         applySessionAction(action, sessionURI: uri)
         do {
@@ -559,7 +566,12 @@ final class AppStore {
     }
 
     /// Deny a tool call.
-    func denyToolCall(toolCallId: String, turnId: String, reason: String? = nil) async {
+    func denyToolCall(
+        toolCallId: String,
+        turnId: String,
+        reason: String? = nil,
+        selectedOptionId: String? = nil
+    ) async {
         guard let uri = selectedSessionURI else { return }
         let action = StateAction.sessionToolCallConfirmed(SessionToolCallConfirmedAction(
             session: uri,
@@ -567,7 +579,8 @@ final class AppStore {
             toolCallId: toolCallId,
             approved: false,
             reason: .denied,
-            reasonMessage: reason.map { .string($0) }
+            reasonMessage: reason.map { .string($0) },
+            selectedOptionId: selectedOptionId
         ))
         applySessionAction(action, sessionURI: uri)
         do {

@@ -98,6 +98,11 @@ public struct AHPRootReducer: Reducer {
         case .rootTerminalsChanged(let a):
             state.terminals = a.terminals
 
+        case .rootConfigChanged(let a):
+            guard var config = state.config else { return }
+            config.values = a.replace == true ? a.config : config.values.merging(a.config) { _, new in new }
+            state.config = config
+
         default:
             break
         }
@@ -232,7 +237,10 @@ public struct AHPSessionReducer: Reducer {
                         invocationMessage: a.invocationMessage,
                         toolInput: a.toolInput,
                         status: .pendingConfirmation,
-                        confirmationTitle: a.confirmationTitle
+                        confirmationTitle: a.confirmationTitle,
+                        edits: a.edits,
+                        editable: a.editable,
+                        options: a.options
                     ))
                 }
             }
@@ -242,6 +250,7 @@ public struct AHPSessionReducer: Reducer {
             Self.updateToolCallInPlace(state: &state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
                 guard case .pendingConfirmation(let pending) = tc else { return }
                 let base = tc.baseFields
+                let selectedOption = Self.resolveSelectedOption(pending.options, id: a.selectedOptionId)
                 if a.approved {
                     tc = .running(ToolCallRunningState(
                         toolCallId: base.toolCallId,
@@ -250,9 +259,10 @@ public struct AHPSessionReducer: Reducer {
                         toolClientId: base.toolClientId,
                         meta: base.meta,
                         invocationMessage: pending.invocationMessage,
-                        toolInput: pending.toolInput,
+                        toolInput: a.editedToolInput ?? pending.toolInput,
                         status: .running,
-                        confirmed: a.confirmed ?? .notNeeded
+                        confirmed: a.confirmed ?? .notNeeded,
+                        selectedOption: selectedOption
                     ))
                 } else {
                     tc = .cancelled(ToolCallCancelledState(
@@ -266,7 +276,8 @@ public struct AHPSessionReducer: Reducer {
                         status: .cancelled,
                         reason: a.reason ?? .denied,
                         reasonMessage: a.reasonMessage,
-                        userSuggestion: a.userSuggestion
+                        userSuggestion: a.userSuggestion,
+                        selectedOption: selectedOption
                     ))
                 }
             }
@@ -278,15 +289,18 @@ public struct AHPSessionReducer: Reducer {
                 let confirmed: ToolCallConfirmationReason
                 let invocationMessage: StringOrMarkdown
                 let toolInput: String?
+                let selectedOption: ConfirmationOption?
                 switch tc {
                 case .running(let r):
                     confirmed = r.confirmed
                     invocationMessage = r.invocationMessage
                     toolInput = r.toolInput
+                    selectedOption = r.selectedOption
                 case .pendingConfirmation(let p):
                     confirmed = .notNeeded
                     invocationMessage = p.invocationMessage
                     toolInput = p.toolInput
+                    selectedOption = nil
                 default:
                     return
                 }
@@ -306,7 +320,8 @@ public struct AHPSessionReducer: Reducer {
                         structuredContent: a.result.structuredContent,
                         error: a.result.error,
                         status: .pendingResultConfirmation,
-                        confirmed: confirmed
+                        confirmed: confirmed,
+                        selectedOption: selectedOption
                     ))
                 } else {
                     tc = .completed(ToolCallCompletedState(
@@ -323,7 +338,8 @@ public struct AHPSessionReducer: Reducer {
                         structuredContent: a.result.structuredContent,
                         error: a.result.error,
                         status: .completed,
-                        confirmed: confirmed
+                        confirmed: confirmed,
+                        selectedOption: selectedOption
                     ))
                 }
             }
@@ -348,7 +364,8 @@ public struct AHPSessionReducer: Reducer {
                         structuredContent: prc.structuredContent,
                         error: prc.error,
                         status: .completed,
-                        confirmed: prc.confirmed
+                        confirmed: prc.confirmed,
+                        selectedOption: prc.selectedOption
                     ))
                 } else {
                     tc = .cancelled(ToolCallCancelledState(
@@ -360,7 +377,8 @@ public struct AHPSessionReducer: Reducer {
                         invocationMessage: prc.invocationMessage,
                         toolInput: prc.toolInput,
                         status: .cancelled,
-                        reason: .resultDenied
+                        reason: .resultDenied,
+                        selectedOption: prc.selectedOption
                     ))
                 }
             }
@@ -386,6 +404,18 @@ public struct AHPSessionReducer: Reducer {
         case .sessionModelChanged(let a):
             state.summary.model = a.model
             state.summary.modifiedAt = currentTimestamp()
+
+        case .sessionActivityChanged(let a):
+            state.summary.activity = a.activity
+
+        case .sessionConfigChanged(let a):
+            guard var config = state.config else { return }
+            config.values = a.replace == true ? a.config : config.values.merging(a.config) { _, new in new }
+            state.config = config
+            state.summary.modifiedAt = currentTimestamp()
+
+        case .sessionMetaChanged(let a):
+            state.meta = a.meta
 
         case .sessionServerToolsChanged(let a):
             state.serverTools = a.tools
@@ -636,6 +666,13 @@ public struct AHPSessionReducer: Reducer {
             }
         }
         return false
+    }
+
+    private static func resolveSelectedOption(_ options: [ConfirmationOption]?, id: String?) -> ConfirmationOption? {
+        guard let id, let options else {
+            return nil
+        }
+        return options.first { $0.id == id }
     }
 
     /// Recomputes `summary.status` from the current state in place.
