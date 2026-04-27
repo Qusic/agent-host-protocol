@@ -540,6 +540,32 @@ final class AppStore {
         }
     }
 
+    /// Update a mutable session config value for the current session.
+    func setSessionConfigValue(property: String, value: AnyCodable) async {
+        guard let uri = selectedSessionURI,
+              let config = sessions[uri]?.config,
+              let schema = config.schema.properties[property],
+              schema.sessionMutable == true,
+              schema.readOnly != true else { return }
+
+        if config.values[property] == value {
+            return
+        }
+
+        let action = StateAction.sessionConfigChanged(SessionConfigChangedAction(
+            type: .sessionConfigChanged,
+            session: uri,
+            config: [property: value]
+        ))
+
+        applySessionAction(action, sessionURI: uri)
+        do {
+            try await connection.dispatchAction(action)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     /// Approve a tool call.
     func approveToolCall(
         toolCallId: String,

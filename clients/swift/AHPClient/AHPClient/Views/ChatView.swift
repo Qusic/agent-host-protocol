@@ -15,6 +15,10 @@ struct ChatView: View {
 
     /// The stable ID of the bottom-sentinel view used as the scroll target.
     private let bottomID = "chat-bottom-sentinel"
+    private var sessionPermissionPickerModel: SessionPermissionPickerModel? {
+        guard let session = store.currentSession else { return nil }
+        return SessionPermissionPickerModel(session: session)
+    }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool) {
         if animated {
@@ -127,6 +131,10 @@ struct ChatView: View {
                         .padding(.horizontal, 14)
                     }
 
+                    if let model = sessionPermissionPickerModel {
+                        SessionPermissionPickerView(model: model)
+                    }
+
                     InputBar(text: $inputText, isFocused: $inputFocused) {
                         guard !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
                         let message = inputText
@@ -231,6 +239,119 @@ struct InputBar: View {
         .glassInputBackground(cornerRadius: containerRadius)
         .padding(.horizontal, 12)
         .padding(.bottom, 6)
+    }
+}
+
+// MARK: - Session Permission Picker
+
+private let autoApproveConfigKey = "autoApprove"
+private let wellKnownAutoApproveValues: Set<String> = ["default", "autoApprove", "autopilot"]
+
+private struct SessionPermissionOption: Identifiable {
+    let value: String
+    let label: String
+
+    var id: String { value }
+}
+
+private struct SessionPermissionPickerModel {
+    let title: String
+    let options: [SessionPermissionOption]
+    let selectedValue: String
+
+    var selectedLabel: String {
+        options.first(where: { $0.value == selectedValue })?.label ?? selectedValue
+    }
+
+    init?(session: SessionState) {
+        guard let config = session.config,
+              let property = config.schema.properties[autoApproveConfigKey],
+              property.type == "string",
+              property.sessionMutable == true,
+              property.readOnly != true,
+              let values = property.enum,
+              values.contains("default"),
+              values.allSatisfy({ wellKnownAutoApproveValues.contains($0) }) else {
+            return nil
+        }
+
+        let options = values.enumerated().map { index, value in
+            let label: String
+            if let labels = property.enumLabels, labels.indices.contains(index) {
+                label = labels[index]
+            } else {
+                label = value
+            }
+
+            return SessionPermissionOption(
+                value: value,
+                label: label
+            )
+        }
+
+        guard !options.isEmpty else { return nil }
+
+        let currentValue = config.values[autoApproveConfigKey]?.value as? String
+        let selectedValue = currentValue.flatMap { value in
+            options.contains(where: { $0.value == value }) ? value : nil
+        } ?? "default"
+
+        self.title = property.title
+        self.options = options
+        self.selectedValue = selectedValue
+    }
+}
+
+private struct SessionPermissionPickerView: View {
+    let model: SessionPermissionPickerModel
+
+    @Environment(AppStore.self) private var store
+
+    var body: some View {
+        HStack {
+            Menu {
+                ForEach(model.options) { option in
+                    Button {
+                        guard option.value != model.selectedValue else { return }
+                        Task {
+                            await store.setSessionConfigValue(
+                                property: autoApproveConfigKey,
+                                value: AnyCodable(option.value)
+                            )
+                        }
+                    } label: {
+                        if option.value == model.selectedValue {
+                            Label(option.label, systemImage: "checkmark")
+                        } else {
+                            Text(option.label)
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "lock.shield")
+                        .font(.caption.weight(.semibold))
+
+                    Text(model.selectedLabel)
+                        .font(.caption.weight(.medium))
+                        .lineLimit(1)
+
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .glassInputBackground(cornerRadius: 16)
+            }
+            .accessibilityLabel(model.title)
+            .accessibilityValue(model.selectedLabel)
+            .tint(.primary)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
     }
 }
 
