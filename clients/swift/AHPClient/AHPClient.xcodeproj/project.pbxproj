@@ -10,6 +10,7 @@
 		6F2049CE2F774586001049F9 /* AgentHostProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = 6F2049CD2F774586001049F9 /* AgentHostProtocol */; };
 		6F2049D12F7746D3001049F9 /* AgentHostProtocol in Frameworks */ = {isa = PBXBuildFile; productRef = 6F2049D02F7746D3001049F9 /* AgentHostProtocol */; };
 		AA000001304700000001 /* DevTunnelsClient in Frameworks */ = {isa = PBXBuildFile; productRef = AA000001304700000002 /* DevTunnelsClient */; };
+		AA000002304700000001 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = AA000002304700000002 /* SwiftTerm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,6 +62,7 @@
 				6F2049D12F7746D3001049F9 /* AgentHostProtocol in Frameworks */,
 				6F2049CE2F774586001049F9 /* AgentHostProtocol in Frameworks */,
 				AA000001304700000001 /* DevTunnelsClient in Frameworks */,
+				AA000002304700000001 /* SwiftTerm in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -124,6 +126,7 @@
 				6F2049CD2F774586001049F9 /* AgentHostProtocol */,
 				6F2049D02F7746D3001049F9 /* AgentHostProtocol */,
 				AA000001304700000002 /* DevTunnelsClient */,
+				AA000002304700000002 /* SwiftTerm */,
 			);
 			productName = AHPClient;
 			productReference = 6F2049892F7744ED001049F9 /* AHPClient.app */;
@@ -210,6 +213,7 @@
 			packageReferences = (
 				6F2049CF2F7746D3001049F9 /* XCLocalSwiftPackageReference "../AgentHostProtocol" */,
 				AA000001304700000003 /* XCRemoteSwiftPackageReference "dev-tunnels-swift" */,
+				AA000002304700000003 /* XCRemoteSwiftPackageReference "SwiftTerm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6F20498A2F7744ED001049F9 /* Products */;
@@ -617,6 +621,14 @@
 				minimumVersion = 0.1.0;
 			};
 		};
+		AA000002304700000003 /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/migueldeicaza/SwiftTerm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.13.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -632,6 +644,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA000001304700000003 /* XCRemoteSwiftPackageReference "dev-tunnels-swift" */;
 			productName = DevTunnelsClient;
+		};
+		AA000002304700000002 /* SwiftTerm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA000002304700000003 /* XCRemoteSwiftPackageReference "SwiftTerm" */;
+			productName = SwiftTerm;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

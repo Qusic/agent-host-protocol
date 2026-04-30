@@ -540,15 +540,48 @@ final class AppStore {
         }
     }
 
+    /// Update a mutable session config value for the current session.
+    func setSessionConfigValue(property: String, value: AnyCodable) async {
+        guard let uri = selectedSessionURI,
+              let config = sessions[uri]?.config,
+              let schema = config.schema.properties[property],
+              schema.sessionMutable == true,
+              schema.readOnly != true else { return }
+
+        if config.values[property] == value {
+            return
+        }
+
+        let action = StateAction.sessionConfigChanged(SessionConfigChangedAction(
+            type: .sessionConfigChanged,
+            session: uri,
+            config: [property: value]
+        ))
+
+        applySessionAction(action, sessionURI: uri)
+        do {
+            try await connection.dispatchAction(action)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     /// Approve a tool call.
-    func approveToolCall(toolCallId: String, turnId: String) async {
+    func approveToolCall(
+        toolCallId: String,
+        turnId: String,
+        editedToolInput: String? = nil,
+        selectedOptionId: String? = nil
+    ) async {
         guard let uri = selectedSessionURI else { return }
         let action = StateAction.sessionToolCallConfirmed(SessionToolCallConfirmedAction(
             session: uri,
             turnId: turnId,
             toolCallId: toolCallId,
             approved: true,
-            confirmed: .userAction
+            confirmed: .userAction,
+            editedToolInput: editedToolInput,
+            selectedOptionId: selectedOptionId
         ))
         applySessionAction(action, sessionURI: uri)
         do {
@@ -559,7 +592,12 @@ final class AppStore {
     }
 
     /// Deny a tool call.
-    func denyToolCall(toolCallId: String, turnId: String, reason: String? = nil) async {
+    func denyToolCall(
+        toolCallId: String,
+        turnId: String,
+        reason: String? = nil,
+        selectedOptionId: String? = nil
+    ) async {
         guard let uri = selectedSessionURI else { return }
         let action = StateAction.sessionToolCallConfirmed(SessionToolCallConfirmedAction(
             session: uri,
@@ -567,7 +605,8 @@ final class AppStore {
             toolCallId: toolCallId,
             approved: false,
             reason: .denied,
-            reasonMessage: reason.map { .string($0) }
+            reasonMessage: reason.map { .string($0) },
+            selectedOptionId: selectedOptionId
         ))
         applySessionAction(action, sessionURI: uri)
         do {
@@ -750,6 +789,72 @@ final class AppStore {
             applySnapshot(snapshot)
         } catch {
             print("[AHP] Terminal subscribe failed for \(uri): \(error)")
+        }
+    }
+
+    /// Create a new interactive terminal, subscribe to it, and return its URI.
+    @discardableResult
+    func createTerminal(name: String = "Terminal", cols: Int = 80, rows: Int = 24) async -> String? {
+        let terminalId = UUID().uuidString
+        let uri = "terminal:/\(terminalId)"
+        do {
+            try await connection.createTerminal(params: CreateTerminalParams(
+                terminal: uri,
+                claim: .client(TerminalClientClaim(kind: .client, clientId: connection.clientId)),
+                name: name,
+                cols: cols,
+                rows: rows
+            ))
+            await ensureTerminalSubscribed(uri: uri)
+            return uri
+        } catch {
+            errorMessage = "Failed to create terminal: \(error.localizedDescription)"
+            return nil
+        }
+    }
+
+    /// Dispose a terminal and remove local state.
+    func disposeTerminal(uri: String) async {
+        do {
+            try await connection.disposeTerminal(terminal: uri)
+        } catch {
+            print("[AHP] Terminal dispose failed: \(error)")
+        }
+        terminals.removeValue(forKey: uri)
+    }
+
+    // MARK: - Terminal Actions
+
+    /// Dispatch user input to a terminal (side-effect-only — reducer is a no-op).
+    func dispatchTerminalInput(terminal: String, data: String) async {
+        let action = StateAction.terminalInput(TerminalInputAction(
+            type: .terminalInput,
+            terminal: terminal,
+            data: data
+        ))
+        do {
+            try await connection.dispatchAction(action)
+        } catch {
+            print("[AHP] Terminal input dispatch failed: \(error)")
+        }
+    }
+
+    /// Dispatch a terminal resize event.
+    func dispatchTerminalResize(terminal: String, cols: Int, rows: Int) async {
+        let action = StateAction.terminalResized(TerminalResizedAction(
+            type: .terminalResized,
+            terminal: terminal,
+            cols: cols,
+            rows: rows
+        ))
+        // Apply locally
+        if let state = terminals[terminal] {
+            terminals[terminal] = terminalReducer(state: state, action: action)
+        }
+        do {
+            try await connection.dispatchAction(action)
+        } catch {
+            print("[AHP] Terminal resize dispatch failed: \(error)")
         }
     }
 

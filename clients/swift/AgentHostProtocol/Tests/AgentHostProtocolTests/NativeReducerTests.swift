@@ -98,9 +98,9 @@ final class NativeReducerTests: XCTestCase {
         XCTAssertEqual(state.summary.title, "Custom Title")
 
         combined.reduce(into: &state, action: .sessionModelChanged(SessionModelChangedAction(
-            type: .sessionModelChanged, session: S, model: "gpt-4"
+            type: .sessionModelChanged, session: S, model: ModelSelection(id: "gpt-4")
         )))
-        XCTAssertEqual(state.summary.model, "gpt-4")
+        XCTAssertEqual(state.summary.model?.id, "gpt-4")
     }
 
     func testApplyingConvenience() {

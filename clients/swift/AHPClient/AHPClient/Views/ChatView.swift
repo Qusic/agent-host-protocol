@@ -8,11 +8,21 @@ struct ChatView: View {
     @FocusState private var inputFocused: Bool
     /// Tracks whether the scroll position is at (or near) the bottom.
     @State private var isAtBottom = true
+    /// URI of an interactive terminal to navigate to.
+    @State private var activeTerminalURI: String?
 
     // MARK: - Scroll helpers
 
     /// The stable ID of the bottom-sentinel view used as the scroll target.
     private let bottomID = "chat-bottom-sentinel"
+    private var sessionPermissionPickerModel: SessionPermissionPickerModel? {
+        guard let session = store.currentSession else { return nil }
+        return SessionPermissionPickerModel(session: session)
+    }
+    private var sessionModelPickerModel: SessionModelPickerModel? {
+        guard let session = store.currentSession else { return nil }
+        return SessionModelPickerModel(session: session, agents: store.agents)
+    }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool) {
         if animated {
@@ -125,6 +135,11 @@ struct ChatView: View {
                         .padding(.horizontal, 14)
                     }
 
+                    SessionAccessoryBar(
+                        permissionModel: sessionPermissionPickerModel,
+                        modelPickerModel: sessionModelPickerModel
+                    )
+
                     InputBar(text: $inputText, isFocused: $inputFocused) {
                         guard !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
                         let message = inputText
@@ -138,8 +153,25 @@ struct ChatView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                ReconnectButton()
+                HStack(spacing: 12) {
+                    Button {
+                        Task {
+                            if let uri = await store.createTerminal() {
+                                activeTerminalURI = uri
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "terminal")
+                            .accessibilityLabel("New terminal")
+                    }
+                    .disabled(store.connectionState != .connected)
+
+                    ReconnectButton()
+                }
             }
+        }
+        .navigationDestination(item: $activeTerminalURI) { uri in
+            InteractiveTerminalView(terminalURI: uri)
         }
     }
 }
@@ -212,6 +244,212 @@ struct InputBar: View {
         .glassInputBackground(cornerRadius: containerRadius)
         .padding(.horizontal, 12)
         .padding(.bottom, 6)
+    }
+}
+
+// MARK: - Session Permission Picker
+
+private let autoApproveConfigKey = "autoApprove"
+private let wellKnownAutoApproveValues: Set<String> = ["default", "autoApprove", "autopilot"]
+
+private struct SessionPermissionOption: Identifiable {
+    let value: String
+    let label: String
+
+    var id: String { value }
+}
+
+private struct SessionModelOption: Identifiable {
+    let id: String
+    let label: String
+}
+
+private struct SessionPermissionPickerModel {
+    let title: String
+    let options: [SessionPermissionOption]
+    let selectedValue: String
+
+    var selectedLabel: String {
+        options.first(where: { $0.value == selectedValue })?.label ?? selectedValue
+    }
+
+    init?(session: SessionState) {
+        guard let config = session.config,
+              let property = config.schema.properties[autoApproveConfigKey],
+              property.type == "string",
+              property.sessionMutable == true,
+              property.readOnly != true,
+              let values = property.enum,
+              values.contains("default"),
+              values.allSatisfy({ wellKnownAutoApproveValues.contains($0) }) else {
+            return nil
+        }
+
+        let options = values.enumerated().map { index, value in
+            let label: String
+            if let labels = property.enumLabels, labels.indices.contains(index) {
+                label = labels[index]
+            } else {
+                label = value
+            }
+
+            return SessionPermissionOption(
+                value: value,
+                label: label
+            )
+        }
+
+        guard !options.isEmpty else { return nil }
+
+        let currentValue = config.values[autoApproveConfigKey]?.value as? String
+        let selectedValue = currentValue.flatMap { value in
+            options.contains(where: { $0.value == value }) ? value : nil
+        } ?? "default"
+
+        self.title = property.title
+        self.options = options
+        self.selectedValue = selectedValue
+    }
+}
+
+private struct SessionModelPickerModel {
+    let title = "Model"
+    let options: [SessionModelOption]
+    let selectedValue: String?
+    let selectedLabel: String
+
+    init?(session: SessionState, agents: [AgentInfo]) {
+        guard let agent = agents.first(where: { $0.provider == session.summary.provider }),
+              !agent.models.isEmpty else {
+            return nil
+        }
+
+        let options = agent.models.map { model in
+            SessionModelOption(id: model.id, label: model.name)
+        }
+        let currentModelId = session.summary.model?.id
+        let selectedOption = currentModelId.flatMap { id in
+            options.first(where: { $0.id == id })
+        }
+
+        self.options = options
+        self.selectedValue = selectedOption?.id ?? currentModelId
+        self.selectedLabel = selectedOption?.label ?? currentModelId ?? "Default model"
+    }
+}
+
+private struct SessionAccessoryBar: View {
+    let permissionModel: SessionPermissionPickerModel?
+    let modelPickerModel: SessionModelPickerModel?
+
+    var body: some View {
+        if permissionModel != nil || modelPickerModel != nil {
+            HStack(spacing: 8) {
+                if let permissionModel {
+                    SessionPermissionPickerView(model: permissionModel)
+                }
+
+                if let modelPickerModel {
+                    SessionModelPickerView(model: modelPickerModel)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+        }
+    }
+}
+
+private struct SessionPermissionPickerView: View {
+    let model: SessionPermissionPickerModel
+
+    @Environment(AppStore.self) private var store
+
+    var body: some View {
+        Menu {
+            ForEach(model.options) { option in
+                Button {
+                    guard option.value != model.selectedValue else { return }
+                    Task {
+                        await store.setSessionConfigValue(
+                            property: autoApproveConfigKey,
+                            value: AnyCodable(option.value)
+                        )
+                    }
+                } label: {
+                    if option.value == model.selectedValue {
+                        Label(option.label, systemImage: "checkmark")
+                    } else {
+                        Text(option.label)
+                    }
+                }
+            }
+        } label: {
+            SessionAccessoryButtonLabel(
+                systemImage: "lock.shield",
+                text: model.selectedLabel
+            )
+        }
+        .accessibilityLabel(model.title)
+        .accessibilityValue(model.selectedLabel)
+        .tint(.primary)
+    }
+}
+
+private struct SessionModelPickerView: View {
+    let model: SessionModelPickerModel
+
+    @Environment(AppStore.self) private var store
+
+    var body: some View {
+        Menu {
+            ForEach(model.options) { option in
+                Button {
+                    guard option.id != model.selectedValue else { return }
+                    Task {
+                        await store.changeModel(option.id)
+                    }
+                } label: {
+                    if option.id == model.selectedValue {
+                        Label(option.label, systemImage: "checkmark")
+                    } else {
+                        Text(option.label)
+                    }
+                }
+            }
+        } label: {
+            SessionAccessoryButtonLabel(
+                systemImage: "cpu",
+                text: model.selectedLabel
+            )
+        }
+        .accessibilityLabel(model.title)
+        .accessibilityValue(model.selectedLabel)
+        .tint(.primary)
+    }
+}
+
+private struct SessionAccessoryButtonLabel: View {
+    let systemImage: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.caption.weight(.semibold))
+
+            Text(text)
+                .font(.caption.weight(.medium))
+                .lineLimit(1)
+
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .glassInputBackground(cornerRadius: 16)
     }
 }
 
@@ -416,7 +654,7 @@ private struct InputBarPreviewWrapper: View {
                 </userRequest>
                 """,
                 attachments: [
-                    MessageAttachment(type: .file, uri: "src/auth.swift", displayName: "auth.swift")
+                    MessageAttachment(type: .file, path: "src/auth.swift", displayName: "auth.swift")
                 ]
             )
             ReasoningPartView(part: ReasoningResponsePart(

@@ -829,17 +829,21 @@ public struct SessionToolCallConfirmedAction: Codable, Sendable {
     public var approved: Bool
     /// How the tool was confirmed (present when approved)
     public var confirmed: ToolCallConfirmationReason?
+    /// Edited tool input parameters, if the client modified them before confirming
+    public var editedToolInput: String?
     /// Why the tool was cancelled (present when denied)
     public var reason: ToolCallCancellationReason?
     /// What the user suggested instead (present when denied)
     public var userSuggestion: UserMessage?
     /// Explanation for the denial
     public var reasonMessage: StringOrMarkdown?
+    /// ID of the selected confirmation option, if the server provided options
+    public var selectedOptionId: String?
     /// Additional provider-specific metadata
     public var meta: [String: AnyCodable]?
 
     enum CodingKeys: String, CodingKey {
-        case type, session, turnId, toolCallId, approved, confirmed, reason, userSuggestion, reasonMessage
+        case type, session, turnId, toolCallId, approved, confirmed, editedToolInput, reason, userSuggestion, reasonMessage, selectedOptionId
         case meta = "_meta"
     }
 
@@ -850,9 +854,11 @@ public struct SessionToolCallConfirmedAction: Codable, Sendable {
         toolCallId: String,
         approved: Bool,
         confirmed: ToolCallConfirmationReason? = nil,
+        editedToolInput: String? = nil,
         reason: ToolCallCancellationReason? = nil,
         userSuggestion: UserMessage? = nil,
         reasonMessage: StringOrMarkdown? = nil,
+        selectedOptionId: String? = nil,
         meta: [String: AnyCodable]? = nil
     ) {
         self.type = type
@@ -861,9 +867,11 @@ public struct SessionToolCallConfirmedAction: Codable, Sendable {
         self.toolCallId = toolCallId
         self.approved = approved
         self.confirmed = confirmed
+        self.editedToolInput = editedToolInput
         self.reason = reason
         self.userSuggestion = userSuggestion
         self.reasonMessage = reasonMessage
+        self.selectedOptionId = selectedOptionId
         self.meta = meta
     }
 }`;
