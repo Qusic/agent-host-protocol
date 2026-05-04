@@ -1,6 +1,7 @@
 import DevTunnelsClient
 import Security
 import SwiftUI
+import UIKit
 
 // MARK: - Tunnel + Identifiable
 
@@ -61,10 +62,52 @@ enum TunnelTokenStore {
     }
 }
 
+let tunnelAuthenticationExpiredMessage = "GitHub sign-in expired. Sign in again to browse or connect to Dev Tunnels."
+let tunnelConnectTokenUnavailableMessage = "Couldn't acquire a Dev Tunnel connect token. Sign in again from Dev Tunnels."
+
+func isTunnelAuthenticationFailure(_ error: Error) -> Bool {
+    let nsError = error as NSError
+    if nsError.code == 401 || nsError.code == 403 {
+        return true
+    }
+
+    let description = error.localizedDescription.lowercased()
+    return description.contains("401")
+        || description.contains("403")
+        || description.contains("unauthorized")
+        || description.contains("forbidden")
+}
+
+func isTunnelReauthenticationMessage(_ message: String?) -> Bool {
+    guard let message else { return false }
+    return message == tunnelAuthenticationExpiredMessage
+        || message == tunnelConnectTokenUnavailableMessage
+}
+
+func encodeTunnelDeviceCodeResponse(_ response: DeviceCodeResponse) -> String? {
+    guard let data = try? JSONEncoder().encode(response) else { return nil }
+    return String(data: data, encoding: .utf8)
+}
+
+func decodeTunnelDeviceCodeResponse(_ json: String) -> DeviceCodeResponse? {
+    guard let data = json.data(using: .utf8) else { return nil }
+    return try? JSONDecoder().decode(DeviceCodeResponse.self, from: data)
+}
+
+func isTunnelDeviceCodeResponseExpired(
+    _ response: DeviceCodeResponse,
+    startedAt: Date,
+    now: Date = Date()
+) -> Bool {
+    now.timeIntervalSince(startedAt) >= TimeInterval(response.expiresIn)
+}
+
 // MARK: - TunnelListView
 
 /// View for browsing Dev Tunnels and initiating device code authentication.
 struct TunnelListView: View {
+    var startsAuthenticationOnAppear = false
+    var onAuthenticated: (() -> Void)?
     /// Called when the user selects a tunnel port to use as an AHP server.
     var onConnectToTunnel: ((ServerConfiguration) -> Void)?
 
@@ -77,6 +120,8 @@ struct TunnelListView: View {
     @State private var deviceCodeResponse: DeviceCodeResponse?
     @State private var isPolling = false
     @State private var authMessage: String?
+    @SceneStorage("tunnelDeviceCodeResponseJSON") private var storedDeviceCodeResponseJSON: String?
+    @SceneStorage("tunnelDeviceCodeStartedAt") private var storedDeviceCodeStartedAt: Double = 0
 
     var body: some View {
         List {
@@ -91,10 +136,7 @@ struct TunnelListView: View {
             await loadTunnels()
         }
         .task {
-            if let saved = TunnelTokenStore.load() {
-                accessToken = saved
-                await loadTunnels()
-            }
+            await restoreAuthenticationState()
         }
     }
 
@@ -117,6 +159,27 @@ struct TunnelListView: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.vertical, 4)
 
+                        HStack(spacing: 10) {
+                            Button {
+                                UIPasteboard.general.string = dcr.userCode
+                            } label: {
+                                Label("Copy Code", systemImage: "doc.on.doc")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.regular)
+
+                            if let url = URL(string: dcr.verificationUri) {
+                                Link(destination: url) {
+                                    Label("Open GitHub", systemImage: "safari")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.regular)
+                            }
+                        }
+                        .padding(.top, 2)
+
                         if isPolling {
                             HStack {
                                 ProgressView()
@@ -134,10 +197,18 @@ struct TunnelListView: View {
                         }
                     }
                 } else {
-                    Button {
-                        Task { await startAuth() }
-                    } label: {
-                        Label("Sign in with GitHub", systemImage: "person.badge.key")
+                    VStack(alignment: .leading, spacing: 8) {
+                        Button {
+                            Task { await startAuth() }
+                        } label: {
+                            Label("Sign in with GitHub", systemImage: "person.badge.key")
+                        }
+
+                        if let msg = authMessage {
+                            Text(msg)
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        }
                     }
                 }
             } else {
@@ -151,6 +222,8 @@ struct TunnelListView: View {
                         accessToken = ""
                         tunnels = []
                         deviceCodeResponse = nil
+                        authMessage = nil
+                        clearPendingDeviceCodeResponse()
                     }
                     .font(.caption)
                     .buttonStyle(.borderless)
@@ -218,40 +291,122 @@ struct TunnelListView: View {
 
     // MARK: - Actions
 
+    private func storePendingDeviceCodeResponse(_ response: DeviceCodeResponse) {
+        storedDeviceCodeResponseJSON = encodeTunnelDeviceCodeResponse(response)
+        storedDeviceCodeStartedAt = Date().timeIntervalSince1970
+    }
+
+    private func clearPendingDeviceCodeResponse() {
+        storedDeviceCodeResponseJSON = nil
+        storedDeviceCodeStartedAt = 0
+    }
+
+    private func restoredPendingDeviceCodeResponse() -> DeviceCodeResponse? {
+        guard let json = storedDeviceCodeResponseJSON,
+              let response = decodeTunnelDeviceCodeResponse(json) else {
+            clearPendingDeviceCodeResponse()
+            return nil
+        }
+
+        if storedDeviceCodeStartedAt > 0,
+           isTunnelDeviceCodeResponseExpired(
+               response,
+               startedAt: Date(timeIntervalSince1970: storedDeviceCodeStartedAt)
+           ) {
+            clearPendingDeviceCodeResponse()
+            authMessage = "Code expired. Please try again."
+            return nil
+        }
+
+        return response
+    }
+
+    private func restoreAuthenticationState() async {
+        if let saved = TunnelTokenStore.load() {
+            accessToken = saved
+            clearPendingDeviceCodeResponse()
+            await loadTunnels()
+            if startsAuthenticationOnAppear,
+               !accessToken.isEmpty,
+               deviceCodeResponse == nil,
+               !isPolling,
+               errorMessage == nil {
+                onAuthenticated?()
+            }
+            return
+        }
+
+        if let pendingResponse = restoredPendingDeviceCodeResponse() {
+            deviceCodeResponse = pendingResponse
+            authMessage = "Finish signing in in Safari. We'll keep checking here."
+            await resumePollingIfNeeded(with: pendingResponse)
+            return
+        }
+
+        guard startsAuthenticationOnAppear else { return }
+        await startAuth()
+    }
+
+    private func resumePollingIfNeeded(with response: DeviceCodeResponse) async {
+        guard !isPolling else { return }
+        isPolling = true
+        await pollForToken(response: response)
+    }
+
+    private func expireAuthentication(message: String = tunnelAuthenticationExpiredMessage) {
+        TunnelTokenStore.delete()
+        accessToken = ""
+        tunnels = []
+        deviceCodeResponse = nil
+        isPolling = false
+        errorMessage = nil
+        authMessage = message
+        clearPendingDeviceCodeResponse()
+    }
+
     private func startAuth() async {
+        guard !isPolling else { return }
         do {
             let response = try await DeviceCodeAuth().start()
             deviceCodeResponse = response
-            isPolling = true
+            storePendingDeviceCodeResponse(response)
             authMessage = nil
-            await pollForToken(deviceCode: response.deviceCode)
+            await resumePollingIfNeeded(with: response)
         } catch {
             authMessage = error.localizedDescription
         }
     }
 
-    private func pollForToken(deviceCode: String) async {
-        let interval: UInt64 = 5_000_000_000 // 5 seconds
+    private func pollForToken(response: DeviceCodeResponse) async {
+        let interval = UInt64(max(response.interval, 1)) * 1_000_000_000
         while isPolling {
             try? await Task.sleep(nanoseconds: interval)
             do {
-                let result = try await DeviceCodeAuth().poll(deviceCode: deviceCode)
+                let result = try await DeviceCodeAuth().poll(deviceCode: response.deviceCode)
                 switch result {
                 case .accessToken(let token):
                     accessToken = token
                     TunnelTokenStore.save(token)
                     isPolling = false
                     deviceCodeResponse = nil
-                    await loadTunnels()
+                    authMessage = nil
+                    clearPendingDeviceCodeResponse()
+                    if let onAuthenticated {
+                        onAuthenticated()
+                    } else {
+                        await loadTunnels()
+                    }
                 case .pending:
                     continue
                 case .expired:
                     authMessage = "Code expired. Please try again."
                     isPolling = false
                     deviceCodeResponse = nil
+                    clearPendingDeviceCodeResponse()
                 case .error(let message):
                     authMessage = message
                     isPolling = false
+                    clearPendingDeviceCodeResponse()
                 }
             } catch {
                 authMessage = error.localizedDescription
@@ -267,9 +422,17 @@ struct TunnelListView: View {
         do {
             let client = TunnelManagementClient(accessToken: accessToken)
             tunnels = try await client.listTunnels()
+            authMessage = nil
             isLoading = false
         } catch {
-            errorMessage = error.localizedDescription
+            if isTunnelAuthenticationFailure(error) {
+                expireAuthentication()
+                if startsAuthenticationOnAppear {
+                    await startAuth()
+                }
+            } else {
+                errorMessage = error.localizedDescription
+            }
             isLoading = false
         }
     }
@@ -294,9 +457,21 @@ struct TunnelListView: View {
                 )
                 connectToken = TunnelConnection.connectToken(from: detail)
             } catch {
+                if isTunnelAuthenticationFailure(error) {
+                    await MainActor.run {
+                        expireAuthentication()
+                    }
+                    return
+                }
                 print("[AHP] Warning: failed to fetch connect token: \(error)")
             }
             let host = "\(tunnelId)-\(port).\(clusterId).devtunnels.ms"
+            guard let connectToken, !connectToken.isEmpty else {
+                await MainActor.run {
+                    authMessage = tunnelConnectTokenUnavailableMessage
+                }
+                return
+            }
             let server = ServerConfiguration(
                 name: tunnel.displayName,
                 scheme: "wss",
@@ -416,7 +591,11 @@ struct TunnelDetailView: View {
         let tunnelId = tunnel.tunnelId ?? ""
         let clusterId = tunnel.clusterId ?? ""
         let host = "\(tunnelId)-\(port).\(clusterId).devtunnels.ms"
-        let connectToken: String? = detail.flatMap { TunnelConnection.connectToken(from: $0) }
+        guard let connectToken = detail.flatMap({ TunnelConnection.connectToken(from: $0) }),
+              !connectToken.isEmpty else {
+            errorMessage = tunnelConnectTokenUnavailableMessage
+            return
+        }
         let server = ServerConfiguration(
             name: tunnel.displayName,
             scheme: "wss",
@@ -442,7 +621,9 @@ struct TunnelDetailView: View {
             )
             isLoading = false
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = isTunnelAuthenticationFailure(error)
+                ? tunnelAuthenticationExpiredMessage
+                : error.localizedDescription
             isLoading = false
         }
     }

@@ -1,9 +1,11 @@
 import AgentHostProtocol
 import SwiftUI
+import UIKit
 
 /// Main chat view showing the conversation with the agent.
 struct ChatView: View {
     @Environment(AppStore.self) private var store
+    @AppStorage("showSessionDebugStatus") private var showSessionDebugStatus = true
     @State private var inputText = ""
     @FocusState private var inputFocused: Bool
     /// Tracks whether the scroll position is at (or near) the bottom.
@@ -152,13 +154,23 @@ struct ChatView: View {
                 }
             }
             .overlay(alignment: .top) {
-                // Floating reconnect progress bar
-                if store.isReconnecting {
-                    ReconnectProgressBar()
-                        .transition(.move(edge: .top).combined(with: .opacity))
+                VStack(spacing: 8) {
+                    if store.isCurrentSessionStale || store.isCurrentSessionSyncing {
+                        SessionSyncStatusBar(isSyncing: store.isCurrentSessionSyncing)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+
+                    // Floating reconnect progress bar
+                    if store.isReconnectBannerVisible {
+                        ReconnectProgressBar()
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
                 }
+                .padding(.top, 8)
             }
-            .animation(.easeInOut(duration: 0.25), value: store.isReconnecting)
+            .animation(.easeInOut(duration: 0.2), value: store.isReconnectBannerVisible)
+            .animation(.easeInOut(duration: 0.25), value: store.isCurrentSessionStale)
+            .animation(.easeInOut(duration: 0.25), value: store.isCurrentSessionSyncing)
             // InputBar is declared as a safe-area inset so the scroll view
             // shrinks its visible frame to end above the bar. This ensures
             // scrollToBottom lands at the true visible bottom, not behind the bar.
@@ -178,6 +190,16 @@ struct ChatView: View {
                         permissionModel: sessionPermissionPickerModel,
                         modelPickerModel: sessionModelPickerModel
                     )
+
+                    if showSessionDebugStatus {
+                        SessionDebugStatusBar(
+                            connectionState: store.connectionState,
+                            isSessionSyncing: store.isCurrentSessionSyncing,
+                            isSessionStale: store.isCurrentSessionStale,
+                            selectedSessionURI: store.selectedSessionURI,
+                            status: store.sessionDebugStatus
+                        )
+                    }
 
                     InputBar(text: $inputText, isFocused: $inputFocused) {
                         guard !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
@@ -212,6 +234,173 @@ struct ChatView: View {
         .navigationDestination(item: $activeTerminalURI) { uri in
             InteractiveTerminalView(terminalURI: uri)
         }
+    }
+}
+
+// MARK: - SessionSyncStatusBar
+
+private struct SessionSyncStatusBar: View {
+    let isSyncing: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if isSyncing {
+                ProgressView()
+                    .controlSize(.small)
+            } else {
+                Image(systemName: "clock.arrow.trianglehead.counterclockwise.rotate.90")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+
+            Text(isSyncing ? "Syncing session…" : "Session content may be stale")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: Capsule())
+        .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+    }
+}
+
+private struct SessionDebugStatusBar: View {
+    let connectionState: AHPConnection.ConnectionState
+    let isSessionSyncing: Bool
+    let isSessionStale: Bool
+    let selectedSessionURI: String?
+    let status: SessionDebugStatus
+
+    var body: some View {
+        Button(action: copyDebugDetails) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(connectionColor)
+                        .frame(width: 7, height: 7)
+
+                    Text("state \(connectionLabel)")
+                        .fontWeight(.semibold)
+
+                    Text("session \(sessionLabel)")
+                        .foregroundStyle(.secondary)
+                }
+
+                Text(triggerLine)
+                    .foregroundStyle(.secondary)
+
+                Text(pathLine)
+                    .foregroundStyle(.secondary)
+
+                Text(timingLine)
+                    .foregroundStyle(.secondary)
+            }
+            .font(.caption2.monospacedDigit())
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color(.systemGray4), lineWidth: 0.5)
+            )
+            .padding(.horizontal, 12)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Copies detailed session debug information")
+    }
+
+    private var connectionColor: Color {
+        switch connectionState {
+        case .connected: Color(.systemGreen)
+        case .connecting, .reconnecting: .orange
+        case .disconnected: .red
+        }
+    }
+
+    private var connectionLabel: String {
+        switch connectionState {
+        case .connected: "connected"
+        case .connecting: "connecting"
+        case .reconnecting: "reconnecting"
+        case .disconnected: "disconnected"
+        }
+    }
+
+    private var sessionLabel: String {
+        if isSessionSyncing { return "syncing" }
+        if isSessionStale { return "stale" }
+        return "ready"
+    }
+
+    private var triggerLine: String {
+        let trigger = status.lastTrigger ?? "none"
+        let detail = status.lastTriggerDetail.map { " (\($0))" } ?? ""
+        return "trigger \(trigger)\(detail) · \(ageText(status.lastTriggerAt))"
+    }
+
+    private var pathLine: String {
+        let labels = collapsedPathLabels
+        guard !labels.isEmpty else { return "path none" }
+        return "path " + labels.joined(separator: " -> ")
+    }
+
+    private var collapsedPathLabels: [String] {
+        let labels = status.recentEvents.suffix(4).map(\.label)
+        var collapsed: [String] = []
+        for label in labels where collapsed.last != label {
+            collapsed.append(label)
+        }
+        return collapsed
+    }
+
+    private var timingLine: String {
+        let summaries = "summaries \(ageText(status.lastSessionSummariesFetchAt))"
+        let session = status.lastSessionRefreshAt.map { _ in
+            "session \(ageText(status.lastSessionRefreshAt))"
+        } ?? "session never"
+        let reconnect = "reconnect \(ageText(status.lastSuccessfulReconnectAt))"
+        let state = "state \(ageText(status.lastConnectionStateChangeAt))"
+        return "\(summaries) · \(session) · \(reconnect) · \(state)"
+    }
+
+    private var copyText: String {
+        """
+        state: \(connectionLabel)
+        session: \(sessionLabel)
+        selectedSessionURI: \(selectedSessionURI ?? "none")
+        lastTrigger: \(status.lastTrigger ?? "none")
+        lastTriggerDetail: \(status.lastTriggerDetail ?? "none")
+        recentPath: \(status.recentEvents.map(\.label).joined(separator: " -> "))
+        lastTriggerAt: \(copyDate(status.lastTriggerAt))
+        lastConnectionStateChangeAt: \(copyDate(status.lastConnectionStateChangeAt))
+        lastSuccessfulConnectAt: \(copyDate(status.lastSuccessfulConnectAt))
+        lastSuccessfulReconnectAt: \(copyDate(status.lastSuccessfulReconnectAt))
+        lastSessionSummariesFetchAt: \(copyDate(status.lastSessionSummariesFetchAt))
+        lastSessionRefreshAt: \(copyDate(status.lastSessionRefreshAt))
+        lastSessionRefreshURI: \(status.lastSessionRefreshURI ?? "none")
+        """
+    }
+
+    private func copyDebugDetails() {
+        UIPasteboard.general.string = copyText
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+
+    private func ageText(_ date: Date?) -> String {
+        guard let date else { return "never" }
+        let seconds = max(0, Int(Date().timeIntervalSince(date)))
+        if seconds < 60 { return "\(seconds)s" }
+        let minutes = seconds / 60
+        if minutes < 60 { return "\(minutes)m" }
+        let hours = minutes / 60
+        if hours < 24 { return "\(hours)h" }
+        return "\(hours / 24)d"
+    }
+
+    private func copyDate(_ date: Date?) -> String {
+        guard let date else { return "never" }
+        return date.ISO8601Format()
     }
 }
 

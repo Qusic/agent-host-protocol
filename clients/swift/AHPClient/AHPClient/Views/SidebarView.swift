@@ -197,7 +197,7 @@ struct SidebarView: View {
                     .padding(.horizontal, 16)
                 }
                 .refreshable {
-                    await store.fetchAndSubscribeSessions()
+                    await store.refreshSessionSummaries()
                 }
 
                 if #available(iOS 26.0, *) {
@@ -495,7 +495,7 @@ struct SidebarView: View {
             agentName: store.agents.first?.provider.capitalized,
             activeSessions: activeSessions,
             idleSessions: idleSessions,
-            isConnected: store.connectionState == .connected
+            connectionState: store.connectionState
         )
     }
 
@@ -530,13 +530,38 @@ struct SummaryCardView: View, Equatable {
     let agentName: String?
     let activeSessions: Int
     let idleSessions: Int
-    let isConnected: Bool
+    let connectionState: AHPConnection.ConnectionState
 
     static func == (lhs: SummaryCardView, rhs: SummaryCardView) -> Bool {
         lhs.agentName == rhs.agentName
             && lhs.activeSessions == rhs.activeSessions
             && lhs.idleSessions == rhs.idleSessions
-            && lhs.isConnected == rhs.isConnected
+            && lhs.connectionState == rhs.connectionState
+    }
+
+    private var isConnected: Bool { connectionState == .connected }
+    private var isInProgress: Bool {
+        connectionState == .connecting || connectionState == .reconnecting
+    }
+
+    private var statusIcon: String {
+        if isConnected { return "bolt.fill" }
+        if isInProgress { return "bolt.horizontal.fill" }
+        return "bolt.slash.fill"
+    }
+
+    private var statusLabel: String {
+        switch connectionState {
+        case .connected: "Connected"
+        case .connecting: "Connecting…"
+        case .reconnecting: "Reconnecting…"
+        case .disconnected: "Disconnected"
+        }
+    }
+
+    private var statusStyle: AnyShapeStyle {
+        if isConnected { return AnyShapeStyle(.secondary) }
+        return AnyShapeStyle(Color.orange)
     }
 
     var body: some View {
@@ -563,13 +588,18 @@ struct SummaryCardView: View, Equatable {
                 }
             }
 
-            HStack(spacing: 2) {
-                Image(systemName: isConnected ? "bolt.fill" : "bolt.slash.fill")
-                    .font(.caption2)
-                Text(isConnected ? "Connected" : "Disconnected")
+            HStack(spacing: 6) {
+                if isInProgress {
+                    ProgressView()
+                        .controlSize(.mini)
+                } else {
+                    Image(systemName: statusIcon)
+                        .font(.caption2)
+                }
+                Text(statusLabel)
                     .font(.caption.weight(.medium))
             }
-            .foregroundStyle(isConnected ? AnyShapeStyle(.secondary) : AnyShapeStyle(Color.orange))
+            .foregroundStyle(statusStyle)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(24)
