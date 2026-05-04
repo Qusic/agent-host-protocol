@@ -27,8 +27,14 @@ public enum CompletionItemKind: String, Codable, Sendable {
 // MARK: - Command Types
 
 public struct InitializeParams: Codable, Sendable {
-    /// Protocol version the client speaks
-    public var protocolVersion: Int
+    /// Protocol versions the client is willing to speak, ordered from most
+    /// preferred to least preferred. Each entry is a [SemVer](https://semver.org)
+    /// `MAJOR.MINOR.PATCH` string (e.g. `"0.1.0"`).
+    /// 
+    /// The server selects one entry and returns it as `InitializeResult.protocolVersion`.
+    /// If the server cannot speak any of the offered versions, it MUST return
+    /// error code `-32005` (`UnsupportedProtocolVersion`).
+    public var protocolVersions: [String]
     /// Unique client identifier
     public var clientId: String
     /// URIs to subscribe to during handshake
@@ -39,12 +45,12 @@ public struct InitializeParams: Codable, Sendable {
     public var locale: String?
 
     public init(
-        protocolVersion: Int,
+        protocolVersions: [String],
         clientId: String,
         initialSubscriptions: [String]? = nil,
         locale: String? = nil
     ) {
-        self.protocolVersion = protocolVersion
+        self.protocolVersions = protocolVersions
         self.clientId = clientId
         self.initialSubscriptions = initialSubscriptions
         self.locale = locale
@@ -52,8 +58,10 @@ public struct InitializeParams: Codable, Sendable {
 }
 
 public struct InitializeResult: Codable, Sendable {
-    /// Protocol version the server speaks
-    public var protocolVersion: Int
+    /// Protocol version selected by the server. MUST be one of the entries in
+    /// `InitializeParams.protocolVersions`. Formatted as a [SemVer](https://semver.org)
+    /// `MAJOR.MINOR.PATCH` string (e.g. `"0.1.0"`).
+    public var protocolVersion: String
     /// Current server sequence number
     public var serverSeq: Int
     /// Snapshots for each `initialSubscriptions` URI
@@ -67,7 +75,7 @@ public struct InitializeResult: Codable, Sendable {
     public var completionTriggerCharacters: [String]?
 
     public init(
-        protocolVersion: Int,
+        protocolVersion: String,
         serverSeq: Int,
         snapshots: [Snapshot],
         defaultDirectory: String? = nil,
