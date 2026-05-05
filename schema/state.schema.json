@@ -1263,7 +1263,7 @@
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment."
+          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment. This is a text range, not a byte range."
         },
         "displayKind": {
           "type": "string",
@@ -1343,7 +1343,7 @@
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment."
+          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment. This is a text range, not a byte range."
         },
         "displayKind": {
           "type": "string",
@@ -1378,7 +1378,7 @@
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment."
+          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment. This is a text range, not a byte range."
         },
         "displayKind": {
           "type": "string",
@@ -1423,7 +1423,7 @@
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment."
+          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment. This is a text range, not a byte range."
         },
         "displayKind": {
           "type": "string",

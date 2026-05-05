@@ -869,7 +869,7 @@ export interface MessageAttachmentBase {
 
   /**
    * If defined, the range in {@link UserMessage.text} that references this
-   * attachment.
+   * attachment. This is a text range, not a byte range.
    */
   range?: TextRange;
 
