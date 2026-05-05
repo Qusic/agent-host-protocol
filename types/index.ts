@@ -28,6 +28,7 @@ export type {
   MessageAttachmentBase,
   TextPosition,
   TextRange,
+  TextSelection,
   SimpleMessageAttachment,
   MessageEmbeddedResourceAttachment,
   MessageResourceAttachment,

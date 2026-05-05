@@ -563,6 +563,7 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: str
   { name: 'SessionInputRequest' },
   { name: 'TextPosition' },
   { name: 'TextRange' },
+  { name: 'TextSelection' },
   { name: 'SimpleMessageAttachment', omitDiscriminants: true },
   { name: 'MessageEmbeddedResourceAttachment', omitDiscriminants: true },
   { name: 'MessageResourceAttachment', omitDiscriminants: true },

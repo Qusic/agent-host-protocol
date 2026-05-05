@@ -923,6 +923,18 @@ export interface TextRange {
 }
 
 /**
+ * A selection within a textual resource.
+ *
+ * @category Turn Types
+ */
+export interface TextSelection {
+  /** The selected text. */
+  value: string;
+  /** The range covered by {@link value}. */
+  range: TextRange;
+}
+
+/**
  * A simple, opaque attachment whose model representation is described by
  * the producer.
  *
@@ -958,18 +970,8 @@ export interface MessageEmbeddedResourceAttachment extends MessageAttachmentBase
   data: string;
   /** Content MIME type (e.g. `"image/png"`, `"application/pdf"`) */
   contentType: string;
-  /**
-   * Optional range within the attached textual resource.
-   *
-   * This is distinct from {@link MessageAttachmentBase.range}, which refers to
-   * the span in {@link UserMessage.text} that references the attachment.
-   */
-  documentRange?: TextRange;
-  /**
-   * Optional text covered by {@link documentRange}, when already known by the
-   * client or producer.
-   */
-  selectedText?: string;
+  /** Optional selection within the attached textual resource. */
+  selection?: TextSelection;
 }
 
 /**
@@ -981,18 +983,8 @@ export interface MessageEmbeddedResourceAttachment extends MessageAttachmentBase
 export interface MessageResourceAttachment extends MessageAttachmentBase, ContentRef {
   /** Discriminant */
   type: MessageAttachmentKind.Resource;
-  /**
-   * Optional range within the referenced textual resource.
-   *
-   * This is distinct from {@link MessageAttachmentBase.range}, which refers to
-   * the span in {@link UserMessage.text} that references the attachment.
-   */
-  documentRange?: TextRange;
-  /**
-   * Optional text covered by {@link documentRange}, when already known by the
-   * client or producer.
-   */
-  selectedText?: string;
+  /** Optional selection within the referenced textual resource. */
+  selection?: TextSelection;
 }
 
 /**

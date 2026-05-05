@@ -1458,6 +1458,24 @@
         "end"
       ]
     },
+    "TextSelection": {
+      "type": "object",
+      "description": "A selection within a textual resource.",
+      "properties": {
+        "value": {
+          "type": "string",
+          "description": "The selected text."
+        },
+        "range": {
+          "$ref": "#/$defs/TextRange",
+          "description": "The range covered by {@link value}."
+        }
+      },
+      "required": [
+        "value",
+        "range"
+      ]
+    },
     "SimpleMessageAttachment": {
       "type": "object",
       "description": "A simple, opaque attachment whose model representation is described by\nthe producer.",
@@ -1526,13 +1544,9 @@
           "type": "string",
           "description": "Content MIME type (e.g. `\"image/png\"`, `\"application/pdf\"`)"
         },
-        "documentRange": {
-          "$ref": "#/$defs/TextRange",
-          "description": "Optional range within the attached textual resource.\n\nThis is distinct from {@link MessageAttachmentBase.range}, which refers to\nthe span in {@link UserMessage.text} that references the attachment."
-        },
-        "selectedText": {
-          "type": "string",
-          "description": "Optional text covered by {@link documentRange}, when already known by the\nclient or producer."
+        "selection": {
+          "$ref": "#/$defs/TextSelection",
+          "description": "Optional selection within the attached textual resource."
         }
       },
       "required": [
@@ -1579,13 +1593,9 @@
           "$ref": "#/$defs/MessageAttachmentKind.Resource",
           "description": "Discriminant"
         },
-        "documentRange": {
-          "$ref": "#/$defs/TextRange",
-          "description": "Optional range within the referenced textual resource.\n\nThis is distinct from {@link MessageAttachmentBase.range}, which refers to\nthe span in {@link UserMessage.text} that references the attachment."
-        },
-        "selectedText": {
-          "type": "string",
-          "description": "Optional text covered by {@link documentRange}, when already known by the\nclient or producer."
+        "selection": {
+          "$ref": "#/$defs/TextSelection",
+          "description": "Optional selection within the referenced textual resource."
         }
       },
       "required": [

@@ -1038,6 +1038,16 @@ pub struct TextRange {
     pub end: TextPosition,
 }
 
+/// A selection within a textual resource.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TextSelection {
+    /// The selected text.
+    pub value: String,
+    /// The range covered by {@link value}.
+    pub range: TextRange,
+}
+
 /// A simple, opaque attachment whose model representation is described by
 /// the producer.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1118,16 +1128,9 @@ pub struct MessageEmbeddedResourceAttachment {
     pub data: String,
     /// Content MIME type (e.g. `"image/png"`, `"application/pdf"`)
     pub content_type: String,
-    /// Optional range within the attached textual resource.
-    ///
-    /// This is distinct from {@link MessageAttachmentBase.range}, which refers to
-    /// the span in {@link UserMessage.text} that references the attachment.
+    /// Optional selection within the attached textual resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub document_range: Option<TextRange>,
-    /// Optional text covered by {@link documentRange}, when already known by the
-    /// client or producer.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub selected_text: Option<String>,
+    pub selection: Option<TextSelection>,
 }
 
 /// An attachment that references a resource by URI. The content is not
@@ -1170,16 +1173,9 @@ pub struct MessageResourceAttachment {
     /// Content MIME type
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub content_type: Option<String>,
-    /// Optional range within the referenced textual resource.
-    ///
-    /// This is distinct from {@link MessageAttachmentBase.range}, which refers to
-    /// the span in {@link UserMessage.text} that references the attachment.
+    /// Optional selection within the referenced textual resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub document_range: Option<TextRange>,
-    /// Optional text covered by {@link documentRange}, when already known by the
-    /// client or producer.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub selected_text: Option<String>,
+    pub selection: Option<TextSelection>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

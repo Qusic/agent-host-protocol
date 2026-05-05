@@ -1206,6 +1206,21 @@ public struct TextRange: Codable, Sendable {
     }
 }
 
+public struct TextSelection: Codable, Sendable {
+    /// The selected text.
+    public var value: String
+    /// The range covered by {@link value}.
+    public var range: TextRange
+
+    public init(
+        value: String,
+        range: TextRange
+    ) {
+        self.value = value
+        self.range = range
+    }
+}
+
 public struct SimpleMessageAttachment: Codable, Sendable {
     /// A human-readable label for the attachment (e.g. the filename of a file
     /// attachment). Used for display in UI.
@@ -1298,14 +1313,8 @@ public struct MessageEmbeddedResourceAttachment: Codable, Sendable {
     public var data: String
     /// Content MIME type (e.g. `"image/png"`, `"application/pdf"`)
     public var contentType: String
-    /// Optional range within the attached textual resource.
-    /// 
-    /// This is distinct from {@link MessageAttachmentBase.range}, which refers to
-    /// the span in {@link UserMessage.text} that references the attachment.
-    public var documentRange: TextRange?
-    /// Optional text covered by {@link documentRange}, when already known by the
-    /// client or producer.
-    public var selectedText: String?
+    /// Optional selection within the attached textual resource.
+    public var selection: TextSelection?
 
     enum CodingKeys: String, CodingKey {
         case label
@@ -1315,8 +1324,7 @@ public struct MessageEmbeddedResourceAttachment: Codable, Sendable {
         case type
         case data
         case contentType
-        case documentRange
-        case selectedText
+        case selection
     }
 
     public init(
@@ -1327,8 +1335,7 @@ public struct MessageEmbeddedResourceAttachment: Codable, Sendable {
         type: MessageAttachmentKind,
         data: String,
         contentType: String,
-        documentRange: TextRange? = nil,
-        selectedText: String? = nil
+        selection: TextSelection? = nil
     ) {
         self.label = label
         self.range = range
@@ -1337,8 +1344,7 @@ public struct MessageEmbeddedResourceAttachment: Codable, Sendable {
         self.type = type
         self.data = data
         self.contentType = contentType
-        self.documentRange = documentRange
-        self.selectedText = selectedText
+        self.selection = selection
     }
 }
 
@@ -1375,14 +1381,8 @@ public struct MessageResourceAttachment: Codable, Sendable {
     public var contentType: String?
     /// Discriminant
     public var type: MessageAttachmentKind
-    /// Optional range within the referenced textual resource.
-    /// 
-    /// This is distinct from {@link MessageAttachmentBase.range}, which refers to
-    /// the span in {@link UserMessage.text} that references the attachment.
-    public var documentRange: TextRange?
-    /// Optional text covered by {@link documentRange}, when already known by the
-    /// client or producer.
-    public var selectedText: String?
+    /// Optional selection within the referenced textual resource.
+    public var selection: TextSelection?
 
     enum CodingKeys: String, CodingKey {
         case label
@@ -1393,8 +1393,7 @@ public struct MessageResourceAttachment: Codable, Sendable {
         case sizeHint
         case contentType
         case type
-        case documentRange
-        case selectedText
+        case selection
     }
 
     public init(
@@ -1406,8 +1405,7 @@ public struct MessageResourceAttachment: Codable, Sendable {
         sizeHint: Int? = nil,
         contentType: String? = nil,
         type: MessageAttachmentKind,
-        documentRange: TextRange? = nil,
-        selectedText: String? = nil
+        selection: TextSelection? = nil
     ) {
         self.label = label
         self.range = range
@@ -1417,8 +1415,7 @@ public struct MessageResourceAttachment: Codable, Sendable {
         self.sizeHint = sizeHint
         self.contentType = contentType
         self.type = type
-        self.documentRange = documentRange
-        self.selectedText = selectedText
+        self.selection = selection
     }
 }
 

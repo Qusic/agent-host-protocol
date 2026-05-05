@@ -183,18 +183,22 @@ TextRange {
   end: { line: number, character: number }
 }
 
+TextSelection {
+  value: string
+  range: TextRange
+}
+
 MessageResourceAttachment {
   type: 'resource'
   uri: URI
   displayKind?: 'selection'
-  documentRange?: TextRange
-  selectedText?: string
+  selection?: TextSelection
 }
 ```
 
 Attachments MAY be referenced inline by `text` via the optional `range` field, which points at a span in the message text. Attachments without a range are still associated with the message but are not anchored to a specific span.
 
-Resource and embedded-resource attachments MAY also include `documentRange` to identify a range within the attached textual document/resource. This is distinct from `range`, which only describes where the attachment is referenced in the user message text. When the selected/ranged text is already known, producers MAY include it in `selectedText`.
+Resource and embedded-resource attachments MAY also include `selection` to identify selected text within the attached textual document/resource. This is distinct from `range`, which only describes where the attachment is referenced in the user message text.
 
 Use `SimpleMessageAttachment` for opaque attachments whose model representation is supplied by the producer, `MessageEmbeddedResourceAttachment` for small inline base64 payloads (e.g. a pasted image), and `MessageResourceAttachment` to reference a resource by URI (the content is fetched via `resourceRead` when needed).
 
