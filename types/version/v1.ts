@@ -29,6 +29,9 @@ import type {
   UserMessage,
   MessageAttachment,
   MessageAttachmentBase,
+  TextPosition,
+  TextRange,
+  TextSelection,
   SimpleMessageAttachment,
   MessageEmbeddedResourceAttachment,
   MessageResourceAttachment,
@@ -227,6 +230,9 @@ type V1_IActiveTurn = ActiveTurn;
 type V1_IUserMessage = UserMessage;
 type V1_IMessageAttachment = MessageAttachment;
 type V1_IMessageAttachmentBase = MessageAttachmentBase;
+type V1_ITextPosition = TextPosition;
+type V1_ITextRange = TextRange;
+type V1_ITextSelection = TextSelection;
 type V1_ISimpleMessageAttachment = SimpleMessageAttachment;
 type V1_IMessageEmbeddedResourceAttachment = MessageEmbeddedResourceAttachment;
 type V1_IMessageResourceAttachment = MessageResourceAttachment;
@@ -411,6 +417,12 @@ type _CheckUserMessage = AssertCompatible<V1_IUserMessage, UserMessage>;
 type _CheckMessageAttachment = AssertCompatible<V1_IMessageAttachment, MessageAttachment>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckMessageAttachmentBase = AssertCompatible<V1_IMessageAttachmentBase, MessageAttachmentBase>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckTextPosition = AssertCompatible<V1_ITextPosition, TextPosition>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckTextRange = AssertCompatible<V1_ITextRange, TextRange>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _CheckTextSelection = AssertCompatible<V1_ITextSelection, TextSelection>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckSimpleMessageAttachment = AssertCompatible<V1_ISimpleMessageAttachment, SimpleMessageAttachment>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

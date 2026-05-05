@@ -2798,7 +2798,7 @@
     },
     "UserMessage": {
       "type": "object",
-      "description": "A user message and its associated attachments.\n\nAttachments MAY be referenced inside {@link UserMessage.text} via their\n{@link MessageAttachmentBase.rangeStart}/{@link MessageAttachmentBase.rangeEnd}\nfields. Attachments without a range are still associated with the message\nbut do not correspond to a specific span in the text.",
+      "description": "A user message and its associated attachments.\n\nAttachments MAY be referenced inside {@link UserMessage.text} via their\n{@link MessageAttachmentBase.range} field. Attachments without a range are\nstill associated with the message but do not correspond to a specific span\nin the text.",
       "properties": {
         "text": {
           "type": "string",
@@ -2824,13 +2824,9 @@
           "type": "string",
           "description": "A human-readable label for the attachment (e.g. the filename of a file\nattachment). Used for display in UI."
         },
-        "rangeStart": {
-          "type": "number",
-          "description": "If defined, the start of the range in {@link UserMessage.text} that\nreferences this attachment. The range is the half-open interval\n`[rangeStart, rangeEnd)` of character offsets, measured in UTF-16 code\nunits.\n\nWhen present, `rangeEnd` MUST also be present and MUST be greater than or\nequal to `rangeStart`."
-        },
-        "rangeEnd": {
-          "type": "number",
-          "description": "The end of the range in {@link UserMessage.text} that references this\nattachment. See {@link rangeStart}."
+        "range": {
+          "$ref": "#/$defs/TextRange",
+          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment. This is a text range, not a byte range."
         },
         "displayKind": {
           "type": "string",
@@ -2846,6 +2842,60 @@
         "label"
       ]
     },
+    "TextPosition": {
+      "type": "object",
+      "description": "A zero-based position within a textual document.",
+      "properties": {
+        "line": {
+          "type": "number",
+          "description": "Zero-based line number."
+        },
+        "character": {
+          "type": "number",
+          "description": "Zero-based character offset within the line."
+        }
+      },
+      "required": [
+        "line",
+        "character"
+      ]
+    },
+    "TextRange": {
+      "type": "object",
+      "description": "A range within a textual document.",
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/TextPosition",
+          "description": "Start position of the range."
+        },
+        "end": {
+          "$ref": "#/$defs/TextPosition",
+          "description": "End position of the range."
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ]
+    },
+    "TextSelection": {
+      "type": "object",
+      "description": "A selection within a textual resource.\n\nThis is only meaningful for textual resources. Binary resources may still\nuse resource or embedded resource attachments, but they should not use this\ntext selection field.",
+      "properties": {
+        "value": {
+          "type": "string",
+          "description": "The selected text."
+        },
+        "range": {
+          "$ref": "#/$defs/TextRange",
+          "description": "The range covered by {@link value}."
+        }
+      },
+      "required": [
+        "value",
+        "range"
+      ]
+    },
     "SimpleMessageAttachment": {
       "type": "object",
       "description": "A simple, opaque attachment whose model representation is described by\nthe producer.",
@@ -2854,13 +2904,9 @@
           "type": "string",
           "description": "A human-readable label for the attachment (e.g. the filename of a file\nattachment). Used for display in UI."
         },
-        "rangeStart": {
-          "type": "number",
-          "description": "If defined, the start of the range in {@link UserMessage.text} that\nreferences this attachment. The range is the half-open interval\n`[rangeStart, rangeEnd)` of character offsets, measured in UTF-16 code\nunits.\n\nWhen present, `rangeEnd` MUST also be present and MUST be greater than or\nequal to `rangeStart`."
-        },
-        "rangeEnd": {
-          "type": "number",
-          "description": "The end of the range in {@link UserMessage.text} that references this\nattachment. See {@link rangeStart}."
+        "range": {
+          "$ref": "#/$defs/TextRange",
+          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment. This is a text range, not a byte range."
         },
         "displayKind": {
           "type": "string",
@@ -2893,13 +2939,9 @@
           "type": "string",
           "description": "A human-readable label for the attachment (e.g. the filename of a file\nattachment). Used for display in UI."
         },
-        "rangeStart": {
-          "type": "number",
-          "description": "If defined, the start of the range in {@link UserMessage.text} that\nreferences this attachment. The range is the half-open interval\n`[rangeStart, rangeEnd)` of character offsets, measured in UTF-16 code\nunits.\n\nWhen present, `rangeEnd` MUST also be present and MUST be greater than or\nequal to `rangeStart`."
-        },
-        "rangeEnd": {
-          "type": "number",
-          "description": "The end of the range in {@link UserMessage.text} that references this\nattachment. See {@link rangeStart}."
+        "range": {
+          "$ref": "#/$defs/TextRange",
+          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment. This is a text range, not a byte range."
         },
         "displayKind": {
           "type": "string",
@@ -2921,6 +2963,10 @@
         "contentType": {
           "type": "string",
           "description": "Content MIME type (e.g. `\"image/png\"`, `\"application/pdf\"`)"
+        },
+        "selection": {
+          "$ref": "#/$defs/TextSelection",
+          "description": "Optional selection within the attached textual resource.\n\nOnly meaningful for textual resources."
         }
       },
       "required": [
@@ -2938,13 +2984,9 @@
           "type": "string",
           "description": "A human-readable label for the attachment (e.g. the filename of a file\nattachment). Used for display in UI."
         },
-        "rangeStart": {
-          "type": "number",
-          "description": "If defined, the start of the range in {@link UserMessage.text} that\nreferences this attachment. The range is the half-open interval\n`[rangeStart, rangeEnd)` of character offsets, measured in UTF-16 code\nunits.\n\nWhen present, `rangeEnd` MUST also be present and MUST be greater than or\nequal to `rangeStart`."
-        },
-        "rangeEnd": {
-          "type": "number",
-          "description": "The end of the range in {@link UserMessage.text} that references this\nattachment. See {@link rangeStart}."
+        "range": {
+          "$ref": "#/$defs/TextRange",
+          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment. This is a text range, not a byte range."
         },
         "displayKind": {
           "type": "string",
@@ -2970,6 +3012,10 @@
         "type": {
           "$ref": "#/$defs/MessageAttachmentKind.Resource",
           "description": "Discriminant"
+        },
+        "selection": {
+          "$ref": "#/$defs/TextSelection",
+          "description": "Optional selection within the referenced textual resource.\n\nOnly meaningful for textual resources."
         }
       },
       "required": [

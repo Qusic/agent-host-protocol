@@ -1176,21 +1176,58 @@ public struct SessionInputRequest: Codable, Sendable {
     }
 }
 
+public struct TextPosition: Codable, Sendable {
+    /// Zero-based line number.
+    public var line: Int
+    /// Zero-based character offset within the line.
+    public var character: Int
+
+    public init(
+        line: Int,
+        character: Int
+    ) {
+        self.line = line
+        self.character = character
+    }
+}
+
+public struct TextRange: Codable, Sendable {
+    /// Start position of the range.
+    public var start: TextPosition
+    /// End position of the range.
+    public var end: TextPosition
+
+    public init(
+        start: TextPosition,
+        end: TextPosition
+    ) {
+        self.start = start
+        self.end = end
+    }
+}
+
+public struct TextSelection: Codable, Sendable {
+    /// The selected text.
+    public var value: String
+    /// The range covered by {@link value}.
+    public var range: TextRange
+
+    public init(
+        value: String,
+        range: TextRange
+    ) {
+        self.value = value
+        self.range = range
+    }
+}
+
 public struct SimpleMessageAttachment: Codable, Sendable {
     /// A human-readable label for the attachment (e.g. the filename of a file
     /// attachment). Used for display in UI.
     public var label: String
-    /// If defined, the start of the range in {@link UserMessage.text} that
-    /// references this attachment. The range is the half-open interval
-    /// `[rangeStart, rangeEnd)` of character offsets, measured in UTF-16 code
-    /// units.
-    /// 
-    /// When present, `rangeEnd` MUST also be present and MUST be greater than or
-    /// equal to `rangeStart`.
-    public var rangeStart: Int?
-    /// The end of the range in {@link UserMessage.text} that references this
-    /// attachment. See {@link rangeStart}.
-    public var rangeEnd: Int?
+    /// If defined, the range in {@link UserMessage.text} that references this
+    /// attachment. This is a text range, not a byte range.
+    public var range: TextRange?
     /// Advisory display hint for clients rendering this attachment. Recognized
     /// values include:
     /// 
@@ -1221,8 +1258,7 @@ public struct SimpleMessageAttachment: Codable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case label
-        case rangeStart
-        case rangeEnd
+        case range
         case displayKind
         case meta = "_meta"
         case type
@@ -1231,16 +1267,14 @@ public struct SimpleMessageAttachment: Codable, Sendable {
 
     public init(
         label: String,
-        rangeStart: Int? = nil,
-        rangeEnd: Int? = nil,
+        range: TextRange? = nil,
         displayKind: String? = nil,
         meta: [String: AnyCodable]? = nil,
         type: MessageAttachmentKind,
         modelRepresentation: String? = nil
     ) {
         self.label = label
-        self.rangeStart = rangeStart
-        self.rangeEnd = rangeEnd
+        self.range = range
         self.displayKind = displayKind
         self.meta = meta
         self.type = type
@@ -1252,17 +1286,9 @@ public struct MessageEmbeddedResourceAttachment: Codable, Sendable {
     /// A human-readable label for the attachment (e.g. the filename of a file
     /// attachment). Used for display in UI.
     public var label: String
-    /// If defined, the start of the range in {@link UserMessage.text} that
-    /// references this attachment. The range is the half-open interval
-    /// `[rangeStart, rangeEnd)` of character offsets, measured in UTF-16 code
-    /// units.
-    /// 
-    /// When present, `rangeEnd` MUST also be present and MUST be greater than or
-    /// equal to `rangeStart`.
-    public var rangeStart: Int?
-    /// The end of the range in {@link UserMessage.text} that references this
-    /// attachment. See {@link rangeStart}.
-    public var rangeEnd: Int?
+    /// If defined, the range in {@link UserMessage.text} that references this
+    /// attachment. This is a text range, not a byte range.
+    public var range: TextRange?
     /// Advisory display hint for clients rendering this attachment. Recognized
     /// values include:
     /// 
@@ -1287,36 +1313,40 @@ public struct MessageEmbeddedResourceAttachment: Codable, Sendable {
     public var data: String
     /// Content MIME type (e.g. `"image/png"`, `"application/pdf"`)
     public var contentType: String
+    /// Optional selection within the attached textual resource.
+    /// 
+    /// Only meaningful for textual resources.
+    public var selection: TextSelection?
 
     enum CodingKeys: String, CodingKey {
         case label
-        case rangeStart
-        case rangeEnd
+        case range
         case displayKind
         case meta = "_meta"
         case type
         case data
         case contentType
+        case selection
     }
 
     public init(
         label: String,
-        rangeStart: Int? = nil,
-        rangeEnd: Int? = nil,
+        range: TextRange? = nil,
         displayKind: String? = nil,
         meta: [String: AnyCodable]? = nil,
         type: MessageAttachmentKind,
         data: String,
-        contentType: String
+        contentType: String,
+        selection: TextSelection? = nil
     ) {
         self.label = label
-        self.rangeStart = rangeStart
-        self.rangeEnd = rangeEnd
+        self.range = range
         self.displayKind = displayKind
         self.meta = meta
         self.type = type
         self.data = data
         self.contentType = contentType
+        self.selection = selection
     }
 }
 
@@ -1324,17 +1354,9 @@ public struct MessageResourceAttachment: Codable, Sendable {
     /// A human-readable label for the attachment (e.g. the filename of a file
     /// attachment). Used for display in UI.
     public var label: String
-    /// If defined, the start of the range in {@link UserMessage.text} that
-    /// references this attachment. The range is the half-open interval
-    /// `[rangeStart, rangeEnd)` of character offsets, measured in UTF-16 code
-    /// units.
-    /// 
-    /// When present, `rangeEnd` MUST also be present and MUST be greater than or
-    /// equal to `rangeStart`.
-    public var rangeStart: Int?
-    /// The end of the range in {@link UserMessage.text} that references this
-    /// attachment. See {@link rangeStart}.
-    public var rangeEnd: Int?
+    /// If defined, the range in {@link UserMessage.text} that references this
+    /// attachment. This is a text range, not a byte range.
+    public var range: TextRange?
     /// Advisory display hint for clients rendering this attachment. Recognized
     /// values include:
     /// 
@@ -1361,39 +1383,43 @@ public struct MessageResourceAttachment: Codable, Sendable {
     public var contentType: String?
     /// Discriminant
     public var type: MessageAttachmentKind
+    /// Optional selection within the referenced textual resource.
+    /// 
+    /// Only meaningful for textual resources.
+    public var selection: TextSelection?
 
     enum CodingKeys: String, CodingKey {
         case label
-        case rangeStart
-        case rangeEnd
+        case range
         case displayKind
         case meta = "_meta"
         case uri
         case sizeHint
         case contentType
         case type
+        case selection
     }
 
     public init(
         label: String,
-        rangeStart: Int? = nil,
-        rangeEnd: Int? = nil,
+        range: TextRange? = nil,
         displayKind: String? = nil,
         meta: [String: AnyCodable]? = nil,
         uri: String,
         sizeHint: Int? = nil,
         contentType: String? = nil,
-        type: MessageAttachmentKind
+        type: MessageAttachmentKind,
+        selection: TextSelection? = nil
     ) {
         self.label = label
-        self.rangeStart = rangeStart
-        self.rangeEnd = rangeEnd
+        self.range = range
         self.displayKind = displayKind
         self.meta = meta
         self.uri = uri
         self.sizeHint = sizeHint
         self.contentType = contentType
         self.type = type
+        self.selection = selection
     }
 }
 

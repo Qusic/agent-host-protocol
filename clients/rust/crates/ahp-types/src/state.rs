@@ -793,9 +793,9 @@ pub struct ActiveTurn {
 /// A user message and its associated attachments.
 ///
 /// Attachments MAY be referenced inside {@link UserMessage.text} via their
-/// {@link MessageAttachmentBase.rangeStart}/{@link MessageAttachmentBase.rangeEnd}
-/// fields. Attachments without a range are still associated with the message
-/// but do not correspond to a specific span in the text.
+/// {@link MessageAttachmentBase.range} field. Attachments without a range are
+/// still associated with the message but do not correspond to a specific span
+/// in the text.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserMessage {
@@ -1018,6 +1018,40 @@ pub struct SessionInputRequest {
     pub answers: Option<std::collections::HashMap<String, SessionInputAnswer>>,
 }
 
+/// A zero-based position within a textual document.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TextPosition {
+    /// Zero-based line number.
+    pub line: i64,
+    /// Zero-based character offset within the line.
+    pub character: i64,
+}
+
+/// A range within a textual document.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TextRange {
+    /// Start position of the range.
+    pub start: TextPosition,
+    /// End position of the range.
+    pub end: TextPosition,
+}
+
+/// A selection within a textual resource.
+///
+/// This is only meaningful for textual resources. Binary resources may still
+/// use resource or embedded resource attachments, but they should not use this
+/// text selection field.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TextSelection {
+    /// The selected text.
+    pub value: String,
+    /// The range covered by {@link value}.
+    pub range: TextRange,
+}
+
 /// A simple, opaque attachment whose model representation is described by
 /// the producer.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1026,19 +1060,10 @@ pub struct SimpleMessageAttachment {
     /// A human-readable label for the attachment (e.g. the filename of a file
     /// attachment). Used for display in UI.
     pub label: String,
-    /// If defined, the start of the range in {@link UserMessage.text} that
-    /// references this attachment. The range is the half-open interval
-    /// `[rangeStart, rangeEnd)` of character offsets, measured in UTF-16 code
-    /// units.
-    ///
-    /// When present, `rangeEnd` MUST also be present and MUST be greater than or
-    /// equal to `rangeStart`.
+    /// If defined, the range in {@link UserMessage.text} that references this
+    /// attachment. This is a text range, not a byte range.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub range_start: Option<i64>,
-    /// The end of the range in {@link UserMessage.text} that references this
-    /// attachment. See {@link rangeStart}.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub range_end: Option<i64>,
+    pub range: Option<TextRange>,
     /// Advisory display hint for clients rendering this attachment. Recognized
     /// values include:
     ///
@@ -1079,19 +1104,10 @@ pub struct MessageEmbeddedResourceAttachment {
     /// A human-readable label for the attachment (e.g. the filename of a file
     /// attachment). Used for display in UI.
     pub label: String,
-    /// If defined, the start of the range in {@link UserMessage.text} that
-    /// references this attachment. The range is the half-open interval
-    /// `[rangeStart, rangeEnd)` of character offsets, measured in UTF-16 code
-    /// units.
-    ///
-    /// When present, `rangeEnd` MUST also be present and MUST be greater than or
-    /// equal to `rangeStart`.
+    /// If defined, the range in {@link UserMessage.text} that references this
+    /// attachment. This is a text range, not a byte range.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub range_start: Option<i64>,
-    /// The end of the range in {@link UserMessage.text} that references this
-    /// attachment. See {@link rangeStart}.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub range_end: Option<i64>,
+    pub range: Option<TextRange>,
     /// Advisory display hint for clients rendering this attachment. Recognized
     /// values include:
     ///
@@ -1116,6 +1132,11 @@ pub struct MessageEmbeddedResourceAttachment {
     pub data: String,
     /// Content MIME type (e.g. `"image/png"`, `"application/pdf"`)
     pub content_type: String,
+    /// Optional selection within the attached textual resource.
+    ///
+    /// Only meaningful for textual resources.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection: Option<TextSelection>,
 }
 
 /// An attachment that references a resource by URI. The content is not
@@ -1126,19 +1147,10 @@ pub struct MessageResourceAttachment {
     /// A human-readable label for the attachment (e.g. the filename of a file
     /// attachment). Used for display in UI.
     pub label: String,
-    /// If defined, the start of the range in {@link UserMessage.text} that
-    /// references this attachment. The range is the half-open interval
-    /// `[rangeStart, rangeEnd)` of character offsets, measured in UTF-16 code
-    /// units.
-    ///
-    /// When present, `rangeEnd` MUST also be present and MUST be greater than or
-    /// equal to `rangeStart`.
+    /// If defined, the range in {@link UserMessage.text} that references this
+    /// attachment. This is a text range, not a byte range.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub range_start: Option<i64>,
-    /// The end of the range in {@link UserMessage.text} that references this
-    /// attachment. See {@link rangeStart}.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub range_end: Option<i64>,
+    pub range: Option<TextRange>,
     /// Advisory display hint for clients rendering this attachment. Recognized
     /// values include:
     ///
@@ -1167,6 +1179,11 @@ pub struct MessageResourceAttachment {
     /// Content MIME type
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub content_type: Option<String>,
+    /// Optional selection within the referenced textual resource.
+    ///
+    /// Only meaningful for textual resources.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection: Option<TextSelection>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
