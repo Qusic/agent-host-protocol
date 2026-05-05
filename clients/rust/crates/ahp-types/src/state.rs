@@ -793,9 +793,9 @@ pub struct ActiveTurn {
 /// A user message and its associated attachments.
 ///
 /// Attachments MAY be referenced inside {@link UserMessage.text} via their
-/// {@link MessageAttachmentBase.rangeStart}/{@link MessageAttachmentBase.rangeEnd}
-/// fields. Attachments without a range are still associated with the message
-/// but do not correspond to a specific span in the text.
+/// {@link MessageAttachmentBase.range} field. Attachments without a range are
+/// still associated with the message but do not correspond to a specific span
+/// in the text.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserMessage {
@@ -1046,19 +1046,10 @@ pub struct SimpleMessageAttachment {
     /// A human-readable label for the attachment (e.g. the filename of a file
     /// attachment). Used for display in UI.
     pub label: String,
-    /// If defined, the start of the range in {@link UserMessage.text} that
-    /// references this attachment. The range is the half-open interval
-    /// `[rangeStart, rangeEnd)` of character offsets, measured in UTF-16 code
-    /// units.
-    ///
-    /// When present, `rangeEnd` MUST also be present and MUST be greater than or
-    /// equal to `rangeStart`.
+    /// If defined, the range in {@link UserMessage.text} that references this
+    /// attachment.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub range_start: Option<i64>,
-    /// The end of the range in {@link UserMessage.text} that references this
-    /// attachment. See {@link rangeStart}.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub range_end: Option<i64>,
+    pub range: Option<TextRange>,
     /// Advisory display hint for clients rendering this attachment. Recognized
     /// values include:
     ///
@@ -1099,19 +1090,10 @@ pub struct MessageEmbeddedResourceAttachment {
     /// A human-readable label for the attachment (e.g. the filename of a file
     /// attachment). Used for display in UI.
     pub label: String,
-    /// If defined, the start of the range in {@link UserMessage.text} that
-    /// references this attachment. The range is the half-open interval
-    /// `[rangeStart, rangeEnd)` of character offsets, measured in UTF-16 code
-    /// units.
-    ///
-    /// When present, `rangeEnd` MUST also be present and MUST be greater than or
-    /// equal to `rangeStart`.
+    /// If defined, the range in {@link UserMessage.text} that references this
+    /// attachment.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub range_start: Option<i64>,
-    /// The end of the range in {@link UserMessage.text} that references this
-    /// attachment. See {@link rangeStart}.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub range_end: Option<i64>,
+    pub range: Option<TextRange>,
     /// Advisory display hint for clients rendering this attachment. Recognized
     /// values include:
     ///
@@ -1138,9 +1120,8 @@ pub struct MessageEmbeddedResourceAttachment {
     pub content_type: String,
     /// Optional range within the attached textual resource.
     ///
-    /// This is distinct from {@link MessageAttachmentBase.rangeStart} /
-    /// {@link MessageAttachmentBase.rangeEnd}, which refer to the span in
-    /// {@link UserMessage.text} that references the attachment.
+    /// This is distinct from {@link MessageAttachmentBase.range}, which refers to
+    /// the span in {@link UserMessage.text} that references the attachment.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub document_range: Option<TextRange>,
     /// Optional text covered by {@link documentRange}, when already known by the
@@ -1157,19 +1138,10 @@ pub struct MessageResourceAttachment {
     /// A human-readable label for the attachment (e.g. the filename of a file
     /// attachment). Used for display in UI.
     pub label: String,
-    /// If defined, the start of the range in {@link UserMessage.text} that
-    /// references this attachment. The range is the half-open interval
-    /// `[rangeStart, rangeEnd)` of character offsets, measured in UTF-16 code
-    /// units.
-    ///
-    /// When present, `rangeEnd` MUST also be present and MUST be greater than or
-    /// equal to `rangeStart`.
+    /// If defined, the range in {@link UserMessage.text} that references this
+    /// attachment.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub range_start: Option<i64>,
-    /// The end of the range in {@link UserMessage.text} that references this
-    /// attachment. See {@link rangeStart}.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub range_end: Option<i64>,
+    pub range: Option<TextRange>,
     /// Advisory display hint for clients rendering this attachment. Recognized
     /// values include:
     ///
@@ -1200,9 +1172,8 @@ pub struct MessageResourceAttachment {
     pub content_type: Option<String>,
     /// Optional range within the referenced textual resource.
     ///
-    /// This is distinct from {@link MessageAttachmentBase.rangeStart} /
-    /// {@link MessageAttachmentBase.rangeEnd}, which refer to the span in
-    /// {@link UserMessage.text} that references the attachment.
+    /// This is distinct from {@link MessageAttachmentBase.range}, which refers to
+    /// the span in {@link UserMessage.text} that references the attachment.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub document_range: Option<TextRange>,
     /// Optional text covered by {@link documentRange}, when already known by the
