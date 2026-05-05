@@ -561,6 +561,8 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: str
   { name: 'SessionInputSingleSelectQuestion', omitDiscriminants: true },
   { name: 'SessionInputMultiSelectQuestion', omitDiscriminants: true },
   { name: 'SessionInputRequest' },
+  { name: 'TextDocumentPosition' },
+  { name: 'TextDocumentRange' },
   { name: 'SimpleMessageAttachment', omitDiscriminants: true },
   { name: 'MessageEmbeddedResourceAttachment', omitDiscriminants: true },
   { name: 'MessageResourceAttachment', omitDiscriminants: true },

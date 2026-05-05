@@ -1018,6 +1018,26 @@ pub struct SessionInputRequest {
     pub answers: Option<std::collections::HashMap<String, SessionInputAnswer>>,
 }
 
+/// A zero-based position within a textual document.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TextDocumentPosition {
+    /// Zero-based line number.
+    pub line: i64,
+    /// Zero-based character offset within the line.
+    pub character: i64,
+}
+
+/// A range within a textual document.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TextDocumentRange {
+    /// Start position of the range.
+    pub start: TextDocumentPosition,
+    /// End position of the range.
+    pub end: TextDocumentPosition,
+}
+
 /// A simple, opaque attachment whose model representation is described by
 /// the producer.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1116,6 +1136,17 @@ pub struct MessageEmbeddedResourceAttachment {
     pub data: String,
     /// Content MIME type (e.g. `"image/png"`, `"application/pdf"`)
     pub content_type: String,
+    /// Optional range within the attached textual resource.
+    ///
+    /// This is distinct from {@link MessageAttachmentBase.rangeStart} /
+    /// {@link MessageAttachmentBase.rangeEnd}, which refer to the span in
+    /// {@link UserMessage.text} that references the attachment.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub document_range: Option<TextDocumentRange>,
+    /// Optional text covered by {@link documentRange}, when already known by the
+    /// client or producer.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_text: Option<String>,
 }
 
 /// An attachment that references a resource by URI. The content is not
@@ -1167,6 +1198,17 @@ pub struct MessageResourceAttachment {
     /// Content MIME type
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub content_type: Option<String>,
+    /// Optional range within the referenced textual resource.
+    ///
+    /// This is distinct from {@link MessageAttachmentBase.rangeStart} /
+    /// {@link MessageAttachmentBase.rangeEnd}, which refer to the span in
+    /// {@link UserMessage.text} that references the attachment.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub document_range: Option<TextDocumentRange>,
+    /// Optional text covered by {@link documentRange}, when already known by the
+    /// client or producer.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_text: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

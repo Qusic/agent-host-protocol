@@ -178,9 +178,24 @@ MessageAttachmentBase {
   displayKind?: 'image' | 'document' | 'symbol' | 'directory' | 'selection' | string
   _meta?: Record<string, unknown>
 }
+
+TextDocumentRange {
+  start: { line: number, character: number }  // zero-based document position
+  end: { line: number, character: number }
+}
+
+MessageResourceAttachment {
+  type: 'resource'
+  uri: URI
+  displayKind?: 'selection'
+  documentRange?: TextDocumentRange
+  selectedText?: string
+}
 ```
 
 Attachments MAY be referenced inline by `text` via the optional `rangeStart`/`rangeEnd` fields, which point at a half-open span of UTF-16 code units in the message text. Attachments without a range are still associated with the message but are not anchored to a specific span.
+
+Resource and embedded-resource attachments MAY also include `documentRange` to identify a range within the attached textual document/resource. This is distinct from `rangeStart`/`rangeEnd`, which only describe where the attachment is referenced in the user message text. When the selected/ranged text is already known, producers MAY include it in `selectedText`.
 
 Use `SimpleMessageAttachment` for opaque attachments whose model representation is supplied by the producer, `MessageEmbeddedResourceAttachment` for small inline base64 payloads (e.g. a pasted image), and `MessageResourceAttachment` to reference a resource by URI (the content is fetched via `resourceRead` when needed).
 

@@ -1176,6 +1176,36 @@ public struct SessionInputRequest: Codable, Sendable {
     }
 }
 
+public struct TextDocumentPosition: Codable, Sendable {
+    /// Zero-based line number.
+    public var line: Int
+    /// Zero-based character offset within the line.
+    public var character: Int
+
+    public init(
+        line: Int,
+        character: Int
+    ) {
+        self.line = line
+        self.character = character
+    }
+}
+
+public struct TextDocumentRange: Codable, Sendable {
+    /// Start position of the range.
+    public var start: TextDocumentPosition
+    /// End position of the range.
+    public var end: TextDocumentPosition
+
+    public init(
+        start: TextDocumentPosition,
+        end: TextDocumentPosition
+    ) {
+        self.start = start
+        self.end = end
+    }
+}
+
 public struct SimpleMessageAttachment: Codable, Sendable {
     /// A human-readable label for the attachment (e.g. the filename of a file
     /// attachment). Used for display in UI.
@@ -1287,6 +1317,15 @@ public struct MessageEmbeddedResourceAttachment: Codable, Sendable {
     public var data: String
     /// Content MIME type (e.g. `"image/png"`, `"application/pdf"`)
     public var contentType: String
+    /// Optional range within the attached textual resource.
+    /// 
+    /// This is distinct from {@link MessageAttachmentBase.rangeStart} /
+    /// {@link MessageAttachmentBase.rangeEnd}, which refer to the span in
+    /// {@link UserMessage.text} that references the attachment.
+    public var documentRange: TextDocumentRange?
+    /// Optional text covered by {@link documentRange}, when already known by the
+    /// client or producer.
+    public var selectedText: String?
 
     enum CodingKeys: String, CodingKey {
         case label
@@ -1297,6 +1336,8 @@ public struct MessageEmbeddedResourceAttachment: Codable, Sendable {
         case type
         case data
         case contentType
+        case documentRange
+        case selectedText
     }
 
     public init(
@@ -1307,7 +1348,9 @@ public struct MessageEmbeddedResourceAttachment: Codable, Sendable {
         meta: [String: AnyCodable]? = nil,
         type: MessageAttachmentKind,
         data: String,
-        contentType: String
+        contentType: String,
+        documentRange: TextDocumentRange? = nil,
+        selectedText: String? = nil
     ) {
         self.label = label
         self.rangeStart = rangeStart
@@ -1317,6 +1360,8 @@ public struct MessageEmbeddedResourceAttachment: Codable, Sendable {
         self.type = type
         self.data = data
         self.contentType = contentType
+        self.documentRange = documentRange
+        self.selectedText = selectedText
     }
 }
 
@@ -1361,6 +1406,15 @@ public struct MessageResourceAttachment: Codable, Sendable {
     public var contentType: String?
     /// Discriminant
     public var type: MessageAttachmentKind
+    /// Optional range within the referenced textual resource.
+    /// 
+    /// This is distinct from {@link MessageAttachmentBase.rangeStart} /
+    /// {@link MessageAttachmentBase.rangeEnd}, which refer to the span in
+    /// {@link UserMessage.text} that references the attachment.
+    public var documentRange: TextDocumentRange?
+    /// Optional text covered by {@link documentRange}, when already known by the
+    /// client or producer.
+    public var selectedText: String?
 
     enum CodingKeys: String, CodingKey {
         case label
@@ -1372,6 +1426,8 @@ public struct MessageResourceAttachment: Codable, Sendable {
         case sizeHint
         case contentType
         case type
+        case documentRange
+        case selectedText
     }
 
     public init(
@@ -1383,7 +1439,9 @@ public struct MessageResourceAttachment: Codable, Sendable {
         uri: String,
         sizeHint: Int? = nil,
         contentType: String? = nil,
-        type: MessageAttachmentKind
+        type: MessageAttachmentKind,
+        documentRange: TextDocumentRange? = nil,
+        selectedText: String? = nil
     ) {
         self.label = label
         self.rangeStart = rangeStart
@@ -1394,6 +1452,8 @@ public struct MessageResourceAttachment: Codable, Sendable {
         self.sizeHint = sizeHint
         self.contentType = contentType
         self.type = type
+        self.documentRange = documentRange
+        self.selectedText = selectedText
     }
 }
 

@@ -910,6 +910,30 @@ export interface MessageAttachmentBase {
 }
 
 /**
+ * A zero-based position within a textual document.
+ *
+ * @category Turn Types
+ */
+export interface TextDocumentPosition {
+  /** Zero-based line number. */
+  line: number;
+  /** Zero-based character offset within the line. */
+  character: number;
+}
+
+/**
+ * A range within a textual document.
+ *
+ * @category Turn Types
+ */
+export interface TextDocumentRange {
+  /** Start position of the range. */
+  start: TextDocumentPosition;
+  /** End position of the range. */
+  end: TextDocumentPosition;
+}
+
+/**
  * A simple, opaque attachment whose model representation is described by
  * the producer.
  *
@@ -945,6 +969,19 @@ export interface MessageEmbeddedResourceAttachment extends MessageAttachmentBase
   data: string;
   /** Content MIME type (e.g. `"image/png"`, `"application/pdf"`) */
   contentType: string;
+  /**
+   * Optional range within the attached textual resource.
+   *
+   * This is distinct from {@link MessageAttachmentBase.rangeStart} /
+   * {@link MessageAttachmentBase.rangeEnd}, which refer to the span in
+   * {@link UserMessage.text} that references the attachment.
+   */
+  documentRange?: TextDocumentRange;
+  /**
+   * Optional text covered by {@link documentRange}, when already known by the
+   * client or producer.
+   */
+  selectedText?: string;
 }
 
 /**
@@ -956,6 +993,19 @@ export interface MessageEmbeddedResourceAttachment extends MessageAttachmentBase
 export interface MessageResourceAttachment extends MessageAttachmentBase, ContentRef {
   /** Discriminant */
   type: MessageAttachmentKind.Resource;
+  /**
+   * Optional range within the referenced textual resource.
+   *
+   * This is distinct from {@link MessageAttachmentBase.rangeStart} /
+   * {@link MessageAttachmentBase.rangeEnd}, which refer to the span in
+   * {@link UserMessage.text} that references the attachment.
+   */
+  documentRange?: TextDocumentRange;
+  /**
+   * Optional text covered by {@link documentRange}, when already known by the
+   * client or producer.
+   */
+  selectedText?: string;
 }
 
 /**

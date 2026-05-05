@@ -26,6 +26,8 @@ export type {
   UserMessage,
   MessageAttachment,
   MessageAttachmentBase,
+  TextDocumentPosition,
+  TextDocumentRange,
   SimpleMessageAttachment,
   MessageEmbeddedResourceAttachment,
   MessageResourceAttachment,

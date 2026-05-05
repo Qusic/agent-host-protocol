@@ -1426,6 +1426,42 @@
         "label"
       ]
     },
+    "TextDocumentPosition": {
+      "type": "object",
+      "description": "A zero-based position within a textual document.",
+      "properties": {
+        "line": {
+          "type": "number",
+          "description": "Zero-based line number."
+        },
+        "character": {
+          "type": "number",
+          "description": "Zero-based character offset within the line."
+        }
+      },
+      "required": [
+        "line",
+        "character"
+      ]
+    },
+    "TextDocumentRange": {
+      "type": "object",
+      "description": "A range within a textual document.",
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/TextDocumentPosition",
+          "description": "Start position of the range."
+        },
+        "end": {
+          "$ref": "#/$defs/TextDocumentPosition",
+          "description": "End position of the range."
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ]
+    },
     "SimpleMessageAttachment": {
       "type": "object",
       "description": "A simple, opaque attachment whose model representation is described by\nthe producer.",
@@ -1501,6 +1537,14 @@
         "contentType": {
           "type": "string",
           "description": "Content MIME type (e.g. `\"image/png\"`, `\"application/pdf\"`)"
+        },
+        "documentRange": {
+          "$ref": "#/$defs/TextDocumentRange",
+          "description": "Optional range within the attached textual resource.\n\nThis is distinct from {@link MessageAttachmentBase.rangeStart} /\n{@link MessageAttachmentBase.rangeEnd}, which refer to the span in\n{@link UserMessage.text} that references the attachment."
+        },
+        "selectedText": {
+          "type": "string",
+          "description": "Optional text covered by {@link documentRange}, when already known by the\nclient or producer."
         }
       },
       "required": [
@@ -1550,6 +1594,14 @@
         "type": {
           "$ref": "#/$defs/MessageAttachmentKind.Resource",
           "description": "Discriminant"
+        },
+        "documentRange": {
+          "$ref": "#/$defs/TextDocumentRange",
+          "description": "Optional range within the referenced textual resource.\n\nThis is distinct from {@link MessageAttachmentBase.rangeStart} /\n{@link MessageAttachmentBase.rangeEnd}, which refer to the span in\n{@link UserMessage.text} that references the attachment."
+        },
+        "selectedText": {
+          "type": "string",
+          "description": "Optional text covered by {@link documentRange}, when already known by the\nclient or producer."
         }
       },
       "required": [
