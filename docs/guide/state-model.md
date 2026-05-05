@@ -179,7 +179,7 @@ MessageAttachmentBase {
   _meta?: Record<string, unknown>
 }
 
-TextDocumentRange {
+TextRange {
   start: { line: number, character: number }  // zero-based document position
   end: { line: number, character: number }
 }
@@ -188,7 +188,7 @@ MessageResourceAttachment {
   type: 'resource'
   uri: URI
   displayKind?: 'selection'
-  documentRange?: TextDocumentRange
+  documentRange?: TextRange
   selectedText?: string
 }
 ```

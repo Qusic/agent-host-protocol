@@ -1176,7 +1176,7 @@ public struct SessionInputRequest: Codable, Sendable {
     }
 }
 
-public struct TextDocumentPosition: Codable, Sendable {
+public struct TextPosition: Codable, Sendable {
     /// Zero-based line number.
     public var line: Int
     /// Zero-based character offset within the line.
@@ -1191,15 +1191,15 @@ public struct TextDocumentPosition: Codable, Sendable {
     }
 }
 
-public struct TextDocumentRange: Codable, Sendable {
+public struct TextRange: Codable, Sendable {
     /// Start position of the range.
-    public var start: TextDocumentPosition
+    public var start: TextPosition
     /// End position of the range.
-    public var end: TextDocumentPosition
+    public var end: TextPosition
 
     public init(
-        start: TextDocumentPosition,
-        end: TextDocumentPosition
+        start: TextPosition,
+        end: TextPosition
     ) {
         self.start = start
         self.end = end
@@ -1322,7 +1322,7 @@ public struct MessageEmbeddedResourceAttachment: Codable, Sendable {
     /// This is distinct from {@link MessageAttachmentBase.rangeStart} /
     /// {@link MessageAttachmentBase.rangeEnd}, which refer to the span in
     /// {@link UserMessage.text} that references the attachment.
-    public var documentRange: TextDocumentRange?
+    public var documentRange: TextRange?
     /// Optional text covered by {@link documentRange}, when already known by the
     /// client or producer.
     public var selectedText: String?
@@ -1349,7 +1349,7 @@ public struct MessageEmbeddedResourceAttachment: Codable, Sendable {
         type: MessageAttachmentKind,
         data: String,
         contentType: String,
-        documentRange: TextDocumentRange? = nil,
+        documentRange: TextRange? = nil,
         selectedText: String? = nil
     ) {
         self.label = label
@@ -1411,7 +1411,7 @@ public struct MessageResourceAttachment: Codable, Sendable {
     /// This is distinct from {@link MessageAttachmentBase.rangeStart} /
     /// {@link MessageAttachmentBase.rangeEnd}, which refer to the span in
     /// {@link UserMessage.text} that references the attachment.
-    public var documentRange: TextDocumentRange?
+    public var documentRange: TextRange?
     /// Optional text covered by {@link documentRange}, when already known by the
     /// client or producer.
     public var selectedText: String?
@@ -1440,7 +1440,7 @@ public struct MessageResourceAttachment: Codable, Sendable {
         sizeHint: Int? = nil,
         contentType: String? = nil,
         type: MessageAttachmentKind,
-        documentRange: TextDocumentRange? = nil,
+        documentRange: TextRange? = nil,
         selectedText: String? = nil
     ) {
         self.label = label

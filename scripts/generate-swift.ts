@@ -499,7 +499,7 @@ const STATE_STRUCTS = [
   'SessionInputNumberQuestion', 'SessionInputBooleanQuestion',
   'SessionInputSingleSelectQuestion', 'SessionInputMultiSelectQuestion',
   'SessionInputRequest',
-  'TextDocumentPosition', 'TextDocumentRange',
+  'TextPosition', 'TextRange',
   'SimpleMessageAttachment', 'MessageEmbeddedResourceAttachment', 'MessageResourceAttachment',
   'MarkdownResponsePart', 'ContentRef',
   'ResourceReponsePart', 'ToolCallResponsePart', 'ReasoningResponsePart',

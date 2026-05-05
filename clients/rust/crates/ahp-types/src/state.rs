@@ -1021,7 +1021,7 @@ pub struct SessionInputRequest {
 /// A zero-based position within a textual document.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TextDocumentPosition {
+pub struct TextPosition {
     /// Zero-based line number.
     pub line: i64,
     /// Zero-based character offset within the line.
@@ -1031,11 +1031,11 @@ pub struct TextDocumentPosition {
 /// A range within a textual document.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TextDocumentRange {
+pub struct TextRange {
     /// Start position of the range.
-    pub start: TextDocumentPosition,
+    pub start: TextPosition,
     /// End position of the range.
-    pub end: TextDocumentPosition,
+    pub end: TextPosition,
 }
 
 /// A simple, opaque attachment whose model representation is described by
@@ -1142,7 +1142,7 @@ pub struct MessageEmbeddedResourceAttachment {
     /// {@link MessageAttachmentBase.rangeEnd}, which refer to the span in
     /// {@link UserMessage.text} that references the attachment.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub document_range: Option<TextDocumentRange>,
+    pub document_range: Option<TextRange>,
     /// Optional text covered by {@link documentRange}, when already known by the
     /// client or producer.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1204,7 +1204,7 @@ pub struct MessageResourceAttachment {
     /// {@link MessageAttachmentBase.rangeEnd}, which refer to the span in
     /// {@link UserMessage.text} that references the attachment.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub document_range: Option<TextDocumentRange>,
+    pub document_range: Option<TextRange>,
     /// Optional text covered by {@link documentRange}, when already known by the
     /// client or producer.
     #[serde(default, skip_serializing_if = "Option::is_none")]

@@ -2846,7 +2846,7 @@
         "label"
       ]
     },
-    "TextDocumentPosition": {
+    "TextPosition": {
       "type": "object",
       "description": "A zero-based position within a textual document.",
       "properties": {
@@ -2864,16 +2864,16 @@
         "character"
       ]
     },
-    "TextDocumentRange": {
+    "TextRange": {
       "type": "object",
       "description": "A range within a textual document.",
       "properties": {
         "start": {
-          "$ref": "#/$defs/TextDocumentPosition",
+          "$ref": "#/$defs/TextPosition",
           "description": "Start position of the range."
         },
         "end": {
-          "$ref": "#/$defs/TextDocumentPosition",
+          "$ref": "#/$defs/TextPosition",
           "description": "End position of the range."
         }
       },
@@ -2959,7 +2959,7 @@
           "description": "Content MIME type (e.g. `\"image/png\"`, `\"application/pdf\"`)"
         },
         "documentRange": {
-          "$ref": "#/$defs/TextDocumentRange",
+          "$ref": "#/$defs/TextRange",
           "description": "Optional range within the attached textual resource.\n\nThis is distinct from {@link MessageAttachmentBase.rangeStart} /\n{@link MessageAttachmentBase.rangeEnd}, which refer to the span in\n{@link UserMessage.text} that references the attachment."
         },
         "selectedText": {
@@ -3016,7 +3016,7 @@
           "description": "Discriminant"
         },
         "documentRange": {
-          "$ref": "#/$defs/TextDocumentRange",
+          "$ref": "#/$defs/TextRange",
           "description": "Optional range within the referenced textual resource.\n\nThis is distinct from {@link MessageAttachmentBase.rangeStart} /\n{@link MessageAttachmentBase.rangeEnd}, which refer to the span in\n{@link UserMessage.text} that references the attachment."
         },
         "selectedText": {

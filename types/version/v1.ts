@@ -29,8 +29,8 @@ import type {
   UserMessage,
   MessageAttachment,
   MessageAttachmentBase,
-  TextDocumentPosition,
-  TextDocumentRange,
+  TextPosition,
+  TextRange,
   SimpleMessageAttachment,
   MessageEmbeddedResourceAttachment,
   MessageResourceAttachment,
@@ -229,8 +229,8 @@ type V1_IActiveTurn = ActiveTurn;
 type V1_IUserMessage = UserMessage;
 type V1_IMessageAttachment = MessageAttachment;
 type V1_IMessageAttachmentBase = MessageAttachmentBase;
-type V1_ITextDocumentPosition = TextDocumentPosition;
-type V1_ITextDocumentRange = TextDocumentRange;
+type V1_ITextPosition = TextPosition;
+type V1_ITextRange = TextRange;
 type V1_ISimpleMessageAttachment = SimpleMessageAttachment;
 type V1_IMessageEmbeddedResourceAttachment = MessageEmbeddedResourceAttachment;
 type V1_IMessageResourceAttachment = MessageResourceAttachment;
@@ -416,9 +416,9 @@ type _CheckMessageAttachment = AssertCompatible<V1_IMessageAttachment, MessageAt
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckMessageAttachmentBase = AssertCompatible<V1_IMessageAttachmentBase, MessageAttachmentBase>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-type _CheckTextDocumentPosition = AssertCompatible<V1_ITextDocumentPosition, TextDocumentPosition>;
+type _CheckTextPosition = AssertCompatible<V1_ITextPosition, TextPosition>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-type _CheckTextDocumentRange = AssertCompatible<V1_ITextDocumentRange, TextDocumentRange>;
+type _CheckTextRange = AssertCompatible<V1_ITextRange, TextRange>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckSimpleMessageAttachment = AssertCompatible<V1_ISimpleMessageAttachment, SimpleMessageAttachment>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

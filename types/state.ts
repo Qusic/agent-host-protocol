@@ -914,7 +914,7 @@ export interface MessageAttachmentBase {
  *
  * @category Turn Types
  */
-export interface TextDocumentPosition {
+export interface TextPosition {
   /** Zero-based line number. */
   line: number;
   /** Zero-based character offset within the line. */
@@ -926,11 +926,11 @@ export interface TextDocumentPosition {
  *
  * @category Turn Types
  */
-export interface TextDocumentRange {
+export interface TextRange {
   /** Start position of the range. */
-  start: TextDocumentPosition;
+  start: TextPosition;
   /** End position of the range. */
-  end: TextDocumentPosition;
+  end: TextPosition;
 }
 
 /**
@@ -976,7 +976,7 @@ export interface MessageEmbeddedResourceAttachment extends MessageAttachmentBase
    * {@link MessageAttachmentBase.rangeEnd}, which refer to the span in
    * {@link UserMessage.text} that references the attachment.
    */
-  documentRange?: TextDocumentRange;
+  documentRange?: TextRange;
   /**
    * Optional text covered by {@link documentRange}, when already known by the
    * client or producer.
@@ -1000,7 +1000,7 @@ export interface MessageResourceAttachment extends MessageAttachmentBase, Conten
    * {@link MessageAttachmentBase.rangeEnd}, which refer to the span in
    * {@link UserMessage.text} that references the attachment.
    */
-  documentRange?: TextDocumentRange;
+  documentRange?: TextRange;
   /**
    * Optional text covered by {@link documentRange}, when already known by the
    * client or producer.
