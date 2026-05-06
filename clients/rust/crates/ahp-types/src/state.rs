@@ -1046,9 +1046,7 @@ pub struct TextRange {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TextSelection {
-    /// The selected text.
-    pub value: String,
-    /// The range covered by {@link value}.
+    /// The range covered by the selection.
     pub range: TextRange,
 }
 

@@ -1207,16 +1207,12 @@ public struct TextRange: Codable, Sendable {
 }
 
 public struct TextSelection: Codable, Sendable {
-    /// The selected text.
-    public var value: String
-    /// The range covered by {@link value}.
+    /// The range covered by the selection.
     public var range: TextRange
 
     public init(
-        value: String,
         range: TextRange
     ) {
-        self.value = value
         self.range = range
     }
 }
