@@ -943,8 +943,6 @@ export interface TextRange {
  * @category Turn Types
  */
 export interface TextSelection {
-  /** The selected text, when already known by the producer. */
-  value?: string;
   /** The range covered by the selection. */
   range: TextRange;
 }

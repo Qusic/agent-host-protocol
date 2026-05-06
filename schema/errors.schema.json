@@ -1412,10 +1412,6 @@
       "type": "object",
       "description": "A selection within a textual resource.\n\nThis is only meaningful for textual resources. Binary resources may still\nuse resource or embedded resource attachments, but they should not use this\ntext selection field.",
       "properties": {
-        "value": {
-          "type": "string",
-          "description": "The selected text, when already known by the producer."
-        },
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "The range covered by the selection."

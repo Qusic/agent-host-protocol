@@ -1207,16 +1207,12 @@ public struct TextRange: Codable, Sendable {
 }
 
 public struct TextSelection: Codable, Sendable {
-    /// The selected text, when already known by the producer.
-    public var value: String?
     /// The range covered by the selection.
     public var range: TextRange
 
     public init(
-        value: String? = nil,
         range: TextRange
     ) {
-        self.value = value
         self.range = range
     }
 }

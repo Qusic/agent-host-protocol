@@ -1046,9 +1046,6 @@ pub struct TextRange {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TextSelection {
-    /// The selected text, when already known by the producer.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub value: Option<String>,
     /// The range covered by the selection.
     pub range: TextRange,
 }
