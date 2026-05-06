@@ -1059,7 +1059,7 @@ pub struct SimpleMessageAttachment {
     /// attachment). Used for display in UI.
     pub label: String,
     /// If defined, the range in {@link UserMessage.text} that references this
-    /// attachment.
+    /// attachment. This is a text range, not a byte range.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
     /// Advisory display hint for clients rendering this attachment. Recognized
@@ -1103,7 +1103,7 @@ pub struct MessageEmbeddedResourceAttachment {
     /// attachment). Used for display in UI.
     pub label: String,
     /// If defined, the range in {@link UserMessage.text} that references this
-    /// attachment.
+    /// attachment. This is a text range, not a byte range.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
     /// Advisory display hint for clients rendering this attachment. Recognized
@@ -1146,7 +1146,7 @@ pub struct MessageResourceAttachment {
     /// attachment). Used for display in UI.
     pub label: String,
     /// If defined, the range in {@link UserMessage.text} that references this
-    /// attachment.
+    /// attachment. This is a text range, not a byte range.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
     /// Advisory display hint for clients rendering this attachment. Recognized

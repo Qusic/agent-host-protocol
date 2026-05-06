@@ -1033,9 +1033,9 @@ export interface CompletionItem {
    * When omitted, the client SHOULD insert `insertText` at the cursor.
    *
    * Note: this range refers to positions in the *current* input. The
-   * attachment's own {@link MessageAttachmentBase.range} (when present)
-   * refers to positions in the final {@link UserMessage.text} after the item
-   * is accepted.
+   * attachment's own `rangeStart`/`rangeEnd` (when present) refer to
+   * positions in the final {@link UserMessage.text} after the item is
+   * accepted.
    */
   rangeStart?: number;
 

@@ -785,7 +785,7 @@
         },
         "rangeStart": {
           "type": "number",
-          "description": "If defined, the start of the range in the input's `text` that is replaced\nby `insertText`. The range is the half-open interval\n`[rangeStart, rangeEnd)` of character offsets, measured in UTF-16 code\nunits.\n\nWhen omitted, the client SHOULD insert `insertText` at the cursor.\n\nNote: this range refers to positions in the *current* input. The\nattachment's own {@link MessageAttachmentBase.range} (when present)\nrefers to positions in the final {@link UserMessage.text} after the item\nis accepted."
+          "description": "If defined, the start of the range in the input's `text` that is replaced\nby `insertText`. The range is the half-open interval\n`[rangeStart, rangeEnd)` of character offsets, measured in UTF-16 code\nunits.\n\nWhen omitted, the client SHOULD insert `insertText` at the cursor.\n\nNote: this range refers to positions in the *current* input. The\nattachment's own `rangeStart`/`rangeEnd` (when present) refer to\npositions in the final {@link UserMessage.text} after the item is\naccepted."
         },
         "rangeEnd": {
           "type": "number",
@@ -2075,7 +2075,7 @@
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment."
+          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment. This is a text range, not a byte range."
         },
         "displayKind": {
           "type": "string",
@@ -2150,7 +2150,7 @@
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment."
+          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment. This is a text range, not a byte range."
         },
         "displayKind": {
           "type": "string",
@@ -2185,7 +2185,7 @@
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment."
+          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment. This is a text range, not a byte range."
         },
         "displayKind": {
           "type": "string",
@@ -2230,7 +2230,7 @@
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment."
+          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment. This is a text range, not a byte range."
         },
         "displayKind": {
           "type": "string",

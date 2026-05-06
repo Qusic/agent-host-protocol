@@ -1222,7 +1222,7 @@ public struct SimpleMessageAttachment: Codable, Sendable {
     /// attachment). Used for display in UI.
     public var label: String
     /// If defined, the range in {@link UserMessage.text} that references this
-    /// attachment.
+    /// attachment. This is a text range, not a byte range.
     public var range: TextRange?
     /// Advisory display hint for clients rendering this attachment. Recognized
     /// values include:
@@ -1283,7 +1283,7 @@ public struct MessageEmbeddedResourceAttachment: Codable, Sendable {
     /// attachment). Used for display in UI.
     public var label: String
     /// If defined, the range in {@link UserMessage.text} that references this
-    /// attachment.
+    /// attachment. This is a text range, not a byte range.
     public var range: TextRange?
     /// Advisory display hint for clients rendering this attachment. Recognized
     /// values include:
@@ -1351,7 +1351,7 @@ public struct MessageResourceAttachment: Codable, Sendable {
     /// attachment). Used for display in UI.
     public var label: String
     /// If defined, the range in {@link UserMessage.text} that references this
-    /// attachment.
+    /// attachment. This is a text range, not a byte range.
     public var range: TextRange?
     /// Advisory display hint for clients rendering this attachment. Recognized
     /// values include:
