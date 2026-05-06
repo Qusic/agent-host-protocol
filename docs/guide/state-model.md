@@ -173,8 +173,7 @@ type MessageAttachment =
 // Common fields shared by all variants:
 MessageAttachmentBase {
   label: string                  // human-readable label, e.g. filename
-  rangeStart?: number            // half-open [rangeStart, rangeEnd) range
-  rangeEnd?: number              //   in `text` that references this attachment
+  range?: TextRange              // range in `text` that references this attachment
   displayKind?: 'image' | 'document' | 'symbol' | 'directory' | 'selection' | string
   _meta?: Record<string, unknown>
 }
@@ -196,9 +195,9 @@ MessageResourceAttachment {
 }
 ```
 
-Attachments MAY be referenced inline by `text` via the optional `rangeStart` / `rangeEnd` fields. These fields are the attachment anchor: a half-open UTF-16 offset span in the user message text. Attachments without a range are still associated with the message but are not anchored to a specific span.
+Attachments MAY be referenced inline by `text` via the optional `range` field. This field is the attachment anchor: a `TextRange` inside the user message text. Attachments without a range are still associated with the message but are not anchored to a specific span.
 
-Resource and embedded-resource attachments MAY also include `selection` to identify a selected range within the attached textual resource. This is distinct from the attachment anchor: `selection.range` is a `TextRange` with zero-based line/character positions inside the textual resource. Selected text is not embedded inline; consumers can resolve the resource and read the selected range when needed. `selection` is only meaningful for textual resources; binary resources may still use resource or embedded-resource attachments, but they should not use this text selection field.
+Resource and embedded-resource attachments MAY also include `selection` to identify a selected range within the attached textual resource. This is distinct from the attachment anchor: `selection.range` is a `TextRange` inside the textual resource, while `MessageAttachmentBase.range` is a `TextRange` inside the user message text. Selected text is not embedded inline; consumers can resolve the resource and read the selected range when needed. `selection` is only meaningful for textual resources; binary resources may still use resource or embedded-resource attachments, but they should not use this text selection field.
 
 Use `SimpleMessageAttachment` for opaque attachments whose model representation is supplied by the producer, `MessageEmbeddedResourceAttachment` for small inline base64 payloads (e.g. a pasted image), and `MessageResourceAttachment` to reference a resource by URI (the content is fetched via `resourceRead` when needed).
 
