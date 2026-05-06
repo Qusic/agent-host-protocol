@@ -184,7 +184,7 @@ TextRange {
 }
 
 TextSelection {
-  value: string
+  value?: string
   range: TextRange
 }
 
@@ -198,7 +198,7 @@ MessageResourceAttachment {
 
 Attachments MAY be referenced inline by `text` via the optional `range` field, which points at a span in the message text. This is a text range, not a byte range. Attachments without a range are still associated with the message but are not anchored to a specific span.
 
-Resource and embedded-resource attachments MAY also include `selection` to identify selected text within the attached textual resource. This is distinct from `range`, which only describes where the attachment is referenced in the user message text. `selection` is only meaningful for textual resources; binary resources may still use resource or embedded-resource attachments, but they should not use this text selection field.
+Resource and embedded-resource attachments MAY also include `selection` to identify selected text within the attached textual resource. This is distinct from `range`, which only describes where the attachment is referenced in the user message text. `selection.range` is the structured location inside the textual resource, and `selection.value` MAY include the selected text when already known by the producer. `selection` is only meaningful for textual resources; binary resources may still use resource or embedded-resource attachments, but they should not use this text selection field.
 
 Use `SimpleMessageAttachment` for opaque attachments whose model representation is supplied by the producer, `MessageEmbeddedResourceAttachment` for small inline base64 payloads (e.g. a pasted image), and `MessageResourceAttachment` to reference a resource by URI (the content is fetched via `resourceRead` when needed).
 

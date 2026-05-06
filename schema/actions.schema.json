@@ -2884,15 +2884,14 @@
       "properties": {
         "value": {
           "type": "string",
-          "description": "The selected text."
+          "description": "The selected text, when already known by the producer."
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "The range covered by {@link value}."
+          "description": "The range covered by the selection."
         }
       },
       "required": [
-        "value",
         "range"
       ]
     },
