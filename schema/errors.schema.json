@@ -2926,6 +2926,11 @@
         "snapshots"
       ]
     },
+    "PingParams": {
+      "type": "object",
+      "description": "Verifies that the AHP connection is still alive and keeps it from being\nclosed by idle-timeout intermediaries (proxies, load balancers, etc.).\n\nThe server MUST respond regardless of whether the client has completed\n`initialize` or holds any subscriptions. Ping carries no payload in either\ndirection; the response itself is the signal.",
+      "properties": {}
+    },
     "ReconnectParams": {
       "type": "object",
       "description": "Re-establishes a dropped connection. The server replays missed actions or\nprovides fresh snapshots.",
