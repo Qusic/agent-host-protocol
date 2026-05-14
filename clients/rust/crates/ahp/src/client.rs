@@ -82,6 +82,51 @@ pub enum SubscriptionEvent {
     Notification(ProtocolNotification),
 }
 
+/// Inbound event fanned out to a [`ClientEventStream`].
+///
+/// Carries the same payload as [`SubscriptionEvent`] but tagged with the
+/// resource URI it was scoped to (or `None` for protocol-level
+/// notifications that aren't bound to a resource). This is what the
+/// multi-host runtime — or any consumer that needs to observe *every*
+/// inbound event from a single client without subscribing per-URI —
+/// listens on.
+#[derive(Debug, Clone)]
+pub struct ClientEvent {
+    /// Resource URI this event was scoped to.
+    ///
+    /// `Some(uri)` for action envelopes, derived from the action payload.
+    /// `None` for protocol-level [`ProtocolNotification`]s, which apply
+    /// across resources rather than to any single one.
+    pub resource: Option<String>,
+    /// The underlying subscription event.
+    pub event: SubscriptionEvent,
+}
+
+/// Stream of every inbound event from a single [`Client`].
+///
+/// Returned by [`Client::events`]. Each call returns a fresh receiver
+/// with its own cursor — multiple consumers can listen independently.
+/// Slow consumers that lag behind
+/// [`ClientConfig::subscription_buffer`] events skip the gap and keep
+/// going, matching [`SessionSubscription`] semantics.
+pub struct ClientEventStream {
+    rx: broadcast::Receiver<ClientEvent>,
+}
+
+impl ClientEventStream {
+    /// Await the next event. Returns `None` when the client has shut
+    /// down (the underlying broadcast channel has closed).
+    pub async fn recv(&mut self) -> Option<ClientEvent> {
+        loop {
+            match self.rx.recv().await {
+                Ok(ev) => return Some(ev),
+                Err(broadcast::error::RecvError::Closed) => return None,
+                Err(broadcast::error::RecvError::Lagged(_)) => continue,
+            }
+        }
+    }
+}
+
 /// Handle to a single resource subscription. Drop to stop receiving
 /// events. The underlying server subscription is released when the last
 /// handle for that URI is dropped and [`Client::unsubscribe`] is called.
@@ -130,6 +175,7 @@ type PendingMap = HashMap<u64, oneshot::Sender<Result<Value, JsonRpcError>>>;
 struct Shared {
     pending: Mutex<PendingMap>,
     subscriptions: Mutex<HashMap<String, broadcast::Sender<SubscriptionEvent>>>,
+    all_events: broadcast::Sender<ClientEvent>,
     outbound: mpsc::Sender<Outbound>,
     next_id: AtomicU64,
     next_client_seq: AtomicU64,
@@ -173,9 +219,11 @@ impl Client {
         config: ClientConfig,
     ) -> Result<Self, ClientError> {
         let (outbound_tx, outbound_rx) = mpsc::channel::<Outbound>(64);
+        let (all_events_tx, _) = broadcast::channel::<ClientEvent>(config.subscription_buffer);
         let shared = Arc::new(Shared {
             pending: Mutex::new(HashMap::new()),
             subscriptions: Mutex::new(HashMap::new()),
+            all_events: all_events_tx,
             outbound: outbound_tx,
             next_id: AtomicU64::new(1),
             next_client_seq: AtomicU64::new(1),
@@ -359,6 +407,25 @@ impl Client {
             .await
     }
 
+    /// Subscribe to a top-level stream of every inbound event from this
+    /// client, regardless of resource URI.
+    ///
+    /// Each call returns a fresh receiver — multiple consumers can listen
+    /// independently. Useful for the multi-host runtime in
+    /// [`crate::hosts`], or any consumer that needs a single fan-in feed
+    /// rather than per-URI subscriptions.
+    ///
+    /// Action envelopes carry their resource URI in
+    /// [`ClientEvent::resource`]. Protocol-level
+    /// [`ProtocolNotification`]s have `resource: None` because they
+    /// aren't bound to a single resource — they are also still delivered
+    /// once to each per-URI [`SessionSubscription`] (existing behaviour).
+    pub fn events(&self) -> ClientEventStream {
+        ClientEventStream {
+            rx: self.shared.all_events.subscribe(),
+        }
+    }
+
     /// Fire a write-ahead `dispatchAction` notification with a
     /// client-assigned sequence number.
     pub async fn dispatch(&self, action: StateAction) -> Result<DispatchHandle, ClientError> {
@@ -454,25 +521,37 @@ async fn handle_notification(shared: &Shared, n: JsonRpcNotification) {
         "action" => {
             if let Ok(envelope) = serde_json::from_value::<ActionNotificationParams>(params_val) {
                 let resource = action_resource(&envelope.action);
-                let subs = shared.subscriptions.lock().await;
-                if let Some(resource) = resource {
-                    if let Some(tx) = subs.get(&resource) {
-                        let _ = tx.send(SubscriptionEvent::Action(envelope.clone()));
+                {
+                    let subs = shared.subscriptions.lock().await;
+                    if let Some(resource) = resource.as_ref() {
+                        if let Some(tx) = subs.get(resource) {
+                            let _ = tx.send(SubscriptionEvent::Action(envelope.clone()));
+                        }
                     }
                 }
+                let _ = shared.all_events.send(ClientEvent {
+                    resource,
+                    event: SubscriptionEvent::Action(envelope),
+                });
             }
         }
         "notification" => {
             if let Ok(wrapped) = serde_json::from_value::<NotificationMethodParams>(params_val) {
-                let subs = shared.subscriptions.lock().await;
-                // Protocol notifications are cross-resource; fan them out
-                // to every active subscription. Callers that care about a
-                // specific notification can filter.
-                for tx in subs.values() {
-                    let _ = tx.send(SubscriptionEvent::Notification(
-                        wrapped.notification.clone(),
-                    ));
+                {
+                    let subs = shared.subscriptions.lock().await;
+                    // Protocol notifications are cross-resource; fan them out
+                    // to every active per-URI subscription. Callers that care
+                    // about a specific notification can filter.
+                    for tx in subs.values() {
+                        let _ = tx.send(SubscriptionEvent::Notification(
+                            wrapped.notification.clone(),
+                        ));
+                    }
                 }
+                let _ = shared.all_events.send(ClientEvent {
+                    resource: None,
+                    event: SubscriptionEvent::Notification(wrapped.notification),
+                });
             }
         }
         other => {
@@ -486,7 +565,7 @@ async fn handle_notification(shared: &Shared, n: JsonRpcNotification) {
 /// Rather than enumerating every variant (which drifts as new actions are
 /// generated), we serialize the payload and inspect the `session` or
 /// `terminal` field. Root actions have neither and fall back to the
-/// well-known `root:/` URI.
+/// well-known [`ahp_types::ROOT_RESOURCE_URI`].
 fn action_resource(action: &StateAction) -> Option<String> {
     let val = serde_json::to_value(action).ok()?;
     if let Some(uri) = val.get("session").and_then(Value::as_str) {
@@ -495,5 +574,5 @@ fn action_resource(action: &StateAction) -> Option<String> {
     if let Some(uri) = val.get("terminal").and_then(Value::as_str) {
         return Some(uri.to_string());
     }
-    Some("root:/".into())
+    Some(ahp_types::ROOT_RESOURCE_URI.to_string())
 }
