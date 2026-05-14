@@ -113,3 +113,27 @@ final class InMemoryTransportTests: XCTestCase {
         }
     }
 }
+
+final class AHPClientConfigTests: XCTestCase {
+
+    func testSubscriptionBufferSizeClampsToOne() {
+        let config = AHPClientConfig(subscriptionBufferSize: 0)
+        XCTAssertEqual(config.subscriptionBufferSize, 1)
+    }
+
+    func testSubscriptionBufferSizeClampsNegativeToOne() {
+        let config = AHPClientConfig(subscriptionBufferSize: -42)
+        XCTAssertEqual(config.subscriptionBufferSize, 1)
+    }
+
+    func testSubscriptionBufferSizePreservesPositive() {
+        let config = AHPClientConfig(subscriptionBufferSize: 64)
+        XCTAssertEqual(config.subscriptionBufferSize, 64)
+    }
+
+    func testDefaultsAreReasonable() {
+        let config = AHPClientConfig.default
+        XCTAssertEqual(config.subscriptionBufferSize, 256)
+        XCTAssertEqual(config.requestTimeout, .seconds(30))
+    }
+}

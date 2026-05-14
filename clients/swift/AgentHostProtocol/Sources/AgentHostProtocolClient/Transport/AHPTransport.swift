@@ -95,6 +95,19 @@ extension JsonRpcMessage: Codable {
 /// when one is naturally available (e.g. an in-memory pair); otherwise text
 /// or binary frames carry the JSON-encoded payload and the client decodes
 /// them itself.
+///
+/// **Prefer `.text` or `.binary` for inbound frames.** `AHPClient` decodes
+/// inbound JSON via `JSONSerialization` to preserve the NSNumber
+/// `Bool`/`Int` distinction that `JSONDecoder`+`AnyCodable` collapses on
+/// Apple platforms (tracked as
+/// [microsoft/agent-host-protocol#123](https://github.com/microsoft/agent-host-protocol/issues/123)).
+/// Inbound `.parsed` messages bypass that path: the client must re-encode
+/// them to recover bytes, and any `AnyCodable`-wrapped payload inside them
+/// may already have been corrupted before reaching the client. `.parsed` is
+/// safe for outbound sends (the writer encodes to `.text` itself) and for
+/// transports that construct `JsonRpcMessage` values without going through
+/// `AnyCodable`/`JSONDecoder`. The in-memory test transport in this package
+/// only emits `.text`.
 public enum TransportMessage: Sendable {
     /// A pre-decoded JSON-RPC message.
     case parsed(JsonRpcMessage)

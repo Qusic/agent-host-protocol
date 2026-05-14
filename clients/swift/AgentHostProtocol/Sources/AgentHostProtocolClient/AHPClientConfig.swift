@@ -14,6 +14,9 @@ public struct AHPClientConfig: Sendable {
     /// are *unbounded* regardless of this value, since dropping action
     /// envelopes desyncs the consumer's reducer mirror.
     ///
+    /// Values less than 1 are silently clamped to 1 by the initializer so
+    /// the buffering policy always retains at least the most recent item.
+    ///
     /// Defaults to 256.
     public var subscriptionBufferSize: Int
 
@@ -22,7 +25,10 @@ public struct AHPClientConfig: Sendable {
         subscriptionBufferSize: Int = 256
     ) {
         self.requestTimeout = requestTimeout
-        self.subscriptionBufferSize = subscriptionBufferSize
+        // `.bufferingNewest(0)` means "buffer nothing" and `.bufferingNewest`
+        // with a negative count is undefined; clamp to 1 so the public API
+        // never lets the consumer reach those edges by accident.
+        self.subscriptionBufferSize = max(1, subscriptionBufferSize)
     }
 
     public static let `default` = AHPClientConfig()
