@@ -349,11 +349,26 @@ public actor AHPClient {
     public func dispatch(_ action: StateAction) async throws -> DispatchHandle {
         let seq = nextClientSeq
         nextClientSeq += 1
+        return try await dispatch(action, clientSeq: seq)
+    }
+
+    /// Fire a write-ahead `dispatchAction` notification with a caller-owned
+    /// `clientSeq`.
+    ///
+    /// Use this overload when a higher layer owns an outbound action queue and
+    /// needs to replay unacknowledged actions across reconnects with stable
+    /// sequence numbers. The convenience `dispatch(_:)` overload remains
+    /// suitable for simple fire-and-forget clients.
+    @discardableResult
+    public func dispatch(_ action: StateAction, clientSeq: Int) async throws -> DispatchHandle {
+        if clientSeq >= nextClientSeq {
+            nextClientSeq = clientSeq + 1
+        }
         try await notify(
             method: "dispatchAction",
-            params: DispatchActionParams(clientSeq: seq, action: action)
+            params: DispatchActionParams(clientSeq: clientSeq, action: action)
         )
-        return DispatchHandle(clientSeq: seq)
+        return DispatchHandle(clientSeq: clientSeq)
     }
 
     // MARK: - Generic request
@@ -495,8 +510,12 @@ public actor AHPClient {
             case .binary(let d):
                 data = d
             case .parsed(let parsed):
-                // Slow path: re-serialize and re-parse so the rest of the
-                // pipeline only deals with raw bytes.
+                // Slow path: re-serialize via Codable so the rest of the
+                // pipeline only deals with raw bytes. Note that any
+                // `AnyCodable`-wrapped payload inside `parsed` may already
+                // have been corrupted by an earlier `JSONDecoder` pass —
+                // see `TransportMessage` docs and microsoft/agent-host-protocol#123.
+                // Transports SHOULD prefer `.text`/`.binary` for inbound frames.
                 guard let d = try? encoder.encode(parsed) else {
                     #if DEBUG
                     print("[AHPClient] dropped unencodable parsed frame")
@@ -550,9 +569,15 @@ public actor AHPClient {
             guard let resultAny = object["result"] else {
                 return nil
             }
-            let resultData = (try? JSONSerialization.data(
+            // If we can't re-serialize the value we just parsed (e.g. an
+            // exotic NSObject snuck in), drop the whole frame rather than
+            // silently coercing the result to JSON `null`. A `null` would
+            // resolve the pending request with a value the peer never sent.
+            guard let resultData = try? JSONSerialization.data(
                 withJSONObject: resultAny, options: [.fragmentsAllowed]
-            )) ?? Data("null".utf8)
+            ) else {
+                return nil
+            }
             return .successResponse(id: id, result: resultData)
         }
 

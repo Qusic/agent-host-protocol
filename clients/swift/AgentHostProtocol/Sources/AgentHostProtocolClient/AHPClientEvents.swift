@@ -15,9 +15,9 @@ public enum SubscriptionEvent: Sendable {
 
 /// One event delivered by `AHPClient.events` — the top-level multicast tap.
 ///
-/// `resource` is `Some(uri)` for action envelopes (the URI the action is
-/// scoped to) and `None` for cross-resource protocol notifications. Mirrors
-/// the shape planned for the Rust `Client::events()` method.
+/// `resource` is non-nil for action envelopes (carrying the URI the action is
+/// scoped to) and nil for cross-resource protocol notifications. Mirrors the
+/// shape planned for the Rust `Client::events()` method.
 public struct ClientEvent: Sendable {
     public let resource: String?
     public let event: SubscriptionEvent

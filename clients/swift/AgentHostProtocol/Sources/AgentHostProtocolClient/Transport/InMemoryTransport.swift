@@ -93,33 +93,72 @@ public final class InMemoryTransport: AHPTransport, @unchecked Sendable {
     }
 }
 
-/// Single-consumer iterator wrapper. Locks are taken only synchronously, never
-/// across an `await`. Concurrent calls to `next()` are unsupported and may
-/// crash.
+/// Single-consumer iterator wrapper. Locks are taken only synchronously,
+/// never across an `await`. Concurrent calls to `next()` are unsupported and
+/// trip a `preconditionFailure` — they would otherwise look like a clean
+/// close to one of the racing callers.
 private final class IteratorBox: @unchecked Sendable {
-    private var iterator: AsyncStream<TransportMessage>.AsyncIterator?
+    private enum State {
+        /// Iterator is sitting in the box, ready for the next caller.
+        case available(AsyncStream<TransportMessage>.AsyncIterator)
+        /// A caller has taken the iterator and is awaiting its next item.
+        case inFlight
+        /// The stream has finished; future `next()` calls return nil.
+        case finished
+    }
+
+    private var state: State
     private let lock = NSLock()
 
     init(iterator: AsyncStream<TransportMessage>.AsyncIterator) {
-        self.iterator = iterator
+        self.state = .available(iterator)
     }
 
     func next() async -> TransportMessage? {
-        guard var iter = takeIterator() else { return nil }
+        var iter = takeIterator()
         let item = await iter.next()
+        if item == nil {
+            markFinished()
+            return nil
+        }
         returnIterator(iter)
         return item
     }
 
-    private func takeIterator() -> AsyncStream<TransportMessage>.AsyncIterator? {
+    private func takeIterator() -> AsyncStream<TransportMessage>.AsyncIterator {
         lock.lock(); defer { lock.unlock() }
-        let iter = iterator
-        iterator = nil
-        return iter
+        switch state {
+        case .available(let iter):
+            state = .inFlight
+            return iter
+        case .inFlight:
+            preconditionFailure(
+                "InMemoryTransport.recv() is single-consumer; concurrent calls are not supported"
+            )
+        case .finished:
+            // Hand out a no-op iterator. The caller will pump it once and
+            // see `nil`, then we'll re-enter `markFinished` (idempotent).
+            return AsyncStream<TransportMessage> { _ in }.makeAsyncIterator()
+        }
     }
 
     private func returnIterator(_ iter: AsyncStream<TransportMessage>.AsyncIterator) {
         lock.lock(); defer { lock.unlock() }
-        iterator = iter
+        // The state may have transitioned to .finished concurrently if the
+        // stream finished between our `await iter.next()` and this call;
+        // honour that and don't resurrect the iterator.
+        switch state {
+        case .inFlight:
+            state = .available(iter)
+        case .finished:
+            break
+        case .available:
+            preconditionFailure("IteratorBox.returnIterator called without takeIterator")
+        }
+    }
+
+    private func markFinished() {
+        lock.lock(); defer { lock.unlock() }
+        state = .finished
     }
 }
