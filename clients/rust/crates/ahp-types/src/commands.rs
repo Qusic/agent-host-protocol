@@ -56,6 +56,8 @@ pub enum CompletionItemKind {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InitializeParams {
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// Protocol versions the client is willing to speak, ordered from most
     /// preferred to least preferred. Each entry is a [SemVer](https://semver.org)
     /// `MAJOR.MINOR.PATCH` string (e.g. `"0.1.0"`).
@@ -110,6 +112,8 @@ pub struct InitializeResult {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReconnectParams {
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// Client identifier from the original connection
     pub client_id: String,
     /// Last `serverSeq` the client received
@@ -150,7 +154,7 @@ pub struct ReconnectSnapshotResult {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SubscribeParams {
-    /// Channel URI to subscribe to
+    /// Channel URI this command targets.
     pub channel: Uri,
 }
 
@@ -172,7 +176,7 @@ pub struct SubscribeResult {
 /// `-32003` (`SessionAlreadyExists`).
 ///
 /// After creation, the client should subscribe to the session URI to receive state
-/// updates. The server also broadcasts a `notify/sessionAdded` notification to all
+/// updates. The server also broadcasts a `root/sessionAdded` notification to all
 /// clients.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -186,8 +190,8 @@ pub struct SessionForkSource {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateSessionParams {
-    /// Session URI (client-chosen, e.g. `ahp-session:/<uuid>`)
-    pub session: Uri,
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// Agent provider ID
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provider: Option<String>,
@@ -217,22 +221,24 @@ pub struct CreateSessionParams {
 
 /// Disposes a session and cleans up server-side resources.
 ///
-/// The server broadcasts a `notify/sessionRemoved` notification to all clients.
+/// The server broadcasts a `root/sessionRemoved` notification to all clients.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DisposeSessionParams {
-    /// Session URI to dispose
-    pub session: Uri,
+    /// Channel URI this command targets.
+    pub channel: Uri,
 }
 
 /// Returns a list of session summaries. Used to populate session lists and sidebars.
 ///
 /// The session list is **not** part of the state tree because it can be arbitrarily
 /// large. Clients fetch it imperatively and maintain a local cache updated by
-/// `notify/sessionAdded` and `notify/sessionRemoved` notifications.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+/// `root/sessionAdded` and `root/sessionRemoved` notifications.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListSessionsParams {
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// Optional filter criteria
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub filter: Option<AnyValue>,
@@ -256,6 +262,8 @@ pub struct ListSessionsResult {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResourceReadParams {
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// Content URI from a `ContentRef`
     pub uri: String,
     /// Preferred encoding for the returned data (default: server-chosen)
@@ -290,6 +298,8 @@ pub struct ResourceReadResult {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResourceWriteParams {
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// Target file URI on the server filesystem
     pub uri: Uri,
     /// Content encoded as a string
@@ -323,6 +333,8 @@ pub struct ResourceWriteResult {}
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResourceListParams {
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// Directory URI on the server filesystem
     pub uri: Uri,
 }
@@ -352,6 +364,8 @@ pub struct DirectoryEntry {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResourceCopyParams {
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// Source URI to copy from
     pub source: Uri,
     /// Destination URI to copy to
@@ -373,6 +387,8 @@ pub struct ResourceCopyResult {}
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResourceDeleteParams {
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// URI of the resource to delete
     pub uri: Uri,
     /// If `true` and the target is a directory, delete it and all its contents
@@ -395,6 +411,8 @@ pub struct ResourceDeleteResult {}
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResourceMoveParams {
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// Source URI to move from
     pub source: Uri,
     /// Destination URI to move to
@@ -436,6 +454,8 @@ pub struct ResourceMoveResult {}
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResourceRequestParams {
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// Resource URI being requested. Typically a `file:` URI on the receiver's
     /// filesystem, but any URI scheme that the receiver mediates access to is
     /// allowed.
@@ -460,8 +480,8 @@ pub struct ResourceRequestResult {}
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FetchTurnsParams {
-    /// Session URI
-    pub session: Uri,
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// Turn ID to fetch before (exclusive). Omit to fetch from the most recent turn.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub before: Option<String>,
@@ -517,6 +537,8 @@ pub struct DispatchActionParams {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthenticateParams {
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// The protected resource identifier. MUST match a `resource` value from
     /// `ProtectedResourceMetadata` declared in `AgentInfo.protectedResources`.
     pub resource: String,
@@ -541,8 +563,8 @@ pub struct AuthenticateResult {}
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateTerminalParams {
-    /// Terminal URI (client-chosen)
-    pub terminal: Uri,
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// Initial owner of the terminal
     pub claim: TerminalClaim,
     /// Human-readable terminal name
@@ -566,8 +588,8 @@ pub struct CreateTerminalParams {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DisposeTerminalParams {
-    /// Terminal URI to dispose
-    pub terminal: Uri,
+    /// Channel URI this command targets.
+    pub channel: Uri,
 }
 
 /// Iteratively resolves the session configuration schema. The client sends the
@@ -579,9 +601,11 @@ pub struct DisposeTerminalParams {
 /// (e.g. picks a working directory, toggles a property). Each response returns
 /// the full current property set (not a delta). The returned `values` contain
 /// server-resolved defaults to pass to `createSession`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResolveSessionConfigParams {
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// Agent provider ID
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provider: Option<String>,
@@ -611,6 +635,8 @@ pub struct ResolveSessionConfigResult {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionConfigCompletionsParams {
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// Agent provider ID
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provider: Option<String>,
@@ -658,10 +684,10 @@ pub struct SessionConfigValueItem {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CompletionsParams {
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// What kind of completion is being requested.
     pub kind: CompletionItemKind,
-    /// The session URI the completion is being requested for.
-    pub session: Uri,
     /// The complete text of the input being completed (e.g. the full user
     /// message text typed so far).
     pub text: String,
@@ -725,8 +751,8 @@ pub struct CompletionsResult {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InvokeChangesetOperationParams {
-    /// The expanded changeset URI.
-    pub changeset: Uri,
+    /// Channel URI this command targets.
+    pub channel: Uri,
     /// Matches {@link ChangesetOperation.id} from the changeset's `operations` list.
     pub operation_id: String,
     /// Target of the operation. Required iff the chosen scope is

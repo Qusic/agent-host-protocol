@@ -233,7 +233,7 @@ pub struct HostHandle {
     pub completion_trigger_characters: Vec<String>,
     /// Cached session summaries keyed by URI. Seeded by `listSessions`
     /// after each connect and kept fresh by
-    /// `notify/sessionAdded`/`Removed`/`SummaryChanged` notifications.
+    /// `root/sessionAdded`/`Removed`/`SummaryChanged` notifications.
     pub session_summaries: Vec<SessionSummary>,
     /// Generation counter — bumped on every `connect` or `reconnect`.
     /// [`HostClientHandle`]s carry the generation they were issued at,

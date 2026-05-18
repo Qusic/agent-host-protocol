@@ -65,7 +65,7 @@ Session creation uses an imperative RPC command:
   "id": 2,
   "method": "createSession",
   "params": {
-    "session": "ahp-session:/<uuid>",
+    "channel": "ahp-session:/<uuid>",
     "provider": "copilot",
     "model": "gpt-4o"
   }

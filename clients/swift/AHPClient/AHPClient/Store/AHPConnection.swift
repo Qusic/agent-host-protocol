@@ -181,6 +181,7 @@ actor AHPConnection {
             await installWebSocket(ws)
 
             let params = InitializeParams(
+                channel: "ahp-root://",
                 protocolVersions: ["0.2.0"],
                 clientId: clientId,
                 initialSubscriptions: ["ahp-root://"]
@@ -239,6 +240,7 @@ actor AHPConnection {
             await installWebSocket(ws)
 
             let params = ReconnectParams(
+                channel: "ahp-root://",
                 clientId: clientId,
                 lastSeenServerSeq: serverSeq,
                 subscriptions: subscriptions
@@ -302,7 +304,7 @@ actor AHPConnection {
     func disposeSession(session: String) async throws {
         let _: AnyCodable? = try await sendRequest(
             method: "disposeSession",
-            params: DisposeSessionParams(session: session)
+            params: DisposeSessionParams(channel: session)
         )
     }
 
@@ -315,7 +317,7 @@ actor AHPConnection {
     func disposeTerminal(terminal: String) async throws {
         let _: AnyCodable? = try await sendRequest(
             method: "disposeTerminal",
-            params: DisposeTerminalParams(terminal: terminal)
+            params: DisposeTerminalParams(channel: terminal)
         )
     }
 
@@ -323,7 +325,7 @@ actor AHPConnection {
     func listSessions() async throws -> [SessionSummary] {
         let result: ListSessionsResult = try await sendRequest(
             method: "listSessions",
-            params: ListSessionsParams()
+            params: ListSessionsParams(channel: "ahp-root://")
         )
         return result.items
     }
@@ -332,7 +334,7 @@ actor AHPConnection {
     func fetchTurns(session: String, before: String? = nil, limit: Int? = nil) async throws -> FetchTurnsResult {
         try await sendRequest(
             method: "fetchTurns",
-            params: FetchTurnsParams(session: session, before: before, limit: limit)
+            params: FetchTurnsParams(channel: session, before: before, limit: limit)
         )
     }
 
@@ -340,7 +342,7 @@ actor AHPConnection {
     func fetchContent(uri: String, encoding: ContentEncoding? = nil) async throws -> ResourceReadResult {
         try await sendRequest(
             method: "resourceRead",
-            params: ResourceReadParams(uri: uri, encoding: encoding)
+            params: ResourceReadParams(channel: "ahp-root://", uri: uri, encoding: encoding)
         )
     }
 

@@ -46,7 +46,7 @@ A terminal is **always owned** — the [`claim`](/guide/terminals#claims-and-own
   "id": 9,
   "method": "createTerminal",
   "params": {
-    "terminal": "term:/<id>",
+    "channel": "ahp-terminal:/<id>",
     "claim": { "kind": "client", "clientId": "client-abc" },
     "name": "build",
     "cwd": "file:///workspace",

@@ -4,17 +4,20 @@ description: >-
   pre-channels model to the current channel-based model. Use when asked to
   upgrade an AHP client/server, when seeing references to `agenthost:/root`,
   `<provider>:/<uuid>` session URIs, a `notification` wrapper method, an
-  `envelope` field inside `action` params, or a `resource` field on
-  subscribe/unsubscribe/snapshot results.
+  `envelope` field inside `action` params, a `resource` field on
+  subscribe/unsubscribe/snapshot results, or `session` / `terminal` /
+  `changeset` fields on command params or action payloads.
 ---
 
 # AHP Channels Migration
 
 This skill helps you migrate a codebase that consumes (or implements) the
 Agent Host Protocol from the **pre-channels model** to the **channel-based
-model** introduced by RFC #117. The protocol is still version `0.1.0` — these
-changes were folded into the existing version rather than bumping it — so you
-will be updating production code in place, not maintaining two implementations.
+model** introduced by RFC #117. The migration was folded into the protocol
+as a single breaking step alongside the `0.2.0` version bump (which also
+introduced changesets and the `session/customizationUpdated` action). The
+combined wire format on `0.2.0` is what this skill targets; there is no
+transitional version.
 
 The migration is mechanical in most places but touches several shapes at once,
 so do it in passes rather than file-by-file. The order below minimises the
@@ -56,13 +59,27 @@ Concretely:
   `SessionSummary.provider`, not in the URI. (Live session URIs are
   announced by the server, so this is mainly a docs/example change for
   consumers — but type-level shape changes still apply.)
+- **Terminal URI scheme** (docs/examples): `ahp-terminal:/<id>`. Server-
+  defined; clients treat as opaque.
+- **Changeset URI scheme** (docs/examples): `ahp-changeset:/<id>`. Server-
+  defined; obtained by expanding a `ChangesetSummary.uriTemplate`.
+  Changesets are a new channel type introduced in the same step.
 - **`channel` everywhere**: `subscribe`/`unsubscribe`/action-envelope/
-  `dispatchAction`/every protocol notification has `channel: URI` at the top
-  level of its params.
+  `dispatchAction`/every protocol notification AND every command has
+  `channel: URI` at the top level of its params. Commands that are
+  connection-level rather than channel-scoped (e.g. `initialize`, `ping`,
+  `listSessions`, the `resource*` filesystem commands, `authenticate`)
+  set `channel` to the literal `'ahp-root://'`.
 - **Action payloads are channel-less**: `session: URI` and `terminal: URI`
   fields are gone from individual actions. Routing is by envelope.
 - **Notifications are top-level methods**: the `notification` wrapper and
   the `ProtocolNotification` union are gone.
+- **`SessionDiffsChangedAction` is gone**: replaced by
+  `SessionChangesetsChangedAction` (catalogue updates on a session) plus a
+  new family of per-changeset actions (`changeset/statusChanged`,
+  `changeset/fileSet`, `changeset/fileRemoved`,
+  `changeset/operationsChanged`, `changeset/cleared`) and the
+  `invokeChangesetOperation` command. See `docs/guide/changesets.md`.
 
 ## Migration passes
 
@@ -188,9 +205,12 @@ Action interfaces that lost their channel field — full list:
   `SessionQueuedMessagesReorderedAction`,
   `SessionInputRequestedAction`, `SessionInputAnswerChangedAction`,
   `SessionInputCompletedAction`, `SessionCustomizationsChangedAction`,
-  `SessionCustomizationToggledAction`, `SessionTruncatedAction`,
+  `SessionCustomizationToggledAction`,
+  `SessionCustomizationUpdatedAction`, `SessionTruncatedAction`,
   `SessionIsReadChangedAction`, `SessionIsArchivedChangedAction`,
-  `SessionActivityChangedAction`, `SessionDiffsChangedAction`,
+  `SessionActivityChangedAction`,
+  `SessionChangesetsChangedAction` (replaces the removed
+  `SessionDiffsChangedAction`),
   `SessionConfigChangedAction`, `SessionMetaChangedAction`.
 - Tool-call actions also lost `session` because `ToolCallActionBase` no
   longer carries it. `turnId` and `toolCallId` remain.
@@ -200,6 +220,11 @@ Action interfaces that lost their channel field — full list:
   `TerminalExitedAction`, `TerminalClearedAction`,
   `TerminalCommandDetectionAvailableAction`,
   `TerminalCommandExecutedAction`, `TerminalCommandFinishedAction`.
+- All changeset actions (new in `0.2.0`):
+  `ChangesetStatusChangedAction`, `ChangesetFileSetAction`,
+  `ChangesetFileRemovedAction`, `ChangesetOperationsChangedAction`,
+  `ChangesetClearedAction`. These never carried a `changeset: URI` field
+  in shipping code — it was removed before they were released.
 
 ### Pass 5 — `action` server notification: drop the `envelope` wrapper
 
@@ -281,10 +306,12 @@ Each new params type has `channel: URI` as its top-level field. For
 Drop any code that imports `ProtocolNotification`, the `NotificationType`
 enum, `NotificationMethodParams`, or the combined `NotificationMap` — these
 types were removed. Replace them with the per-method params types and a
-direct lookup on the wire-level method name. The type-level constraint is
-now: every entry in `ClientNotificationMap` / `ServerNotificationMap` has
-`params extends { channel: URI }`, enforced in
-`types/version/message-checks.ts`.
+direct lookup on the wire-level method name. The type-level constraint
+that every entry in `ClientNotificationMap` / `ServerNotificationMap` has
+`params extends { channel: URI }` is enforced in
+`types/version/message-checks.ts`, alongside an equivalent check that
+every entry in `CommandMap` / `ServerCommandMap` has
+`params extends BaseParams` (see Pass 10).
 
 ### Pass 8 — Session URI scheme (docs/examples + helpers)
 
@@ -308,6 +335,59 @@ re-subscribed on reconnect — missed messages are dropped, never replayed.
 If you implement a server: do not include stateless channels in the
 `replay` result's `actions` list. They will simply re-subscribe.
 
+### Pass 10 — Commands carry `channel: URI`
+
+Every command's params now extends `BaseParams { channel: URI }`. The
+`channel` field tells the server which channel the command targets, so a
+router can dispatch any incoming message — request, response, or
+notification — by inspecting `params.channel` without further
+deserialisation.
+
+There are two flavours:
+
+**Channel-scoped commands** — rename the existing
+`session` / `terminal` / `changeset` field to `channel`. The URI value is
+unchanged.
+
+| Command                     | Old field             | New field |
+|-----------------------------|-----------------------|-----------|
+| `createSession`             | `session: URI`        | `channel: URI` |
+| `disposeSession`            | `session: URI`        | `channel: URI` |
+| `createTerminal`            | `terminal: URI`       | `channel: URI` |
+| `disposeTerminal`           | `terminal: URI`       | `channel: URI` |
+| `fetchTurns`                | `session: URI`        | `channel: URI` |
+| `completions`               | `session: URI`        | `channel: URI` |
+| `invokeChangesetOperation`  | `changeset: URI`      | `channel: URI` |
+| `subscribe`, `unsubscribe`, `dispatchAction` | already `channel` (Passes 2 & 6) | unchanged |
+
+**Connection-level commands** — narrow `channel` to the literal
+`'ahp-root://'`. Add the field explicitly; the TS types enforce it.
+
+Methods: `initialize`, `ping`, `reconnect`, `listSessions`,
+`authenticate`, `resolveSessionConfig`, `sessionConfigCompletions`,
+`resourceRead`, `resourceWrite`, `resourceList`, `resourceCopy`,
+`resourceDelete`, `resourceMove`, `resourceRequest`.
+
+```ts
+// before
+{ method: 'initialize', params: { protocolVersions: ['0.2.0'], clientId: 'c1' } }
+{ method: 'listSessions', params: {} }
+{ method: 'createSession', params: { session: 'ahp-session:/<uuid>', provider: 'copilot' } }
+{ method: 'fetchTurns', params: { session: 'ahp-session:/<uuid>', limit: 20 } }
+
+// after
+{ method: 'initialize',   params: { channel: 'ahp-root://', protocolVersions: ['0.2.0'], clientId: 'c1' } }
+{ method: 'listSessions', params: { channel: 'ahp-root://' } }
+{ method: 'createSession', params: { channel: 'ahp-session:/<uuid>', provider: 'copilot' } }
+{ method: 'fetchTurns',   params: { channel: 'ahp-session:/<uuid>', limit: 20 } }
+```
+
+The compile-time check `_CheckCommandsHaveChannel` in
+`types/version/message-checks.ts` verifies that every entry in
+`CommandMap` / `ServerCommandMap` has params assignable to `BaseParams`.
+If you forget to add `channel` to a new command's params, the check
+fails to compile and points at the missing field.
+
 ## Grep cheat sheet
 
 Run these searches in your codebase. Each pattern is a strong signal that a
@@ -327,6 +407,9 @@ migration site still needs attention.
 | `ProtocolNotification`, `NotificationType`, `NotificationMethodParams`, `NotificationMap` | Removed types (Pass 7) |
 | `SessionAddedNotification`, `SessionRemovedNotification`, `SessionSummaryChangedNotification`, `AuthRequiredNotification` | Old notification interfaces — renamed to `*Params` (Pass 7) |
 | `AgentSession.provider`, `provider` extracted from session scheme | Old provider-via-scheme helper (Pass 8) |
+| `SessionDiffsChangedAction`, `summary.diffs`, `session/diffsChanged` | Removed in favour of changesets (Pass 4 list) |
+| `CreateSessionParams\W+session:`, `DisposeSessionParams\W+session:`, `CreateTerminalParams\W+terminal:`, `DisposeTerminalParams\W+terminal:`, `FetchTurnsParams\W+session:`, `CompletionsParams\W+session:`, `InvokeChangesetOperationParams\W+changeset:` | Channel-scoped command params still using the old field name (Pass 10) |
+| `ListSessionsParams()`, `PingParams()`, `ResourceReadParams\(uri:` (no `channel:`), or any other command params constructed without `channel` | Connection-level command missing the `channel: 'ahp-root://'` literal (Pass 10) |
 
 ## Verification checklist
 
@@ -349,6 +432,13 @@ After the migration, your code should:
       `NotificationMethodParams`, or `NotificationMap`.
 - [ ] Resolve a session's provider via `SessionSummary.provider`, not via
       the URI scheme.
+- [ ] No `SessionDiffsChangedAction` / `summary.diffs` references; consume
+      `summary.changesets` plus the `changeset/*` action family instead.
+- [ ] Every command's params carries `channel: URI`. Channel-scoped
+      commands (`createSession`, `disposeSession`, `createTerminal`,
+      `disposeTerminal`, `fetchTurns`, `completions`,
+      `invokeChangesetOperation`) pass the target channel URI;
+      connection-level commands pass the literal `'ahp-root://'`.
 
 When all these are true, your consumer is on the channels model.
 
@@ -358,7 +448,7 @@ For the full normative description of the channel model, consult these
 documents in the `microsoft/agent-host-protocol` repository:
 
 - `docs/specification/subscriptions.md` — Channels & Subscriptions (the
-  framework, including stateless channels)
+  framework, including stateless channels and the URI scheme table)
 - `docs/specification/root-channel.md` — Root channel state, actions, and
   protocol notifications
 - `docs/specification/session-channel.md` — Session channel lifecycle,
@@ -366,7 +456,12 @@ documents in the `microsoft/agent-host-protocol` repository:
 - `docs/specification/terminal-channel.md` — Terminal channel data flow
   and command detection
 - `docs/specification/lifecycle.md` — Connection handshake and reconnection
+- `docs/guide/changesets.md` — Changeset channel model, catalogue,
+  per-changeset state, and `invokeChangesetOperation`
 - `types/actions.ts`, `types/commands.ts`, `types/messages.ts`,
   `types/notifications.ts` — Source-of-truth type definitions
+  (`BaseParams` lives in `commands.ts`)
+- `types/version/message-checks.ts` — Compile-time checks that every
+  command and notification carries `channel: URI`
 - GitHub issue [#117](https://github.com/microsoft/agent-host-protocol/issues/117)
   — The RFC that introduced the channel model

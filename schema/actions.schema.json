@@ -1417,7 +1417,7 @@
     },
     "ChangesetClearedAction": {
       "type": "object",
-      "description": "Drop every file from the changeset.\n\nTwo cases use this:\n1. The underlying source moved (branch switched, fork point invalidated,\n   …) and the server is recomputing from scratch — subsequent\n   {@link ChangesetFileSetAction} entries will repopulate it.\n2. The owning session has ended and the URI is becoming\n   un-subscribable — the server will unsubscribe all clients shortly\n   after dispatching this action.\n\nClients SHOULD release any references on receipt and SHOULD NOT\ndistinguish the two cases from the action alone — instead, react to\nthe corresponding session-level lifecycle signal (e.g.\n`notify/sessionRemoved`) for the \"going away\" case.",
+      "description": "Drop every file from the changeset.\n\nTwo cases use this:\n1. The underlying source moved (branch switched, fork point invalidated,\n   …) and the server is recomputing from scratch — subsequent\n   {@link ChangesetFileSetAction} entries will repopulate it.\n2. The owning session has ended and the URI is becoming\n   un-subscribable — the server will unsubscribe all clients shortly\n   after dispatching this action.\n\nClients SHOULD release any references on receipt and SHOULD NOT\ndistinguish the two cases from the action alone — instead, react to\nthe corresponding session-level lifecycle signal (e.g.\n`root/sessionRemoved`) for the \"going away\" case.",
       "properties": {
         "type": {
           "$ref": "#/$defs/ActionType.ChangesetCleared"

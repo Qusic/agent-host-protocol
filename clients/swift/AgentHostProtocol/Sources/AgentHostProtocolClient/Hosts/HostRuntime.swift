@@ -320,7 +320,7 @@ internal final class HostRuntime: Sendable {
                 // related gaps follow from this and are tracked together
                 // for both SDKs as a follow-up:
                 //   1. Replay actions returned synchronously by the server
-                //      are not fanned out (live `notify/action` frames after
+                //      are not fanned out (live `action` frames after
                 //      reconnect still reach consumers normally).
                 //   2. `replay.missing` URIs (subscriptions the server
                 //      cannot resume) are not pruned from the replay set,
@@ -359,7 +359,7 @@ internal final class HostRuntime: Sendable {
         // non-fatal: the cache stays as-is.
         let summaries: ListSessionsResult? = try? await client.request(
             method: "listSessions",
-            params: ListSessionsParams()
+            params: ListSessionsParams(channel: RootResourceURI)
         )
 
         let newGeneration: UInt64 = await {

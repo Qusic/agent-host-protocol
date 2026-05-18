@@ -8,7 +8,8 @@ AHP organises all push-based communication into **channels**. A channel is a URI
 |---|---|---|
 | `ahp-root://` | `RootState` | Global state (agents, terminals, host config). Always present. |
 | `ahp-session:/<uuid>` | `SessionState` | Per-session state. The session's provider is carried on `SessionSummary.provider`, not in the URI scheme. |
-| `<scheme>:/<id>` | `TerminalState` | Per-terminal state. Server-defined scheme and path. |
+| `ahp-terminal:/<id>` | `TerminalState` | Per-terminal state. Server-defined id. |
+| `ahp-changeset:/<id>` | `ChangesetState` | Per-changeset state. URI is obtained by expanding a `ChangesetSummary.uriTemplate` advertised on a session; the id is server-defined. |
 
 Future channel types (stateless logging, LSP, MCP relay, …) introduce their own URI schemes. Clients MUST NOT subscribe to a scheme they do not understand.
 
@@ -116,6 +117,7 @@ During the handshake, clients MAY include `initialSubscriptions` in `initialize`
   "id": 1,
   "method": "initialize",
   "params": {
+    "channel": "ahp-root://",
     "protocolVersions": ["0.2.0"],
     "clientId": "client-abc",
     "initialSubscriptions": ["ahp-root://", "ahp-session:/<prev-session>"]

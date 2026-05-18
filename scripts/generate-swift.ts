@@ -1517,6 +1517,7 @@ function checkExhaustiveness(project: Project): void {
   // Types that ARE generated but via explicit non-list code paths.
   const knownSpecial = new Set<string>([
     'URI',                          // type alias for string
+    'BaseParams',                    // marker base interface; flattened into each command params struct
     'StringOrMarkdown',              // generateStringOrMarkdown()
     'ToolCallState',                // TOOL_CALL_STATE_UNION discriminated union
     'StateAction',                  // StateAction enum in generateActionsFile()

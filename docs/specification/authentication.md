@@ -96,6 +96,7 @@ Clients push Bearer tokens to the server using the [`authenticate`](/reference/c
   "id": 3,
   "method": "authenticate",
   "params": {
+    "channel": "ahp-root://",
     "resource": "https://api.github.com",
     "token": "gho_xxxxxxxxxxxx"
   }
@@ -129,7 +130,7 @@ The `data` field of the JSON-RPC error SHOULD contain a `ProtectedResourceMetada
   "jsonrpc": "2.0",
   "id": 5,
   "method": "createSession",
-  "params": { "session": "ahp-session:/<uuid>", "provider": "copilot" }
+  "params": { "channel": "ahp-session:/<uuid>", "provider": "copilot" }
 }
 
 // Server → Client (auth required)

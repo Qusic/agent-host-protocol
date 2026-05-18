@@ -64,10 +64,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn serde_notif(ev: &SubscriptionEvent) -> serde_json::Value {
     match ev {
-        SubscriptionEvent::Action(_) => serde_json::Value::Null,
         SubscriptionEvent::SessionAdded(n) => serde_json::to_value(n).unwrap_or_default(),
         SubscriptionEvent::SessionRemoved(n) => serde_json::to_value(n).unwrap_or_default(),
         SubscriptionEvent::SessionSummaryChanged(n) => serde_json::to_value(n).unwrap_or_default(),
         SubscriptionEvent::AuthRequired(n) => serde_json::to_value(n).unwrap_or_default(),
+        _ => serde_json::Value::Null,
     }
 }

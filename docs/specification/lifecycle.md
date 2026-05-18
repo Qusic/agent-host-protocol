@@ -21,6 +21,7 @@ The client initiates the connection with an `initialize` **request**. The client
   "id": 1,
   "method": "initialize",
   "params": {
+    "channel": "ahp-root://",
     "protocolVersions": ["0.2.0"],
     "clientId": "client-abc",
     "initialSubscriptions": ["ahp-root://"],
@@ -80,6 +81,7 @@ If the transport connection drops, the client reconnects and sends a `reconnect`
   "id": 2,
   "method": "reconnect",
   "params": {
+    "channel": "ahp-root://",
     "clientId": "client-abc",
     "lastSeenServerSeq": 42,
     "subscriptions": ["ahp-root://", "ahp-session:/<uuid>"]

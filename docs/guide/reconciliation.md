@@ -70,6 +70,7 @@ If the transport connection drops:
   "id": 2,
   "method": "reconnect",
   "params": {
+    "channel": "ahp-root://",
     "clientId": "client-1",
     "lastSeenServerSeq": 42,
     "subscriptions": ["ahp-root://", "ahp-session:/<uuid>"]

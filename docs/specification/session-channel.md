@@ -53,7 +53,7 @@ All actions dispatched on this channel travel on `ActionEnvelope`s whose `channe
   "jsonrpc": "2.0",
   "id": 5,
   "method": "disposeSession",
-  "params": { "session": "ahp-session:/<uuid>" }
+  "params": { "channel": "ahp-session:/<uuid>" }
 }
 ```
 

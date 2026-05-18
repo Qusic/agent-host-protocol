@@ -1202,7 +1202,7 @@ export interface ChangesetOperationsChangedAction {
  * Clients SHOULD release any references on receipt and SHOULD NOT
  * distinguish the two cases from the action alone — instead, react to
  * the corresponding session-level lifecycle signal (e.g.
- * `notify/sessionRemoved`) for the "going away" case.
+ * `root/sessionRemoved`) for the "going away" case.
  *
  * @category Changeset Actions
  * @version 2

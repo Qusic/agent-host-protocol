@@ -851,7 +851,7 @@ final class AppStore {
         let uri = "\(provider):/\(sessionId)"
         do {
             try await connection.createSession(params: CreateSessionParams(
-                session: uri,
+                channel: uri,
                 provider: provider,
                 model: model.map { ModelSelection(id: $0) },
                 workingDirectory: workingDirectory
@@ -1372,7 +1372,7 @@ final class AppStore {
         let uri = "terminal:/\(terminalId)"
         do {
             try await connection.createTerminal(params: CreateTerminalParams(
-                terminal: uri,
+                channel: uri,
                 claim: .client(TerminalClientClaim(kind: .client, clientId: connection.clientId)),
                 name: name,
                 cols: cols,

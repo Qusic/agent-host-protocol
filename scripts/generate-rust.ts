@@ -95,7 +95,7 @@ function rustFieldName(tsName: string): { rustName: string; wireName: string; re
 
 /** PascalCase enum variant from a string literal (for explicit-rename variants). */
 function toEnumVariant(value: string): string {
-  // notify/sessionAdded → NotifySessionAdded
+  // root/sessionAdded → RootSessionAdded
   // session/toolCallStart → SessionToolCallStart
   // pending-confirmation → PendingConfirmation
   // single-select → SingleSelect
@@ -1366,6 +1366,7 @@ function checkExhaustiveness(project: Project): void {
 
   const knownSpecial = new Set<string>([
     'URI',
+    'BaseParams',
     'StringOrMarkdown',
     'ToolCallState',
     'StateAction',

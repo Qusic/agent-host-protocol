@@ -13,7 +13,7 @@ use ahp_types::actions::{ActionEnvelope, StateAction};
 use ahp_types::commands::{
     ListSessionsParams, ListSessionsResult, ReconnectResult, SubscribeParams, SubscribeResult,
 };
-use ahp_types::common::Uri;
+use ahp_types::common::{Uri, ROOT_RESOURCE_URI};
 use ahp_types::state::{RootState, SessionSummary, SnapshotState};
 use tokio::sync::{broadcast, mpsc, oneshot, Notify};
 use tokio::task::JoinHandle;
@@ -306,7 +306,13 @@ impl HostRuntime {
         // connect, kept in sync by notifications afterward. Failures are
         // non-fatal: we just leave the cache as-is and log.
         let summaries: Result<ListSessionsResult, ClientError> = client
-            .request("listSessions", ListSessionsParams::default())
+            .request(
+                "listSessions",
+                ListSessionsParams {
+                    channel: ROOT_RESOURCE_URI.to_string(),
+                    filter: None,
+                },
+            )
             .await;
 
         // Bump generation and install the new client.

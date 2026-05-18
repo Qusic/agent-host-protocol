@@ -11,6 +11,32 @@ import type { ActionEnvelope, StateAction } from './actions.js';
 
 export type { ConfigPropertySchema, ConfigSchema, SessionConfigPropertySchema, SessionConfigSchema } from './state.js';
 
+// ─── BaseParams ──────────────────────────────────────────────────────────────
+
+/**
+ * Base shape every command's params extends.
+ *
+ * `channel` identifies the channel the command targets, mirroring the
+ * `channel` field on every protocol notification. For commands that operate
+ * on a specific channel (a session, terminal, or changeset), `channel` is
+ * that channel's URI. For commands that are connection-level rather than
+ * channel-scoped (e.g. {@link InitializeParams | `initialize`},
+ * {@link PingParams | `ping`}, {@link ListSessionsParams | `listSessions`},
+ * the `resource*` filesystem commands, and {@link AuthenticateParams |
+ * `authenticate`}), the params type narrows `channel` to the literal
+ * root URI `'ahp-root://'`.
+ *
+ * This invariant lets implementations route every incoming message —
+ * request, response, or notification — by inspecting `params.channel`
+ * without needing to know the per-method param shape.
+ *
+ * @category Commands
+ */
+export interface BaseParams {
+  /** Channel URI this command targets. */
+  channel: URI;
+}
+
 // ─── initialize ──────────────────────────────────────────────────────────────
 
 /**
@@ -24,7 +50,8 @@ export type { ConfigPropertySchema, ConfigSchema, SessionConfigPropertySchema, S
  * @version 1
  * @see {@link /specification/lifecycle | Lifecycle} for the full handshake flow.
  */
-export interface InitializeParams {
+export interface InitializeParams extends BaseParams {
+  channel: 'ahp-root://';
   /**
    * Protocol versions the client is willing to speak, ordered from most
    * preferred to least preferred. Each entry is a [SemVer](https://semver.org)
@@ -94,7 +121,8 @@ export interface InitializeResult {
  * @messageType Request
  * @version 0.1.0
  */
-export interface PingParams {
+export interface PingParams extends BaseParams {
+  channel: 'ahp-root://';
 }
 
 // ─── reconnect ───────────────────────────────────────────────────────────────
@@ -120,7 +148,8 @@ export const enum ReconnectResultType {
  * @version 1
  * @see {@link /specification/lifecycle | Lifecycle} for details.
  */
-export interface ReconnectParams {
+export interface ReconnectParams extends BaseParams {
+  channel: 'ahp-root://';
   /** Client identifier from the original connection */
   clientId: string;
   /** Last `serverSeq` the client received */
@@ -178,10 +207,7 @@ export type ReconnectResult = ReconnectReplayResult | ReconnectSnapshotResult;
  * @version 1
  * @see {@link /specification/subscriptions | Subscriptions}
  */
-export interface SubscribeParams {
-  /** Channel URI to subscribe to */
-  channel: URI;
-}
+export interface SubscribeParams extends BaseParams {}
 
 /**
  * Result of the `subscribe` command.
@@ -203,7 +229,7 @@ export interface SubscribeResult {
  * `-32003` (`SessionAlreadyExists`).
  *
  * After creation, the client should subscribe to the session URI to receive state
- * updates. The server also broadcasts a `notify/sessionAdded` notification to all
+ * updates. The server also broadcasts a `root/sessionAdded` notification to all
  * clients.
  *
  * @category Commands
@@ -215,7 +241,7 @@ export interface SubscribeResult {
  * ```jsonc
  * // Client → Server
  * { "jsonrpc": "2.0", "id": 2, "method": "createSession",
- *   "params": { "session": "ahp-session:/<uuid>", "provider": "copilot", "model": "gpt-4o" } }
+ *   "params": { "channel": "ahp-session:/<uuid>", "provider": "copilot", "model": "gpt-4o" } }
  *
  * // Server → Client (success)
  * { "jsonrpc": "2.0", "id": 2, "result": null }
@@ -241,9 +267,9 @@ export interface SessionForkSource {
   turnId: string;
 }
 
-export interface CreateSessionParams {
+export interface CreateSessionParams extends BaseParams {
   /** Session URI (client-chosen, e.g. `ahp-session:/<uuid>`) */
-  session: URI;
+  channel: URI;
   /** Agent provider ID */
   provider?: string;
   /** Model selection (ID and optional model-specific configuration) */
@@ -276,7 +302,7 @@ export interface CreateSessionParams {
 /**
  * Disposes a session and cleans up server-side resources.
  *
- * The server broadcasts a `notify/sessionRemoved` notification to all clients.
+ * The server broadcasts a `root/sessionRemoved` notification to all clients.
  *
  * @category Commands
  * @method disposeSession
@@ -284,10 +310,7 @@ export interface CreateSessionParams {
  * @messageType Request
  * @version 1
  */
-export interface DisposeSessionParams {
-  /** Session URI to dispose */
-  session: URI;
-}
+export interface DisposeSessionParams extends BaseParams {}
 
 // ─── createTerminal ──────────────────────────────────────────────────────────
 
@@ -304,9 +327,9 @@ export interface DisposeSessionParams {
  * @messageType Request
  * @version 1
  */
-export interface CreateTerminalParams {
-  /** Terminal URI (client-chosen) */
-  terminal: URI;
+export interface CreateTerminalParams extends BaseParams {
+  /** Terminal URI (client-chosen). */
+  channel: URI;
   /** Initial owner of the terminal */
   claim: TerminalClaim;
   /** Human-readable terminal name */
@@ -333,10 +356,7 @@ export interface CreateTerminalParams {
  * @messageType Request
  * @version 1
  */
-export interface DisposeTerminalParams {
-  /** Terminal URI to dispose */
-  terminal: URI;
-}
+export interface DisposeTerminalParams extends BaseParams {}
 
 // ─── listSessions ────────────────────────────────────────────────────────────
 
@@ -345,7 +365,7 @@ export interface DisposeTerminalParams {
  *
  * The session list is **not** part of the state tree because it can be arbitrarily
  * large. Clients fetch it imperatively and maintain a local cache updated by
- * `notify/sessionAdded` and `notify/sessionRemoved` notifications.
+ * `root/sessionAdded` and `root/sessionRemoved` notifications.
  *
  * @category Commands
  * @method listSessions
@@ -353,7 +373,8 @@ export interface DisposeTerminalParams {
  * @messageType Request
  * @version 1
  */
-export interface ListSessionsParams {
+export interface ListSessionsParams extends BaseParams {
+  channel: 'ahp-root://';
   /** Optional filter criteria */
   filter?: object;
 }
@@ -406,7 +427,8 @@ export const enum ContentEncoding {
  * }}
  * ```
  */
-export interface ResourceReadParams {
+export interface ResourceReadParams extends BaseParams {
+  channel: 'ahp-root://';
   /** Content URI from a `ContentRef` */
   uri: string;
   /** Preferred encoding for the returned data (default: server-chosen) */
@@ -459,7 +481,8 @@ export interface ResourceReadResult {
  * { "jsonrpc": "2.0", "id": 11, "result": {} }
  * ```
  */
-export interface ResourceWriteParams {
+export interface ResourceWriteParams extends BaseParams {
+  channel: 'ahp-root://';
   /** Target file URI on the server filesystem */
   uri: URI;
   /** Content encoded as a string */
@@ -503,7 +526,8 @@ export interface ResourceWriteResult {
  * @throws `NotFound` (`-32008`) if the directory does not exist.
  * @throws `PermissionDenied` (`-32009`) if the client is not permitted to browse the directory.
  */
-export interface ResourceListParams {
+export interface ResourceListParams extends BaseParams {
+  channel: 'ahp-root://';
   /** Directory URI on the server filesystem */
   uri: URI;
 }
@@ -541,7 +565,7 @@ export interface ResourceListResult {
  * ```jsonc
  * // Client → Server (fetch the 20 most recent turns)
  * { "jsonrpc": "2.0", "id": 8, "method": "fetchTurns",
- *   "params": { "session": "ahp-session:/<uuid>", "limit": 20 } }
+ *   "params": { "channel": "ahp-session:/<uuid>", "limit": 20 } }
  *
  * // Server → Client
  * { "jsonrpc": "2.0", "id": 8, "result": {
@@ -551,12 +575,12 @@ export interface ResourceListResult {
  *
  * // Client → Server (fetch 20 turns before t1)
  * { "jsonrpc": "2.0", "id": 9, "method": "fetchTurns",
- *   "params": { "session": "ahp-session:/<uuid>", "before": "t1", "limit": 20 } }
+ *   "params": { "channel": "ahp-session:/<uuid>", "before": "t1", "limit": 20 } }
  * ```
  */
-export interface FetchTurnsParams {
+export interface FetchTurnsParams extends BaseParams {
   /** Session URI */
-  session: URI;
+  channel: URI;
   /** Turn ID to fetch before (exclusive). Omit to fetch from the most recent turn. */
   before?: string;
   /** Maximum number of turns to return. Server MAY impose its own upper bound. */
@@ -634,7 +658,8 @@ export interface DispatchActionParams {
  * @throws `PermissionDenied` (`-32009`) if the client is not permitted to read the source or write to the destination.
  * @throws `AlreadyExists` (`-32010`) if `failIfExists` is set and the destination already exists.
  */
-export interface ResourceCopyParams {
+export interface ResourceCopyParams extends BaseParams {
+  channel: 'ahp-root://';
   /** Source URI to copy from */
   source: URI;
   /** Destination URI to copy to */
@@ -667,7 +692,8 @@ export interface ResourceCopyResult {
  * @throws `NotFound` (`-32008`) if the resource does not exist.
  * @throws `PermissionDenied` (`-32009`) if the client is not permitted to delete the resource.
  */
-export interface ResourceDeleteParams {
+export interface ResourceDeleteParams extends BaseParams {
+  channel: 'ahp-root://';
   /** URI of the resource to delete */
   uri: URI;
   /**
@@ -717,7 +743,8 @@ export interface ResourceDeleteResult {
  * @version 1
  * @throws `PermissionDenied` (`-32009`) if access is denied.
  */
-export interface ResourceRequestParams {
+export interface ResourceRequestParams extends BaseParams {
+  channel: 'ahp-root://';
   /**
    * Resource URI being requested. Typically a `file:` URI on the receiver's
    * filesystem, but any URI scheme that the receiver mediates access to is
@@ -755,7 +782,8 @@ export interface ResourceRequestResult {
  * @throws `PermissionDenied` (`-32009`) if the client is not permitted to move the resource.
  * @throws `AlreadyExists` (`-32010`) if `failIfExists` is set and the destination already exists.
  */
-export interface ResourceMoveParams {
+export interface ResourceMoveParams extends BaseParams {
+  channel: 'ahp-root://';
   /** Source URI to move from */
   source: URI;
   /** Destination URI to move to */
@@ -797,7 +825,7 @@ export interface ResourceMoveResult {
  * ```jsonc
  * // Client → Server
  * { "jsonrpc": "2.0", "id": 3, "method": "authenticate",
- *   "params": { "resource": "https://api.github.com", "token": "gho_xxxx" } }
+ *   "params": { "channel": "ahp-root://", "resource": "https://api.github.com", "token": "gho_xxxx" } }
  *
  * // Server → Client (success)
  * { "jsonrpc": "2.0", "id": 3, "result": {} }
@@ -806,7 +834,8 @@ export interface ResourceMoveResult {
  * { "jsonrpc": "2.0", "id": 3, "error": { "code": -32007, "message": "Invalid token" } }
  * ```
  */
-export interface AuthenticateParams {
+export interface AuthenticateParams extends BaseParams {
+  channel: 'ahp-root://';
   /**
    * The protected resource identifier. MUST match a `resource` value from
    * `ProtectedResourceMetadata` declared in `AgentInfo.protectedResources`.
@@ -884,7 +913,8 @@ export interface AuthenticateResult {
  * }}
  * ```
  */
-export interface ResolveSessionConfigParams {
+export interface ResolveSessionConfigParams extends BaseParams {
+  channel: 'ahp-root://';
   /** Agent provider ID */
   provider?: string;
   /** Working directory for the session */
@@ -948,7 +978,8 @@ export interface SessionConfigValueItem {
  * }}
  * ```
  */
-export interface SessionConfigCompletionsParams {
+export interface SessionConfigCompletionsParams extends BaseParams {
+  channel: 'ahp-root://';
   /** Agent provider ID */
   provider?: string;
   /** Working directory for the session */
@@ -1004,7 +1035,7 @@ export const enum CompletionItemKind {
  * // User has typed "look at @foo" and the cursor is just after "@foo".
  * // Client → Server
  * { "jsonrpc": "2.0", "id": 12, "method": "completions",
- *   "params": { "kind": "userMessage", "session": "ahp-session:/<uuid>",
+ *   "params": { "kind": "userMessage", "channel": "ahp-session:/<uuid>",
  *               "text": "look at @foo", "offset": 12 } }
  *
  * // Server → Client
@@ -1025,11 +1056,11 @@ export const enum CompletionItemKind {
  * }}
  * ```
  */
-export interface CompletionsParams {
+export interface CompletionsParams extends BaseParams {
   /** What kind of completion is being requested. */
   kind: CompletionItemKind;
   /** The session URI the completion is being requested for. */
-  session: URI;
+  channel: URI;
   /**
    * The complete text of the input being completed (e.g. the full user
    * message text typed so far).
@@ -1157,9 +1188,9 @@ export interface ChangesetOperationFollowUp {
  * @messageType Request
  * @version 2
  */
-export interface InvokeChangesetOperationParams {
+export interface InvokeChangesetOperationParams extends BaseParams {
   /** The expanded changeset URI. */
-  changeset: URI;
+  channel: URI;
   /** Matches {@link ChangesetOperation.id} from the changeset's `operations` list. */
   operationId: string;
   /**

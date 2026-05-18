@@ -33,7 +33,7 @@ use ahp_types::commands::{
     DispatchActionParams, InitializeParams, InitializeResult, ReconnectParams, ReconnectResult,
     SubscribeParams, SubscribeResult, UnsubscribeParams,
 };
-use ahp_types::common::Uri;
+use ahp_types::common::{Uri, ROOT_RESOURCE_URI};
 use ahp_types::messages::{
     ActionNotificationParams, JsonRpcError, JsonRpcMessage, JsonRpcNotification, JsonRpcRequest,
     JsonRpcVersion,
@@ -79,6 +79,7 @@ impl Default for ClientConfig {
 /// server emits as top-level JSON-RPC methods (session catalogue events
 /// on the root channel, auth-required signals scoped to a channel).
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum SubscriptionEvent {
     /// A write-ahead action envelope for this subscription's channel.
     Action(ActionEnvelope),
@@ -354,6 +355,7 @@ impl Client {
         initial_subscriptions: Vec<String>,
     ) -> Result<InitializeResult, ClientError> {
         let params = InitializeParams {
+            channel: ROOT_RESOURCE_URI.to_string(),
             protocol_versions,
             client_id,
             initial_subscriptions: if initial_subscriptions.is_empty() {
@@ -374,6 +376,7 @@ impl Client {
         subscriptions: Vec<String>,
     ) -> Result<ReconnectResult, ClientError> {
         let params = ReconnectParams {
+            channel: ROOT_RESOURCE_URI.to_string(),
             client_id,
             last_seen_server_seq,
             subscriptions,

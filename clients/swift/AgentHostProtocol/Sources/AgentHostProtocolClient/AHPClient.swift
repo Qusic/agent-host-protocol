@@ -228,6 +228,7 @@ public actor AHPClient {
         initialSubscriptions: [String] = []
     ) async throws -> InitializeResult {
         let params = InitializeParams(
+            channel: RootResourceURI,
             protocolVersions: protocolVersions,
             clientId: clientId,
             initialSubscriptions: initialSubscriptions.isEmpty ? nil : initialSubscriptions
@@ -251,6 +252,7 @@ public actor AHPClient {
         subscriptions: [String]
     ) async throws -> ReconnectResult {
         let params = ReconnectParams(
+            channel: RootResourceURI,
             clientId: clientId,
             lastSeenServerSeq: lastSeenServerSeq,
             subscriptions: subscriptions
