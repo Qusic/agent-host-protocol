@@ -113,7 +113,6 @@ import type {
   SessionIsReadChangedAction,
   SessionIsArchivedChangedAction,
   SessionActivityChangedAction,
-  SessionDiffsChangedAction,
   SessionConfigChangedAction,
   RootTerminalsChangedAction,
   RootConfigChangedAction,
@@ -304,7 +303,13 @@ type V1_SessionTruncatedAction = SessionTruncatedAction;
 type V1_SessionIsReadChangedAction = SessionIsReadChangedAction;
 type V1_SessionIsArchivedChangedAction = SessionIsArchivedChangedAction;
 type V1_SessionActivityChangedAction = SessionActivityChangedAction;
-type V1_SessionDiffsChangedAction = SessionDiffsChangedAction;
+// SessionDiffsChangedAction was removed in v2. The historical v1 wire shape is
+// preserved inline so v1 peers can still be decoded against this snapshot.
+interface V1_SessionDiffsChangedAction {
+  type: 'session/diffsChanged';
+  session: string;
+  diffs: V1_FileEdit[];
+}
 type V1_SessionConfigChangedAction = SessionConfigChangedAction;
 type V1_SessionToolCallContentChangedAction = SessionToolCallContentChangedAction;
 type V1_SessionInputRequestedAction = SessionInputRequestedAction;
@@ -569,8 +574,7 @@ type _CheckIsReadChangedAction = AssertCompatible<V1_SessionIsReadChangedAction,
 type _CheckIsArchivedChangedAction = AssertCompatible<V1_SessionIsArchivedChangedAction, SessionIsArchivedChangedAction>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckActivityChangedAction = AssertCompatible<V1_SessionActivityChangedAction, SessionActivityChangedAction>;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type _CheckDiffsChangedAction = AssertCompatible<V1_SessionDiffsChangedAction, SessionDiffsChangedAction>;
+// SessionDiffsChangedAction was removed in v2 — no current type to assert against.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _CheckConfigChangedAction = AssertCompatible<V1_SessionConfigChangedAction, SessionConfigChangedAction>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

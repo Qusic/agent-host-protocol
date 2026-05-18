@@ -100,7 +100,9 @@ function mapType(tsType: string, propName?: string, containerName?: string): str
   if (tsType === 'StringOrMarkdown') return 'StringOrMarkdown';
 
   // Known unions
-  if (tsType === 'RootState | SessionState' || tsType === 'RootState | SessionState | TerminalState') return 'SnapshotState';
+  if (tsType === 'RootState | SessionState'
+    || tsType === 'RootState | SessionState | TerminalState'
+    || tsType === 'RootState | SessionState | TerminalState | ChangesetState') return 'SnapshotState';
 
   // T | null → T?
   const nullMatch = tsType.match(/^(.+?)\s*\|\s*null$/);
@@ -483,6 +485,7 @@ const STATE_ENUMS = [
   'TurnState', 'MessageAttachmentKind', 'ResponsePartKind', 'ToolCallStatus',
   'ToolCallConfirmationReason', 'ToolCallCancellationReason', 'ConfirmationOptionKind',
   'ToolResultContentType', 'CustomizationStatus', 'TerminalClaimKind',
+  'ChangesetStatus', 'ChangesetOperationScope',
 ];
 
 const STATE_STRUCTS = [
@@ -515,6 +518,7 @@ const STATE_STRUCTS = [
   'TerminalClientClaim', 'TerminalSessionClaim', 'TerminalState',
   'TerminalUnclassifiedPart', 'TerminalCommandPart',
   'UsageInfo', 'ErrorInfo', 'Snapshot',
+  'ChangesetSummary', 'ChangesetState', 'ChangesetFile', 'ChangesetOperation',
 ];
 
 const RESPONSE_PART_UNION: UnionConfig = {
@@ -694,11 +698,12 @@ public enum StringOrMarkdown: Codable, Sendable, Equatable {
 }
 
 function generateSnapshotState(): string {
-  return `/// The state payload of a snapshot — root state, session state, or terminal state.
+  return `/// The state payload of a snapshot — root, session, terminal, or changeset state.
 public enum SnapshotState: Codable, Sendable {
     case root(RootState)
     case session(SessionState)
     case terminal(TerminalState)
+    case changeset(ChangesetState)
 
     public init(from decoder: Decoder) throws {
         // SessionState has required \`summary\` field, try it first
@@ -706,6 +711,8 @@ public enum SnapshotState: Codable, Sendable {
             self = .session(session)
         } else if let terminal = try? TerminalState(from: decoder) {
             self = .terminal(terminal)
+        } else if let changeset = try? ChangesetState(from: decoder) {
+            self = .changeset(changeset)
         } else {
             self = .root(try RootState(from: decoder))
         }
@@ -716,6 +723,7 @@ public enum SnapshotState: Codable, Sendable {
         case .root(let state): try state.encode(to: encoder)
         case .session(let state): try state.encode(to: encoder)
         case .terminal(let state): try state.encode(to: encoder)
+        case .changeset(let state): try state.encode(to: encoder)
         }
     }
 }`;
@@ -804,6 +812,7 @@ const ACTION_VARIANTS: { type: string; caseName: string; tsInterface: string }[]
   { type: 'session/isReadChanged', caseName: 'sessionIsReadChanged', tsInterface: 'SessionIsReadChangedAction' },
   { type: 'session/isArchivedChanged', caseName: 'sessionIsArchivedChanged', tsInterface: 'SessionIsArchivedChangedAction' },
   { type: 'session/activityChanged', caseName: 'sessionActivityChanged', tsInterface: 'SessionActivityChangedAction' },
+  { type: 'session/changesetsChanged', caseName: 'sessionChangesetsChanged', tsInterface: 'SessionChangesetsChangedAction' },
   { type: 'session/serverToolsChanged', caseName: 'sessionServerToolsChanged', tsInterface: 'SessionServerToolsChangedAction' },
   { type: 'session/activeClientChanged', caseName: 'sessionActiveClientChanged', tsInterface: 'SessionActiveClientChangedAction' },
   { type: 'session/activeClientToolsChanged', caseName: 'sessionActiveClientToolsChanged', tsInterface: 'SessionActiveClientToolsChangedAction' },
@@ -817,10 +826,14 @@ const ACTION_VARIANTS: { type: string; caseName: string; tsInterface: string }[]
   { type: 'session/customizationToggled', caseName: 'sessionCustomizationToggled', tsInterface: 'SessionCustomizationToggledAction' },
   { type: 'session/customizationUpdated', caseName: 'sessionCustomizationUpdated', tsInterface: 'SessionCustomizationUpdatedAction' },
   { type: 'session/truncated', caseName: 'sessionTruncated', tsInterface: 'SessionTruncatedAction' },
-  { type: 'session/diffsChanged', caseName: 'sessionDiffsChanged', tsInterface: 'SessionDiffsChangedAction' },
   { type: 'session/configChanged', caseName: 'sessionConfigChanged', tsInterface: 'SessionConfigChangedAction' },
   { type: 'session/metaChanged', caseName: 'sessionMetaChanged', tsInterface: 'SessionMetaChangedAction' },
   { type: 'session/toolCallContentChanged', caseName: 'sessionToolCallContentChanged', tsInterface: 'SessionToolCallContentChangedAction' },
+  { type: 'changeset/statusChanged', caseName: 'changesetStatusChanged', tsInterface: 'ChangesetStatusChangedAction' },
+  { type: 'changeset/fileSet', caseName: 'changesetFileSet', tsInterface: 'ChangesetFileSetAction' },
+  { type: 'changeset/fileRemoved', caseName: 'changesetFileRemoved', tsInterface: 'ChangesetFileRemovedAction' },
+  { type: 'changeset/operationsChanged', caseName: 'changesetOperationsChanged', tsInterface: 'ChangesetOperationsChangedAction' },
+  { type: 'changeset/cleared', caseName: 'changesetCleared', tsInterface: 'ChangesetClearedAction' },
   { type: 'root/terminalsChanged', caseName: 'rootTerminalsChanged', tsInterface: 'RootTerminalsChangedAction' },
   { type: 'root/configChanged', caseName: 'rootConfigChanged', tsInterface: 'RootConfigChangedAction' },
   { type: 'terminal/data', caseName: 'terminalData', tsInterface: 'TerminalDataAction' },
@@ -1004,6 +1017,8 @@ const COMMAND_STRUCTS = [
   'SessionConfigCompletionsParams', 'SessionConfigCompletionsResult',
   'SessionConfigValueItem',
   'CompletionsParams', 'CompletionItem', 'CompletionsResult',
+  'InvokeChangesetOperationParams', 'InvokeChangesetOperationResult',
+  'ChangesetOperationFollowUp',
 ];
 
 const RECONNECT_RESULT_UNION: UnionConfig = {
@@ -1047,7 +1062,81 @@ function generateCommandsFile(project: Project): string {
   lines.push(generateDiscriminatedUnion(RECONNECT_RESULT_UNION));
   lines.push('');
 
+  lines.push('// MARK: - Changeset Operation Unions\n');
+  lines.push(generateChangesetOperationTargetSwift());
+  lines.push('');
+
   return lines.join('\n');
+}
+
+function generateChangesetOperationTargetSwift(): string {
+  return `/// Identifies the file or range a \`ChangesetOperation\` should act on.
+public enum ChangesetOperationTarget: Codable, Sendable {
+    case resource(ChangesetOperationResourceTarget)
+    case range(ChangesetOperationRangeTarget)
+
+    private enum DiscriminantKey: String, CodingKey {
+        case discriminant = "kind"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: DiscriminantKey.self)
+        let discriminant = try container.decode(String.self, forKey: .discriminant)
+        switch discriminant {
+        case "resource":
+            self = .resource(try ChangesetOperationResourceTarget(from: decoder))
+        case "range":
+            self = .range(try ChangesetOperationRangeTarget(from: decoder))
+        default:
+            throw DecodingError.dataCorruptedError(forKey: .discriminant, in: container, debugDescription: "Unknown ChangesetOperationTarget discriminant: \\(discriminant)")
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        switch self {
+        case .resource(let value): try value.encode(to: encoder)
+        case .range(let value): try value.encode(to: encoder)
+        }
+    }
+}
+
+public struct ChangesetOperationResourceTarget: Codable, Sendable {
+    public var kind: String { "resource" }
+    public var resource: String
+    public var side: String?
+
+    public init(resource: String, side: String? = nil) {
+        self.resource = resource
+        self.side = side
+    }
+
+    private enum CodingKeys: String, CodingKey { case resource, side }
+}
+
+public struct ChangesetOperationRangeTarget: Codable, Sendable {
+    public var kind: String { "range" }
+    public var resource: String
+    public var side: String?
+    public var range: ChangesetOperationTargetRange
+
+    public init(resource: String, side: String? = nil, range: ChangesetOperationTargetRange) {
+        self.resource = resource
+        self.side = side
+        self.range = range
+    }
+
+    private enum CodingKeys: String, CodingKey { case resource, side, range }
+}
+
+public struct ChangesetOperationTargetRange: Codable, Sendable {
+    public var start: Int
+    public var end: Int
+
+    public init(start: Int, end: Int) {
+        self.start = start
+        self.end = end
+    }
+}`;
 }
 
 // ─── Notifications File Generator ────────────────────────────────────────────
@@ -1479,6 +1568,7 @@ function checkExhaustiveness(project: Project): void {
     'AhpError',                     // typed via JsonRpcError; not a Swift struct
     'AhpErrorDetailsMap',           // type-level mapping; not a Swift struct
     'ReconnectResult',              // RECONNECT_RESULT_UNION discriminated union
+    'ChangesetOperationTarget',     // TS discriminated union; consumers should add a Swift case-iterable enum
   ]);
 
   const missing = [...imported].filter(n => !coveredByLists.has(n) && !knownSpecial.has(n));

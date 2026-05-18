@@ -18,7 +18,7 @@ final class AHPClientTests: XCTestCase {
         let serverTask = Task {
             let request = try await readRequest(from: serverSide, expectedMethod: "initialize")
             let result = InitializeResult(
-                protocolVersion: "0.1.0",
+                protocolVersion: "0.2.0",
                 serverSeq: 0,
                 snapshots: []
             )
@@ -27,10 +27,10 @@ final class AHPClientTests: XCTestCase {
 
         let init1 = try await client.initialize(
             clientId: "test-client",
-            protocolVersions: ["0.1.0"],
+            protocolVersions: ["0.2.0"],
             initialSubscriptions: []
         )
-        XCTAssertEqual(init1.protocolVersion, "0.1.0")
+        XCTAssertEqual(init1.protocolVersion, "0.2.0")
         XCTAssertEqual(init1.serverSeq, 0)
 
         try await serverTask.value
@@ -117,7 +117,7 @@ final class AHPClientTests: XCTestCase {
         let serverTask = Task {
             let request = try await readRequest(from: serverSide, expectedMethod: "initialize")
             let result = InitializeResult(
-                protocolVersion: "0.1.0",
+                protocolVersion: "0.2.0",
                 serverSeq: 0,
                 snapshots: []
             )
@@ -144,7 +144,7 @@ final class AHPClientTests: XCTestCase {
 
         _ = try await client.initialize(
             clientId: "test-client",
-            protocolVersions: ["0.1.0"],
+            protocolVersions: ["0.2.0"],
             initialSubscriptions: []
         )
 
@@ -181,7 +181,7 @@ final class AHPClientTests: XCTestCase {
         do {
             _ = try await client.initialize(
                 clientId: "test-client",
-                protocolVersions: ["0.1.0"],
+                protocolVersions: ["0.2.0"],
                 initialSubscriptions: []
             )
             XCTFail("expected an error from initialize")

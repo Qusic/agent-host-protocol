@@ -26,7 +26,7 @@ final class MultiHostClientTests: XCTestCase {
         let snap = await multi.host("local")
         XCTAssertNotNil(snap)
         XCTAssertEqual(snap?.label, "Local")
-        XCTAssertEqual(snap?.protocolVersion, "0.1.0")
+        XCTAssertEqual(snap?.protocolVersion, "0.2.0")
         XCTAssertEqual(snap?.agents.count, 1)
         XCTAssertEqual(snap?.agents.first?.provider, "copilot")
         XCTAssertNotNil(snap?.lastConnectedAt)
@@ -423,7 +423,7 @@ final class MultiHostClientTests: XCTestCase {
                                 "fromSeq": 0,
                             ]
                             result = [
-                                "protocolVersion": "0.1.0",
+                                "protocolVersion": "0.2.0",
                                 "serverSeq": 0,
                                 "snapshots": [snap],
                             ] as [String: Any]

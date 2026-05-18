@@ -63,7 +63,7 @@ try await client.connect()
 
 let initialized = try await client.initialize(
     clientId: "my-client-id",
-    protocolVersions: ["0.1.0"],
+    protocolVersions: ["0.2.0"],
     initialSubscriptions: [RootResourceURI]
 )
 

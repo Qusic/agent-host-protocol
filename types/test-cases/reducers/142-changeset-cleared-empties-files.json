@@ -1,0 +1,30 @@
+{
+  "description": "changeset/cleared empties the file list and is a no-op on already-empty changeset",
+  "reducer": "changeset",
+  "initial": {
+    "status": "ready",
+    "files": [
+      {
+        "id": "file:///src/a.ts",
+        "edit": {
+          "after": { "uri": "file:///src/a.ts", "content": { "uri": "content:/a" } },
+          "diff": { "added": 1 }
+        }
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "changeset/cleared",
+      "changeset": "copilot:/abc/changeset/session"
+    },
+    {
+      "type": "changeset/cleared",
+      "changeset": "copilot:/abc/changeset/session"
+    }
+  ],
+  "expected": {
+    "status": "ready",
+    "files": []
+  }
+}

@@ -100,7 +100,7 @@ private func driveExampleHost(
                 "fromSeq": 0,
             ]
             result = [
-                "protocolVersion": "0.1.0",
+                "protocolVersion": "0.2.0",
                 "serverSeq": 0,
                 "snapshots": [snapshotJSON],
             ] as [String: Any]

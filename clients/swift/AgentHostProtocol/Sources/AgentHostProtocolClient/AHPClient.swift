@@ -22,7 +22,7 @@ import AgentHostProtocol
 /// try await client.connect()
 /// let init = try await client.initialize(
 ///     clientId: "my-client",
-///     protocolVersions: ["0.1.0"],
+///     protocolVersions: ["0.2.0"],
 ///     initialSubscriptions: [RootResourceURI]
 /// )
 /// // ... use client ...

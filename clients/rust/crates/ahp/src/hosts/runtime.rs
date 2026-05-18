@@ -706,8 +706,8 @@ fn apply_summary_changes(
     if let Some(v) = &changes.working_directory {
         existing.working_directory = Some(v.clone());
     }
-    if let Some(v) = &changes.diffs {
-        existing.diffs = Some(v.clone());
+    if let Some(v) = &changes.changesets {
+        existing.changesets = Some(v.clone());
     }
 }
 
