@@ -5,9 +5,13 @@ This package contains the Swift libraries for the Agent Host Protocol (AHP). The
 ## Products
 
 - `AgentHostProtocol` provides generated protocol types, commands, notifications, actions, and reducers. Use this product when you only need to decode protocol data or apply state reducers yourself.
-- `AgentHostProtocolClient` provides a reusable single-host client on top of `AgentHostProtocol`. It owns JSON-RPC request correlation, subscription fan-out, transport integration, and typed helpers for `initialize`, `reconnect`, `subscribe`, `unsubscribe`, `dispatch`, and arbitrary requests.
+- `AgentHostProtocolClient` provides:
+  - A single-host `AHPClient` actor — JSON-RPC request correlation, subscription fan-out, transport integration, typed helpers for `initialize`, `reconnect`, `subscribe`, `unsubscribe`, `dispatch`, and arbitrary requests.
+  - A multi-host `MultiHostClient` actor — per-host supervisor tasks, reconnect with backoff, generation-checked client handles, per-host session-summary cache, aggregated views, runtime-owned per-resource event streams that survive reconnects.
+  - State mirror helpers: `AHPStateMirror` (single-host) and `MultiHostStateMirror` (multi-host, keyed by `(hostId, uri)`).
+  - `ClientIdStore` implementations: `InMemoryClientIdStore` (default) and `FileClientIdStore` (filesystem-backed, atomic writes).
 
-The client product is intentionally a protocol/client layer, not a full app store. App-specific policy such as server selection, authentication, retry timing, reconnect UX, session summary caches, and optimistic outbound action replay should live in the app or in a higher-level supervisor.
+The client product is intentionally a protocol/client layer, not a full app store. App-specific policy such as server selection, authentication, retry timing, reconnect UX, and optimistic outbound action replay should live in the app or in a higher-level supervisor.
 
 ## Installation
 

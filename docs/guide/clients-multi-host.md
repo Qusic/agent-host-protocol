@@ -135,7 +135,93 @@ See the `ahp::hosts` rustdoc and `crates/ahp/tests/hosts.rs` for the full surfac
 
 ## Swift
 
-A matching `MultiHostClient` is planned for the Swift SDK in a follow-up PR — same shape (`HostId`, `HostConfig`, `HostHandle`, `HostClientHandle`, `MultiHostClient.single(...)`, multicast `events`/`hostEvents`, aggregated views) so consumers can apply the same mental model to both languages. This page will be updated when the Swift implementation lands.
+The Swift SDK ships a matching `MultiHostClient` actor in the `AgentHostProtocolClient` library — same mental model as Rust (`HostId`, `HostConfig`, `HostHandle`, `HostClientHandle`, `MultiHostClient.single(...)`, multicast `events()`/`hostEvents()`, aggregated views).
+
+Single-host first:
+
+```swift
+import AgentHostProtocol
+import AgentHostProtocolClient
+
+let config = HostConfig(id: "local", label: "Local sessions server") { _ in
+    URLSessionWebSocketTransport(url: URL(string: "ws://localhost:12345")!)
+}
+let (multi, handle) = try await MultiHostClient.single(config)
+print("connected to \(handle.label): \(handle.state)")
+```
+
+Multi-host registry shape:
+
+```swift
+let multi = MultiHostClient(clientIdStore: FileClientIdStore(directory: appSupportURL))
+_ = try await multi.add(HostConfig(id: "local", label: "Local", transportFactory: openLocal))
+_ = try await multi.add(HostConfig(id: "remote", label: "Remote", transportFactory: openRemote))
+
+for hosted in await multi.aggregatedSessions() {
+    print("[\(hosted.hostLabel)] \(hosted.summary.title)")
+}
+```
+
+### Reliable per-resource streams
+
+`events()` is **lossy by design** (`.bufferingNewest(1024)`) and is for advisory consumption only. Reducer-critical action envelopes must be consumed via the unbounded per-resource stream — runtime-owned and surviving reconnects (replayed envelopes are fanned in too):
+
+```swift
+let stream = await multi.events(host: "local", uri: "copilot:/s1")
+let snapshot = try await multi.subscribe(host: "local", uri: "copilot:/s1")
+for await event in stream! {
+    if case .action(let envelope) = event {
+        await mirror.apply(host: "local", envelope: envelope)
+    }
+}
+```
+
+`MultiHostStateMirror` provides a host-aware reducer façade keyed by `(hostId, uri)` for the common case where session URIs collide across hosts.
+
+### Observable host streams
+
+For SwiftUI / `@Observable` consumers, `MultiHostClient` exposes derived streams that yield a current value immediately and re-yield on changes:
+
+```swift
+for await snap in await multi.hostSnapshots(host: "local")! {
+    // bind snap.state, snap.lastError, snap.serverSeq, ...
+}
+
+for await summaries in await multi.sessionSummaries(host: "local")! {
+    // bind sidebar list
+}
+```
+
+### Reconnect helpers
+
+`MultiHostClient.reconnect(_:)` reconnects a single host; `reconnectAllUnavailable()` walks every host and reconnects those not in `.connected` or `.connecting` — handy for the iOS scene-phase pattern:
+
+```swift
+.onChange(of: scenePhase) { _, phase in
+    if phase == .active {
+        Task { await multi.reconnectAllUnavailable() }
+    }
+}
+```
+
+### Persistent client identity
+
+The SDK ships two `ClientIdStore` implementations:
+
+- `InMemoryClientIdStore` — default; session-stable but lost on restart.
+- `FileClientIdStore(directory:)` — filesystem-backed; atomic writes, owner-only permissions on POSIX. Cross-platform; recommended for command-line and desktop tools.
+
+iOS apps should consider a Keychain-backed store for higher-security profiles (the SDK doesn't ship one to keep `AgentHostProtocolClient` free of a `Security.framework` dependency on cross-platform builds — wrapping Keychain in a `ClientIdStore` is a few lines).
+
+### Task cancellation
+
+`AHPClient.request` and `HostClientHandle.request` observe `Task.isCancelled`. Cancelling the surrounding `Task` throws `CancellationError()`; the local pending entry is removed so a late server response is harmlessly dropped. Cancellation only cancels the local wait — server-side execution isn't aborted.
+
+### Escape hatch for extension RPCs
+
+For RPCs whose params/result types can't satisfy the typed `request`'s `Sendable` constraint (e.g. when `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` makes synthesised `Codable` conformances inherit `@MainActor`), use the raw-bytes variants `AHPClient.requestRaw` / `HostClientHandle.requestRaw`. Encode/decode JSON yourself.
+
+See `clients/swift/AgentHostProtocol/Sources/AgentHostProtocolClient/` and `Tests/AgentHostProtocolClientTests/` for the full surface and a complete example via `MultiHostExample.runDemo()`.
 
 ## Choosing single-host vs multi-host
 

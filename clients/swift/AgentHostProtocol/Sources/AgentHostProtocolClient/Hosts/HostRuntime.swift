@@ -294,6 +294,14 @@ internal final class HostRuntime: Sendable {
     /// `listSessions` seed, and atomically install the new client in
     /// `HostShared`. Called inside `withClientShutdownOnThrow` so a throw
     /// from any of these steps tears the client down before bubbling up.
+    ///
+    /// Ordering after success:
+    ///   1. Install the new `AHPClient` + bump `generation` + advance
+    ///      `serverSeq` (using `max` so we never regress).
+    ///   2. Apply the `ReconnectResult` to the per-host mirror and fan out
+    ///      any replayed envelopes (so any consumer that wakes up on
+    ///      `HostEvent.connected` already sees the post-reconnect state).
+    ///   3. Transition to `.connected` and emit `HostEvent.connected`.
     private func completeHandshake(
         client: AHPClient,
         events: AsyncStream<ClientEvent>,
@@ -306,31 +314,16 @@ internal final class HostRuntime: Sendable {
         let priorSeq = priorSnapshot.serverSeq
 
         var initResult: InitializeResult? = nil
+        var reconnectResult: ReconnectResult? = nil
         var newSeq = priorSeq
 
         if canReconnect {
             do {
-                _ = try await client.reconnect(
+                reconnectResult = try await client.reconnect(
                     clientId: clientId,
                     lastSeenServerSeq: priorSeq,
                     subscriptions: priorSubscriptions
                 )
-                // NOTE: the `ReconnectResult` is intentionally discarded
-                // here, mirroring the Rust `ahp::hosts` runtime. Three
-                // related gaps follow from this and are tracked together
-                // for both SDKs as a follow-up:
-                //   1. Replay actions returned synchronously by the server
-                //      are not fanned out (live `notify/action` frames after
-                //      reconnect still reach consumers normally).
-                //   2. `replay.missing` URIs (subscriptions the server
-                //      cannot resume) are not pruned from the replay set,
-                //      so the next reconnect re-asks for them.
-                //   3. `snapshot` results are not applied to the per-host
-                //      root mirror / `serverSeq`, so `HostHandle` can lag
-                //      behind the post-snapshot state until live events
-                //      catch up.
-                // All three should be fixed atomically across SDKs — see the
-                // parent multi-host series for tracking.
             } catch let error as AHPClientError {
                 if case .rpc = error {
                     let init1 = try await client.initialize(
@@ -339,7 +332,7 @@ internal final class HostRuntime: Sendable {
                         initialSubscriptions: priorSubscriptions
                     )
                     initResult = init1
-                    newSeq = init1.serverSeq
+                    newSeq = max(newSeq, init1.serverSeq)
                 } else {
                     throw error
                 }
@@ -351,7 +344,7 @@ internal final class HostRuntime: Sendable {
                 initialSubscriptions: priorSubscriptions
             )
             initResult = init1
-            newSeq = init1.serverSeq
+            newSeq = max(newSeq, init1.serverSeq)
         }
 
         // Refresh session summaries from `listSessions`. Cheap on first
@@ -362,6 +355,11 @@ internal final class HostRuntime: Sendable {
             params: ListSessionsParams()
         )
 
+        // Step 1: install the new client + bump generation. After this point
+        // the client is "current" and any inbound event the new connection
+        // delivers will be tagged with this generation. The `serverSeq`
+        // advance uses `max` so we never regress even if the server
+        // returned a stale value.
         let newGeneration: UInt64 = await {
             var generation: UInt64 = 0
             await shared.update { state in
@@ -369,7 +367,7 @@ internal final class HostRuntime: Sendable {
                 state.currentClient = client
                 state.lastConnectedAt = Date()
                 state.lastError = nil
-                state.serverSeq = newSeq
+                state.serverSeq = max(state.serverSeq, newSeq)
                 if let init1 = initResult {
                     state.protocolVersion = init1.protocolVersion
                     state.defaultDirectory = init1.defaultDirectory
@@ -391,9 +389,95 @@ internal final class HostRuntime: Sendable {
             return generation
         }()
 
+        // Step 2: apply the reconnect result (if any). For replay, this
+        // fans out replayed envelopes through the same path live envelopes
+        // take so consumers' downstream state mirrors stay correct. For
+        // snapshot, it refreshes the per-host root mirror and prunes
+        // subscriptions the server didn't respond to. Done before the
+        // `.connected` transition / `HostEvent.connected` so consumers
+        // observing the connected edge see the post-reconnect state.
+        if let result = reconnectResult {
+            await applyReconnectResult(result, priorSubscriptions: priorSubscriptions)
+        }
+
+        // Step 3: announce the new connection.
         await transition(to: .connected, error: nil)
         await hostEventSink(.connected(config.id, generation: newGeneration))
         return ConnectionStreams(events: events, stateChanges: stateChanges)
+    }
+
+    /// Apply the result of a `reconnect` call.
+    ///
+    /// For `ReconnectResult.replay`: fans the missed action envelopes
+    /// through the per-host event tap and the per-host state mirror so
+    /// consumers see them in `serverSeq` order, then drops any
+    /// `missing` URIs from the local subscription set so the next
+    /// reconnect doesn't re-ask for them.
+    ///
+    /// For `ReconnectResult.snapshot`: refreshes the per-host root
+    /// state mirror and records the snapshot's `fromSeq` in the
+    /// supervisor's `serverSeq`. Subscriptions present in
+    /// `priorSubscriptions` that the server didn't return a snapshot
+    /// for are dropped from the local subscription set (the snapshot
+    /// arm doesn't carry an explicit `missing` list).
+    ///
+    /// Mirrors `apply_reconnect_result` in
+    /// `clients/rust/crates/ahp/src/hosts/runtime.rs`.
+    private func applyReconnectResult(
+        _ result: ReconnectResult,
+        priorSubscriptions: [String]
+    ) async {
+        switch result {
+        case .replay(let replay):
+            // Replay envelopes one at a time so applyAction's monotonic
+            // serverSeq guard naturally drops any out-of-order or already-
+            // observed entries. We fan AFTER applyAction so consumer
+            // mirrors mutating in the same actor see the post-update
+            // state if they re-read the host snapshot.
+            for envelope in replay.actions {
+                let resource = actionResource(for: envelope.action)
+                await applyAction(envelope)
+                let hostEvent = HostSubscriptionEvent(
+                    hostId: config.id,
+                    resource: resource,
+                    event: .action(envelope)
+                )
+                await fanOut(hostEvent)
+            }
+            if !replay.missing.isEmpty {
+                let missingSet = Set(replay.missing)
+                await shared.update { state in
+                    state.subscriptions.removeAll { missingSet.contains($0) }
+                }
+            }
+        case .snapshot(let snap):
+            var surviving: [String] = []
+            surviving.reserveCapacity(snap.snapshots.count)
+            await shared.update { state in
+                for snapshot in snap.snapshots {
+                    if snapshot.fromSeq > state.serverSeq {
+                        state.serverSeq = snapshot.fromSeq
+                    }
+                    if snapshot.resource == RootResourceURI {
+                        if case .root(let root) = snapshot.state {
+                            state.rootState = root
+                        }
+                    }
+                    surviving.append(snapshot.resource)
+                }
+                // Drop subscriptions the server didn't return a snapshot
+                // for — they're effectively "missing" even though the
+                // snapshot arm doesn't carry an explicit list. Subscriptions
+                // added after `priorSubscriptions` was captured (e.g. by a
+                // racing `subscribe` command during the handshake) are
+                // preserved.
+                let survivingSet = Set(surviving)
+                let priorSet = Set(priorSubscriptions)
+                state.subscriptions.removeAll { uri in
+                    priorSet.contains(uri) && !survivingSet.contains(uri)
+                }
+            }
+        }
     }
 
     /// Drain commands and the event pump until the connection ends, the user

@@ -491,6 +491,534 @@ final class MultiHostClientTests: XCTestCase {
         await multi.shutdown()
     }
 
+    // MARK: - reconnect_replay_actions_are_fanned_out_with_advanced_seq
+
+    /// Phase 1: when the server responds to `reconnect` with a `replay`
+    /// arm, the runtime must fan the missed action envelopes through the
+    /// per-host event tap (so downstream consumer state mirrors stay in
+    /// sync) and advance `serverSeq` past the highest replayed envelope.
+    func testReconnectReplayActionsAreFannedOutWithAdvancedSeq() async throws {
+        let replayedAction = StateAction.rootActiveSessionsChanged(
+            RootActiveSessionsChangedAction(type: .rootActiveSessionsChanged, activeSessions: 7)
+        )
+        let replayEnvelope = ActionEnvelope(action: replayedAction, serverSeq: 42)
+
+        // Attempt 0: succeed with `serverSeq=40`, then drop so the next
+        // attempt enters the `reconnect` branch (priorSeq>0 + non-empty
+        // subscriptions, since `initialSubscriptions` defaults to
+        // `[RootResourceURI]`).
+        // Attempt 1: reply to `reconnect` with a one-action replay at
+        // serverSeq=42.
+        let script = ReconnectScript(
+            perAttemptHandshake: [
+                .initOk(serverSeq: 40),
+                .reconnectReplay(actions: [replayEnvelope]),
+            ],
+            dropAfterHandshake: [true, false]
+        )
+        let fake = ScriptedFakeHost(script: script)
+        let multi = MultiHostClient()
+        let events = await multi.events()
+        let config = HostConfig(id: "h", label: "Host", transportFactory: fake.factory())
+            .withReconnectPolicy(.immediateForever)
+        _ = try await multi.add(config)
+
+        // Wait for the second connect to land — at that point the replay
+        // has already been applied (Phase 1 ordering guarantees that the
+        // reconnect result is processed BEFORE the `.connected` transition
+        // fires).
+        await waitUntil(timeout: .seconds(2)) {
+            guard let snap = await multi.host("h") else { return false }
+            return snap.state.isConnected && snap.serverSeq >= 42
+        }
+
+        // Pump the events stream looking for the replayed action. The
+        // fan-in stream uses .bufferingNewest(1024), so the event is
+        // retained even if we read it after the fact. There are no other
+        // events on this connection that would match (the initial
+        // `initialize` carries snapshots, not action envelopes).
+        var iter = events.makeAsyncIterator()
+        var sawReplayedAction = false
+        let deadline = ContinuousClock.now + .seconds(1)
+        while !sawReplayedAction && ContinuousClock.now < deadline {
+            let nextResult: HostSubscriptionEvent?
+            do {
+                nextResult = try await Self.nextWithTimeout(&iter, timeout: .milliseconds(200))
+            } catch {
+                break
+            }
+            guard let event = nextResult else { continue }
+            guard case .action(let envelope) = event.event else { continue }
+            guard case .rootActiveSessionsChanged(let inner) = envelope.action else { continue }
+            if inner.activeSessions == 7 && envelope.serverSeq == 42 {
+                XCTAssertEqual(event.hostId, "h")
+                XCTAssertEqual(event.resource, RootResourceURI,
+                               "replayed root-state envelope should carry the root URI")
+                sawReplayedAction = true
+            }
+        }
+        XCTAssertTrue(sawReplayedAction,
+                      "expected the replayed RootActiveSessionsChanged action to fan out via events()")
+
+        let snap = await multi.host("h")
+        XCTAssertGreaterThanOrEqual(snap?.serverSeq ?? 0, 42,
+                                    "serverSeq should have advanced past the replayed envelope")
+
+        await multi.shutdown()
+    }
+
+    // MARK: - reconnect_replay_missing_prunes_subscriptions
+
+    /// Phase 1: the `missing` list on a replay result indicates URIs the
+    /// server cannot resume (e.g. disposed sessions). The runtime must
+    /// drop them from its tracked subscription set so subsequent
+    /// reconnects don't re-request them.
+    func testReconnectReplayMissingPrunesSubscriptions() async throws {
+        let script = ReconnectScript(
+            perAttemptHandshake: [
+                .initOk(serverSeq: 5),
+                .reconnectReplay(actions: [], missing: ["copilot:/disposed"]),
+            ],
+            dropAfterHandshake: [true, false]
+        )
+        let fake = ScriptedFakeHost(script: script)
+        let multi = MultiHostClient()
+        let config = HostConfig(id: "h", label: "Host", transportFactory: fake.factory())
+            // Two initial subscriptions: one the server will say is
+            // missing on reconnect, one it doesn't list.
+            .withInitialSubscriptions([RootResourceURI, "copilot:/disposed"])
+            .withReconnectPolicy(.immediateForever)
+        _ = try await multi.add(config)
+
+        // Wait for second connect to complete.
+        await waitUntil(timeout: .seconds(2)) {
+            guard let snap = await multi.host("h"),
+                  snap.state.isConnected
+            else { return false }
+            // Have we re-connected at least once? Track via generation.
+            return snap.generation >= 2
+        }
+
+        let snap = await multi.host("h")
+        XCTAssertNotNil(snap)
+        XCTAssertFalse(snap?.subscriptions.contains("copilot:/disposed") ?? true,
+                       "missing URI should have been pruned from the replay set")
+        XCTAssertTrue(snap?.subscriptions.contains(RootResourceURI) ?? false,
+                      "non-missing subscription should still be tracked")
+
+        await multi.shutdown()
+    }
+
+    // MARK: - reconnect_snapshot_applies_to_root_mirror_and_advances_seq
+
+    /// Phase 1: when the server responds to `reconnect` with a `snapshot`
+    /// arm, the runtime must apply the root snapshot to the per-host
+    /// mirror, advance `serverSeq` to the max `fromSeq`, and drop prior
+    /// subscriptions the server didn't return a snapshot for.
+    func testReconnectSnapshotAppliesToRootMirrorAndAdvancesSeq() async throws {
+        let snapshotAgents = [
+            AgentInfo(provider: "from-snapshot", displayName: "Snap", description: "", models: [])
+        ]
+        let rootSnapshot = Snapshot(
+            resource: RootResourceURI,
+            state: .root(RootState(agents: snapshotAgents)),
+            fromSeq: 99
+        )
+
+        let script = ReconnectScript(
+            perAttemptHandshake: [
+                .initOk(serverSeq: 5),
+                .reconnectSnapshot(snapshots: [rootSnapshot]),
+            ],
+            dropAfterHandshake: [true, false]
+        )
+        let fake = ScriptedFakeHost(script: script)
+        let multi = MultiHostClient()
+        let config = HostConfig(id: "h", label: "Host", transportFactory: fake.factory())
+            .withInitialSubscriptions([RootResourceURI, "copilot:/dropped"])
+            .withReconnectPolicy(.immediateForever)
+        _ = try await multi.add(config)
+
+        // Wait for second connect to complete.
+        await waitUntil(timeout: .seconds(2)) {
+            guard let snap = await multi.host("h"),
+                  snap.state.isConnected,
+                  snap.generation >= 2
+            else { return false }
+            return snap.serverSeq >= 99
+        }
+
+        let snap = await multi.host("h")
+        XCTAssertEqual(snap?.serverSeq, 99,
+                       "serverSeq should advance to the snapshot fromSeq")
+        XCTAssertEqual(snap?.agents.first?.provider, "from-snapshot",
+                       "root snapshot should be applied to the per-host mirror")
+        XCTAssertTrue(snap?.subscriptions.contains(RootResourceURI) ?? false,
+                      "root URI was in the snapshot response and should remain subscribed")
+        XCTAssertFalse(snap?.subscriptions.contains("copilot:/dropped") ?? true,
+                       "URIs the server didn't snapshot should be dropped from the replay set")
+
+        await multi.shutdown()
+    }
+
+    // MARK: - events_host_uri_delivers_live_envelopes
+
+    /// Phase 2: `events(host:uri:)` should deliver live action envelopes
+    /// for the specified URI without dropping. Smoke test: server pushes
+    /// a notification after `initialize`; listener attached immediately
+    /// after `add` (before connect completes) sees it.
+    func testEventsHostUriDeliversLiveSessionNotification() async throws {
+        let initial = makeSummary("copilot:/sess", "init", modifiedAt: 100)
+        let added = makeSummary("copilot:/added", "post", modifiedAt: 200)
+        let factory = makeFakeHostFactory(
+            state: FakeHostState(sessions: [initial]),
+            injectAfterInit: added
+        )
+        let multi = MultiHostClient()
+        _ = try await multi.add(HostConfig(id: "h", label: "Host", transportFactory: factory))
+
+        // Attach immediately, before waiting for the connect to land —
+        // the FakeHost injects the notification ~20ms after answering
+        // `initialize`, and we don't want to race that.
+        let stream = await multi.events(host: "h", uri: "copilot:/sess")
+        XCTAssertNotNil(stream)
+
+        await waitForHostState(multi, id: "h") { $0.isConnected }
+
+        // Wait for the injected sessionAdded notification.
+        var iter = stream!.makeAsyncIterator()
+        var sawNotification = false
+        let deadline = ContinuousClock.now + .seconds(2)
+        while !sawNotification && ContinuousClock.now < deadline {
+            let next: SubscriptionEvent?
+            do {
+                next = try await Self.nextWithTimeout(&iter, timeout: .milliseconds(300))
+            } catch {
+                break
+            }
+            guard let event = next else { continue }
+            if case .notification(let n) = event,
+               case .sessionAdded(let added) = n {
+                XCTAssertEqual(added.summary.resource, "copilot:/added")
+                sawNotification = true
+            }
+        }
+        XCTAssertTrue(sawNotification,
+                      "expected the injected sessionAdded notification on the per-URI stream")
+
+        await multi.shutdown()
+    }
+
+    // MARK: - events_host_uri_survives_reconnect_and_replays
+
+    /// Phase 2: per-URI streams from `events(host:uri:)` are
+    /// runtime-owned (not per-`AHPClient`), so they must survive
+    /// reconnect. After a reconnect that returns replay actions, the
+    /// listener attached before the reconnect should observe the
+    /// replayed envelopes.
+    func testEventsHostUriSurvivesReconnectAndSeesReplay() async throws {
+        let replayedAction = StateAction.rootActiveSessionsChanged(
+            RootActiveSessionsChangedAction(type: .rootActiveSessionsChanged, activeSessions: 9)
+        )
+        let replayEnvelope = ActionEnvelope(action: replayedAction, serverSeq: 84)
+
+        let script = ReconnectScript(
+            perAttemptHandshake: [
+                .initOk(serverSeq: 50),
+                .reconnectReplay(actions: [replayEnvelope]),
+            ],
+            dropAfterHandshake: [true, false]
+        )
+        let fake = ScriptedFakeHost(script: script)
+        let multi = MultiHostClient()
+        let config = HostConfig(id: "h", label: "Host", transportFactory: fake.factory())
+            .withReconnectPolicy(.immediateForever)
+        _ = try await multi.add(config)
+
+        // Attach the per-URI listener immediately after add — before the
+        // supervisor has even completed its first connect — so it's
+        // present for the reconnect cycle that follows the dropped
+        // first connection.
+        let stream = await multi.events(host: "h", uri: RootResourceURI)
+        XCTAssertNotNil(stream)
+        var iter = stream!.makeAsyncIterator()
+
+        // Wait for serverSeq to advance past the replay envelope. The
+        // supervisor will hit the drop signal, reconnect, and apply the
+        // replay during `applyReconnectResult`.
+        await waitUntil(timeout: .seconds(2)) {
+            guard let snap = await multi.host("h") else { return false }
+            return snap.serverSeq >= 84
+        }
+
+        // Look for the replayed envelope on the per-URI stream.
+        var sawReplay = false
+        let deadline = ContinuousClock.now + .seconds(1)
+        while !sawReplay && ContinuousClock.now < deadline {
+            let next: SubscriptionEvent?
+            do {
+                next = try await Self.nextWithTimeout(&iter, timeout: .milliseconds(200))
+            } catch {
+                break
+            }
+            guard let event = next else { continue }
+            guard case .action(let envelope) = event else { continue }
+            guard case .rootActiveSessionsChanged(let inner) = envelope.action else { continue }
+            if inner.activeSessions == 9 && envelope.serverSeq == 84 {
+                sawReplay = true
+            }
+        }
+        XCTAssertTrue(sawReplay,
+                      "per-URI stream should see replayed envelopes after reconnect")
+
+        await multi.shutdown()
+    }
+
+    // MARK: - events_host_uri_returns_nil_for_unknown_host
+
+    func testEventsHostUriReturnsNilForUnknownHost() async throws {
+        let multi = MultiHostClient()
+        let stream = await multi.events(host: "missing", uri: "copilot:/anything")
+        XCTAssertNil(stream)
+        await multi.shutdown()
+    }
+
+    // MARK: - events_host_uri_finishes_on_host_removal
+
+    /// Per-URI streams should finish when their host is removed so
+    /// consumers' `for await` loops exit cleanly instead of hanging.
+    func testEventsHostUriFinishesOnHostRemoval() async throws {
+        let multi = MultiHostClient()
+        _ = try await multi.add(HostConfig(
+            id: "tmp",
+            label: "Temp",
+            transportFactory: makeFakeHostFactory(state: FakeHostState())
+        ))
+        await waitForHostState(multi, id: "tmp") { $0.isConnected }
+
+        let stream = await multi.events(host: "tmp", uri: "copilot:/x")
+        XCTAssertNotNil(stream)
+
+        try await multi.remove("tmp")
+
+        // Drain — should exit promptly because the stream was finished.
+        var count = 0
+        for await _ in stream! {
+            count += 1
+            if count > 10 { break } // safety
+        }
+        // We don't assert the exact count, only that the for-await loop exits.
+
+        await multi.shutdown()
+    }
+
+    // MARK: - host_snapshots_yields_initial_then_on_connect
+
+    /// Phase 3: `hostSnapshots(host:)` yields the current snapshot
+    /// immediately on subscription, then yields a fresh snapshot on
+    /// state changes (e.g., when the host transitions to `.connected`).
+    func testHostSnapshotsYieldsInitialThenOnConnect() async throws {
+        let factory = makeFakeHostFactory(state: FakeHostState())
+        let multi = MultiHostClient()
+        _ = try await multi.add(HostConfig(id: "h", label: "H", transportFactory: factory))
+
+        let stream = await multi.hostSnapshots(host: "h")
+        XCTAssertNotNil(stream)
+
+        var iter = stream!.makeAsyncIterator()
+        // First yield is the initial snapshot (whatever state we caught).
+        let initial = try await Self.nextWithTimeout(&iter, timeout: .seconds(1))
+        XCTAssertNotNil(initial)
+        XCTAssertEqual(initial?.id, "h")
+
+        // Pump until we see `.connected` (skipping transient states).
+        var connectedSnap: HostHandle?
+        let deadline = ContinuousClock.now + .seconds(2)
+        while ContinuousClock.now < deadline {
+            let next: HostHandle?
+            do {
+                next = try await Self.nextWithTimeout(&iter, timeout: .milliseconds(300))
+            } catch {
+                break
+            }
+            guard let snap = next else { continue }
+            if snap.state.isConnected {
+                connectedSnap = snap
+                break
+            }
+        }
+        XCTAssertNotNil(connectedSnap, "expected a `.connected` snapshot to be emitted")
+        XCTAssertEqual(connectedSnap?.id, "h")
+
+        await multi.shutdown()
+    }
+
+    // MARK: - host_snapshots_returns_nil_for_unknown_host
+
+    func testHostSnapshotsReturnsNilForUnknownHost() async throws {
+        let multi = MultiHostClient()
+        let stream = await multi.hostSnapshots(host: "missing")
+        XCTAssertNil(stream)
+        await multi.shutdown()
+    }
+
+    // MARK: - host_snapshots_finishes_on_host_removal
+
+    func testHostSnapshotsFinishesOnHostRemoval() async throws {
+        let multi = MultiHostClient()
+        _ = try await multi.add(HostConfig(
+            id: "h", label: "H",
+            transportFactory: makeFakeHostFactory(state: FakeHostState())
+        ))
+        await waitForHostState(multi, id: "h") { $0.isConnected }
+
+        let stream = await multi.hostSnapshots(host: "h")
+        XCTAssertNotNil(stream)
+
+        try await multi.remove("h")
+
+        // Drain — should exit promptly.
+        var seen = 0
+        for await _ in stream! {
+            seen += 1
+            if seen > 50 { break }
+        }
+        // Just assert the loop terminated.
+        _ = seen
+
+        await multi.shutdown()
+    }
+
+    // MARK: - session_summaries_yields_initial_then_on_notification
+
+    /// Phase 3: `sessionSummaries(host:)` yields the current cached
+    /// summaries immediately on subscription, then yields a fresh
+    /// sorted list on `sessionAdded` / `sessionRemoved` /
+    /// `sessionSummaryChanged` notifications.
+    func testSessionSummariesYieldsInitialThenOnNotification() async throws {
+        let initial = makeSummary("copilot:/s1", "Initial", modifiedAt: 100)
+        let added = makeSummary("copilot:/s2", "Added", modifiedAt: 200)
+        let factory = makeFakeHostFactory(
+            state: FakeHostState(sessions: [initial]),
+            injectAfterInit: added
+        )
+        let multi = MultiHostClient()
+        _ = try await multi.add(HostConfig(id: "h", label: "H", transportFactory: factory))
+
+        // Attach immediately so the stream is in place when the injected
+        // notification arrives.
+        let stream = await multi.sessionSummaries(host: "h")
+        XCTAssertNotNil(stream)
+
+        var iter = stream!.makeAsyncIterator()
+        // The initial yield (right at subscription time) reflects whatever
+        // is cached at that instant — may be empty because the supervisor
+        // is still in its handshake. The connect signal will emit a
+        // post-listSessions value, and the injected notification will
+        // emit another. We poll until we see both `initial` (post
+        // listSessions) and `added` (post notification).
+        var sawInitial = false
+        var sawAdded = false
+        let deadline = ContinuousClock.now + .seconds(3)
+        while !(sawInitial && sawAdded) && ContinuousClock.now < deadline {
+            let next: [SessionSummary]?
+            do {
+                next = try await Self.nextWithTimeout(&iter, timeout: .milliseconds(400))
+            } catch {
+                break
+            }
+            guard let summaries = next else { continue }
+            let uris = Set(summaries.map(\.resource))
+            if uris.contains("copilot:/s1") { sawInitial = true }
+            if uris.contains("copilot:/s2") { sawAdded = true }
+        }
+        XCTAssertTrue(sawInitial, "expected listSessions-seeded summary on the stream")
+        XCTAssertTrue(sawAdded, "expected injected sessionAdded notification to update the stream")
+
+        await multi.shutdown()
+    }
+
+    // MARK: - session_summaries_returns_nil_for_unknown_host
+
+    func testSessionSummariesReturnsNilForUnknownHost() async throws {
+        let multi = MultiHostClient()
+        let stream = await multi.sessionSummaries(host: "missing")
+        XCTAssertNil(stream)
+        await multi.shutdown()
+    }
+
+    // MARK: - reconnect_all_unavailable_skips_connected_and_wakes_others
+
+    /// Phase 4: `reconnectAllUnavailable()` should walk every host and
+    /// trigger a manual reconnect on those NOT in `.connected` or
+    /// `.connecting`. Connected hosts are not perturbed.
+    func testReconnectAllUnavailableSkipsConnectedAndWakesOthers() async throws {
+        // Host A: connects normally (will stay `.connected`).
+        let counterA = CallCounter()
+        let factoryA: HostTransportFactory = { _ in
+            await counterA.bump()
+            let (clientSide, serverSide) = InMemoryTransport.pair()
+            _ = FakeHost.start(transport: serverSide, state: FakeHostState())
+            return clientSide
+        }
+
+        // Host B: first attempt fails (driving it to `.failed` because
+        // policy is `.disabled`), second attempt (via manual reconnect)
+        // succeeds.
+        let didFirstFail = ActorBool()
+        let counterB = CallCounter()
+        let factoryB: HostTransportFactory = { _ in
+            await counterB.bump()
+            if !(await didFirstFail.value) {
+                await didFirstFail.set(true)
+                throw TransportError.io("intentional first-attempt failure")
+            }
+            let (clientSide, serverSide) = InMemoryTransport.pair()
+            _ = FakeHost.start(transport: serverSide, state: FakeHostState())
+            return clientSide
+        }
+
+        let multi = MultiHostClient()
+        _ = try await multi.add(HostConfig(id: "a", label: "A", transportFactory: factoryA))
+        _ = try await multi.add(HostConfig(id: "b", label: "B", transportFactory: factoryB)
+            .withReconnectPolicy(.disabled))
+
+        await waitForHostState(multi, id: "a") { $0.isConnected }
+        await waitForHostState(multi, id: "b") { $0.isFailed }
+
+        let aCountBefore = await counterA.value()
+        XCTAssertEqual(aCountBefore, 1)
+
+        // Wake all unavailable. A should be skipped; B should be
+        // reconnected.
+        let errors = await multi.reconnectAllUnavailable()
+        XCTAssertTrue(errors.isEmpty, "expected reconnects to ack without error, got \(errors)")
+
+        await waitForHostState(multi, id: "b") { $0.isConnected }
+        let aCountAfter = await counterA.value()
+        let bCountAfter = await counterB.value()
+        XCTAssertEqual(aCountAfter, 1, "host A should not have been re-connected")
+        XCTAssertEqual(bCountAfter, 2, "host B should have re-attempted exactly once")
+
+        await multi.shutdown()
+    }
+
+    // MARK: - reconnect_all_unavailable_returns_empty_when_all_connected
+
+    func testReconnectAllUnavailableReturnsEmptyWhenAllConnected() async throws {
+        let multi = MultiHostClient()
+        _ = try await multi.add(HostConfig(
+            id: "x", label: "X",
+            transportFactory: makeFakeHostFactory(state: FakeHostState())
+        ))
+        await waitForHostState(multi, id: "x") { $0.isConnected }
+
+        let errors = await multi.reconnectAllUnavailable()
+        XCTAssertTrue(errors.isEmpty)
+
+        await multi.shutdown()
+    }
+
     // MARK: - failed_handshake_shuts_down_underlying_client
 
     /// Regression: if `initialize`/`reconnect` throws after `client.connect()`
