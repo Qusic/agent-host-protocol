@@ -21,7 +21,7 @@ The client initiates the connection with an `initialize` **request**. The client
   "id": 1,
   "method": "initialize",
   "params": {
-    "protocolVersions": ["0.1.0"],
+    "protocolVersions": ["0.2.0"],
     "clientId": "client-abc",
     "initialSubscriptions": ["agenthost:/root"],
     "locale": "en-US"
@@ -42,7 +42,7 @@ The client initiates the connection with an `initialize` **request**. The client
   "jsonrpc": "2.0",
   "id": 1,
   "result": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.2.0",
     "serverSeq": 42,
     "defaultDirectory": "file:///home/testuser",
     "snapshots": [
@@ -101,17 +101,17 @@ All actions MUST be scoped to the session URI and reference a valid turn ID when
 
 When the server receives a client-dispatched action, it MUST validate it before applying. Invalid actions MUST be echoed back with a `rejectionReason`. The following validation rules apply:
 
-| Action | Condition | Server Behavior |
-|---|---|---|
-| Any action referencing a non-existent session | Session URI not found | Server MUST silently ignore the action (no echo) |
-| `session/toolCallConfirmed` | Tool call not in `pending-confirmation` state | Server MUST reject the action |
-| `session/turnCancelled` | No active turn | Server MUST reject the action |
-| `session/modelChanged` | A turn is currently active | Server MUST defer the model change until the active turn completes, then apply it for the next turn |
-| `session/inputAnswerChanged` | No input request with matching `requestId` | Server SHOULD reject the action |
-| `session/inputAnswerChanged` | `answer.state` requires a value but `answer.value` is absent, or `answer.value.kind` is missing the matching payload field | Server SHOULD reject the action |
-| `session/inputCompleted` | No input request with matching `requestId` | Server SHOULD reject the action |
-| `session/inputCompleted` | `response` is `'accept'` but required questions do not have submitted answers | Server SHOULD reject the action |
-| `session/pendingMessageRemoved` | No pending message with matching `id` and `kind` | Server SHOULD reject the action |
+| Action                                        | Condition                                                                                                                  | Server Behavior                                                                                     |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Any action referencing a non-existent session | Session URI not found                                                                                                      | Server MUST silently ignore the action (no echo)                                                    |
+| `session/toolCallConfirmed`                   | Tool call not in `pending-confirmation` state                                                                              | Server MUST reject the action                                                                       |
+| `session/turnCancelled`                       | No active turn                                                                                                             | Server MUST reject the action                                                                       |
+| `session/modelChanged`                        | A turn is currently active                                                                                                 | Server MUST defer the model change until the active turn completes, then apply it for the next turn |
+| `session/inputAnswerChanged`                  | No input request with matching `requestId`                                                                                 | Server SHOULD reject the action                                                                     |
+| `session/inputAnswerChanged`                  | `answer.state` requires a value but `answer.value` is absent, or `answer.value.kind` is missing the matching payload field | Server SHOULD reject the action                                                                     |
+| `session/inputCompleted`                      | No input request with matching `requestId`                                                                                 | Server SHOULD reject the action                                                                     |
+| `session/inputCompleted`                      | `response` is `'accept'` but required questions do not have submitted answers                                              | Server SHOULD reject the action                                                                     |
+| `session/pendingMessageRemoved`               | No pending message with matching `id` and `kind`                                                                           | Server SHOULD reject the action                                                                     |
 
 ## Pending Message Consumption
 
@@ -143,7 +143,7 @@ Steering messages added while idle are silently stored and consumed when a turn 
   "jsonrpc": "2.0",
   "id": 5,
   "method": "disposeSession",
-  "params": { "session": "copilot:/<uuid>" }
+  "params": { "session": "copilot:/<uuid>" },
 }
 ```
 

@@ -44,7 +44,8 @@ type _ExpectedCommands =
   | 'authenticate'
   | 'resolveSessionConfig'
   | 'sessionConfigCompletions'
-  | 'completions';
+  | 'completions'
+  | 'invokeChangesetOperation';
 
 /** All methods annotated `@messageType Notification` (client → server) in commands.ts. */
 type _ExpectedClientNotifications =

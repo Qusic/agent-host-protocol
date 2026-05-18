@@ -726,7 +726,7 @@ fn make_summary(uri: &str, title: &str, modified_at: i64) -> ahp_types::state::S
         project: None,
         model: None,
         working_directory: None,
-        diffs: None,
+        changesets: None,
     }
 }
 

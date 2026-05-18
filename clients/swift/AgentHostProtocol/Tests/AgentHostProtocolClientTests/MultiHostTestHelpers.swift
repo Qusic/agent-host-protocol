@@ -118,7 +118,7 @@ struct FakeHost {
                 "fromSeq": state.serverSeq,
             ]
             return [
-                "protocolVersion": "0.1.0",
+                "protocolVersion": "0.2.0",
                 "serverSeq": state.serverSeq,
                 "snapshots": [snapshot],
             ]

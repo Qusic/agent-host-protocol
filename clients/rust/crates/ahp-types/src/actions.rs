@@ -12,8 +12,9 @@ use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
 use crate::state::{
-    AgentInfo, ConfirmationOption, CustomizationRef, CustomizationStatus, ErrorInfo, FileEdit,
-    ModelSelection, PendingMessageKind, ResponsePart, SessionActiveClient, SessionCustomization,
+    AgentInfo, ChangesetFile, ChangesetOperation, ChangesetStatus, ChangesetSummary,
+    ConfirmationOption, CustomizationRef, CustomizationStatus, ErrorInfo, ModelSelection,
+    PendingMessageKind, ResponsePart, SessionActiveClient, SessionCustomization,
     SessionInputAnswer, SessionInputRequest, SessionInputResponseKind, TerminalClaim, TerminalInfo,
     ToolCallCancellationReason, ToolCallConfirmationReason, ToolCallResult, ToolDefinition,
     ToolResultContent, UsageInfo, UserMessage,
@@ -98,12 +99,22 @@ pub enum ActionType {
     SessionIsArchivedChanged,
     #[serde(rename = "session/activityChanged")]
     SessionActivityChanged,
-    #[serde(rename = "session/diffsChanged")]
-    SessionDiffsChanged,
+    #[serde(rename = "session/changesetsChanged")]
+    SessionChangesetsChanged,
     #[serde(rename = "session/configChanged")]
     SessionConfigChanged,
     #[serde(rename = "session/metaChanged")]
     SessionMetaChanged,
+    #[serde(rename = "changeset/statusChanged")]
+    ChangesetStatusChanged,
+    #[serde(rename = "changeset/fileSet")]
+    ChangesetFileSet,
+    #[serde(rename = "changeset/fileRemoved")]
+    ChangesetFileRemoved,
+    #[serde(rename = "changeset/operationsChanged")]
+    ChangesetOperationsChanged,
+    #[serde(rename = "changeset/cleared")]
+    ChangesetCleared,
     #[serde(rename = "root/terminalsChanged")]
     RootTerminalsChanged,
     #[serde(rename = "root/configChanged")]
@@ -571,6 +582,26 @@ pub struct SessionActivityChangedAction {
     pub activity: Option<String>,
 }
 
+/// The {@link ChangesetSummary | catalogue of changesets} the agent host
+/// advertises for this session changed. Replaces
+/// `state.summary.changesets` entirely (full-replacement semantics) — set
+/// to `undefined` to clear the catalogue.
+///
+/// Producers dispatch this whenever entries are added, removed, or have
+/// their aggregate counts (`additions` / `deletions` / `files`) refreshed.
+/// The fan-out happens through this action so observers see catalogue
+/// mutations in the same {@link ChangesetAction | per-changeset} action
+/// stream they already follow for file-level updates.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionChangesetsChangedAction {
+    /// Session URI
+    pub session: Uri,
+    /// New catalogue, or `undefined` to clear it
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub changesets: Option<Vec<ChangesetSummary>>,
+}
+
 /// Server tools for this session have changed.
 ///
 /// Full-replacement semantics: the `tools` array replaces the previous `serverTools` entirely.
@@ -791,19 +822,6 @@ pub struct SessionTruncatedAction {
     pub turn_id: Option<String>,
 }
 
-/// The file diffs for the session changed.
-///
-/// Full-replacement semantics: the `diffs` array replaces the previous
-/// `summary.diffs` entirely.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SessionDiffsChangedAction {
-    /// Session URI
-    pub session: Uri,
-    /// Updated file diffs for the session
-    pub diffs: Vec<FileEdit>,
-}
-
 /// Client changed a mutable config value mid-session.
 ///
 /// Only properties with `sessionMutable: true` in the config schema may be
@@ -863,6 +881,79 @@ pub struct SessionToolCallContentChangedAction {
     pub meta: Option<JsonObject>,
     /// The current partial content for the running tool call
     pub content: Vec<ToolResultContent>,
+}
+
+/// The {@link ChangesetState.status} for this changeset transitioned (e.g.
+/// `computing → ready`). The error payload is set together with `status`
+/// whenever it transitions to {@link ChangesetStatus.Error | Error}.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChangesetStatusChangedAction {
+    /// Expanded changeset URI (matches the URI the client subscribed to).
+    pub changeset: Uri,
+    /// New computation lifecycle status.
+    pub status: ChangesetStatus,
+    /// Cause when `status === ChangesetStatus.Error`; otherwise omitted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<ErrorInfo>,
+}
+
+/// Upsert a {@link ChangesetFile} in the changeset — adds a new entry, or
+/// replaces an existing one identified by {@link ChangesetFile.id}.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChangesetFileSetAction {
+    /// Expanded changeset URI.
+    pub changeset: Uri,
+    /// The new or replacement file entry.
+    pub file: ChangesetFile,
+}
+
+/// Remove a {@link ChangesetFile} from the changeset by its id.
+///
+/// Typically dispatched when a file is reverted, staged out, or otherwise
+/// no longer in scope (e.g. a renamed file is replaced by a new entry).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChangesetFileRemovedAction {
+    /// Expanded changeset URI.
+    pub changeset: Uri,
+    /// The {@link ChangesetFile.id} of the file to remove.
+    pub file_id: String,
+}
+
+/// The set of operations available on this changeset changed. Full
+/// replacement semantics: `operations` replaces the previous list (or
+/// removes it entirely when `operations` is `undefined`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChangesetOperationsChangedAction {
+    /// Expanded changeset URI.
+    pub changeset: Uri,
+    /// Updated operation list. Pass `undefined` to clear all operations.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operations: Option<Vec<ChangesetOperation>>,
+}
+
+/// Drop every file from the changeset.
+///
+/// Two cases use this:
+/// 1. The underlying source moved (branch switched, fork point invalidated,
+///    …) and the server is recomputing from scratch — subsequent
+///    {@link ChangesetFileSetAction} entries will repopulate it.
+/// 2. The owning session has ended and the URI is becoming
+///    un-subscribable — the server will unsubscribe all clients shortly
+///    after dispatching this action.
+///
+/// Clients SHOULD release any references on receipt and SHOULD NOT
+/// distinguish the two cases from the action alone — instead, react to
+/// the corresponding session-level lifecycle signal (e.g.
+/// `notify/sessionRemoved`) for the "going away" case.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChangesetClearedAction {
+    /// Expanded changeset URI.
+    pub changeset: Uri,
 }
 
 /// Fired when the list of known terminals changes.
@@ -1087,6 +1178,8 @@ pub enum StateAction {
     SessionIsArchivedChanged(SessionIsArchivedChangedAction),
     #[serde(rename = "session/activityChanged")]
     SessionActivityChanged(SessionActivityChangedAction),
+    #[serde(rename = "session/changesetsChanged")]
+    SessionChangesetsChanged(SessionChangesetsChangedAction),
     #[serde(rename = "session/serverToolsChanged")]
     SessionServerToolsChanged(SessionServerToolsChangedAction),
     #[serde(rename = "session/activeClientChanged")]
@@ -1113,14 +1206,22 @@ pub enum StateAction {
     SessionCustomizationUpdated(SessionCustomizationUpdatedAction),
     #[serde(rename = "session/truncated")]
     SessionTruncated(SessionTruncatedAction),
-    #[serde(rename = "session/diffsChanged")]
-    SessionDiffsChanged(SessionDiffsChangedAction),
     #[serde(rename = "session/configChanged")]
     SessionConfigChanged(SessionConfigChangedAction),
     #[serde(rename = "session/metaChanged")]
     SessionMetaChanged(SessionMetaChangedAction),
     #[serde(rename = "session/toolCallContentChanged")]
     SessionToolCallContentChanged(SessionToolCallContentChangedAction),
+    #[serde(rename = "changeset/statusChanged")]
+    ChangesetStatusChanged(ChangesetStatusChangedAction),
+    #[serde(rename = "changeset/fileSet")]
+    ChangesetFileSet(ChangesetFileSetAction),
+    #[serde(rename = "changeset/fileRemoved")]
+    ChangesetFileRemoved(ChangesetFileRemovedAction),
+    #[serde(rename = "changeset/operationsChanged")]
+    ChangesetOperationsChanged(ChangesetOperationsChangedAction),
+    #[serde(rename = "changeset/cleared")]
+    ChangesetCleared(ChangesetClearedAction),
     #[serde(rename = "root/terminalsChanged")]
     RootTerminalsChanged(RootTerminalsChangedAction),
     #[serde(rename = "terminal/data")]

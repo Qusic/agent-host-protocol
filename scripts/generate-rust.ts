@@ -140,7 +140,8 @@ function mapType(tsType: string, propName?: string, containerName?: string): str
   if (tsType === 'SessionStatus') return 'u32';
 
   if (tsType === 'IRootState | ISessionState' || tsType === 'IRootState | ISessionState | ITerminalState'
-    || tsType === 'RootState | SessionState' || tsType === 'RootState | SessionState | TerminalState') {
+    || tsType === 'RootState | SessionState' || tsType === 'RootState | SessionState | TerminalState'
+    || tsType === 'RootState | SessionState | TerminalState | ChangesetState') {
     return 'SnapshotState';
   }
 
@@ -519,6 +520,7 @@ const STATE_ENUMS = [
   'ToolCallConfirmationReason', 'ToolCallCancellationReason',
   'ConfirmationOptionKind',
   'ToolResultContentType', 'CustomizationStatus', 'TerminalClaimKind',
+  'ChangesetStatus', 'ChangesetOperationScope',
 ];
 
 /**
@@ -601,6 +603,10 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: str
   { name: 'UsageInfo' },
   { name: 'ErrorInfo' },
   { name: 'Snapshot' },
+  { name: 'ChangesetSummary' },
+  { name: 'ChangesetState' },
+  { name: 'ChangesetFile' },
+  { name: 'ChangesetOperation' },
 ];
 
 const RESPONSE_PART_UNION: UnionConfig = {
@@ -723,15 +729,18 @@ const MESSAGE_ATTACHMENT_UNION: UnionConfig = {
 };
 
 function generateSnapshotState(): string {
-  return `/// The state payload of a snapshot — root, session, or terminal state.
+  return `/// The state payload of a snapshot — root, session, terminal, or
+/// changeset state.
 ///
 /// Deserialized by trying session first (has required \`summary\`), then
-/// terminal (has required \`content\`), then root.
+/// terminal (has required \`content\`), then changeset (has required
+/// \`status\` and \`files\`), then root.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum SnapshotState {
     Session(Box<SessionState>),
     Terminal(Box<TerminalState>),
+    Changeset(Box<ChangesetState>),
     Root(Box<RootState>),
 }`;
 }
@@ -819,6 +828,7 @@ const ACTION_VARIANTS: {
   { type: 'session/isReadChanged', variantName: 'SessionIsReadChanged', tsInterface: 'SessionIsReadChangedAction' },
   { type: 'session/isArchivedChanged', variantName: 'SessionIsArchivedChanged', tsInterface: 'SessionIsArchivedChangedAction' },
   { type: 'session/activityChanged', variantName: 'SessionActivityChanged', tsInterface: 'SessionActivityChangedAction' },
+  { type: 'session/changesetsChanged', variantName: 'SessionChangesetsChanged', tsInterface: 'SessionChangesetsChangedAction' },
   { type: 'session/serverToolsChanged', variantName: 'SessionServerToolsChanged', tsInterface: 'SessionServerToolsChangedAction' },
   { type: 'session/activeClientChanged', variantName: 'SessionActiveClientChanged', tsInterface: 'SessionActiveClientChangedAction' },
   { type: 'session/activeClientToolsChanged', variantName: 'SessionActiveClientToolsChanged', tsInterface: 'SessionActiveClientToolsChangedAction' },
@@ -832,10 +842,14 @@ const ACTION_VARIANTS: {
   { type: 'session/customizationToggled', variantName: 'SessionCustomizationToggled', tsInterface: 'SessionCustomizationToggledAction' },
   { type: 'session/customizationUpdated', variantName: 'SessionCustomizationUpdated', tsInterface: 'SessionCustomizationUpdatedAction' },
   { type: 'session/truncated', variantName: 'SessionTruncated', tsInterface: 'SessionTruncatedAction' },
-  { type: 'session/diffsChanged', variantName: 'SessionDiffsChanged', tsInterface: 'SessionDiffsChangedAction' },
   { type: 'session/configChanged', variantName: 'SessionConfigChanged', tsInterface: 'SessionConfigChangedAction' },
   { type: 'session/metaChanged', variantName: 'SessionMetaChanged', tsInterface: 'SessionMetaChangedAction' },
   { type: 'session/toolCallContentChanged', variantName: 'SessionToolCallContentChanged', tsInterface: 'SessionToolCallContentChangedAction' },
+  { type: 'changeset/statusChanged', variantName: 'ChangesetStatusChanged', tsInterface: 'ChangesetStatusChangedAction' },
+  { type: 'changeset/fileSet', variantName: 'ChangesetFileSet', tsInterface: 'ChangesetFileSetAction' },
+  { type: 'changeset/fileRemoved', variantName: 'ChangesetFileRemoved', tsInterface: 'ChangesetFileRemovedAction' },
+  { type: 'changeset/operationsChanged', variantName: 'ChangesetOperationsChanged', tsInterface: 'ChangesetOperationsChangedAction' },
+  { type: 'changeset/cleared', variantName: 'ChangesetCleared', tsInterface: 'ChangesetClearedAction' },
   { type: 'root/terminalsChanged', variantName: 'RootTerminalsChanged', tsInterface: 'RootTerminalsChangedAction' },
   { type: 'terminal/data', variantName: 'TerminalData', tsInterface: 'TerminalDataAction' },
   { type: 'terminal/input', variantName: 'TerminalInput', tsInterface: 'TerminalInputAction' },
@@ -887,7 +901,7 @@ pub struct SessionToolCallConfirmedAction {
 function generateActionsFile(project: Project): string {
   const sf = project.getSourceFiles().find(f => f.getBaseName() === 'actions.ts')!;
   const lines: string[] = [GENERATED_HEADER];
-  lines.push('use crate::state::{AgentInfo, ConfirmationOption, CustomizationRef, CustomizationStatus, ErrorInfo, FileEdit, ModelSelection, ResponsePart, SessionActiveClient, SessionCustomization, SessionInputAnswer, SessionInputRequest, SessionInputResponseKind, TerminalClaim, TerminalInfo, ToolCallResult, ToolCallConfirmationReason, ToolCallCancellationReason, ToolDefinition, ToolResultContent, UsageInfo, UserMessage, PendingMessageKind};');
+  lines.push('use crate::state::{AgentInfo, ConfirmationOption, CustomizationRef, CustomizationStatus, ErrorInfo, ModelSelection, ResponsePart, SessionActiveClient, SessionCustomization, SessionInputAnswer, SessionInputRequest, SessionInputResponseKind, TerminalClaim, TerminalInfo, ToolCallResult, ToolCallConfirmationReason, ToolCallCancellationReason, ToolDefinition, ToolResultContent, UsageInfo, UserMessage, PendingMessageKind, ChangesetStatus, ChangesetFile, ChangesetOperation, ChangesetSummary};');
   lines.push('');
 
   // ActionType enum
@@ -982,6 +996,8 @@ const COMMAND_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: s
   { name: 'SessionConfigCompletionsParams' }, { name: 'SessionConfigCompletionsResult' },
   { name: 'SessionConfigValueItem' },
   { name: 'CompletionsParams' }, { name: 'CompletionItem' }, { name: 'CompletionsResult' },
+  { name: 'InvokeChangesetOperationParams' }, { name: 'InvokeChangesetOperationResult' },
+  { name: 'ChangesetOperationFollowUp' },
 ];
 
 const RECONNECT_RESULT_UNION: UnionConfig = {
@@ -1000,7 +1016,7 @@ function generateCommandsFile(project: Project): string {
   lines.push('#[allow(unused_imports)]');
   lines.push('use crate::actions::{ActionEnvelope, StateAction};');
   lines.push('#[allow(unused_imports)]');
-  lines.push('use crate::state::{MessageAttachment, ModelSelection, SessionActiveClient, SessionConfigSchema, SessionSummary, Snapshot, SnapshotState, TerminalClaim, Turn};');
+  lines.push('use crate::state::{ContentRef, MessageAttachment, ModelSelection, SessionActiveClient, SessionConfigSchema, SessionSummary, Snapshot, SnapshotState, TerminalClaim, Turn};');
   lines.push('');
 
   lines.push('// ─── Enums ────────────────────────────────────────────────────────────\n');
@@ -1032,7 +1048,38 @@ function generateCommandsFile(project: Project): string {
   lines.push(generateDiscriminatedUnion(RECONNECT_RESULT_UNION));
   lines.push('');
 
+  lines.push('// ─── Changeset Operation Unions ───────────────────────────────────────\n');
+  lines.push(generateChangesetOperationTargetRust());
+  lines.push('');
+
   return lines.join('\n');
+}
+
+function generateChangesetOperationTargetRust(): string {
+  return `/// Identifies the file or range a \`ChangesetOperation\` should act on.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum ChangesetOperationTarget {
+    #[serde(rename = "resource")]
+    Resource {
+        resource: Uri,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        side: Option<String>,
+    },
+    #[serde(rename = "range")]
+    Range {
+        resource: Uri,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        side: Option<String>,
+        range: ChangesetOperationTargetRange,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ChangesetOperationTargetRange {
+    pub start: i64,
+    pub end: i64,
+}`;
 }
 
 // ─── Notifications File Generator ────────────────────────────────────────────
@@ -1062,7 +1109,7 @@ function generateNotificationsFile(project: Project): string {
   const sf = project.getSourceFiles().find(f => f.getBaseName() === 'notifications.ts')!;
   const lines: string[] = [GENERATED_HEADER];
   lines.push('#[allow(unused_imports)]');
-  lines.push('use crate::state::{FileEdit, ModelSelection, ProjectInfo, SessionStatus, SessionSummary};');
+  lines.push('use crate::state::{ChangesetSummary, FileEdit, ModelSelection, ProjectInfo, SessionStatus, SessionSummary};');
   lines.push('');
 
   lines.push('// ─── Enums ────────────────────────────────────────────────────────────\n');
@@ -1355,6 +1402,7 @@ function checkExhaustiveness(project: Project): void {
     'UnsupportedProtocolVersionErrorData',
     'AhpError',
     'AhpErrorDetailsMap',
+    'ChangesetOperationTarget',
   ]);
 
   const missing = [...imported].filter(n => !coveredByLists.has(n) && !knownSpecial.has(n));

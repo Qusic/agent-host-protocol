@@ -4,10 +4,10 @@ All state in AHP is identified by URIs. Clients subscribe to a URI to receive it
 
 ## URI Scheme
 
-| URI | State | Description |
-|---|---|---|
-| `agenthost:/root` | `RootState` | Global state (agents and their models). Always present. |
-| `copilot:/<uuid>` | `SessionState` | Per-session state. Scheme is the provider name. |
+| URI               | State          | Description                                             |
+| ----------------- | -------------- | ------------------------------------------------------- |
+| `agenthost:/root` | `RootState`    | Global state (agents and their models). Always present. |
+| `copilot:/<uuid>` | `SessionState` | Per-session state. Scheme is the provider name.         |
 
 ## Subscribe (Request)
 
@@ -65,7 +65,12 @@ The server broadcasts action envelopes as JSON-RPC notifications to subscribed c
   "method": "action",
   "params": {
     "envelope": {
-      "action": { "type": "session/delta", "session": "copilot:/<uuid>", "turnId": "t1", "content": "Hello" },
+      "action": {
+        "type": "session/delta",
+        "session": "copilot:/<uuid>",
+        "turnId": "t1",
+        "content": "Hello"
+      },
       "serverSeq": 6,
       "origin": { "clientId": "client-1", "clientSeq": 1 }
     }
@@ -86,7 +91,7 @@ During the connection handshake, clients MAY include `initialSubscriptions` in t
   "id": 1,
   "method": "initialize",
   "params": {
-    "protocolVersions": ["0.1.0"],
+    "protocolVersions": ["0.2.0"],
     "clientId": "client-abc",
     "initialSubscriptions": ["agenthost:/root", "copilot:/<prev-session>"]
   }

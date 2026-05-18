@@ -790,11 +790,11 @@ private func applySummaryChanges(
     if let v = changes.project { existing.project = v }
     if let v = changes.model { existing.model = v }
     if let v = changes.workingDirectory { existing.workingDirectory = v }
-    if let v = changes.diffs { existing.diffs = v }
+    if let v = changes.changesets { existing.changesets = v }
 }
 
 /// Protocol version offered on `initialize`. Mirrors the Rust SDK's use of
 /// the canonical `PROTOCOL_VERSION` constant; the Swift types library
 /// doesn't ship one yet, so this is a constant string co-located with the
 /// rest of the multi-host code. TODO(codegen): source from generated types.
-private let supportedProtocolVersion = "0.1.0"
+private let supportedProtocolVersion = "0.2.0"
