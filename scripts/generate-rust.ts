@@ -608,6 +608,7 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: str
   { name: 'ChangesetState' },
   { name: 'ChangesetFile' },
   { name: 'ChangesetOperation' },
+  { name: 'TelemetryCapabilities' },
 ];
 
 const RESPONSE_PART_UNION: UnionConfig = {
@@ -1021,7 +1022,7 @@ function generateCommandsFile(project: Project): string {
   lines.push('#[allow(unused_imports)]');
   lines.push('use crate::actions::{ActionEnvelope, StateAction};');
   lines.push('#[allow(unused_imports)]');
-  lines.push('use crate::state::{ContentRef, MessageAttachment, ModelSelection, SessionActiveClient, SessionConfigSchema, SessionSummary, Snapshot, SnapshotState, TerminalClaim, Turn};');
+  lines.push('use crate::state::{ContentRef, MessageAttachment, ModelSelection, SessionActiveClient, SessionConfigSchema, SessionSummary, Snapshot, SnapshotState, TelemetryCapabilities, TerminalClaim, Turn};');
   lines.push('');
 
   lines.push('// ─── Enums ────────────────────────────────────────────────────────────\n');
@@ -1096,6 +1097,9 @@ const NOTIFICATION_STRUCTS = [
   'SessionRemovedParams',
   'SessionSummaryChangedParams',
   'AuthRequiredParams',
+  'OtlpExportLogsParams',
+  'OtlpExportTracesParams',
+  'OtlpExportMetricsParams',
 ];
 
 function generateNotificationsFile(project: Project): string {
