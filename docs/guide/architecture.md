@@ -85,7 +85,7 @@ Sessions are addressed by URIs under the `ahp-session:` scheme with the session'
 ahp-session:/<uuid>
 ```
 
-The URI scheme does **not** carry the provider name. The session's provider is exposed on [`SessionSummary.provider`](/reference/state-types#sessionsummary) and remains stable for the lifetime of the session. This decoupling lets the same scheme address sessions backed by any agent, and matches the broader channel model described in [Channels & Subscriptions](/specification/subscriptions).
+The URI scheme does **not** carry the provider name. The session's provider is exposed on [`SessionSummary.provider`](/reference/session#sessionsummary) and remains stable for the lifetime of the session. This decoupling lets the same scheme address sessions backed by any agent, and matches the broader channel model described in [Channels & Subscriptions](/specification/subscriptions).
 
 | Helper | Purpose |
 |---|---|
