@@ -16,7 +16,7 @@ export default withMermaid(defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/what-is-ahp' },
       { text: 'Specification', link: '/specification/overview' },
-      { text: 'Reference', link: '/reference/state-types' },
+      { text: 'Reference', link: '/reference/common' },
     ],
 
     sidebar: {
@@ -61,8 +61,8 @@ export default withMermaid(defineConfig({
             { text: 'Overview', link: '/specification/overview' },
             { text: 'Transport', link: '/specification/transport' },
             { text: 'Lifecycle', link: '/specification/lifecycle' },
-            { text: 'Authentication', link: '/specification/authentication' },
             { text: 'Channels & Subscriptions', link: '/specification/subscriptions' },
+            { text: 'Authentication', link: '/specification/authentication' },
             { text: 'Versioning', link: '/specification/versioning' },
           ],
         },
@@ -79,10 +79,18 @@ export default withMermaid(defineConfig({
         {
           text: 'Reference',
           items: [
-            { text: 'State Types', link: '/reference/state-types' },
-            { text: 'Actions', link: '/reference/actions' },
-            { text: 'Commands', link: '/reference/commands' },
-            { text: 'Notifications', link: '/reference/notifications' },
+            { text: 'Common', link: '/reference/common' },
+            { text: 'Messages', link: '/reference/messages' },
+            { text: 'Error Codes', link: '/reference/error-codes' },
+          ],
+        },
+        {
+          text: 'Channels',
+          items: [
+            { text: 'Root Channel', link: '/reference/root' },
+            { text: 'Session Channel', link: '/reference/session' },
+            { text: 'Terminal Channel', link: '/reference/terminal' },
+            { text: 'Changeset Channel', link: '/reference/changeset' },
           ],
         },
       ],
