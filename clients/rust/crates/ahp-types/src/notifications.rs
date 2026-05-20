@@ -13,7 +13,8 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 
 #[allow(unused_imports)]
 use crate::state::{
-    ChangesetSummary, FileEdit, ModelSelection, ProjectInfo, SessionStatus, SessionSummary,
+    AgentSelection, ChangesetSummary, FileEdit, ModelSelection, ProjectInfo, SessionStatus,
+    SessionSummary,
 };
 
 // ─── Enums ────────────────────────────────────────────────────────────

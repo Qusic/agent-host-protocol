@@ -12,9 +12,9 @@ use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
 use crate::state::{
-    AgentInfo, ChangesetFile, ChangesetOperation, ChangesetStatus, ChangesetSummary,
-    ConfirmationOption, CustomizationRef, CustomizationStatus, ErrorInfo, ModelSelection,
-    PendingMessageKind, ResponsePart, SessionActiveClient, SessionCustomization,
+    AgentInfo, AgentSelection, ChangesetFile, ChangesetOperation, ChangesetStatus,
+    ChangesetSummary, ConfirmationOption, CustomizationRef, CustomizationStatus, ErrorInfo,
+    ModelSelection, PendingMessageKind, ResponsePart, SessionActiveClient, SessionCustomization,
     SessionInputAnswer, SessionInputRequest, SessionInputResponseKind, TerminalClaim, TerminalInfo,
     ToolCallCancellationReason, ToolCallConfirmationReason, ToolCallResult, ToolDefinition,
     ToolResultContent, UsageInfo, UserMessage,

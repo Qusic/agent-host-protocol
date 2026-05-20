@@ -15,8 +15,8 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 use crate::actions::{ActionEnvelope, StateAction};
 #[allow(unused_imports)]
 use crate::state::{
-    ContentRef, MessageAttachment, ModelSelection, SessionActiveClient, SessionConfigSchema,
-    SessionSummary, Snapshot, SnapshotState, TerminalClaim, Turn,
+    AgentSelection, ContentRef, MessageAttachment, ModelSelection, SessionActiveClient,
+    SessionConfigSchema, SessionSummary, Snapshot, SnapshotState, TerminalClaim, Turn,
 };
 
 // ─── Enums ────────────────────────────────────────────────────────────
