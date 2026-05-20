@@ -902,7 +902,7 @@ pub struct SessionToolCallConfirmedAction {
 
 function generateActionsFile(project: Project): string {
   const lines: string[] = [GENERATED_HEADER];
-  lines.push('use crate::state::{AgentInfo, AgentSelection, ConfirmationOption, CustomizationRef, CustomizationStatus, ErrorInfo, ModelSelection, ResponsePart, SessionActiveClient, SessionCustomization, SessionInputAnswer, SessionInputRequest, SessionInputResponseKind, TerminalClaim, TerminalInfo, ToolCallResult, ToolCallConfirmationReason, ToolCallCancellationReason, ToolDefinition, ToolResultContent, UsageInfo, UserMessage, PendingMessageKind, ChangesetStatus, ChangesetFile, ChangesetOperation, ChangesetSummary};');
+  lines.push('use crate::state::{AgentInfo, AgentSelection, ConfirmationOption, CustomizationAgentRef, CustomizationRef, CustomizationStatus, ErrorInfo, ModelSelection, ResponsePart, SessionActiveClient, SessionCustomization, SessionInputAnswer, SessionInputRequest, SessionInputResponseKind, TerminalClaim, TerminalInfo, ToolCallResult, ToolCallConfirmationReason, ToolCallCancellationReason, ToolDefinition, ToolResultContent, UsageInfo, UserMessage, PendingMessageKind, ChangesetStatus, ChangesetFile, ChangesetOperation, ChangesetSummary};');
   lines.push('');
 
   // ActionType enum
