@@ -638,6 +638,9 @@ pub fn apply_action_to_session(state: &mut SessionState, action: &StateAction) -
                 if let Some(message) = a.status_message.clone() {
                     list[idx].status_message = Some(message);
                 }
+                if let Some(agents) = a.agents.clone() {
+                    list[idx].agents = Some(agents);
+                }
             } else {
                 list.push(SessionCustomization {
                     customization: a.customization.clone(),
@@ -645,6 +648,7 @@ pub fn apply_action_to_session(state: &mut SessionState, action: &StateAction) -
                     client_id: None,
                     status: a.status,
                     status_message: a.status_message.clone(),
+                    agents: a.agents.clone(),
                 });
             }
             ReduceOutcome::Applied
