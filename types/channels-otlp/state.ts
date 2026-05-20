@@ -46,6 +46,10 @@ export interface TelemetryCapabilities {
    * | _(none)_              | The host does not support subscriber-side severity filtering. The template is itself a subscribable URI. |
    * | `{level}`             | Minimum OTLP severity to deliver. Expand to one of the [OTLP `SeverityNumber`](https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-severitynumber) short names (case-insensitive): `trace`, `debug`, `info`, `warn`, `error`, `fatal`. The server delivers log records whose `severityNumber` falls in the corresponding band or above. |
    *
+   * Hosts SHOULD honour the expanded `{level}`; clients MUST still filter
+   * defensively in case a host ignores the parameter. Hosts that do not
+   * advertise `{level}` deliver all severities.
+   *
    * Future protocol versions MAY add new well-known variables (e.g. scope
    * or attribute filters).
    */
