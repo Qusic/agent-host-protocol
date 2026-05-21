@@ -205,6 +205,10 @@ public struct CreateSessionParams: Codable, Sendable {
     public var provider: String?
     /// Model selection (ID and optional model-specific configuration)
     public var model: ModelSelection?
+    /// Initial custom agent selection for the new session.
+    /// 
+    /// Omit to start the session with no custom agent selected (provider default).
+    public var agent: AgentSelection?
     /// Working directory for the session
     public var workingDirectory: String?
     /// Fork from an existing session. The new session is populated with content
@@ -225,6 +229,7 @@ public struct CreateSessionParams: Codable, Sendable {
         channel: String,
         provider: String? = nil,
         model: ModelSelection? = nil,
+        agent: AgentSelection? = nil,
         workingDirectory: String? = nil,
         fork: SessionForkSource? = nil,
         config: [String: AnyCodable]? = nil,
@@ -233,6 +238,7 @@ public struct CreateSessionParams: Codable, Sendable {
         self.channel = channel
         self.provider = provider
         self.model = model
+        self.agent = agent
         self.workingDirectory = workingDirectory
         self.fork = fork
         self.config = config

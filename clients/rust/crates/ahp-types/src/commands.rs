@@ -15,8 +15,9 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 use crate::actions::{ActionEnvelope, StateAction};
 #[allow(unused_imports)]
 use crate::state::{
-    ContentRef, MessageAttachment, ModelSelection, SessionActiveClient, SessionConfigSchema,
-    SessionSummary, Snapshot, SnapshotState, TelemetryCapabilities, TerminalClaim, Turn,
+    AgentSelection, ContentRef, MessageAttachment, ModelSelection, SessionActiveClient,
+    SessionConfigSchema, SessionSummary, Snapshot, SnapshotState, TelemetryCapabilities,
+    TerminalClaim, Turn,
 };
 
 // ─── Enums ────────────────────────────────────────────────────────────
@@ -205,6 +206,11 @@ pub struct CreateSessionParams {
     /// Model selection (ID and optional model-specific configuration)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<ModelSelection>,
+    /// Initial custom agent selection for the new session.
+    ///
+    /// Omit to start the session with no custom agent selected (provider default).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<AgentSelection>,
     /// Working directory for the session
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub working_directory: Option<Uri>,

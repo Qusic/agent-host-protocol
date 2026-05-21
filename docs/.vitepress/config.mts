@@ -14,9 +14,9 @@ export default withMermaid(defineConfig({
     logo: '/logo.svg',
 
     nav: [
-      { text: 'Guide', link: '/guide/what-is-ahp' },
-      { text: 'Specification', link: '/specification/overview' },
-      { text: 'Reference', link: '/reference/common' },
+      { text: 'Guide', link: '/guide/what-is-ahp', activeMatch: '^/guide/' },
+      { text: 'Specification', link: '/specification/overview', activeMatch: '^/specification/' },
+      { text: 'Reference', link: '/reference/common', activeMatch: '^/reference/' },
     ],
 
     sidebar: {
@@ -26,7 +26,6 @@ export default withMermaid(defineConfig({
           items: [
             { text: 'What is AHP?', link: '/guide/what-is-ahp' },
             { text: 'Getting Started', link: '/guide/getting-started' },
-            { text: 'Architecture', link: '/guide/architecture' },
           ],
         },
         {
@@ -41,16 +40,10 @@ export default withMermaid(defineConfig({
           ],
         },
         {
-          text: 'Design',
+          text: 'More',
           items: [
-            { text: 'Design Decisions', link: '/guide/design' },
             { text: 'AHP and ACP', link: '/guide/ahp-and-acp' },
-          ],
-        },
-        {
-          text: 'Clients',
-          items: [
-            { text: 'Multiple Hosts', link: '/guide/clients-multi-host' },
+            { text: 'Implementations', link: '/guide/implementations' },
           ],
         },
       ],
