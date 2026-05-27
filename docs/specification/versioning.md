@@ -97,4 +97,4 @@ Every client release advertises which protocol version(s) it supports in two pla
 
 CI verifies the constants, the metadata file, and the native package manifest are all consistent on every PR (`npm run verify:release-metadata`).
 
-Full how-to for cutting a release of each artifact lives in [`CONTRIBUTING.md`](https://github.com/microsoft/agent-host-protocol/blob/main/CONTRIBUTING.md) at the repo root.
+Full how-to for cutting a release of each artifact lives in [`RELEASING.md`](https://github.com/microsoft/agent-host-protocol/blob/main/RELEASING.md) at the repo root.

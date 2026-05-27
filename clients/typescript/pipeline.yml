@@ -40,7 +40,7 @@ extends:
           # These also run on every commit via the GitHub Actions `ci.yml`
           # workflow, but re-running them here means the npm package can't
           # ship from a branch state that would have failed the GHA check.
-          # See CONTRIBUTING.md for the release model.
+          # See RELEASING.md for the release model.
           - script: npm run verify:release-metadata
             displayName: ✅ Verify release metadata
 

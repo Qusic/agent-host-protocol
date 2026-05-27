@@ -25,7 +25,7 @@ CI verifies that the committed generated files match the output of `npm run gene
 
 ## Releasing
 
-The Swift package is consumed via SwiftPM by git-tag resolution against this repository. **Bare `vX.Y.Z` tags at the repo root are reserved for Swift releases** because SwiftPM cannot resolve path-prefixed tags like `swift/v0.2.0`; see [`CONTRIBUTING.md`](../../CONTRIBUTING.md) for the tag-namespace rationale and the full release flow.
+The Swift package is consumed via SwiftPM by git-tag resolution against this repository. **Bare `vX.Y.Z` tags at the repo root are reserved for Swift releases** because SwiftPM cannot resolve path-prefixed tags like `swift/v0.2.0`; see [`RELEASING.md`](../../RELEASING.md) for the tag-namespace rationale and the full release flow.
 
 Summary, scoped to Swift:
 

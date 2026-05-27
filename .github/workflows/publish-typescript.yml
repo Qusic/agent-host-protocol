@@ -100,7 +100,7 @@ jobs:
       - name: Trigger ADO pipeline run with publishPackage=true
         env:
           # PAT scoped to "Build (Read & execute)" on the ADO project
-          # that hosts the npm publish pipeline. See CONTRIBUTING.md for
+          # that hosts the npm publish pipeline. See RELEASING.md for
           # one-time setup.
           ADO_PAT: ${{ secrets.ADO_PIPELINE_TRIGGER_PAT }}
           ADO_ORGANIZATION: ${{ vars.ADO_ORGANIZATION }}
@@ -110,7 +110,7 @@ jobs:
           set -euo pipefail
 
           if [ -z "${ADO_PAT:-}" ] || [ -z "${ADO_ORGANIZATION:-}" ] || [ -z "${ADO_PROJECT:-}" ] || [ -z "${ADO_PIPELINE_ID:-}" ]; then
-            echo "::error::Missing ADO configuration. The 'ado-typescript-publish' environment must define secret ADO_PIPELINE_TRIGGER_PAT and variables ADO_ORGANIZATION, ADO_PROJECT, ADO_PIPELINE_ID. See CONTRIBUTING.md."
+            echo "::error::Missing ADO configuration. The 'ado-typescript-publish' environment must define secret ADO_PIPELINE_TRIGGER_PAT and variables ADO_ORGANIZATION, ADO_PROJECT, ADO_PIPELINE_ID. See RELEASING.md."
             exit 1
           fi
 

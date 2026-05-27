@@ -8,7 +8,7 @@ name: Publish Spec
 # the per-symbol introduced-in maps as of this commit.
 #
 # This release intentionally does NOT publish a registry package (npm,
-# Maven, crates.io). See `CONTRIBUTING.md` for rationale: the canonical
+# Maven, crates.io). See `RELEASING.md` for rationale: the canonical
 # TypeScript types ship as part of the per-client TS package, and polyglot
 # consumers can `curl` the schema assets from this release directly.
 

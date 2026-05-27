@@ -4,7 +4,7 @@ name: Publish Swift Package
 # Bare semver tags are reserved for the Swift release pipeline because
 # SwiftPM only resolves packages by matching plain `vX.Y.Z` / `X.Y.Z` tags
 # at the repository root (path-prefixed tags like `swift/v0.2.0` are
-# invisible to SwiftPM). See `CONTRIBUTING.md` for the tag-namespace
+# invisible to SwiftPM). See `RELEASING.md` for the tag-namespace
 # convention.
 #
 # Unlike publish-rust.yml / publish-kotlin.yml / publish-typescript.yml,

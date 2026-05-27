@@ -107,7 +107,7 @@ The Vanniktech plugin reads these from `ORG_GRADLE_PROJECT_*`-prefixed env vars 
 
 ### Cutting a release
 
-See [`CONTRIBUTING.md`](../../CONTRIBUTING.md) for the full release flow.
+See [`RELEASING.md`](../../RELEASING.md) for the full release flow.
 Summary, scoped to Kotlin:
 
 1. Bump `VERSION_NAME` in `clients/kotlin/gradle.properties` (drop `-SNAPSHOT` for a public release; the version should match the `PROTOCOL_VERSION` in `types/version/registry.ts` when shipping a protocol-aligned drop, e.g. `0.2.0`).

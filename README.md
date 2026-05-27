@@ -27,7 +27,7 @@ For consumers that need to talk to two or more hosts at once, the Rust SDK ships
 
 ## Versioning and releases
 
-Each language client and the spec itself release independently on their own SemVer tracks. See [`docs/specification/versioning.md`](docs/specification/versioning.md) for the protocol-level rules and [`CONTRIBUTING.md`](CONTRIBUTING.md) for the release mechanics (tag conventions, CHANGELOG / metadata enforcement, required CI environments).
+Each language client and the spec itself release independently on their own SemVer tracks. See [`docs/specification/versioning.md`](docs/specification/versioning.md) for the protocol-level rules and [`RELEASING.md`](RELEASING.md) for the release mechanics (tag conventions, CHANGELOG / metadata enforcement, required CI environments).
 
 ## Development
 
