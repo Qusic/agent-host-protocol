@@ -73,3 +73,43 @@ jobs:
       - name: Test Swift package
         run: swift test
 
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Verify the committed TypeScript client sources are in sync with the
+      # protocol definitions. If `npm run generate:typescript` produces any
+      # diff, the committed sources are stale.
+      - name: Verify generated TypeScript is up to date
+        run: |
+          npm run generate:typescript
+          if ! git diff --quiet -- clients/typescript/src/types; then
+            echo "::error::Generated TypeScript sources are out of date. Run 'npm run generate:typescript' and commit the result."
+            git --no-pager diff -- clients/typescript/src/types
+            exit 1
+          fi
+
+      - name: Install TypeScript client dependencies
+        working-directory: clients/typescript
+        run: npm install
+
+      - name: Typecheck TypeScript client
+        working-directory: clients/typescript
+        run: npm run typecheck
+
+      - name: Test TypeScript client
+        working-directory: clients/typescript
+        run: npm test
+
+      - name: Build TypeScript client
+        working-directory: clients/typescript
+        run: npm run build
+
