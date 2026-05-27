@@ -73,19 +73,22 @@ function shouldEmit(sf: SourceFile, typesDir: string): boolean {
  * Generate the TypeScript client source mirror under
  * `clients/typescript/src/types/`.
  *
- * `project` is the shared ts-morph project loaded against
- * `types/tsconfig.json`. Before copying, the generator runs the
- * action-origin generator to ensure the derived
- * `types/action-origin.generated.ts` is current — this makes
- * `npm run generate:typescript` self-contained when invoked alone.
+ * `project` is the shared ts-morph project; `typesDir` is the absolute
+ * path of the canonical `types/` directory the project was loaded from.
+ * Passing `typesDir` explicitly avoids depending on the non-standard
+ * `configFilePath` field that ts-morph adds to the resolved
+ * `CompilerOptions` (it is not part of the TypeScript public API).
+ *
+ * Before copying, the generator runs the action-origin generator to
+ * ensure the derived `types/action-origin.generated.ts` is current —
+ * this makes `npm run generate:typescript` self-contained when invoked
+ * alone.
  *
  * File contents are read from disk rather than from ts-morph's in-memory
  * copy so that the freshly-written `action-origin.generated.ts` is picked
  * up with its final contents.
  */
-export function generateTypeScriptClient(project: Project, outDir: string): void {
-  const typesDir = path.resolve(path.dirname(project.getCompilerOptions().configFilePath as string));
-
+export function generateTypeScriptClient(project: Project, typesDir: string, outDir: string): void {
   // Refresh the derived action-origin file so the published client
   // doesn't carry stale `RootAction` / `SessionAction` / `TerminalAction`
   // / `ChangesetAction` unions when only `--typescript` is invoked.

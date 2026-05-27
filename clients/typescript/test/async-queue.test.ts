@@ -53,6 +53,21 @@ test('close() terminates pending readers', async () => {
   assert.equal(res.done, true);
 });
 
+test('next() after return() returns done immediately, even with unread buffer', async () => {
+  const q = new AsyncBroadcastQueue<number>();
+  const r = q.reader();
+  q.publish(1);
+  q.publish(2);
+  // Detach before consuming the buffered values.
+  await r.return!();
+  // Even though there are unread values in the buffer, next() must
+  // be terminal after return().
+  const a = await r.next();
+  assert.equal(a.done, true);
+  const b = await r.next();
+  assert.equal(b.done, true);
+});
+
 test('bounded buffer drops oldest and fast-forwards laggards', async () => {
   const q = new AsyncBroadcastQueue<number>(2);
   const r = q.reader();

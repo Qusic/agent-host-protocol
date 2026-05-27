@@ -77,7 +77,7 @@ if (generateAll || rustOnly) {
 
 if (generateAll || typescriptOnly) {
   console.log('Generating TypeScript client sources...');
-  generateTypeScriptClient(project, TYPESCRIPT_TYPES_DIR);
+  generateTypeScriptClient(project, TYPES_DIR, TYPESCRIPT_TYPES_DIR);
   console.log(`  → TypeScript sources written to ${path.relative(ROOT, TYPESCRIPT_TYPES_DIR)}/`);
 }
 

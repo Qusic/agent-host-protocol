@@ -525,12 +525,17 @@ export class AhpClient {
         }
       }
     } catch (err) {
-      // Malformed frame — log via state stream as best-effort. We don't
-      // tear down the connection for one bad frame because a well-behaved
-      // server should not send them, but a single bad frame from a peer
-      // that recovers shouldn't kill the channel.
-      const _decodeErr = new ProtocolDecodeError(`malformed inbound frame: ${(err as Error).message}`, { cause: err });
-      void _decodeErr;
+      // A single malformed frame doesn't tear down the channel — a
+      // well-behaved server should not send them, and a transient bad
+      // frame from a peer that recovers shouldn't kill in-flight
+      // requests. Surface it via `console.warn` so consumers have a
+      // breadcrumb when requests later time out.
+      const decodeErr = new ProtocolDecodeError(
+        `malformed inbound frame: ${(err as Error).message}`,
+        { cause: err },
+      );
+      // eslint-disable-next-line no-console
+      console.warn(decodeErr.message);
       return;
     }
 

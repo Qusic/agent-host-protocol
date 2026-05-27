@@ -125,7 +125,11 @@ export class AsyncBroadcastQueue<T> implements AsyncIterable<T> {
         return this;
       },
       next(): Promise<IteratorResult<T>> {
-        if (cursor.detached && (queue.closed || cursor.position - queue.base >= queue.buffer.length)) {
+        // Once the iterator has been detached via `return()`, all
+        // subsequent `next()` calls resolve `done: true` immediately —
+        // even if there are unread buffered values. AsyncIterator
+        // semantics require `return()` to be terminal.
+        if (cursor.detached) {
           return Promise.resolve({ value: undefined as unknown as T, done: true });
         }
         const idx = cursor.position - queue.base;
