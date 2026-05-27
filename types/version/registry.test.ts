@@ -56,3 +56,9 @@ test('SUPPORTED_PROTOCOL_VERSIONS has no duplicates', () => {
   const set = new Set(SUPPORTED_PROTOCOL_VERSIONS);
   assert.equal(set.size, SUPPORTED_PROTOCOL_VERSIONS.length);
 });
+
+test('public package entry re-exports both protocol-version constants', async () => {
+  const pkg = await import('../index.js');
+  assert.equal(pkg.PROTOCOL_VERSION, PROTOCOL_VERSION);
+  assert.deepEqual([...pkg.SUPPORTED_PROTOCOL_VERSIONS], [...SUPPORTED_PROTOCOL_VERSIONS]);
+});
