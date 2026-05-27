@@ -139,7 +139,8 @@ impl FileClientIdStore {
     /// responsible for picking a location the process can write to
     /// (e.g. `$XDG_DATA_HOME/<app>/client-ids` on Linux,
     /// `Application Support/<app>/client-ids` on macOS, or
-    /// `%APPDATA%\<app>\client-ids` on Windows).
+    /// `%APPDATA%\\<app>\\client-ids` on Windows — `<app>` is your
+    /// product's directory name).
     pub fn new(directory: impl Into<PathBuf>) -> Self {
         Self {
             directory: directory.into(),

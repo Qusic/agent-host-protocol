@@ -1,7 +1,7 @@
 //! `MultiHostClient` facade.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex as StdMutex};
 
 use tokio::sync::{broadcast, RwLock};
 
@@ -42,7 +42,13 @@ struct MultiInner {
     /// concurrent `add_host` calls for the same id from both slipping
     /// past the duplicate check while one of them is awaiting on the
     /// [`ClientIdStore`].
-    pending_host_ids: RwLock<HashSet<HostId>>,
+    ///
+    /// Held as a [`std::sync::Mutex`] (not a tokio mutex) so the
+    /// [`PendingHostGuard`] RAII drop path can clear cancelled
+    /// reservations synchronously without needing to await — otherwise
+    /// a cancelled `add_host` future would permanently poison the
+    /// registry for that host id.
+    pending_host_ids: StdMutex<HashSet<HostId>>,
     fan_out: broadcast::Sender<HostSubscriptionEvent>,
     host_events: broadcast::Sender<HostEvent>,
     client_id_store: Arc<dyn ClientIdStore>,
@@ -69,7 +75,7 @@ impl MultiHostClient {
         Self {
             inner: Arc::new(MultiInner {
                 hosts: RwLock::new(HashMap::new()),
-                pending_host_ids: RwLock::new(HashSet::new()),
+                pending_host_ids: StdMutex::new(HashSet::new()),
                 fan_out,
                 host_events,
                 client_id_store,
@@ -124,43 +130,43 @@ impl MultiHostClient {
     pub async fn add_host(&self, config: HostConfig) -> Result<HostHandle, HostError> {
         let id = config.id.clone();
 
-        // Reserve the id atomically under both locks before any await
-        // so two concurrent `add_host` calls for the same id can't slip
-        // past the duplicate check while either is mid-`ClientIdStore`
-        // lookup. Releasing the locks here is safe because the
-        // reservation in `pending_host_ids` blocks duplicates.
-        {
+        // Reserve the id under both locks before any await. The
+        // pending-id lock is a `std::sync::Mutex` so a cancelled
+        // `add_host` future drops the `PendingHostGuard` and the
+        // reservation is cleared synchronously — without it, a
+        // cancellation between here and the install path would
+        // permanently poison the registry for this id.
+        let mut pending_guard = {
             let hosts = self.inner.hosts.read().await;
-            let mut pending = self.inner.pending_host_ids.write().await;
+            let mut pending = self
+                .inner
+                .pending_host_ids
+                .lock()
+                .expect("pending_host_ids mutex poisoned");
             if hosts.contains_key(&id) || pending.contains(&id) {
                 return Err(HostError::DuplicateHost(id));
             }
             pending.insert(id.clone());
-        }
-
-        // From this point on, every error path must release the
-        // reservation before returning.
-        let resolved = match self
-            .resolve_client_id(&id, config.client_id.as_deref())
-            .await
-        {
-            Ok(v) => v,
-            Err(err) => {
-                self.inner.pending_host_ids.write().await.remove(&id);
-                return Err(err);
+            PendingHostGuard {
+                inner: self.inner.clone(),
+                id: id.clone(),
+                armed: true,
             }
         };
 
-        // Install the supervisor under the write lock and clear the
-        // reservation in the same critical section.
+        // Resolve clientId. The guard's `Drop` cleans up the
+        // reservation if this await is cancelled or returns an error.
+        let resolved = self
+            .resolve_client_id(&id, config.client_id.as_deref())
+            .await?;
+
+        // Install the supervisor.
         let shared = {
             let mut hosts = self.inner.hosts.write().await;
-            let mut pending = self.inner.pending_host_ids.write().await;
             // Defensive: a `remove_host` could have re-added the id
             // while we were resolving the client id. Treat that as a
-            // duplicate too.
+            // duplicate too. The guard still clears `pending` on drop.
             if hosts.contains_key(&id) {
-                pending.remove(&id);
                 return Err(HostError::DuplicateHost(id));
             }
             let tx = spawn(
@@ -171,9 +177,12 @@ impl MultiHostClient {
             );
             let shared = tx.shared.clone();
             hosts.insert(id.clone(), tx);
-            pending.remove(&id);
             shared
         };
+
+        // Host is fully installed — clear the reservation explicitly
+        // and disarm so `Drop` is a no-op.
+        pending_guard.commit();
 
         let snapshot = shared.lock().await.snapshot();
         Ok(snapshot)
@@ -509,6 +518,56 @@ impl Default for MultiHostClient {
 impl std::fmt::Debug for MultiHostClient {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MultiHostClient").finish_non_exhaustive()
+    }
+}
+
+/// RAII reservation for a host id in `MultiInner::pending_host_ids`.
+///
+/// Inserted by [`MultiHostClient::add_host`] just before the
+/// `ClientIdStore` await; cleared either explicitly via
+/// [`PendingHostGuard::commit`] on success, or synchronously from
+/// [`Drop`] on any error / cancellation path. Without this guard, a
+/// future cancellation between the reservation and the install path
+/// would permanently poison the registry for that host id (all later
+/// `add_host` calls would return `DuplicateHost`).
+///
+/// Cancellation safety relies on `pending_host_ids` being a
+/// [`std::sync::Mutex`] (not a tokio mutex), so `Drop` can acquire it
+/// synchronously without an await.
+struct PendingHostGuard {
+    inner: Arc<MultiInner>,
+    id: HostId,
+    armed: bool,
+}
+
+impl PendingHostGuard {
+    /// Successfully installed the host — clear the reservation now and
+    /// disarm so `Drop` is a no-op.
+    fn commit(&mut self) {
+        if self.armed {
+            self.remove_pending();
+            self.armed = false;
+        }
+    }
+
+    fn remove_pending(&self) {
+        // `expect` on the std mutex matches `add_host` itself —
+        // poisoning indicates a panic while holding the lock, which is
+        // already a hard error.
+        let mut pending = self
+            .inner
+            .pending_host_ids
+            .lock()
+            .expect("pending_host_ids mutex poisoned");
+        pending.remove(&self.id);
+    }
+}
+
+impl Drop for PendingHostGuard {
+    fn drop(&mut self) {
+        if self.armed {
+            self.remove_pending();
+        }
     }
 }
 

@@ -147,7 +147,7 @@
 pub mod client;
 pub mod error;
 pub mod hosts;
-mod multi_host_state_mirror;
+pub mod multi_host_state_mirror;
 pub mod reducers;
 pub mod transport;
 

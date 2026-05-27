@@ -920,6 +920,103 @@ async fn file_client_id_store_round_trips_through_multi_host() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// Cancelling an `add_host` future while it's awaiting the
+/// `ClientIdStore` must release the pending-id reservation so a
+/// subsequent `add_host` for the same id can succeed. Without the
+/// `PendingHostGuard` RAII drop, the reservation would persist forever
+/// and every later `add_host(id)` would return `DuplicateHost`.
+#[tokio::test]
+async fn add_host_cancellation_releases_pending_reservation() {
+    use std::time::Duration;
+
+    /// A store whose `load`/`store` block for a long time so we can
+    /// reliably cancel the surrounding `add_host` future while it's
+    /// stuck in `resolve_client_id`.
+    struct SlowStore;
+    impl ClientIdStore for SlowStore {
+        fn load(
+            &self,
+            _host_id: HostId,
+        ) -> std::pin::Pin<
+            Box<dyn std::future::Future<Output = std::io::Result<Option<String>>> + Send + '_>,
+        > {
+            Box::pin(async {
+                // Long enough that `tokio::time::timeout` is guaranteed
+                // to elapse before this resolves.
+                tokio::time::sleep(Duration::from_secs(60)).await;
+                Ok(None)
+            })
+        }
+        fn store(
+            &self,
+            _host_id: HostId,
+            _client_id: String,
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = std::io::Result<()>> + Send + '_>>
+        {
+            Box::pin(async { Ok(()) })
+        }
+    }
+
+    let multi = MultiHostClient::with_client_id_store(Arc::new(SlowStore));
+
+    // First add_host: cancel it via `tokio::time::timeout` while it
+    // sits inside `SlowStore::load`. The reservation must be cleared
+    // on drop.
+    let cancelled = tokio::time::timeout(
+        Duration::from_millis(150),
+        multi.add_host(HostConfig::new(
+            "x",
+            "X",
+            make_basic_factory(FakeHostState::new()),
+        )),
+    )
+    .await;
+    assert!(
+        cancelled.is_err(),
+        "expected the first add_host to be cancelled by the timeout"
+    );
+
+    // Second add_host with a real (fast) store would now permanently
+    // see `DuplicateHost` if the pending reservation hadn't been
+    // released. Use a fresh `MultiHostClient` with a fast store but
+    // share nothing else with the cancelled one — verifies the local
+    // reservation cleanup, not the slow store specifically.
+    let fast = MultiHostClient::new();
+    let result = fast
+        .add_host(HostConfig::new(
+            "x",
+            "X",
+            make_basic_factory(FakeHostState::new()),
+        ))
+        .await;
+    assert!(
+        result.is_ok(),
+        "second add_host on a fresh client should succeed: {result:?}"
+    );
+
+    // Stronger end-to-end check: on the original `multi` (with the
+    // SlowStore), the cancelled reservation should also be cleared.
+    // Swap in a fast store via a second `with_client_id_store` won't
+    // work (the existing `multi` is locked to `SlowStore`), so instead
+    // verify by inspecting that another timeout-bounded `add_host`
+    // doesn't return `DuplicateHost` — it should be cancelled by the
+    // timeout (proving it reached `SlowStore::load`), not rejected at
+    // the duplicate check.
+    let retried = tokio::time::timeout(
+        Duration::from_millis(150),
+        multi.add_host(HostConfig::new(
+            "x",
+            "X",
+            make_basic_factory(FakeHostState::new()),
+        )),
+    )
+    .await;
+    assert!(
+        retried.is_err(),
+        "expected the retry to reach SlowStore::load and time out, not return DuplicateHost"
+    );
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 fn make_summary(uri: &str, title: &str, modified_at: i64) -> ahp_types::state::SessionSummary {
