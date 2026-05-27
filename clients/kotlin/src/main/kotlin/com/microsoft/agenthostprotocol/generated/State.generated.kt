@@ -3016,7 +3016,8 @@ value class ResponsePartSystemNotification(val value: SystemNotificationResponse
  *
  * Older clients may receive newer wire variants they don't recognise; capturing
  * the raw `JsonObject` lets such payloads round-trip through the client unchanged.
- * Reducers treat instances of this variant as no-ops.
+ * Reducers handle this variant conservatively on a per-union basis (typically
+ * as a no-op, but see `Reducers.kt` for the exact treatment).
  */
 @JvmInline
 value class ResponsePartUnknown(val raw: JsonObject) : ResponsePart
@@ -3078,7 +3079,8 @@ value class ToolCallStateCancelled(val value: ToolCallCancelledState) : ToolCall
  *
  * Older clients may receive newer wire variants they don't recognise; capturing
  * the raw `JsonObject` lets such payloads round-trip through the client unchanged.
- * Reducers treat instances of this variant as no-ops.
+ * Reducers handle this variant conservatively on a per-union basis (typically
+ * as a no-op, but see `Reducers.kt` for the exact treatment).
  */
 @JvmInline
 value class ToolCallStateUnknown(val raw: JsonObject) : ToolCallState
@@ -3134,7 +3136,8 @@ value class TerminalClaimSession(val value: TerminalSessionClaim) : TerminalClai
  *
  * Older clients may receive newer wire variants they don't recognise; capturing
  * the raw `JsonObject` lets such payloads round-trip through the client unchanged.
- * Reducers treat instances of this variant as no-ops.
+ * Reducers handle this variant conservatively on a per-union basis (typically
+ * as a no-op, but see `Reducers.kt` for the exact treatment).
  */
 @JvmInline
 value class TerminalClaimUnknown(val raw: JsonObject) : TerminalClaim
@@ -3182,7 +3185,8 @@ value class TerminalContentPartCommand(val value: TerminalCommandPart) : Termina
  *
  * Older clients may receive newer wire variants they don't recognise; capturing
  * the raw `JsonObject` lets such payloads round-trip through the client unchanged.
- * Reducers treat instances of this variant as no-ops.
+ * Reducers handle this variant conservatively on a per-union basis (typically
+ * as a no-op, but see `Reducers.kt` for the exact treatment).
  */
 @JvmInline
 value class TerminalContentPartUnknown(val raw: JsonObject) : TerminalContentPart
@@ -3236,7 +3240,8 @@ value class SessionInputQuestionMultiSelect(val value: SessionInputMultiSelectQu
  *
  * Older clients may receive newer wire variants they don't recognise; capturing
  * the raw `JsonObject` lets such payloads round-trip through the client unchanged.
- * Reducers treat instances of this variant as no-ops.
+ * Reducers handle this variant conservatively on a per-union basis (typically
+ * as a no-op, but see `Reducers.kt` for the exact treatment).
  */
 @JvmInline
 value class SessionInputQuestionUnknown(val raw: JsonObject) : SessionInputQuestion
@@ -3297,7 +3302,8 @@ value class SessionInputAnswerValueSelectedMany(val value: SessionInputSelectedM
  *
  * Older clients may receive newer wire variants they don't recognise; capturing
  * the raw `JsonObject` lets such payloads round-trip through the client unchanged.
- * Reducers treat instances of this variant as no-ops.
+ * Reducers handle this variant conservatively on a per-union basis (typically
+ * as a no-op, but see `Reducers.kt` for the exact treatment).
  */
 @JvmInline
 value class SessionInputAnswerValueUnknown(val raw: JsonObject) : SessionInputAnswerValue
@@ -3351,7 +3357,8 @@ value class SessionInputAnswerSkipped(val value: SessionInputSkipped) : SessionI
  *
  * Older clients may receive newer wire variants they don't recognise; capturing
  * the raw `JsonObject` lets such payloads round-trip through the client unchanged.
- * Reducers treat instances of this variant as no-ops.
+ * Reducers handle this variant conservatively on a per-union basis (typically
+ * as a no-op, but see `Reducers.kt` for the exact treatment).
  */
 @JvmInline
 value class SessionInputAnswerUnknown(val raw: JsonObject) : SessionInputAnswer
@@ -3402,7 +3409,8 @@ value class MessageAttachmentResource(val value: MessageResourceAttachment) : Me
  *
  * Older clients may receive newer wire variants they don't recognise; capturing
  * the raw `JsonObject` lets such payloads round-trip through the client unchanged.
- * Reducers treat instances of this variant as no-ops.
+ * Reducers handle this variant conservatively on a per-union basis (typically
+ * as a no-op, but see `Reducers.kt` for the exact treatment).
  */
 @JvmInline
 value class MessageAttachmentUnknown(val raw: JsonObject) : MessageAttachment
@@ -3452,7 +3460,8 @@ value class CustomizationDirectory(val value: DirectoryCustomization) : Customiz
  *
  * Older clients may receive newer wire variants they don't recognise; capturing
  * the raw `JsonObject` lets such payloads round-trip through the client unchanged.
- * Reducers treat instances of this variant as no-ops.
+ * Reducers handle this variant conservatively on a per-union basis (typically
+ * as a no-op, but see `Reducers.kt` for the exact treatment).
  */
 @JvmInline
 value class CustomizationUnknown(val raw: JsonObject) : Customization
@@ -3508,7 +3517,8 @@ value class ChildCustomizationMcpServer(val value: McpServerCustomization) : Chi
  *
  * Older clients may receive newer wire variants they don't recognise; capturing
  * the raw `JsonObject` lets such payloads round-trip through the client unchanged.
- * Reducers treat instances of this variant as no-ops.
+ * Reducers handle this variant conservatively on a per-union basis (typically
+ * as a no-op, but see `Reducers.kt` for the exact treatment).
  */
 @JvmInline
 value class ChildCustomizationUnknown(val raw: JsonObject) : ChildCustomization
@@ -3568,7 +3578,8 @@ value class CustomizationLoadStateError(val value: CustomizationErrorState) : Cu
  *
  * Older clients may receive newer wire variants they don't recognise; capturing
  * the raw `JsonObject` lets such payloads round-trip through the client unchanged.
- * Reducers treat instances of this variant as no-ops.
+ * Reducers handle this variant conservatively on a per-union basis (typically
+ * as a no-op, but see `Reducers.kt` for the exact treatment).
  */
 @JvmInline
 value class CustomizationLoadStateUnknown(val raw: JsonObject) : CustomizationLoadState

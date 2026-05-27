@@ -1058,7 +1058,7 @@ internal object StateActionSerializer : KSerializer<StateAction> {
         val obj = element as? JsonObject
             ?: error("Expected JsonObject for StateAction")
         val type = (obj["type"] as? JsonPrimitive)?.contentOrNull
-            ?: error("Missing \"type\" discriminator on StateAction")
+            ?: return StateActionUnknown(obj)
         return when (type) {
             "root/agentsChanged" -> StateActionRootAgentsChanged(input.json.decodeFromJsonElement(RootAgentsChangedAction.serializer(), element))
             "root/activeSessionsChanged" -> StateActionRootActiveSessionsChanged(input.json.decodeFromJsonElement(RootActiveSessionsChangedAction.serializer(), element))

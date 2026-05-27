@@ -479,12 +479,13 @@ function generateDiscriminatedUnion(config: UnionConfig): string {
     lines.push(`value class ${config.name}${v.caseName}(val value: ${v.structName}) : ${config.name}`);
   }
   if (config.unknown) {
-    lines.push('/**');
+    lines.push(`/**`);
     lines.push(` * Forward-compat catch-all for unknown ${config.name} discriminators.`);
     lines.push(' *');
     lines.push(' * Older clients may receive newer wire variants they don\'t recognise; capturing');
     lines.push(' * the raw `JsonObject` lets such payloads round-trip through the client unchanged.');
-    lines.push(' * Reducers treat instances of this variant as no-ops.');
+    lines.push(' * Reducers handle this variant conservatively on a per-union basis (typically');
+    lines.push(' * as a no-op, but see `Reducers.kt` for the exact treatment).');
     lines.push(' */');
     lines.push(`@JvmInline`);
     lines.push(`value class ${config.name}Unknown(val raw: JsonObject) : ${config.name}`);
@@ -1150,7 +1151,7 @@ function generateActionsFile(project: Project): string {
   lines.push('        val obj = element as? JsonObject');
   lines.push('            ?: error("Expected JsonObject for StateAction")');
   lines.push('        val type = (obj["type"] as? JsonPrimitive)?.contentOrNull');
-  lines.push('            ?: error("Missing \\"type\\" discriminator on StateAction")');
+  lines.push('            ?: return StateActionUnknown(obj)');
   lines.push('        return when (type) {');
   for (const v of ACTION_VARIANTS) {
     const dataClass = v.tsInterface === '_merged_' ? 'SessionToolCallConfirmedAction' : v.tsInterface;

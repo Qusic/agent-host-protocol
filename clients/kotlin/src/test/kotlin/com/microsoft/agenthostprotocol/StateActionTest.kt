@@ -66,6 +66,24 @@ class StateActionTest {
     }
 
     @Test
+    fun `action without type discriminator decodes to StateActionUnknown without throwing`() {
+        // Symmetric with the state-channel `XUnknown` variants: a payload
+        // that's missing its `type` discriminator entirely is also routed
+        // to Unknown rather than throwing. The reducer's `else -> state`
+        // arm can then no-op it. The captured raw payload still
+        // round-trips so the channel stays alive across protocol drift.
+        val malformedWire = """{"payload":{"foo":42}}"""
+        val decoded = json.decodeFromString(StateAction.serializer(), malformedWire)
+        val unknown = assertIs<StateActionUnknown>(decoded)
+        assertNull(unknown.raw["type"])
+        assertEquals(JsonPrimitive(42), unknown.raw["payload"]?.jsonObject?.get("foo"))
+
+        val reEncoded = json.encodeToString(StateAction.serializer(), decoded)
+        val reTree = json.parseToJsonElement(reEncoded).jsonObject
+        assertEquals(json.parseToJsonElement(malformedWire).jsonObject, reTree)
+    }
+
+    @Test
     fun `ActionEnvelope wraps a StateAction with serverSeq`() {
         // Channel-scoped envelope: every server-pushed action now carries
         // the channel URI it belongs to. Per-session actions like
