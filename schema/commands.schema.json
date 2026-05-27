@@ -5435,7 +5435,7 @@
     },
     "SessionCustomizationUpdatedAction": {
       "type": "object",
-      "description": "Upserts a top-level customization (plugin or directory).\n\nThe reducer locates the existing entry by `customization.id`:\n\n- If found, the entry is replaced entirely with `customization`,\n  including its `children` array. To preserve existing children, the\n  host MUST include them on the payload.\n- If not found, the entry is appended.\n\nChildren are always updated as part of their container — there is no\nseparate per-child action.",
+      "description": "Upserts a top-level customization (plugin or directory).\n\nThe reducer locates the existing entry by `customization.id`:\n\n- If found, the entry is replaced entirely with `customization`,\n  including its `children` array. To preserve existing children, the\n  host must include them on the payload.\n- If not found, the entry is appended.",
       "properties": {
         "type": {
           "$ref": "#/$defs/ActionType.SessionCustomizationUpdated"

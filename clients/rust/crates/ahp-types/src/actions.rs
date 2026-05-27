@@ -13,11 +13,11 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 
 use crate::state::{
     AgentInfo, AgentSelection, ChangesetFile, ChangesetOperation, ChangesetStatus,
-    ChangesetSummary, ChildCustomization, ConfirmationOption, Customization, ErrorInfo,
-    ModelSelection, PendingMessageKind, ResponsePart, SessionActiveClient, SessionInputAnswer,
-    SessionInputRequest, SessionInputResponseKind, TerminalClaim, TerminalInfo,
-    ToolCallCancellationReason, ToolCallConfirmationReason, ToolCallResult, ToolDefinition,
-    ToolResultContent, UsageInfo, UserMessage,
+    ChangesetSummary, ConfirmationOption, Customization, ErrorInfo, ModelSelection,
+    PendingMessageKind, ResponsePart, SessionActiveClient, SessionInputAnswer, SessionInputRequest,
+    SessionInputResponseKind, TerminalClaim, TerminalInfo, ToolCallCancellationReason,
+    ToolCallConfirmationReason, ToolCallResult, ToolDefinition, ToolResultContent, UsageInfo,
+    UserMessage,
 };
 
 // ─── ActionType ──────────────────────────────────────────────────────
@@ -743,11 +743,8 @@ pub struct SessionCustomizationToggledAction {
 ///
 /// - If found, the entry is replaced entirely with `customization`,
 ///   including its `children` array. To preserve existing children, the
-///   host MUST include them on the payload.
+///   host must include them on the payload.
 /// - If not found, the entry is appended.
-///
-/// Children are always updated as part of their container — there is no
-/// separate per-child action.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionCustomizationUpdatedAction {
