@@ -62,6 +62,10 @@ enum class CompletionItemKind {
 @Serializable
 data class InitializeParams(
     /**
+     * Channel URI this command targets.
+     */
+    val channel: String,
+    /**
      * Protocol versions the client is willing to speak, ordered from most
      * preferred to least preferred. Each entry is a [SemVer](https://semver.org)
      * `MAJOR.MINOR.PATCH` string (e.g. `"0.1.0"`).
@@ -113,11 +117,23 @@ data class InitializeResult(
      * {@link CompletionItemKind.UserMessage}. Typically includes characters like
      * `'@'` or `'/'`.
      */
-    val completionTriggerCharacters: List<String>? = null
+    val completionTriggerCharacters: List<String>? = null,
+    /**
+     * OTLP telemetry channels the host emits, if any. Each populated field is
+     * either a literal `ahp-otlp:` channel URI or an RFC 6570 URI template a
+     * client expands before subscribing (currently only the `logs` channel
+     * defines a template variable, `{level}`, for subscriber-side severity
+     * filtering). Clients MAY ignore signals they cannot process.
+     */
+    val telemetry: TelemetryCapabilities? = null
 )
 
 @Serializable
 data class ReconnectParams(
+    /**
+     * Channel URI this command targets.
+     */
+    val channel: String,
     /**
      * Client identifier from the original connection
      */
@@ -166,17 +182,17 @@ data class ReconnectSnapshotResult(
 @Serializable
 data class SubscribeParams(
     /**
-     * URI to subscribe to
+     * Channel URI this command targets.
      */
-    val resource: String
+    val channel: String
 )
 
 @Serializable
 data class SubscribeResult(
     /**
-     * Snapshot of the subscribed resource
+     * Snapshot of the subscribed channel's state (omitted for stateless channels)
      */
-    val snapshot: Snapshot
+    val snapshot: Snapshot? = null
 )
 
 @Serializable
@@ -194,9 +210,9 @@ data class SessionForkSource(
 @Serializable
 data class CreateSessionParams(
     /**
-     * Session URI (client-chosen, e.g. `copilot:/<uuid>`)
+     * Channel URI this command targets.
      */
-    val session: String,
+    val channel: String,
     /**
      * Agent provider ID
      */
@@ -205,6 +221,12 @@ data class CreateSessionParams(
      * Model selection (ID and optional model-specific configuration)
      */
     val model: ModelSelection? = null,
+    /**
+     * Initial custom agent selection for the new session.
+     * 
+     * Omit to start the session with no custom agent selected (provider default).
+     */
+    val agent: AgentSelection? = null,
     /**
      * Working directory for the session
      */
@@ -233,13 +255,17 @@ data class CreateSessionParams(
 @Serializable
 data class DisposeSessionParams(
     /**
-     * Session URI to dispose
+     * Channel URI this command targets.
      */
-    val session: String
+    val channel: String
 )
 
 @Serializable
 data class ListSessionsParams(
+    /**
+     * Channel URI this command targets.
+     */
+    val channel: String,
     /**
      * Optional filter criteria
      */
@@ -256,6 +282,10 @@ data class ListSessionsResult(
 
 @Serializable
 data class ResourceReadParams(
+    /**
+     * Channel URI this command targets.
+     */
+    val channel: String,
     /**
      * Content URI from a `ContentRef`
      */
@@ -285,6 +315,10 @@ data class ResourceReadResult(
 @Serializable
 data class ResourceWriteParams(
     /**
+     * Channel URI this command targets.
+     */
+    val channel: String,
+    /**
      * Target file URI on the server filesystem
      */
     val uri: String,
@@ -312,6 +346,10 @@ class ResourceWriteResult
 
 @Serializable
 data class ResourceListParams(
+    /**
+     * Channel URI this command targets.
+     */
+    val channel: String,
     /**
      * Directory URI on the server filesystem
      */
@@ -341,6 +379,10 @@ data class DirectoryEntry(
 @Serializable
 data class ResourceCopyParams(
     /**
+     * Channel URI this command targets.
+     */
+    val channel: String,
+    /**
      * Source URI to copy from
      */
     val source: String,
@@ -361,6 +403,10 @@ class ResourceCopyResult
 @Serializable
 data class ResourceDeleteParams(
     /**
+     * Channel URI this command targets.
+     */
+    val channel: String,
+    /**
      * URI of the resource to delete
      */
     val uri: String,
@@ -376,6 +422,10 @@ class ResourceDeleteResult
 
 @Serializable
 data class ResourceMoveParams(
+    /**
+     * Channel URI this command targets.
+     */
+    val channel: String,
     /**
      * Source URI to move from
      */
@@ -396,6 +446,10 @@ class ResourceMoveResult
 
 @Serializable
 data class ResourceRequestParams(
+    /**
+     * Channel URI this command targets.
+     */
+    val channel: String,
     /**
      * Resource URI being requested. Typically a `file:` URI on the receiver's
      * filesystem, but any URI scheme that the receiver mediates access to is
@@ -418,9 +472,9 @@ class ResourceRequestResult
 @Serializable
 data class FetchTurnsParams(
     /**
-     * Session URI
+     * Channel URI this command targets.
      */
-    val session: String,
+    val channel: String,
     /**
      * Turn ID to fetch before (exclusive). Omit to fetch from the most recent turn.
      */
@@ -446,13 +500,17 @@ data class FetchTurnsResult(
 @Serializable
 data class UnsubscribeParams(
     /**
-     * URI to unsubscribe from
+     * Channel URI to unsubscribe from
      */
-    val resource: String
+    val channel: String
 )
 
 @Serializable
 data class DispatchActionParams(
+    /**
+     * Channel URI this action targets
+     */
+    val channel: String,
     /**
      * Client sequence number
      */
@@ -465,6 +523,10 @@ data class DispatchActionParams(
 
 @Serializable
 data class AuthenticateParams(
+    /**
+     * Channel URI this command targets.
+     */
+    val channel: String,
     /**
      * The protected resource identifier. MUST match a `resource` value from
      * `ProtectedResourceMetadata` declared in `AgentInfo.protectedResources`.
@@ -482,9 +544,9 @@ class AuthenticateResult
 @Serializable
 data class CreateTerminalParams(
     /**
-     * Terminal URI (client-chosen)
+     * Channel URI this command targets.
      */
-    val terminal: String,
+    val channel: String,
     /**
      * Initial owner of the terminal
      */
@@ -510,13 +572,17 @@ data class CreateTerminalParams(
 @Serializable
 data class DisposeTerminalParams(
     /**
-     * Terminal URI to dispose
+     * Channel URI this command targets.
      */
-    val terminal: String
+    val channel: String
 )
 
 @Serializable
 data class ResolveSessionConfigParams(
+    /**
+     * Channel URI this command targets.
+     */
+    val channel: String,
     /**
      * Agent provider ID
      */
@@ -621,6 +687,10 @@ data class SessionConfigSchema(
 @Serializable
 data class SessionConfigCompletionsParams(
     /**
+     * Channel URI this command targets.
+     */
+    val channel: String,
+    /**
      * Agent provider ID
      */
     val provider: String? = null,
@@ -669,13 +739,13 @@ data class SessionConfigValueItem(
 @Serializable
 data class CompletionsParams(
     /**
+     * Channel URI this command targets.
+     */
+    val channel: String,
+    /**
      * What kind of completion is being requested.
      */
     val kind: CompletionItemKind,
-    /**
-     * The session URI the completion is being requested for.
-     */
-    val session: String,
     /**
      * The complete text of the input being completed (e.g. the full user
      * message text typed so far).
@@ -727,6 +797,44 @@ data class CompletionsResult(
     val items: List<CompletionItem>
 )
 
+@Serializable
+data class InvokeChangesetOperationParams(
+    /**
+     * Channel URI this command targets.
+     */
+    val channel: String,
+    /**
+     * Matches {@link ChangesetOperation.id} from the changeset's `operations` list.
+     */
+    val operationId: String,
+    /**
+     * Target of the operation. Required iff the chosen scope is
+     * `'resource'` or `'range'`. Omit for changeset-scoped operations.
+     */
+    val target: ChangesetOperationTarget? = null
+)
+
+@Serializable
+data class InvokeChangesetOperationResult(
+    /**
+     * Optional human-readable message describing the result.
+     */
+    val message: StringOrMarkdown? = null,
+    /**
+     * Optional follow-up: a URI to open (e.g. a PR), a content ref, etc.
+     */
+    val followUp: ChangesetOperationFollowUp? = null
+)
+
+@Serializable
+data class ChangesetOperationFollowUp(
+    val content: ContentRef,
+    /**
+     * When `true`, open in an external handler rather than inline.
+     */
+    val external: Boolean? = null
+)
+
 // ─── ReconnectResult Union ──────────────────────────────────────────────────
 
 @Serializable(with = ReconnectResultSerializer::class)
@@ -762,6 +870,76 @@ internal object ReconnectResultSerializer : KSerializer<ReconnectResult> {
         val element: JsonElement = when (value) {
             is ReconnectResultReplay -> output.json.encodeToJsonElement(ReconnectReplayResult.serializer(), value.value)
             is ReconnectResultSnapshot -> output.json.encodeToJsonElement(ReconnectSnapshotResult.serializer(), value.value)
+        }
+        output.encodeJsonElement(element)
+    }
+}
+
+// ─── Changeset Operation Unions ─────────────────────────────────────────────
+
+/**
+ * Identifies the file or range a [ChangesetOperation] should act on.
+ */
+@Serializable(with = ChangesetOperationTargetSerializer::class)
+sealed interface ChangesetOperationTarget {
+    @JvmInline value class Resource(val value: ChangesetOperationResourceTarget) : ChangesetOperationTarget
+    @JvmInline value class Range(val value: ChangesetOperationRangeTarget) : ChangesetOperationTarget
+}
+
+@Serializable
+data class ChangesetOperationResourceTarget(
+    val resource: String,
+    val side: String? = null,
+    /** Discriminator. Always "resource". */
+    val kind: String = "resource",
+)
+
+@Serializable
+data class ChangesetOperationRangeTarget(
+    val resource: String,
+    val side: String? = null,
+    val range: ChangesetOperationTargetRange,
+    /** Discriminator. Always "range". */
+    val kind: String = "range",
+)
+
+@Serializable
+data class ChangesetOperationTargetRange(
+    val start: Long,
+    val end: Long,
+)
+
+internal object ChangesetOperationTargetSerializer : KSerializer<ChangesetOperationTarget> {
+    override val descriptor: SerialDescriptor =
+        buildClassSerialDescriptor("ChangesetOperationTarget")
+
+    override fun deserialize(decoder: Decoder): ChangesetOperationTarget {
+        val input = decoder as? JsonDecoder
+            ?: error("ChangesetOperationTarget can only be deserialized from JSON")
+        val element = input.decodeJsonElement()
+        val obj = element as? JsonObject
+            ?: error("Expected JsonObject for ChangesetOperationTarget")
+        val kind = (obj["kind"] as? JsonPrimitive)?.contentOrNull
+            ?: error("Missing kind discriminator on ChangesetOperationTarget")
+        return when (kind) {
+            "resource" -> ChangesetOperationTarget.Resource(
+                input.json.decodeFromJsonElement(ChangesetOperationResourceTarget.serializer(), element),
+            )
+            "range" -> ChangesetOperationTarget.Range(
+                input.json.decodeFromJsonElement(ChangesetOperationRangeTarget.serializer(), element),
+            )
+            else -> error("Unknown ChangesetOperationTarget kind: $kind")
+        }
+    }
+
+    override fun serialize(encoder: Encoder, value: ChangesetOperationTarget) {
+        val output = encoder as? JsonEncoder
+            ?: error("ChangesetOperationTarget can only be serialized to JSON")
+        val element: JsonElement = when (value) {
+            is ChangesetOperationTarget.Resource ->
+                output.json.encodeToJsonElement(ChangesetOperationResourceTarget.serializer(), value.value)
+            is ChangesetOperationTarget.Range ->
+                output.json.encodeToJsonElement(ChangesetOperationRangeTarget.serializer(), value.value)
         }
         output.encodeJsonElement(element)
     }

@@ -399,6 +399,51 @@ enum class TerminalClaimKind {
     SESSION
 }
 
+/**
+ * Computation lifecycle of a {@link ChangesetState}.
+ */
+@Serializable
+enum class ChangesetStatus {
+    /**
+     * The server is still computing the contents of this changeset.
+     */
+    @SerialName("computing")
+    COMPUTING,
+    /**
+     * The changeset has been fully computed and is up-to-date.
+     */
+    @SerialName("ready")
+    READY,
+    /**
+     * Computation failed. The cause is described by
+     * {@link ChangesetState.error}.
+     */
+    @SerialName("error")
+    ERROR
+}
+
+/**
+ * Where a {@link ChangesetOperation} can be invoked.
+ */
+@Serializable
+enum class ChangesetOperationScope {
+    /**
+     * Applies to the whole changeset.
+     */
+    @SerialName("changeset")
+    CHANGESET,
+    /**
+     * Applies to a single file within the changeset.
+     */
+    @SerialName("resource")
+    RESOURCE,
+    /**
+     * Applies to a line range within a single file.
+     */
+    @SerialName("range")
+    RANGE
+}
+
 // ─── State Types ────────────────────────────────────────────────────────────
 
 @Serializable
@@ -636,6 +681,14 @@ data class ModelSelection(
 )
 
 @Serializable
+data class AgentSelection(
+    /**
+     * Stable agent URI (matches a {@link CustomizationAgentRef.uri})
+     */
+    val uri: String
+)
+
+@Serializable
 data class ConfigPropertySchema(
     /**
      * JSON Schema: property type
@@ -834,13 +887,24 @@ data class SessionSummary(
      */
     val model: ModelSelection? = null,
     /**
+     * Currently selected custom agent.
+     * 
+     * Absent (`undefined`) means no custom agent is selected for this session
+     * — the session uses the provider's default behavior.
+     */
+    val agent: AgentSelection? = null,
+    /**
      * The working directory URI for this session
      */
     val workingDirectory: String? = null,
     /**
-     * Files changed during this session with diff statistics
+     * Catalogue of changesets the server can produce for this session. Each
+     * entry advertises a subscribable view of file changes (uncommitted,
+     * session-wide, per-turn, etc.) and the URI template the client expands
+     * before subscribing. See {@link ChangesetSummary} for the full shape and
+     * {@link /guide/changesets | Changesets} for an overview of the model.
      */
-    val diffs: List<FileEdit>? = null
+    val changesets: List<ChangesetSummary>? = null
 )
 
 @Serializable
@@ -2094,6 +2158,22 @@ data class CustomizationRef(
 )
 
 @Serializable
+data class CustomizationAgentRef(
+    /**
+     * Stable agent URI
+     */
+    val uri: String,
+    /**
+     * Agent name (from frontmatter `name`, or file-derived)
+     */
+    val name: String,
+    /**
+     * Optional short description for UI preview (from frontmatter `description`)
+     */
+    val description: String? = null
+)
+
+@Serializable
 data class SessionCustomization(
     /**
      * The plugin this customization refers to
@@ -2115,7 +2195,19 @@ data class SessionCustomization(
     /**
      * Human-readable status detail (e.g. error message or degradation warning).
      */
-    val statusMessage: String? = null
+    val statusMessage: String? = null,
+    /**
+     * Custom agents contributed by this customization, as resolved by the
+     * agent host after parsing the customization.
+     * 
+     * Consumers MUST treat an absent field as "unknown" (e.g. the host has
+     * not finished parsing the customization yet). An empty array means the
+     * host parsed the customization and it contributes no agents.
+     * 
+     * Clients are not authoritative here: only the agent host populates
+     * this field.
+     */
+    val agents: List<CustomizationAgentRef>? = null
 )
 
 @Serializable
@@ -2321,7 +2413,7 @@ data class ErrorInfo(
 @Serializable
 data class Snapshot(
     /**
-     * The subscribed resource URI (e.g. `agenthost:/root` or `copilot:/<uuid>`)
+     * The subscribed channel URI (e.g. `ahp-root://` or `ahp-session:/<uuid>`)
      */
     val resource: String,
     /**
@@ -2332,6 +2424,158 @@ data class Snapshot(
      * The `serverSeq` at which this snapshot was taken. Subsequent actions will have `serverSeq > fromSeq`.
      */
     val fromSeq: Long
+)
+
+@Serializable
+data class ChangesetSummary(
+    /**
+     * Human-readable label, e.g. `"Uncommitted Changes"`.
+     */
+    val label: String,
+    /**
+     * RFC 6570 URI template. Clients parse the variables directly out of the
+     * template using the standard `{name}` syntax — they are not redeclared
+     * here.
+     * 
+     * Only the following template shapes are defined by this protocol; any
+     * other variable name MUST be ignored by clients (there is no
+     * protocol-defined way to obtain values for unknown variables):
+     * 
+     * | Variables in template                       | Meaning                                                                              |
+     * | ------------------------------------------- | ------------------------------------------------------------------------------------ |
+     * | _(none)_                                    | A static, session-wide changeset. The template is itself a subscribable URI.         |
+     * | `{turnId}`                                  | Per-turn slice. Expand with a `Turn.id` from the session.                            |
+     * | `{originalTurnId}` and `{modifiedTurnId}`   | Diff between two turns. Both variables MUST be present.                              |
+     * 
+     * Future protocol versions MAY add new well-known variables.
+     */
+    val uriTemplate: String,
+    /**
+     * Optional longer description.
+     */
+    val description: String? = null,
+    /**
+     * Aggregate line additions across the changeset, when known.
+     */
+    val additions: Long? = null,
+    /**
+     * Aggregate line deletions across the changeset, when known.
+     */
+    val deletions: Long? = null,
+    /**
+     * Number of files in the changeset, when known.
+     */
+    val files: Long? = null
+)
+
+@Serializable
+data class ChangesetState(
+    /**
+     * Computation lifecycle.
+     */
+    val status: ChangesetStatus,
+    /**
+     * Present iff `status === ChangesetStatus.Error`.
+     */
+    val error: ErrorInfo? = null,
+    /**
+     * Files in this changeset, keyed by {@link ChangesetFile.id}.
+     */
+    val files: List<ChangesetFile>,
+    /**
+     * Operations the client may invoke against this changeset. Omit when no
+     * operations are available.
+     */
+    val operations: List<ChangesetOperation>? = null
+)
+
+@Serializable
+data class ChangesetFile(
+    /**
+     * Stable identifier within the changeset. Typically `after.uri`
+     * (or `before.uri` for deletions).
+     */
+    val id: String,
+    /**
+     * Reuses the existing {@link FileEdit} shape. Clients derive line
+     * additions, deletions, and rename/create/delete semantics from this.
+     */
+    val edit: FileEdit,
+    /**
+     * Server-defined opaque metadata, surfaced to operations and tooling
+     * but not interpreted by the protocol.
+     */
+    @SerialName("_meta")
+    val meta: Map<String, JsonElement>? = null
+)
+
+@Serializable
+data class ChangesetOperation(
+    /**
+     * Stable identifier, unique within this changeset.
+     */
+    val id: String,
+    /**
+     * Human-readable button/menu label.
+     */
+    val label: String,
+    /**
+     * Optional longer description shown on hover or in tooltips.
+     */
+    val description: String? = null,
+    /**
+     * Where this operation can be invoked.
+     */
+    val scopes: List<ChangesetOperationScope>,
+    /**
+     * Optional confirmation prompt to show before invoking. When present,
+     * the client MUST display this message to the user (typically in a
+     * confirmation dialog) and only invoke the operation after the user
+     * accepts. The presence of this field also signals that the operation
+     * is destructive — clients SHOULD style the affirmative button
+     * accordingly (e.g. with a warning colour).
+     */
+    val confirmation: StringOrMarkdown? = null,
+    /**
+     * Optional generic icon hint, e.g. `"check"`, `"trash"`.
+     */
+    val icon: String? = null
+)
+
+@Serializable
+data class TelemetryCapabilities(
+    /**
+     * Channel URI (or RFC 6570 URI template) for OTLP log records
+     * (`otlp/exportLogs` notifications).
+     * 
+     * The following template variables are defined by this protocol; any
+     * other variable name MUST be ignored by clients (there is no
+     * protocol-defined way to obtain values for unknown variables):
+     * 
+     * | Variables in template | Meaning                                                                                                 |
+     * | --------------------- | ------------------------------------------------------------------------------------------------------- |
+     * | _(none)_              | The host does not support subscriber-side severity filtering. The template is itself a subscribable URI. |
+     * | `{level}`             | Minimum OTLP severity to deliver. Expand to one of the [OTLP `SeverityNumber`](https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-severitynumber) short names (case-insensitive): `trace`, `debug`, `info`, `warn`, `error`, `fatal`. The server delivers log records whose `severityNumber` falls in the corresponding band or above. |
+     * 
+     * Hosts SHOULD honour the expanded `{level}`; clients MUST still filter
+     * defensively in case a host ignores the parameter. Hosts that do not
+     * advertise `{level}` deliver all severities.
+     * 
+     * Future protocol versions MAY add new well-known variables (e.g. scope
+     * or attribute filters).
+     */
+    val logs: String? = null,
+    /**
+     * Channel URI for OTLP spans (`otlp/exportTraces` notifications). No
+     * template variables are defined by this protocol version.
+     */
+    val traces: String? = null,
+    /**
+     * Channel URI for OTLP metric data points (`otlp/exportMetrics`
+     * notifications). No template variables are defined by this protocol
+     * version.
+     */
+    val metrics: String? = null
 )
 
 // ─── Discriminated Unions ───────────────────────────────────────────────────
@@ -2747,13 +2991,14 @@ internal object ToolResultContentSerializer : KSerializer<ToolResultContent> {
 }
 
 /**
- * The state payload of a snapshot — root state, session state, or terminal state.
+ * The state payload of a snapshot — root, session, terminal, or changeset state.
  */
 @Serializable(with = SnapshotStateSerializer::class)
 sealed interface SnapshotState {
     @JvmInline value class Root(val value: RootState) : SnapshotState
     @JvmInline value class Session(val value: SessionState) : SnapshotState
     @JvmInline value class Terminal(val value: TerminalState) : SnapshotState
+    @JvmInline value class Changeset(val value: ChangesetState) : SnapshotState
 }
 
 internal object SnapshotStateSerializer : KSerializer<SnapshotState> {
@@ -2766,9 +3011,14 @@ internal object SnapshotStateSerializer : KSerializer<SnapshotState> {
         val element = input.decodeJsonElement()
         val obj = element as? JsonObject
             ?: error("Expected JsonObject for SnapshotState")
-        // SessionState has required `summary` field; try it first.
+        // Try the most distinctive shape first. SessionState has required
+        // `summary`; ChangesetState has required `status` + `files`;
+        // TerminalState has `uri` / `size` / `buffer`; RootState is the
+        // catch-all.
         return when {
             obj.containsKey("summary") -> SnapshotState.Session(input.json.decodeFromJsonElement(SessionState.serializer(), element))
+            obj.containsKey("status") && obj.containsKey("files") ->
+                SnapshotState.Changeset(input.json.decodeFromJsonElement(ChangesetState.serializer(), element))
             obj.containsKey("size") || obj.containsKey("uri") || obj.containsKey("buffer") ->
                 SnapshotState.Terminal(input.json.decodeFromJsonElement(TerminalState.serializer(), element))
             else -> SnapshotState.Root(input.json.decodeFromJsonElement(RootState.serializer(), element))
@@ -2782,6 +3032,7 @@ internal object SnapshotStateSerializer : KSerializer<SnapshotState> {
             is SnapshotState.Root -> output.json.encodeToJsonElement(RootState.serializer(), value.value)
             is SnapshotState.Session -> output.json.encodeToJsonElement(SessionState.serializer(), value.value)
             is SnapshotState.Terminal -> output.json.encodeToJsonElement(TerminalState.serializer(), value.value)
+            is SnapshotState.Changeset -> output.json.encodeToJsonElement(ChangesetState.serializer(), value.value)
         }
         output.encodeJsonElement(element)
     }

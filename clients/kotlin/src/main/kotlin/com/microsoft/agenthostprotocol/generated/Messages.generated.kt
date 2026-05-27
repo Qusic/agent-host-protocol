@@ -77,12 +77,6 @@ data class JsonRpcNotification<P>(
 /** Params for the server → client `action` notification. */
 typealias ActionNotificationParams = ActionEnvelope
 
-/** Params for the server → client `notification` method. */
-@Serializable
-data class NotificationMethodParams(
-    val notification: ProtocolNotification,
-)
-
 // ─── AHP Command Helpers ────────────────────────────────────────────────────
 
 /**
@@ -133,6 +127,24 @@ object AhpCommands {
 
     fun authenticate(id: Long, params: AuthenticateParams): JsonRpcRequest<AuthenticateParams> =
         JsonRpcRequest(id = id, method = "authenticate", params = params)
+
+    fun createTerminal(id: Long, params: CreateTerminalParams): JsonRpcRequest<CreateTerminalParams> =
+        JsonRpcRequest(id = id, method = "createTerminal", params = params)
+
+    fun disposeTerminal(id: Long, params: DisposeTerminalParams): JsonRpcRequest<DisposeTerminalParams> =
+        JsonRpcRequest(id = id, method = "disposeTerminal", params = params)
+
+    fun resolveSessionConfig(id: Long, params: ResolveSessionConfigParams): JsonRpcRequest<ResolveSessionConfigParams> =
+        JsonRpcRequest(id = id, method = "resolveSessionConfig", params = params)
+
+    fun sessionConfigCompletions(id: Long, params: SessionConfigCompletionsParams): JsonRpcRequest<SessionConfigCompletionsParams> =
+        JsonRpcRequest(id = id, method = "sessionConfigCompletions", params = params)
+
+    fun completions(id: Long, params: CompletionsParams): JsonRpcRequest<CompletionsParams> =
+        JsonRpcRequest(id = id, method = "completions", params = params)
+
+    fun invokeChangesetOperation(id: Long, params: InvokeChangesetOperationParams): JsonRpcRequest<InvokeChangesetOperationParams> =
+        JsonRpcRequest(id = id, method = "invokeChangesetOperation", params = params)
 }
 
 /**

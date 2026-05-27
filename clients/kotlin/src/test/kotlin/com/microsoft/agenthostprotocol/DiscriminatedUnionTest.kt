@@ -1,5 +1,9 @@
 package com.microsoft.agenthostprotocol
 
+import com.microsoft.agenthostprotocol.generated.ChangesetOperationRangeTarget
+import com.microsoft.agenthostprotocol.generated.ChangesetOperationResourceTarget
+import com.microsoft.agenthostprotocol.generated.ChangesetOperationTarget
+import com.microsoft.agenthostprotocol.generated.ChangesetOperationTargetRange
 import com.microsoft.agenthostprotocol.generated.MarkdownResponsePart
 import com.microsoft.agenthostprotocol.generated.ReasoningResponsePart
 import com.microsoft.agenthostprotocol.generated.ResponsePart
@@ -139,5 +143,38 @@ class DiscriminatedUnionTest {
         val obj = json.parseToJsonElement(mdEncoded) as JsonObject
         assertEquals(JsonPrimitive("**bold**"), obj["markdown"])
         assertTrue(obj.size == 1)
+    }
+
+    @Test
+    fun `ChangesetOperationTarget dispatches on the kind discriminator`() {
+        // ChangesetOperationTarget is hand-rolled by the generator (the TS
+        // shape uses inline variants that aren't exported as their own
+        // interfaces). Verifies both variants round-trip.
+        val resourceWire = """{"kind":"resource","resource":"file:///a.ts"}"""
+        val rangeWire = """{
+            "kind": "range",
+            "resource": "file:///a.ts",
+            "side": "after",
+            "range": { "start": 10, "end": 42 }
+        }""".trimIndent()
+
+        val res = json.decodeFromString(ChangesetOperationTarget.serializer(), resourceWire)
+        val resVariant = assertIs<ChangesetOperationTarget.Resource>(res)
+        assertEquals("file:///a.ts", resVariant.value.resource)
+        assertEquals("resource", resVariant.value.kind)
+
+        val rng = json.decodeFromString(ChangesetOperationTarget.serializer(), rangeWire)
+        val rngVariant = assertIs<ChangesetOperationTarget.Range>(rng)
+        assertEquals(ChangesetOperationTargetRange(start = 10, end = 42), rngVariant.value.range)
+
+        // Encoding emits the correct discriminator wire value.
+        val encoded = json.encodeToString(
+            ChangesetOperationTarget.serializer(),
+            ChangesetOperationTarget.Resource(
+                ChangesetOperationResourceTarget(resource = "file:///b.ts"),
+            ),
+        )
+        val obj = json.parseToJsonElement(encoded) as JsonObject
+        assertEquals(JsonPrimitive("resource"), obj["kind"])
     }
 }

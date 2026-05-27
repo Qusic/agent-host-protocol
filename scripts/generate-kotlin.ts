@@ -33,6 +33,7 @@ import {
 } from 'ts-morph';
 import fs from 'fs';
 import path from 'path';
+import { findProtocolSourceFiles } from './find-protocol-sources.js';
 
 const GENERATED_HEADER =
   '// Generated from types/*.ts — do not edit\n\n' +
@@ -135,7 +136,8 @@ function mapType(tsType: string): string {
   // Known unions
   if (
     tsType === 'RootState | SessionState' ||
-    tsType === 'RootState | SessionState | TerminalState'
+    tsType === 'RootState | SessionState | TerminalState' ||
+    tsType === 'RootState | SessionState | TerminalState | ChangesetState'
   ) {
     return 'SnapshotState';
   }
@@ -243,6 +245,14 @@ function findInterface(project: Project, name: string): InterfaceDeclaration | u
   for (const sf of project.getSourceFiles()) {
     const iface = sf.getInterface(name);
     if (iface) return iface;
+  }
+  return undefined;
+}
+
+function findEnum(project: Project, name: string): EnumDeclaration | undefined {
+  for (const sf of project.getSourceFiles()) {
+    const e = sf.getEnum(name);
+    if (e) return e;
   }
   return undefined;
 }
@@ -577,13 +587,14 @@ internal object StringOrMarkdownSerializer : KSerializer<StringOrMarkdown> {
 
 function generateSnapshotState(): string {
   return `/**
- * The state payload of a snapshot — root state, session state, or terminal state.
+ * The state payload of a snapshot — root, session, terminal, or changeset state.
  */
 @Serializable(with = SnapshotStateSerializer::class)
 sealed interface SnapshotState {
     @JvmInline value class Root(val value: RootState) : SnapshotState
     @JvmInline value class Session(val value: SessionState) : SnapshotState
     @JvmInline value class Terminal(val value: TerminalState) : SnapshotState
+    @JvmInline value class Changeset(val value: ChangesetState) : SnapshotState
 }
 
 internal object SnapshotStateSerializer : KSerializer<SnapshotState> {
@@ -596,9 +607,14 @@ internal object SnapshotStateSerializer : KSerializer<SnapshotState> {
         val element = input.decodeJsonElement()
         val obj = element as? JsonObject
             ?: error("Expected JsonObject for SnapshotState")
-        // SessionState has required \`summary\` field; try it first.
+        // Try the most distinctive shape first. SessionState has required
+        // \`summary\`; ChangesetState has required \`status\` + \`files\`;
+        // TerminalState has \`uri\` / \`size\` / \`buffer\`; RootState is the
+        // catch-all.
         return when {
             obj.containsKey("summary") -> SnapshotState.Session(input.json.decodeFromJsonElement(SessionState.serializer(), element))
+            obj.containsKey("status") && obj.containsKey("files") ->
+                SnapshotState.Changeset(input.json.decodeFromJsonElement(ChangesetState.serializer(), element))
             obj.containsKey("size") || obj.containsKey("uri") || obj.containsKey("buffer") ->
                 SnapshotState.Terminal(input.json.decodeFromJsonElement(TerminalState.serializer(), element))
             else -> SnapshotState.Root(input.json.decodeFromJsonElement(RootState.serializer(), element))
@@ -612,6 +628,7 @@ internal object SnapshotStateSerializer : KSerializer<SnapshotState> {
             is SnapshotState.Root -> output.json.encodeToJsonElement(RootState.serializer(), value.value)
             is SnapshotState.Session -> output.json.encodeToJsonElement(SessionState.serializer(), value.value)
             is SnapshotState.Terminal -> output.json.encodeToJsonElement(TerminalState.serializer(), value.value)
+            is SnapshotState.Changeset -> output.json.encodeToJsonElement(ChangesetState.serializer(), value.value)
         }
         output.encodeJsonElement(element)
     }
@@ -677,11 +694,12 @@ const STATE_ENUMS = [
   'TurnState', 'MessageAttachmentKind', 'ResponsePartKind', 'ToolCallStatus',
   'ToolCallConfirmationReason', 'ToolCallCancellationReason', 'ConfirmationOptionKind',
   'ToolResultContentType', 'CustomizationStatus', 'TerminalClaimKind',
+  'ChangesetStatus', 'ChangesetOperationScope',
 ];
 
 const STATE_STRUCTS = [
   'Icon', 'ProtectedResourceMetadata', 'RootState', 'RootConfigState', 'AgentInfo',
-  'SessionModelInfo', 'ModelSelection', 'ConfigPropertySchema', 'ConfigSchema',
+  'SessionModelInfo', 'ModelSelection', 'AgentSelection', 'ConfigPropertySchema', 'ConfigSchema',
   'PendingMessage', 'SessionState', 'SessionActiveClient',
   'SessionSummary', 'ProjectInfo', 'SessionConfigState', 'Turn', 'ActiveTurn', 'UserMessage',
   'SessionInputOption',
@@ -704,11 +722,14 @@ const STATE_STRUCTS = [
   'ToolCallCancelledState', 'ConfirmationOption', 'ToolDefinition', 'ToolAnnotations',
   'ToolResultTextContent', 'ToolResultEmbeddedResourceContent',
   'ToolResultResourceContent', 'ToolResultFileEditContent',
-  'ToolResultTerminalContent', 'ToolResultSubagentContent', 'CustomizationRef',
+  'ToolResultTerminalContent', 'ToolResultSubagentContent',
+  'CustomizationRef', 'CustomizationAgentRef',
   'SessionCustomization', 'FileEdit', 'TerminalInfo',
   'TerminalClientClaim', 'TerminalSessionClaim', 'TerminalState',
   'TerminalUnclassifiedPart', 'TerminalCommandPart',
   'UsageInfo', 'ErrorInfo', 'Snapshot',
+  'ChangesetSummary', 'ChangesetState', 'ChangesetFile', 'ChangesetOperation',
+  'TelemetryCapabilities',
 ];
 
 const RESPONSE_PART_UNION: UnionConfig = {
@@ -802,7 +823,6 @@ const MESSAGE_ATTACHMENT_UNION: UnionConfig = {
 };
 
 function generateStateFile(project: Project): string {
-  const sf = project.getSourceFiles().find(f => f.getBaseName() === 'state.ts')!;
   const lines: string[] = [GENERATED_HEADER];
 
   lines.push('// ─── Type Aliases ───────────────────────────────────────────────────────────');
@@ -818,7 +838,7 @@ function generateStateFile(project: Project): string {
   lines.push('// ─── Enums ──────────────────────────────────────────────────────────────────');
   lines.push('');
   for (const enumName of STATE_ENUMS) {
-    const decl = sf.getEnum(enumName);
+    const decl = findEnum(project, enumName);
     if (decl) {
       lines.push(generateKotlinEnum(decl));
       lines.push('');
@@ -886,9 +906,11 @@ const ACTION_VARIANTS: { type: string; caseName: string; tsInterface: string }[]
   { type: 'session/usage', caseName: 'SessionUsage', tsInterface: 'SessionUsageAction' },
   { type: 'session/reasoning', caseName: 'SessionReasoning', tsInterface: 'SessionReasoningAction' },
   { type: 'session/modelChanged', caseName: 'SessionModelChanged', tsInterface: 'SessionModelChangedAction' },
+  { type: 'session/agentChanged', caseName: 'SessionAgentChanged', tsInterface: 'SessionAgentChangedAction' },
   { type: 'session/isReadChanged', caseName: 'SessionIsReadChanged', tsInterface: 'SessionIsReadChangedAction' },
   { type: 'session/isArchivedChanged', caseName: 'SessionIsArchivedChanged', tsInterface: 'SessionIsArchivedChangedAction' },
   { type: 'session/activityChanged', caseName: 'SessionActivityChanged', tsInterface: 'SessionActivityChangedAction' },
+  { type: 'session/changesetsChanged', caseName: 'SessionChangesetsChanged', tsInterface: 'SessionChangesetsChangedAction' },
   { type: 'session/serverToolsChanged', caseName: 'SessionServerToolsChanged', tsInterface: 'SessionServerToolsChangedAction' },
   { type: 'session/activeClientChanged', caseName: 'SessionActiveClientChanged', tsInterface: 'SessionActiveClientChangedAction' },
   { type: 'session/activeClientToolsChanged', caseName: 'SessionActiveClientToolsChanged', tsInterface: 'SessionActiveClientToolsChangedAction' },
@@ -900,11 +922,16 @@ const ACTION_VARIANTS: { type: string; caseName: string; tsInterface: string }[]
   { type: 'session/inputCompleted', caseName: 'SessionInputCompleted', tsInterface: 'SessionInputCompletedAction' },
   { type: 'session/customizationsChanged', caseName: 'SessionCustomizationsChanged', tsInterface: 'SessionCustomizationsChangedAction' },
   { type: 'session/customizationToggled', caseName: 'SessionCustomizationToggled', tsInterface: 'SessionCustomizationToggledAction' },
+  { type: 'session/customizationUpdated', caseName: 'SessionCustomizationUpdated', tsInterface: 'SessionCustomizationUpdatedAction' },
   { type: 'session/truncated', caseName: 'SessionTruncated', tsInterface: 'SessionTruncatedAction' },
-  { type: 'session/diffsChanged', caseName: 'SessionDiffsChanged', tsInterface: 'SessionDiffsChangedAction' },
   { type: 'session/configChanged', caseName: 'SessionConfigChanged', tsInterface: 'SessionConfigChangedAction' },
   { type: 'session/metaChanged', caseName: 'SessionMetaChanged', tsInterface: 'SessionMetaChangedAction' },
   { type: 'session/toolCallContentChanged', caseName: 'SessionToolCallContentChanged', tsInterface: 'SessionToolCallContentChangedAction' },
+  { type: 'changeset/statusChanged', caseName: 'ChangesetStatusChanged', tsInterface: 'ChangesetStatusChangedAction' },
+  { type: 'changeset/fileSet', caseName: 'ChangesetFileSet', tsInterface: 'ChangesetFileSetAction' },
+  { type: 'changeset/fileRemoved', caseName: 'ChangesetFileRemoved', tsInterface: 'ChangesetFileRemovedAction' },
+  { type: 'changeset/operationsChanged', caseName: 'ChangesetOperationsChanged', tsInterface: 'ChangesetOperationsChangedAction' },
+  { type: 'changeset/cleared', caseName: 'ChangesetCleared', tsInterface: 'ChangesetClearedAction' },
   { type: 'root/terminalsChanged', caseName: 'RootTerminalsChanged', tsInterface: 'RootTerminalsChangedAction' },
   { type: 'root/configChanged', caseName: 'RootConfigChanged', tsInterface: 'RootConfigChangedAction' },
   { type: 'terminal/data', caseName: 'TerminalData', tsInterface: 'TerminalDataAction' },
@@ -929,8 +956,6 @@ function generateMergedToolCallConfirmedDataClass(): string {
 data class SessionToolCallConfirmedAction(
     /** Action type discriminant */
     val type: String = "session/toolCallConfirmed",
-    /** Session URI */
-    val session: String,
     /** Turn identifier */
     val turnId: String,
     /** Tool call identifier */
@@ -955,13 +980,12 @@ data class SessionToolCallConfirmedAction(
 }
 
 function generateActionsFile(project: Project): string {
-  const sf = project.getSourceFiles().find(f => f.getBaseName() === 'actions.ts')!;
   const lines: string[] = [GENERATED_HEADER];
 
   // ActionType enum
   lines.push('// ─── ActionType ─────────────────────────────────────────────────────────────');
   lines.push('');
-  const actionTypeEnum = sf.getEnum('ActionType');
+  const actionTypeEnum = findEnum(project, 'ActionType');
   if (actionTypeEnum) {
     lines.push(generateKotlinEnum(actionTypeEnum));
     lines.push('');
@@ -1080,6 +1104,8 @@ const COMMAND_STRUCTS = [
   'SessionConfigCompletionsParams', 'SessionConfigCompletionsResult',
   'SessionConfigValueItem',
   'CompletionsParams', 'CompletionItem', 'CompletionsResult',
+  'InvokeChangesetOperationParams', 'InvokeChangesetOperationResult',
+  'ChangesetOperationFollowUp',
 ];
 
 const RECONNECT_RESULT_UNION: UnionConfig = {
@@ -1091,14 +1117,91 @@ const RECONNECT_RESULT_UNION: UnionConfig = {
   ],
 };
 
+/**
+ * ChangesetOperationTarget — TS discriminated union over `{ kind: "resource" }`
+ * and `{ kind: "range" }`. The variant structs are inline-only in TS (not
+ * exported separately) and only appear in this one command result, so the
+ * generator emits the whole subgraph (`ChangesetOperationTarget` union plus
+ * the two variant data classes and the `Range` helper) by hand to keep the
+ * Kotlin wire surface aligned with Swift and Rust.
+ */
+function generateChangesetOperationTargetKotlin(): string {
+  return `/**
+ * Identifies the file or range a [ChangesetOperation] should act on.
+ */
+@Serializable(with = ChangesetOperationTargetSerializer::class)
+sealed interface ChangesetOperationTarget {
+    @JvmInline value class Resource(val value: ChangesetOperationResourceTarget) : ChangesetOperationTarget
+    @JvmInline value class Range(val value: ChangesetOperationRangeTarget) : ChangesetOperationTarget
+}
+
+@Serializable
+data class ChangesetOperationResourceTarget(
+    val resource: String,
+    val side: String? = null,
+    /** Discriminator. Always "resource". */
+    val kind: String = "resource",
+)
+
+@Serializable
+data class ChangesetOperationRangeTarget(
+    val resource: String,
+    val side: String? = null,
+    val range: ChangesetOperationTargetRange,
+    /** Discriminator. Always "range". */
+    val kind: String = "range",
+)
+
+@Serializable
+data class ChangesetOperationTargetRange(
+    val start: Long,
+    val end: Long,
+)
+
+internal object ChangesetOperationTargetSerializer : KSerializer<ChangesetOperationTarget> {
+    override val descriptor: SerialDescriptor =
+        buildClassSerialDescriptor("ChangesetOperationTarget")
+
+    override fun deserialize(decoder: Decoder): ChangesetOperationTarget {
+        val input = decoder as? JsonDecoder
+            ?: error("ChangesetOperationTarget can only be deserialized from JSON")
+        val element = input.decodeJsonElement()
+        val obj = element as? JsonObject
+            ?: error("Expected JsonObject for ChangesetOperationTarget")
+        val kind = (obj["kind"] as? JsonPrimitive)?.contentOrNull
+            ?: error("Missing kind discriminator on ChangesetOperationTarget")
+        return when (kind) {
+            "resource" -> ChangesetOperationTarget.Resource(
+                input.json.decodeFromJsonElement(ChangesetOperationResourceTarget.serializer(), element),
+            )
+            "range" -> ChangesetOperationTarget.Range(
+                input.json.decodeFromJsonElement(ChangesetOperationRangeTarget.serializer(), element),
+            )
+            else -> error("Unknown ChangesetOperationTarget kind: $kind")
+        }
+    }
+
+    override fun serialize(encoder: Encoder, value: ChangesetOperationTarget) {
+        val output = encoder as? JsonEncoder
+            ?: error("ChangesetOperationTarget can only be serialized to JSON")
+        val element: JsonElement = when (value) {
+            is ChangesetOperationTarget.Resource ->
+                output.json.encodeToJsonElement(ChangesetOperationResourceTarget.serializer(), value.value)
+            is ChangesetOperationTarget.Range ->
+                output.json.encodeToJsonElement(ChangesetOperationRangeTarget.serializer(), value.value)
+        }
+        output.encodeJsonElement(element)
+    }
+}`;
+}
+
 function generateCommandsFile(project: Project): string {
-  const sf = project.getSourceFiles().find(f => f.getBaseName() === 'commands.ts')!;
   const lines: string[] = [GENERATED_HEADER];
 
   lines.push('// ─── Command Enums ──────────────────────────────────────────────────────────');
   lines.push('');
   for (const enumName of COMMAND_ENUMS) {
-    const decl = sf.getEnum(enumName);
+    const decl = findEnum(project, enumName);
     if (decl) {
       lines.push(generateKotlinEnum(decl));
       lines.push('');
@@ -1125,36 +1228,35 @@ function generateCommandsFile(project: Project): string {
   lines.push(generateDiscriminatedUnion(RECONNECT_RESULT_UNION));
   lines.push('');
 
+  lines.push('// ─── Changeset Operation Unions ─────────────────────────────────────────────');
+  lines.push('');
+  lines.push(generateChangesetOperationTargetKotlin());
+  lines.push('');
+
   return lines.join('\n');
 }
 
 // ─── Notifications File Generator ────────────────────────────────────────────
 
-const NOTIFICATION_ENUMS = ['AuthRequiredReason', 'NotificationType'];
+const NOTIFICATION_ENUMS = ['AuthRequiredReason'];
 
 const NOTIFICATION_STRUCTS = [
-  'SessionAddedNotification', 'SessionRemovedNotification', 'SessionSummaryChangedNotification', 'AuthRequiredNotification',
+  'SessionAddedParams',
+  'SessionRemovedParams',
+  'SessionSummaryChangedParams',
+  'AuthRequiredParams',
+  'OtlpExportLogsParams',
+  'OtlpExportTracesParams',
+  'OtlpExportMetricsParams',
 ];
 
-const PROTOCOL_NOTIFICATION_UNION: UnionConfig = {
-  name: 'ProtocolNotification',
-  discriminantField: 'type',
-  variants: [
-    { caseName: 'SessionAdded', structName: 'SessionAddedNotification', discriminantValue: 'notify/sessionAdded' },
-    { caseName: 'SessionRemoved', structName: 'SessionRemovedNotification', discriminantValue: 'notify/sessionRemoved' },
-    { caseName: 'SessionSummaryChanged', structName: 'SessionSummaryChangedNotification', discriminantValue: 'notify/sessionSummaryChanged' },
-    { caseName: 'AuthRequired', structName: 'AuthRequiredNotification', discriminantValue: 'notify/authRequired' },
-  ],
-};
-
 function generateNotificationsFile(project: Project): string {
-  const sf = project.getSourceFiles().find(f => f.getBaseName() === 'notifications.ts')!;
   const lines: string[] = [GENERATED_HEADER];
 
   lines.push('// ─── Notification Enums ─────────────────────────────────────────────────────');
   lines.push('');
   for (const enumName of NOTIFICATION_ENUMS) {
-    const decl = sf.getEnum(enumName);
+    const decl = findEnum(project, enumName);
     if (decl) {
       lines.push(generateKotlinEnum(decl));
       lines.push('');
@@ -1192,10 +1294,11 @@ function generateNotificationsFile(project: Project): string {
     }
   }
 
-  lines.push('// ─── ProtocolNotification Union ─────────────────────────────────────────────');
-  lines.push('');
-  lines.push(generateDiscriminatedUnion(PROTOCOL_NOTIFICATION_UNION));
-  lines.push('');
+  // Note: AHP notifications are routed by their JSON-RPC `method` name
+  // (`root/sessionAdded`, `auth/required`, `otlp/exportLogs`, ...), not by an
+  // embedded discriminator. There is no `ProtocolNotification` sealed union;
+  // consumers dispatch on the JSON-RPC method themselves and decode the
+  // matching `*Params` data class.
 
   return lines.join('\n');
 }
@@ -1324,12 +1427,6 @@ data class JsonRpcNotification<P>(
 /** Params for the server → client \`action\` notification. */
 typealias ActionNotificationParams = ActionEnvelope
 
-/** Params for the server → client \`notification\` method. */
-@Serializable
-data class NotificationMethodParams(
-    val notification: ProtocolNotification,
-)
-
 // ─── AHP Command Helpers ────────────────────────────────────────────────────
 
 /**
@@ -1380,6 +1477,24 @@ object AhpCommands {
 
     fun authenticate(id: Long, params: AuthenticateParams): JsonRpcRequest<AuthenticateParams> =
         JsonRpcRequest(id = id, method = "authenticate", params = params)
+
+    fun createTerminal(id: Long, params: CreateTerminalParams): JsonRpcRequest<CreateTerminalParams> =
+        JsonRpcRequest(id = id, method = "createTerminal", params = params)
+
+    fun disposeTerminal(id: Long, params: DisposeTerminalParams): JsonRpcRequest<DisposeTerminalParams> =
+        JsonRpcRequest(id = id, method = "disposeTerminal", params = params)
+
+    fun resolveSessionConfig(id: Long, params: ResolveSessionConfigParams): JsonRpcRequest<ResolveSessionConfigParams> =
+        JsonRpcRequest(id = id, method = "resolveSessionConfig", params = params)
+
+    fun sessionConfigCompletions(id: Long, params: SessionConfigCompletionsParams): JsonRpcRequest<SessionConfigCompletionsParams> =
+        JsonRpcRequest(id = id, method = "sessionConfigCompletions", params = params)
+
+    fun completions(id: Long, params: CompletionsParams): JsonRpcRequest<CompletionsParams> =
+        JsonRpcRequest(id = id, method = "completions", params = params)
+
+    fun invokeChangesetOperation(id: Long, params: InvokeChangesetOperationParams): JsonRpcRequest<InvokeChangesetOperationParams> =
+        JsonRpcRequest(id = id, method = "invokeChangesetOperation", params = params)
 }
 
 /**
@@ -1398,24 +1513,27 @@ object AhpClientNotifications {
 // ─── Exhaustiveness Check ─────────────────────────────────────────────────────
 
 /**
- * Verifies that every type imported in types/version/v1.ts from the protocol
- * source modules (state, actions, commands, notifications) is covered by one
- * of the generator lists or a known special-cased code path.
+ * Verifies that every type exported from the per-channel protocol source
+ * modules (state, actions, commands, notifications, errors) is covered by
+ * one of the generator lists or a known special-cased code path.
  *
  * This catches the class of bug where a new type is added to the TypeScript
- * protocol and to v1.ts but the Kotlin generator lists are not updated.
+ * protocol (e.g. under `types/channels-*\/`) but the Kotlin generator
+ * lists are not updated.
  */
 function checkExhaustiveness(project: Project): void {
-  const v1 = project.getSourceFiles().find(f => f.getBaseName() === 'v1.ts');
-  if (!v1) throw new Error('Could not find types/version/v1.ts in the project');
-
-  const protocolModules = new Set(['state', 'actions', 'commands', 'notifications', 'errors']);
+  const protocolModules = ['state.ts', 'actions.ts', 'commands.ts', 'notifications.ts', 'errors.ts'];
   const imported = new Set<string>();
-  for (const decl of v1.getImportDeclarations()) {
-    const mod = decl.getModuleSpecifierValue().replace(/^\.\.\//, '').replace(/\.js$/, '');
-    if (!protocolModules.has(mod)) continue;
-    for (const named of decl.getNamedImports()) {
-      imported.add(named.getName());
+  for (const baseName of protocolModules) {
+    const sources = findProtocolSourceFiles(project, baseName);
+    if (sources.length === 0) throw new Error(`Could not find types/${baseName} in the project`);
+    for (const sf of sources) {
+      for (const decl of sf.getInterfaces()) {
+        if (decl.isExported()) imported.add(decl.getName());
+      }
+      for (const decl of sf.getTypeAliases()) {
+        if (decl.isExported()) imported.add(decl.getName());
+      }
     }
   }
 
@@ -1432,34 +1550,43 @@ function checkExhaustiveness(project: Project): void {
   ]);
 
   const knownSpecial = new Set<string>([
-    'StringOrMarkdown',
-    'ToolCallState',
-    'StateAction',
-    'ActionEnvelope',
-    'ActionOrigin',
-    'SessionToolCallApprovedAction',
-    'SessionToolCallDeniedAction',
-    'ProtocolNotification',
-    'TerminalClaim',
-    'TerminalContentPart',
-    'SessionInputQuestion',
-    'SessionInputAnswerValue',
-    'SessionInputAnswer',
-    'MessageAttachment',
-    'MessageAttachmentBase',
-    'AuthRequiredErrorData',
-    'PermissionDeniedErrorData',
-    'UnsupportedProtocolVersionErrorData',
-    'AhpError',
-    'AhpErrorDetailsMap',
-    'ReconnectResult',
+    'URI',                          // type alias for string
+    'BaseParams',                    // marker base interface; flattened into each command params struct
+    'PingParams',                    // empty interface; no Kotlin type emitted
+    'StringOrMarkdown',              // generateStringOrMarkdown()
+    'ToolCallState',                // TOOL_CALL_STATE_UNION discriminated union
+    'StateAction',                  // StateAction enum in generateActionsFile()
+    'ActionEnvelope',               // generateDataClassFromInterface() call in generateActionsFile()
+    'ActionOrigin',                 // generateDataClassFromInterface() call in generateActionsFile()
+    'ResponsePart',                 // RESPONSE_PART_UNION discriminated union
+    'ToolResultContent',            // generateToolResultContentUnion()
+    'SessionToolCallApprovedAction', // merged into SessionToolCallConfirmedAction
+    'SessionToolCallDeniedAction',   // merged into SessionToolCallConfirmedAction
+    'SessionToolCallConfirmedAction', // emitted as merged variant
+    'TerminalClaim',                // TERMINAL_CLAIM_UNION discriminated union
+    'TerminalContentPart',           // TERMINAL_CONTENT_PART_UNION discriminated union
+    'SessionInputQuestion',         // SESSION_INPUT_QUESTION_UNION discriminated union
+    'SessionInputAnswerValue',      // SESSION_INPUT_ANSWER_VALUE_UNION discriminated union
+    'SessionInputAnswer',           // SESSION_INPUT_ANSWER_UNION discriminated union
+    'MessageAttachment',            // MESSAGE_ATTACHMENT_UNION discriminated union
+    'MessageAttachmentBase',        // base interface, flattened into the variant data classes via `extends`
+    'AuthRequiredErrorData',        // emitted by generateErrorsFile()
+    'PermissionDeniedErrorData',    // emitted by generateErrorsFile()
+    'UnsupportedProtocolVersionErrorData', // emitted by generateErrorsFile()
+    'AhpError',                     // typed via JsonRpcError; not a Kotlin data class
+    'AhpErrorDetailsMap',           // type-level mapping; not a Kotlin type
+    'AhpErrorCode',                 // type-level alias over AhpErrorCodes const enum
+    'AhpErrorCodeWithData',         // type-level alias; not a Kotlin type
+    'JsonRpcErrorCode',             // type-level alias over JsonRpcErrorCodes const enum
+    'ReconnectResult',              // RECONNECT_RESULT_UNION discriminated union
+    'ChangesetOperationTarget',     // generateChangesetOperationTargetKotlin()
   ]);
 
   const missing = [...imported].filter(n => !coveredByLists.has(n) && !knownSpecial.has(n));
   if (missing.length > 0) {
     throw new Error(
       `generate-kotlin.ts exhaustiveness check failed.\n` +
-      `The following types are declared in types/version/v1.ts but are not covered by the Kotlin generator:\n` +
+      `The following types are exported from the protocol source modules but are not covered by the Kotlin generator:\n` +
       missing.map(n => `  - ${n}`).join('\n') + '\n\n' +
       `Add them to the appropriate list in scripts/generate-kotlin.ts:\n` +
       `  STATE_STRUCTS / STATE_ENUMS, COMMAND_STRUCTS / COMMAND_ENUMS,\n` +

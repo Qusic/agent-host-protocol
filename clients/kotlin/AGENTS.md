@@ -58,6 +58,10 @@ CI verifies the committed generated files match the output of `npm run generate:
 
 A consequence: **always use `Ahp.json` (or a `Json` instance with `classDiscriminator` set to a sentinel value)** when encoding/decoding. The default kotlinx `"type"` discriminator collides with real `type` fields in our schema.
 
+### Notifications are routed by JSON-RPC method, not by an embedded discriminator
+
+Since the v0.2 channels reorg, server → client notifications are dispatched on the JSON-RPC `method` name (e.g. `root/sessionAdded`, `auth/required`, `otlp/exportLogs`) rather than on a `type` discriminator field. The generator therefore emits each notification payload as a plain `*Params` data class (no sealed-union wrapper). Consumers extract `method` from the JSON-RPC envelope themselves and decode the matching params type. The `action` notification is special-cased: its params are always `ActionEnvelope`.
+
 ### Multi-value discriminators
 
 `SessionInputQuestion` is the one union where two wire `kind` values map to the same Kotlin data class:
@@ -66,6 +70,10 @@ A consequence: **always use `Ahp.json` (or a `Json` instance with `classDiscrimi
 - `kind: "integer"` → `SessionInputQuestionNumber(SessionInputNumberQuestion(kind = INTEGER, ...))`
 
 The custom serializer handles both wire values during decode; encode preserves whichever discriminator was set on the data class. Tests in `DiscriminatedUnionTest.kt` cover this case.
+
+### Hand-rolled `ChangesetOperationTarget` union
+
+The TS source models `ChangesetOperationTarget` as a discriminated union over two inline variant shapes that aren't exported as their own interfaces. The generator emits the whole subgraph — the sealed `ChangesetOperationTarget`, the two variant data classes (`ChangesetOperationResourceTarget` and `ChangesetOperationRangeTarget`), the `ChangesetOperationTargetRange` helper, and the custom serializer — by hand from `generateChangesetOperationTargetKotlin()` so the Kotlin wire surface stays aligned with the Swift and Rust clients.
 
 ### Bitset enums
 

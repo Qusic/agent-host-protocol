@@ -1,8 +1,10 @@
 package com.microsoft.agenthostprotocol
 
 import com.microsoft.agenthostprotocol.generated.AgentInfo
+import com.microsoft.agenthostprotocol.generated.AuthRequiredParams
 import com.microsoft.agenthostprotocol.generated.PolicyState
 import com.microsoft.agenthostprotocol.generated.ProtectedResourceMetadata
+import com.microsoft.agenthostprotocol.generated.SessionAddedParams
 import com.microsoft.agenthostprotocol.generated.SessionModelInfo
 import com.microsoft.agenthostprotocol.generated.SessionStatus
 import kotlinx.serialization.json.Json
@@ -138,5 +140,36 @@ class GeneratedStructsTest {
         // SessionStatus reference (just to ensure the import graph compiles).
         assertNotNull(Ahp.json)
         assertEquals(8, SessionStatus.IN_PROGRESS.rawValue)
+    }
+
+    @Test
+    fun `channel-scoped notification params decode and carry channel uri`() {
+        // Post-channels-reorg, every notification (other than `action`)
+        // carries a `channel` field identifying its subscription. Verifies
+        // both a channel-routed notification (root/sessionAdded) and the
+        // connection-level auth/required notification.
+        val sessionAddedWire = """{
+            "channel": "ahp-root://",
+            "summary": {
+                "resource": "ahp-session:/abc",
+                "provider": "copilot",
+                "title": "New",
+                "status": 1,
+                "createdAt": 0,
+                "modifiedAt": 0
+            }
+        }""".trimIndent()
+        val sessionAdded = json.decodeFromString(SessionAddedParams.serializer(), sessionAddedWire)
+        assertEquals("ahp-root://", sessionAdded.channel)
+        assertEquals("ahp-session:/abc", sessionAdded.summary.resource)
+
+        val authWire = """{
+            "channel": "ahp-root://",
+            "resource": "https://api.github.com",
+            "reason": "expired"
+        }""".trimIndent()
+        val auth = json.decodeFromString(AuthRequiredParams.serializer(), authWire)
+        assertEquals("ahp-root://", auth.channel)
+        assertEquals("https://api.github.com", auth.resource)
     }
 }

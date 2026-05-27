@@ -68,6 +68,8 @@ enum class ActionType {
     SESSION_REASONING,
     @SerialName("session/modelChanged")
     SESSION_MODEL_CHANGED,
+    @SerialName("session/agentChanged")
+    SESSION_AGENT_CHANGED,
     @SerialName("session/serverToolsChanged")
     SESSION_SERVER_TOOLS_CHANGED,
     @SerialName("session/activeClientChanged")
@@ -90,6 +92,8 @@ enum class ActionType {
     SESSION_CUSTOMIZATIONS_CHANGED,
     @SerialName("session/customizationToggled")
     SESSION_CUSTOMIZATION_TOGGLED,
+    @SerialName("session/customizationUpdated")
+    SESSION_CUSTOMIZATION_UPDATED,
     @SerialName("session/truncated")
     SESSION_TRUNCATED,
     @SerialName("session/isReadChanged")
@@ -98,12 +102,22 @@ enum class ActionType {
     SESSION_IS_ARCHIVED_CHANGED,
     @SerialName("session/activityChanged")
     SESSION_ACTIVITY_CHANGED,
-    @SerialName("session/diffsChanged")
-    SESSION_DIFFS_CHANGED,
+    @SerialName("session/changesetsChanged")
+    SESSION_CHANGESETS_CHANGED,
     @SerialName("session/configChanged")
     SESSION_CONFIG_CHANGED,
     @SerialName("session/metaChanged")
     SESSION_META_CHANGED,
+    @SerialName("changeset/statusChanged")
+    CHANGESET_STATUS_CHANGED,
+    @SerialName("changeset/fileSet")
+    CHANGESET_FILE_SET,
+    @SerialName("changeset/fileRemoved")
+    CHANGESET_FILE_REMOVED,
+    @SerialName("changeset/operationsChanged")
+    CHANGESET_OPERATIONS_CHANGED,
+    @SerialName("changeset/cleared")
+    CHANGESET_CLEARED,
     @SerialName("root/terminalsChanged")
     ROOT_TERMINALS_CHANGED,
     @SerialName("root/configChanged")
@@ -142,6 +156,10 @@ data class ActionOrigin(
 
 @Serializable
 data class ActionEnvelope(
+    /**
+     * Channel URI this action belongs to.
+     */
+    val channel: String,
     val action: StateAction,
     val serverSeq: Long,
     val origin: ActionOrigin? = null,
@@ -170,20 +188,12 @@ data class RootActiveSessionsChangedAction(
 
 @Serializable
 data class SessionReadyAction(
-    val type: ActionType,
-    /**
-     * Session URI
-     */
-    val session: String
+    val type: ActionType
 )
 
 @Serializable
 data class SessionCreationFailedAction(
     val type: ActionType,
-    /**
-     * Session URI
-     */
-    val session: String,
     /**
      * Error details
      */
@@ -193,10 +203,6 @@ data class SessionCreationFailedAction(
 @Serializable
 data class SessionTurnStartedAction(
     val type: ActionType,
-    /**
-     * Session URI
-     */
-    val session: String,
     /**
      * Turn identifier
      */
@@ -215,10 +221,6 @@ data class SessionTurnStartedAction(
 data class SessionDeltaAction(
     val type: ActionType,
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * Turn identifier
      */
     val turnId: String,
@@ -236,10 +238,6 @@ data class SessionDeltaAction(
 data class SessionResponsePartAction(
     val type: ActionType,
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * Turn identifier
      */
     val turnId: String,
@@ -251,10 +249,6 @@ data class SessionResponsePartAction(
 
 @Serializable
 data class SessionToolCallStartAction(
-    /**
-     * Session URI
-     */
-    val session: String,
     /**
      * Turn identifier
      */
@@ -292,10 +286,6 @@ data class SessionToolCallStartAction(
 @Serializable
 data class SessionToolCallDeltaAction(
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * Turn identifier
      */
     val turnId: String,
@@ -326,10 +316,6 @@ data class SessionToolCallDeltaAction(
 
 @Serializable
 data class SessionToolCallReadyAction(
-    /**
-     * Session URI
-     */
-    val session: String,
     /**
      * Turn identifier
      */
@@ -389,8 +375,6 @@ data class SessionToolCallReadyAction(
 data class SessionToolCallConfirmedAction(
     /** Action type discriminant */
     val type: String = "session/toolCallConfirmed",
-    /** Session URI */
-    val session: String,
     /** Turn identifier */
     val turnId: String,
     /** Tool call identifier */
@@ -415,10 +399,6 @@ data class SessionToolCallConfirmedAction(
 
 @Serializable
 data class SessionToolCallCompleteAction(
-    /**
-     * Session URI
-     */
-    val session: String,
     /**
      * Turn identifier
      */
@@ -451,10 +431,6 @@ data class SessionToolCallCompleteAction(
 @Serializable
 data class SessionToolCallResultConfirmedAction(
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * Turn identifier
      */
     val turnId: String,
@@ -483,10 +459,6 @@ data class SessionToolCallResultConfirmedAction(
 data class SessionTurnCompleteAction(
     val type: ActionType,
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * Turn identifier
      */
     val turnId: String
@@ -496,10 +468,6 @@ data class SessionTurnCompleteAction(
 data class SessionTurnCancelledAction(
     val type: ActionType,
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * Turn identifier
      */
     val turnId: String
@@ -508,10 +476,6 @@ data class SessionTurnCancelledAction(
 @Serializable
 data class SessionErrorAction(
     val type: ActionType,
-    /**
-     * Session URI
-     */
-    val session: String,
     /**
      * Turn identifier
      */
@@ -526,10 +490,6 @@ data class SessionErrorAction(
 data class SessionTitleChangedAction(
     val type: ActionType,
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * New title
      */
     val title: String
@@ -538,10 +498,6 @@ data class SessionTitleChangedAction(
 @Serializable
 data class SessionUsageAction(
     val type: ActionType,
-    /**
-     * Session URI
-     */
-    val session: String,
     /**
      * Turn identifier
      */
@@ -555,10 +511,6 @@ data class SessionUsageAction(
 @Serializable
 data class SessionReasoningAction(
     val type: ActionType,
-    /**
-     * Session URI
-     */
-    val session: String,
     /**
      * Turn identifier
      */
@@ -577,22 +529,24 @@ data class SessionReasoningAction(
 data class SessionModelChangedAction(
     val type: ActionType,
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * New model selection
      */
     val model: ModelSelection
 )
 
 @Serializable
-data class SessionIsReadChangedAction(
+data class SessionAgentChangedAction(
     val type: ActionType,
     /**
-     * Session URI
+     * New agent selection, or `undefined` to clear the selection and reset the
+     * session to no selected custom agent.
      */
-    val session: String,
+    val agent: AgentSelection? = null
+)
+
+@Serializable
+data class SessionIsReadChangedAction(
+    val type: ActionType,
     /**
      * Whether the session has been read
      */
@@ -603,10 +557,6 @@ data class SessionIsReadChangedAction(
 data class SessionIsArchivedChangedAction(
     val type: ActionType,
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * Whether the session is archived
      */
     val isArchived: Boolean
@@ -616,22 +566,23 @@ data class SessionIsArchivedChangedAction(
 data class SessionActivityChangedAction(
     val type: ActionType,
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * Human-readable description of current activity, or `undefined` to clear
      */
     val activity: String? = null
 )
 
 @Serializable
-data class SessionServerToolsChangedAction(
+data class SessionChangesetsChangedAction(
     val type: ActionType,
     /**
-     * Session URI
+     * New catalogue, or `undefined` to clear it
      */
-    val session: String,
+    val changesets: List<ChangesetSummary>? = null
+)
+
+@Serializable
+data class SessionServerToolsChangedAction(
+    val type: ActionType,
     /**
      * Updated server tools list (full replacement)
      */
@@ -642,10 +593,6 @@ data class SessionServerToolsChangedAction(
 data class SessionActiveClientChangedAction(
     val type: ActionType,
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * The new active client, or `null` to unset
      */
     val activeClient: SessionActiveClient? = null
@@ -655,10 +602,6 @@ data class SessionActiveClientChangedAction(
 data class SessionActiveClientToolsChangedAction(
     val type: ActionType,
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * Updated client tools list (full replacement)
      */
     val tools: List<ToolDefinition>
@@ -667,10 +610,6 @@ data class SessionActiveClientToolsChangedAction(
 @Serializable
 data class SessionPendingMessageSetAction(
     val type: ActionType,
-    /**
-     * Session URI
-     */
-    val session: String,
     /**
      * Whether this is a steering or queued message
      */
@@ -689,10 +628,6 @@ data class SessionPendingMessageSetAction(
 data class SessionPendingMessageRemovedAction(
     val type: ActionType,
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * Whether this is a steering or queued message
      */
     val kind: PendingMessageKind,
@@ -706,10 +641,6 @@ data class SessionPendingMessageRemovedAction(
 data class SessionQueuedMessagesReorderedAction(
     val type: ActionType,
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * Queued message IDs in the desired order
      */
     val order: List<String>
@@ -719,10 +650,6 @@ data class SessionQueuedMessagesReorderedAction(
 data class SessionInputRequestedAction(
     val type: ActionType,
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * Input request to create or replace
      */
     val request: SessionInputRequest
@@ -731,10 +658,6 @@ data class SessionInputRequestedAction(
 @Serializable
 data class SessionInputAnswerChangedAction(
     val type: ActionType,
-    /**
-     * Session URI
-     */
-    val session: String,
     /**
      * Input request identifier
      */
@@ -753,10 +676,6 @@ data class SessionInputAnswerChangedAction(
 data class SessionInputCompletedAction(
     val type: ActionType,
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * Input request identifier
      */
     val requestId: String,
@@ -774,10 +693,6 @@ data class SessionInputCompletedAction(
 data class SessionCustomizationsChangedAction(
     val type: ActionType,
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * Updated customization list (full replacement)
      */
     val customizations: List<SessionCustomization>
@@ -786,10 +701,6 @@ data class SessionCustomizationsChangedAction(
 @Serializable
 data class SessionCustomizationToggledAction(
     val type: ActionType,
-    /**
-     * Session URI
-     */
-    val session: String,
     /**
      * The URI of the customization to toggle
      */
@@ -801,12 +712,35 @@ data class SessionCustomizationToggledAction(
 )
 
 @Serializable
-data class SessionTruncatedAction(
+data class SessionCustomizationUpdatedAction(
     val type: ActionType,
     /**
-     * Session URI
+     * The customization to update or insert (matched by `customization.uri`)
      */
-    val session: String,
+    val customization: CustomizationRef,
+    /**
+     * New enabled state (defaults to `false` on insert)
+     */
+    val enabled: Boolean? = null,
+    /**
+     * New loading status
+     */
+    val status: CustomizationStatus? = null,
+    /**
+     * New human-readable status detail
+     */
+    val statusMessage: String? = null,
+    /**
+     * Custom agents contributed by this customization, as resolved by the
+     * agent host. Populated only by the agent host. See
+     * {@link SessionCustomization.agents} for absent-vs-empty semantics.
+     */
+    val agents: List<CustomizationAgentRef>? = null
+)
+
+@Serializable
+data class SessionTruncatedAction(
+    val type: ActionType,
     /**
      * Keep turns up to and including this turn. Omit to clear all turns.
      */
@@ -814,25 +748,8 @@ data class SessionTruncatedAction(
 )
 
 @Serializable
-data class SessionDiffsChangedAction(
-    val type: ActionType,
-    /**
-     * Session URI
-     */
-    val session: String,
-    /**
-     * Updated file diffs for the session
-     */
-    val diffs: List<FileEdit>
-)
-
-@Serializable
 data class SessionConfigChangedAction(
     val type: ActionType,
-    /**
-     * Session URI
-     */
-    val session: String,
     /**
      * Updated config values
      */
@@ -847,10 +764,6 @@ data class SessionConfigChangedAction(
 data class SessionMetaChangedAction(
     val type: ActionType,
     /**
-     * Session URI
-     */
-    val session: String,
-    /**
      * New `_meta` payload, or `undefined` to clear it
      */
     @SerialName("_meta")
@@ -859,10 +772,6 @@ data class SessionMetaChangedAction(
 
 @Serializable
 data class SessionToolCallContentChangedAction(
-    /**
-     * Session URI
-     */
-    val session: String,
     /**
      * Turn identifier
      */
@@ -886,6 +795,51 @@ data class SessionToolCallContentChangedAction(
      * The current partial content for the running tool call
      */
     val content: List<ToolResultContent>
+)
+
+@Serializable
+data class ChangesetStatusChangedAction(
+    val type: ActionType,
+    /**
+     * New computation lifecycle status.
+     */
+    val status: ChangesetStatus,
+    /**
+     * Cause when `status === ChangesetStatus.Error`; otherwise omitted.
+     */
+    val error: ErrorInfo? = null
+)
+
+@Serializable
+data class ChangesetFileSetAction(
+    val type: ActionType,
+    /**
+     * The new or replacement file entry.
+     */
+    val file: ChangesetFile
+)
+
+@Serializable
+data class ChangesetFileRemovedAction(
+    val type: ActionType,
+    /**
+     * The {@link ChangesetFile.id} of the file to remove.
+     */
+    val fileId: String
+)
+
+@Serializable
+data class ChangesetOperationsChangedAction(
+    val type: ActionType,
+    /**
+     * Updated operation list. Pass `undefined` to clear all operations.
+     */
+    val operations: List<ChangesetOperation>? = null
+)
+
+@Serializable
+data class ChangesetClearedAction(
+    val type: ActionType
 )
 
 @Serializable
@@ -914,10 +868,6 @@ data class RootConfigChangedAction(
 data class TerminalDataAction(
     val type: ActionType,
     /**
-     * Terminal URI
-     */
-    val terminal: String,
-    /**
      * Output data (may contain ANSI escape sequences)
      */
     val data: String
@@ -927,10 +877,6 @@ data class TerminalDataAction(
 data class TerminalInputAction(
     val type: ActionType,
     /**
-     * Terminal URI
-     */
-    val terminal: String,
-    /**
      * Input data to send to the pty
      */
     val data: String
@@ -939,10 +885,6 @@ data class TerminalInputAction(
 @Serializable
 data class TerminalResizedAction(
     val type: ActionType,
-    /**
-     * Terminal URI
-     */
-    val terminal: String,
     /**
      * Terminal width in columns
      */
@@ -957,10 +899,6 @@ data class TerminalResizedAction(
 data class TerminalClaimedAction(
     val type: ActionType,
     /**
-     * Terminal URI
-     */
-    val terminal: String,
-    /**
      * The new claim
      */
     val claim: TerminalClaim
@@ -969,10 +907,6 @@ data class TerminalClaimedAction(
 @Serializable
 data class TerminalTitleChangedAction(
     val type: ActionType,
-    /**
-     * Terminal URI
-     */
-    val terminal: String,
     /**
      * New terminal title
      */
@@ -983,10 +917,6 @@ data class TerminalTitleChangedAction(
 data class TerminalCwdChangedAction(
     val type: ActionType,
     /**
-     * Terminal URI
-     */
-    val terminal: String,
-    /**
      * New working directory
      */
     val cwd: String
@@ -996,10 +926,6 @@ data class TerminalCwdChangedAction(
 data class TerminalExitedAction(
     val type: ActionType,
     /**
-     * Terminal URI
-     */
-    val terminal: String,
-    /**
      * Process exit code. `undefined` if the process was killed without an exit code.
      */
     val exitCode: Long? = null
@@ -1007,29 +933,17 @@ data class TerminalExitedAction(
 
 @Serializable
 data class TerminalClearedAction(
-    val type: ActionType,
-    /**
-     * Terminal URI
-     */
-    val terminal: String
+    val type: ActionType
 )
 
 @Serializable
 data class TerminalCommandDetectionAvailableAction(
-    val type: ActionType,
-    /**
-     * Terminal URI
-     */
-    val terminal: String
+    val type: ActionType
 )
 
 @Serializable
 data class TerminalCommandExecutedAction(
     val type: ActionType,
-    /**
-     * Terminal URI
-     */
-    val terminal: String,
     /**
      * Stable identifier for this command, scoped to the terminal URI.
      * Allows correlating `commandExecuted` → `commandFinished` pairs.
@@ -1049,10 +963,6 @@ data class TerminalCommandExecutedAction(
 @Serializable
 data class TerminalCommandFinishedAction(
     val type: ActionType,
-    /**
-     * Terminal URI
-     */
-    val terminal: String,
     /**
      * Matches the `commandId` from the corresponding `commandExecuted`
      */
@@ -1100,9 +1010,11 @@ sealed interface StateAction
 @JvmInline value class StateActionSessionUsage(val value: SessionUsageAction) : StateAction
 @JvmInline value class StateActionSessionReasoning(val value: SessionReasoningAction) : StateAction
 @JvmInline value class StateActionSessionModelChanged(val value: SessionModelChangedAction) : StateAction
+@JvmInline value class StateActionSessionAgentChanged(val value: SessionAgentChangedAction) : StateAction
 @JvmInline value class StateActionSessionIsReadChanged(val value: SessionIsReadChangedAction) : StateAction
 @JvmInline value class StateActionSessionIsArchivedChanged(val value: SessionIsArchivedChangedAction) : StateAction
 @JvmInline value class StateActionSessionActivityChanged(val value: SessionActivityChangedAction) : StateAction
+@JvmInline value class StateActionSessionChangesetsChanged(val value: SessionChangesetsChangedAction) : StateAction
 @JvmInline value class StateActionSessionServerToolsChanged(val value: SessionServerToolsChangedAction) : StateAction
 @JvmInline value class StateActionSessionActiveClientChanged(val value: SessionActiveClientChangedAction) : StateAction
 @JvmInline value class StateActionSessionActiveClientToolsChanged(val value: SessionActiveClientToolsChangedAction) : StateAction
@@ -1114,11 +1026,16 @@ sealed interface StateAction
 @JvmInline value class StateActionSessionInputCompleted(val value: SessionInputCompletedAction) : StateAction
 @JvmInline value class StateActionSessionCustomizationsChanged(val value: SessionCustomizationsChangedAction) : StateAction
 @JvmInline value class StateActionSessionCustomizationToggled(val value: SessionCustomizationToggledAction) : StateAction
+@JvmInline value class StateActionSessionCustomizationUpdated(val value: SessionCustomizationUpdatedAction) : StateAction
 @JvmInline value class StateActionSessionTruncated(val value: SessionTruncatedAction) : StateAction
-@JvmInline value class StateActionSessionDiffsChanged(val value: SessionDiffsChangedAction) : StateAction
 @JvmInline value class StateActionSessionConfigChanged(val value: SessionConfigChangedAction) : StateAction
 @JvmInline value class StateActionSessionMetaChanged(val value: SessionMetaChangedAction) : StateAction
 @JvmInline value class StateActionSessionToolCallContentChanged(val value: SessionToolCallContentChangedAction) : StateAction
+@JvmInline value class StateActionChangesetStatusChanged(val value: ChangesetStatusChangedAction) : StateAction
+@JvmInline value class StateActionChangesetFileSet(val value: ChangesetFileSetAction) : StateAction
+@JvmInline value class StateActionChangesetFileRemoved(val value: ChangesetFileRemovedAction) : StateAction
+@JvmInline value class StateActionChangesetOperationsChanged(val value: ChangesetOperationsChangedAction) : StateAction
+@JvmInline value class StateActionChangesetCleared(val value: ChangesetClearedAction) : StateAction
 @JvmInline value class StateActionRootTerminalsChanged(val value: RootTerminalsChangedAction) : StateAction
 @JvmInline value class StateActionRootConfigChanged(val value: RootConfigChangedAction) : StateAction
 @JvmInline value class StateActionTerminalData(val value: TerminalDataAction) : StateAction
@@ -1167,9 +1084,11 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             "session/usage" -> StateActionSessionUsage(input.json.decodeFromJsonElement(SessionUsageAction.serializer(), element))
             "session/reasoning" -> StateActionSessionReasoning(input.json.decodeFromJsonElement(SessionReasoningAction.serializer(), element))
             "session/modelChanged" -> StateActionSessionModelChanged(input.json.decodeFromJsonElement(SessionModelChangedAction.serializer(), element))
+            "session/agentChanged" -> StateActionSessionAgentChanged(input.json.decodeFromJsonElement(SessionAgentChangedAction.serializer(), element))
             "session/isReadChanged" -> StateActionSessionIsReadChanged(input.json.decodeFromJsonElement(SessionIsReadChangedAction.serializer(), element))
             "session/isArchivedChanged" -> StateActionSessionIsArchivedChanged(input.json.decodeFromJsonElement(SessionIsArchivedChangedAction.serializer(), element))
             "session/activityChanged" -> StateActionSessionActivityChanged(input.json.decodeFromJsonElement(SessionActivityChangedAction.serializer(), element))
+            "session/changesetsChanged" -> StateActionSessionChangesetsChanged(input.json.decodeFromJsonElement(SessionChangesetsChangedAction.serializer(), element))
             "session/serverToolsChanged" -> StateActionSessionServerToolsChanged(input.json.decodeFromJsonElement(SessionServerToolsChangedAction.serializer(), element))
             "session/activeClientChanged" -> StateActionSessionActiveClientChanged(input.json.decodeFromJsonElement(SessionActiveClientChangedAction.serializer(), element))
             "session/activeClientToolsChanged" -> StateActionSessionActiveClientToolsChanged(input.json.decodeFromJsonElement(SessionActiveClientToolsChangedAction.serializer(), element))
@@ -1181,11 +1100,16 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             "session/inputCompleted" -> StateActionSessionInputCompleted(input.json.decodeFromJsonElement(SessionInputCompletedAction.serializer(), element))
             "session/customizationsChanged" -> StateActionSessionCustomizationsChanged(input.json.decodeFromJsonElement(SessionCustomizationsChangedAction.serializer(), element))
             "session/customizationToggled" -> StateActionSessionCustomizationToggled(input.json.decodeFromJsonElement(SessionCustomizationToggledAction.serializer(), element))
+            "session/customizationUpdated" -> StateActionSessionCustomizationUpdated(input.json.decodeFromJsonElement(SessionCustomizationUpdatedAction.serializer(), element))
             "session/truncated" -> StateActionSessionTruncated(input.json.decodeFromJsonElement(SessionTruncatedAction.serializer(), element))
-            "session/diffsChanged" -> StateActionSessionDiffsChanged(input.json.decodeFromJsonElement(SessionDiffsChangedAction.serializer(), element))
             "session/configChanged" -> StateActionSessionConfigChanged(input.json.decodeFromJsonElement(SessionConfigChangedAction.serializer(), element))
             "session/metaChanged" -> StateActionSessionMetaChanged(input.json.decodeFromJsonElement(SessionMetaChangedAction.serializer(), element))
             "session/toolCallContentChanged" -> StateActionSessionToolCallContentChanged(input.json.decodeFromJsonElement(SessionToolCallContentChangedAction.serializer(), element))
+            "changeset/statusChanged" -> StateActionChangesetStatusChanged(input.json.decodeFromJsonElement(ChangesetStatusChangedAction.serializer(), element))
+            "changeset/fileSet" -> StateActionChangesetFileSet(input.json.decodeFromJsonElement(ChangesetFileSetAction.serializer(), element))
+            "changeset/fileRemoved" -> StateActionChangesetFileRemoved(input.json.decodeFromJsonElement(ChangesetFileRemovedAction.serializer(), element))
+            "changeset/operationsChanged" -> StateActionChangesetOperationsChanged(input.json.decodeFromJsonElement(ChangesetOperationsChangedAction.serializer(), element))
+            "changeset/cleared" -> StateActionChangesetCleared(input.json.decodeFromJsonElement(ChangesetClearedAction.serializer(), element))
             "root/terminalsChanged" -> StateActionRootTerminalsChanged(input.json.decodeFromJsonElement(RootTerminalsChangedAction.serializer(), element))
             "root/configChanged" -> StateActionRootConfigChanged(input.json.decodeFromJsonElement(RootConfigChangedAction.serializer(), element))
             "terminal/data" -> StateActionTerminalData(input.json.decodeFromJsonElement(TerminalDataAction.serializer(), element))
@@ -1227,9 +1151,11 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             is StateActionSessionUsage -> output.json.encodeToJsonElement(SessionUsageAction.serializer(), value.value)
             is StateActionSessionReasoning -> output.json.encodeToJsonElement(SessionReasoningAction.serializer(), value.value)
             is StateActionSessionModelChanged -> output.json.encodeToJsonElement(SessionModelChangedAction.serializer(), value.value)
+            is StateActionSessionAgentChanged -> output.json.encodeToJsonElement(SessionAgentChangedAction.serializer(), value.value)
             is StateActionSessionIsReadChanged -> output.json.encodeToJsonElement(SessionIsReadChangedAction.serializer(), value.value)
             is StateActionSessionIsArchivedChanged -> output.json.encodeToJsonElement(SessionIsArchivedChangedAction.serializer(), value.value)
             is StateActionSessionActivityChanged -> output.json.encodeToJsonElement(SessionActivityChangedAction.serializer(), value.value)
+            is StateActionSessionChangesetsChanged -> output.json.encodeToJsonElement(SessionChangesetsChangedAction.serializer(), value.value)
             is StateActionSessionServerToolsChanged -> output.json.encodeToJsonElement(SessionServerToolsChangedAction.serializer(), value.value)
             is StateActionSessionActiveClientChanged -> output.json.encodeToJsonElement(SessionActiveClientChangedAction.serializer(), value.value)
             is StateActionSessionActiveClientToolsChanged -> output.json.encodeToJsonElement(SessionActiveClientToolsChangedAction.serializer(), value.value)
@@ -1241,11 +1167,16 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             is StateActionSessionInputCompleted -> output.json.encodeToJsonElement(SessionInputCompletedAction.serializer(), value.value)
             is StateActionSessionCustomizationsChanged -> output.json.encodeToJsonElement(SessionCustomizationsChangedAction.serializer(), value.value)
             is StateActionSessionCustomizationToggled -> output.json.encodeToJsonElement(SessionCustomizationToggledAction.serializer(), value.value)
+            is StateActionSessionCustomizationUpdated -> output.json.encodeToJsonElement(SessionCustomizationUpdatedAction.serializer(), value.value)
             is StateActionSessionTruncated -> output.json.encodeToJsonElement(SessionTruncatedAction.serializer(), value.value)
-            is StateActionSessionDiffsChanged -> output.json.encodeToJsonElement(SessionDiffsChangedAction.serializer(), value.value)
             is StateActionSessionConfigChanged -> output.json.encodeToJsonElement(SessionConfigChangedAction.serializer(), value.value)
             is StateActionSessionMetaChanged -> output.json.encodeToJsonElement(SessionMetaChangedAction.serializer(), value.value)
             is StateActionSessionToolCallContentChanged -> output.json.encodeToJsonElement(SessionToolCallContentChangedAction.serializer(), value.value)
+            is StateActionChangesetStatusChanged -> output.json.encodeToJsonElement(ChangesetStatusChangedAction.serializer(), value.value)
+            is StateActionChangesetFileSet -> output.json.encodeToJsonElement(ChangesetFileSetAction.serializer(), value.value)
+            is StateActionChangesetFileRemoved -> output.json.encodeToJsonElement(ChangesetFileRemovedAction.serializer(), value.value)
+            is StateActionChangesetOperationsChanged -> output.json.encodeToJsonElement(ChangesetOperationsChangedAction.serializer(), value.value)
+            is StateActionChangesetCleared -> output.json.encodeToJsonElement(ChangesetClearedAction.serializer(), value.value)
             is StateActionRootTerminalsChanged -> output.json.encodeToJsonElement(RootTerminalsChangedAction.serializer(), value.value)
             is StateActionRootConfigChanged -> output.json.encodeToJsonElement(RootConfigChangedAction.serializer(), value.value)
             is StateActionTerminalData -> output.json.encodeToJsonElement(TerminalDataAction.serializer(), value.value)

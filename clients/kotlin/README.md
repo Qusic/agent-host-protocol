@@ -26,7 +26,7 @@ Add the dependency to your Android or JVM project:
 
 ```kotlin
 dependencies {
-    implementation("com.microsoft.agenthostprotocol:agent-host-protocol:0.1.0")
+    implementation("com.microsoft.agenthostprotocol:agent-host-protocol:0.2.0")
 }
 ```
 
@@ -34,7 +34,7 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'com.microsoft.agenthostprotocol:agent-host-protocol:0.1.0'
+    implementation 'com.microsoft.agenthostprotocol:agent-host-protocol:0.2.0'
 }
 ```
 
@@ -44,7 +44,7 @@ dependencies {
 <dependency>
     <groupId>com.microsoft.agenthostprotocol</groupId>
     <artifactId>agent-host-protocol</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -66,12 +66,16 @@ import com.microsoft.agenthostprotocol.generated.ActionEnvelope
 import com.microsoft.agenthostprotocol.generated.StateAction
 import com.microsoft.agenthostprotocol.generated.StateActionUnknown
 
-// Decode a server-sent action envelope from the wire
+// Decode a server-sent action envelope from the wire. Since the v0.2 channels
+// reorg, every action carries the `channel` URI it belongs to; per-session
+// actions like `session/titleChanged` no longer include the session URI in
+// their payload.
 val envelope: ActionEnvelope = Ahp.json.decodeFromString(
     ActionEnvelope.serializer(),
-    """{"action":{"type":"session/titleChanged","session":"session://abc","title":"new"},"serverSeq":42}""",
+    """{"channel":"ahp-session:/abc","action":{"type":"session/titleChanged","title":"new"},"serverSeq":42}""",
 )
 
+println(envelope.channel)           // ahp-session:/abc
 println(envelope.serverSeq)         // 42
 when (val action = envelope.action) {
     is StateActionUnknown -> {
@@ -86,11 +90,19 @@ when (val action = envelope.action) {
 
 - **`com.microsoft.agenthostprotocol.Ahp`** — `Ahp.json` configured `Json` instance.
 - **`com.microsoft.agenthostprotocol.generated.*`** — wire types: `RootState`,
-  `SessionState`, `AgentInfo`, `ActionEnvelope`, all command params/results
-  (`InitializeParams`, `CreateSessionParams`, `SubscribeParams`, etc.), all action
-  types, and discriminated-union sealed interfaces (`StateAction`, `ResponsePart`,
-  `ToolCallState`, `MessageAttachment`, `SnapshotState`, `ProtocolNotification`,
-  `ReconnectResult`, etc.).
+  `SessionState`, `ChangesetState`, `TerminalState`, `AgentInfo`, `AgentSelection`,
+  `ActionEnvelope` (with `channel` URI), all command params/results
+  (`InitializeParams`, `CreateSessionParams`, `SubscribeParams`,
+  `InvokeChangesetOperationParams`, etc.), every per-channel action type
+  (`session/*`, `root/*`, `terminal/*`, `changeset/*`), and discriminated-union
+  sealed interfaces (`StateAction`, `ResponsePart`, `ToolCallState`,
+  `ToolResultContent`, `MessageAttachment`, `SnapshotState`,
+  `ChangesetOperationTarget`, `ReconnectResult`, etc.).
+- **Channel-scoped notification params** — `SessionAddedParams`,
+  `SessionRemovedParams`, `SessionSummaryChangedParams`, `AuthRequiredParams`,
+  `OtlpExportLogsParams`, etc. Notifications are routed by their JSON-RPC
+  `method` name (e.g. `root/sessionAdded`, `auth/required`,
+  `otlp/exportLogs`) — there is no embedded `type` discriminator union.
 - **JSON-RPC envelope types** (`JsonRpcRequest<P>`, `JsonRpcResponse`, etc.) and
   helpers (`AhpCommands.initialize(id, params)`).
 

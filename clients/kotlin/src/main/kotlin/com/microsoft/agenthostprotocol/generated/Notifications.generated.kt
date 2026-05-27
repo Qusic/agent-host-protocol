@@ -38,26 +38,14 @@ enum class AuthRequiredReason {
     EXPIRED
 }
 
-/**
- * Discriminant values for all protocol notifications.
- */
-@Serializable
-enum class NotificationType {
-    @SerialName("notify/sessionAdded")
-    SESSION_ADDED,
-    @SerialName("notify/sessionRemoved")
-    SESSION_REMOVED,
-    @SerialName("notify/sessionSummaryChanged")
-    SESSION_SUMMARY_CHANGED,
-    @SerialName("notify/authRequired")
-    AUTH_REQUIRED
-}
-
 // ─── Notification Types ─────────────────────────────────────────────────────
 
 @Serializable
-data class SessionAddedNotification(
-    val type: NotificationType,
+data class SessionAddedParams(
+    /**
+     * Channel URI this notification belongs to (the root channel)
+     */
+    val channel: String,
     /**
      * Summary of the new session
      */
@@ -65,8 +53,11 @@ data class SessionAddedNotification(
 )
 
 @Serializable
-data class SessionRemovedNotification(
-    val type: NotificationType,
+data class SessionRemovedParams(
+    /**
+     * Channel URI this notification belongs to (the root channel)
+     */
+    val channel: String,
     /**
      * URI of the removed session
      */
@@ -74,8 +65,11 @@ data class SessionRemovedNotification(
 )
 
 @Serializable
-data class SessionSummaryChangedNotification(
-    val type: NotificationType,
+data class SessionSummaryChangedParams(
+    /**
+     * Channel URI this notification belongs to (the root channel)
+     */
+    val channel: String,
     /**
      * URI of the session whose summary changed
      */
@@ -90,8 +84,11 @@ data class SessionSummaryChangedNotification(
 )
 
 @Serializable
-data class AuthRequiredNotification(
-    val type: NotificationType,
+data class AuthRequiredParams(
+    /**
+     * Channel URI this notification belongs to
+     */
+    val channel: String,
     /**
      * The protected resource identifier that requires authentication
      */
@@ -100,6 +97,48 @@ data class AuthRequiredNotification(
      * Why authentication is required
      */
     val reason: AuthRequiredReason? = null
+)
+
+@Serializable
+data class OtlpExportLogsParams(
+    /**
+     * Channel URI this notification belongs to (an `ahp-otlp:` URI advertised on `TelemetryCapabilities.logs`).
+     */
+    val channel: String,
+    /**
+     * OTLP/JSON `ExportLogsServiceRequest` value. The top-level field is
+     * `resourceLogs: ResourceLogs[]`; nested shapes are defined by
+     * opentelemetry-proto and are not redeclared here.
+     */
+    val payload: Map<String, JsonElement>
+)
+
+@Serializable
+data class OtlpExportTracesParams(
+    /**
+     * Channel URI this notification belongs to (an `ahp-otlp:` URI advertised on `TelemetryCapabilities.traces`).
+     */
+    val channel: String,
+    /**
+     * OTLP/JSON `ExportTraceServiceRequest` value. The top-level field is
+     * `resourceSpans: ResourceSpans[]`; nested shapes are defined by
+     * opentelemetry-proto and are not redeclared here.
+     */
+    val payload: Map<String, JsonElement>
+)
+
+@Serializable
+data class OtlpExportMetricsParams(
+    /**
+     * Channel URI this notification belongs to (an `ahp-otlp:` URI advertised on `TelemetryCapabilities.metrics`).
+     */
+    val channel: String,
+    /**
+     * OTLP/JSON `ExportMetricsServiceRequest` value. The top-level field is
+     * `resourceMetrics: ResourceMetrics[]`; nested shapes are defined by
+     * opentelemetry-proto and are not redeclared here.
+     */
+    val payload: Map<String, JsonElement>
 )
 
 // ─── Partial Summary Types ──────────────────────────────────────────────────
@@ -143,59 +182,22 @@ data class PartialSessionSummary(
      */
     val model: ModelSelection? = null,
     /**
+     * Currently selected custom agent.
+     * 
+     * Absent (`undefined`) means no custom agent is selected for this session
+     * — the session uses the provider's default behavior.
+     */
+    val agent: AgentSelection? = null,
+    /**
      * The working directory URI for this session
      */
     val workingDirectory: String? = null,
     /**
-     * Files changed during this session with diff statistics
+     * Catalogue of changesets the server can produce for this session. Each
+     * entry advertises a subscribable view of file changes (uncommitted,
+     * session-wide, per-turn, etc.) and the URI template the client expands
+     * before subscribing. See {@link ChangesetSummary} for the full shape and
+     * {@link /guide/changesets | Changesets} for an overview of the model.
      */
-    val diffs: List<FileEdit>? = null
+    val changesets: List<ChangesetSummary>? = null
 )
-
-// ─── ProtocolNotification Union ─────────────────────────────────────────────
-
-@Serializable(with = ProtocolNotificationSerializer::class)
-sealed interface ProtocolNotification
-
-@JvmInline
-value class ProtocolNotificationSessionAdded(val value: SessionAddedNotification) : ProtocolNotification
-@JvmInline
-value class ProtocolNotificationSessionRemoved(val value: SessionRemovedNotification) : ProtocolNotification
-@JvmInline
-value class ProtocolNotificationSessionSummaryChanged(val value: SessionSummaryChangedNotification) : ProtocolNotification
-@JvmInline
-value class ProtocolNotificationAuthRequired(val value: AuthRequiredNotification) : ProtocolNotification
-
-internal object ProtocolNotificationSerializer : KSerializer<ProtocolNotification> {
-    override val descriptor: SerialDescriptor =
-        buildClassSerialDescriptor("ProtocolNotification")
-
-    override fun deserialize(decoder: Decoder): ProtocolNotification {
-        val input = decoder as? JsonDecoder
-            ?: error("ProtocolNotification can only be deserialized from JSON")
-        val element = input.decodeJsonElement()
-        val obj = element as? JsonObject
-            ?: error("Expected JsonObject for ProtocolNotification")
-        val discriminant = (obj["type"] as? JsonPrimitive)?.content
-            ?: error("Missing type discriminator on ProtocolNotification")
-        return when (discriminant) {
-            "notify/sessionAdded" -> ProtocolNotificationSessionAdded(input.json.decodeFromJsonElement(SessionAddedNotification.serializer(), element))
-            "notify/sessionRemoved" -> ProtocolNotificationSessionRemoved(input.json.decodeFromJsonElement(SessionRemovedNotification.serializer(), element))
-            "notify/sessionSummaryChanged" -> ProtocolNotificationSessionSummaryChanged(input.json.decodeFromJsonElement(SessionSummaryChangedNotification.serializer(), element))
-            "notify/authRequired" -> ProtocolNotificationAuthRequired(input.json.decodeFromJsonElement(AuthRequiredNotification.serializer(), element))
-            else -> error("Unknown ProtocolNotification discriminator: $discriminant")
-        }
-    }
-
-    override fun serialize(encoder: Encoder, value: ProtocolNotification) {
-        val output = encoder as? JsonEncoder
-            ?: error("ProtocolNotification can only be serialized to JSON")
-        val element: JsonElement = when (value) {
-            is ProtocolNotificationSessionAdded -> output.json.encodeToJsonElement(SessionAddedNotification.serializer(), value.value)
-            is ProtocolNotificationSessionRemoved -> output.json.encodeToJsonElement(SessionRemovedNotification.serializer(), value.value)
-            is ProtocolNotificationSessionSummaryChanged -> output.json.encodeToJsonElement(SessionSummaryChangedNotification.serializer(), value.value)
-            is ProtocolNotificationAuthRequired -> output.json.encodeToJsonElement(AuthRequiredNotification.serializer(), value.value)
-        }
-        output.encodeJsonElement(element)
-    }
-}
