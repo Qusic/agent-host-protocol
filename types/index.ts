@@ -24,7 +24,7 @@ export type {
   SessionConfigState,
   Turn,
   ActiveTurn,
-  UserMessage,
+  Message,
   MessageAttachment,
   MessageAttachmentBase,
   TextPosition,

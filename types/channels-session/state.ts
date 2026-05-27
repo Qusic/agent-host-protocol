@@ -47,7 +47,7 @@ export interface PendingMessage {
   /** Unique identifier for this pending message */
   id: string;
   /** The message content */
-  userMessage: UserMessage;
+  userMessage: Message;
 }
 
 // ─── Session State ───────────────────────────────────────────────────────────
@@ -550,7 +550,7 @@ export interface Turn {
   /** Turn identifier */
   id: string;
   /** The user's input */
-  userMessage: UserMessage;
+  userMessage: Message;
   /**
    * All response content in stream order: text, tool calls, reasoning, and content refs.
    *
@@ -575,7 +575,7 @@ export interface ActiveTurn {
   /** Turn identifier */
   id: string;
   /** The user's input */
-  userMessage: UserMessage;
+  userMessage: Message;
   /**
    * All response content in stream order: text, tool calls, reasoning, and content refs.
    *
@@ -586,19 +586,29 @@ export interface ActiveTurn {
   usage: UsageInfo | undefined;
 }
 
+enum MessageOrigin {
+  Human = 'human',
+  System = 'system',
+  
+  // eg, in the future
+  Channel = 'channel'
+}
+
 /**
  * A user message and its associated attachments.
  *
- * Attachments MAY be referenced inside {@link UserMessage.text} via their
+ * Attachments MAY be referenced inside {@link Message.text} via their
  * {@link MessageAttachmentBase.range} field. Attachments without a range are
  * still associated with the message but do not correspond to a specific span
  * in the text.
  *
  * @category Turn Types
  */
-export interface UserMessage {
+export interface Message {
   /** Message text */
   text: string;
+  /** The origin of the message */
+  origin: MessageOrigin;
   /** File/selection attachments */
   attachments?: MessageAttachment[];
 }
@@ -616,7 +626,7 @@ export interface MessageAttachmentBase {
   label: string;
 
   /**
-   * If defined, the range in {@link UserMessage.text} that references this
+   * If defined, the range in {@link Message.text} that references this
    * attachment. This is a text range, not a byte range.
    */
   range?: TextRange;
@@ -708,7 +718,7 @@ export interface MessageResourceAttachment extends MessageAttachmentBase, Conten
 }
 
 /**
- * An attachment associated with a {@link UserMessage}.
+ * An attachment associated with a {@link Message}.
  *
  * @category Turn Types
  */
@@ -1056,7 +1066,7 @@ export interface ToolCallCancelledState extends ToolCallBase, ToolCallParameterF
   /** Optional message explaining the cancellation */
   reasonMessage?: StringOrMarkdown;
   /** What the user suggested doing instead */
-  userSuggestion?: UserMessage;
+  userSuggestion?: Message;
   /** The confirmation option the user selected, if confirmation options were provided */
   selectedOption?: ConfirmationOption;
 }

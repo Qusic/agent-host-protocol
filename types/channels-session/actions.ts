@@ -7,7 +7,7 @@
 import { ActionType } from '../common/actions.js';
 import type { URI, StringOrMarkdown, ErrorInfo, FileEdit, UsageInfo } from '../common/state.js';
 import type {
-  UserMessage,
+  Message,
   ResponsePart,
   ToolCallResult,
   ToolResultContent,
@@ -92,7 +92,7 @@ export interface SessionTurnStartedAction {
   /** Turn identifier */
   turnId: string;
   /** User's message */
-  userMessage: UserMessage;
+  userMessage: Message;
   /** If this turn was auto-started from a queued message, the ID of that message */
   queuedMessageId?: string;
 }
@@ -244,7 +244,7 @@ export interface SessionToolCallDeniedAction extends ToolCallActionBase {
   /** Why the tool was cancelled */
   reason: ToolCallCancellationReason.Denied | ToolCallCancellationReason.Skipped;
   /** What the user suggested doing instead */
-  userSuggestion?: UserMessage;
+  userSuggestion?: Message;
   /** Optional explanation for the denial */
   reasonMessage?: StringOrMarkdown;
   /** ID of the selected confirmation option, if the server provided options */
@@ -712,7 +712,7 @@ export interface SessionPendingMessageSetAction {
   /** Unique identifier for this pending message */
   id: string;
   /** The message content */
-  userMessage: UserMessage;
+  userMessage: Message;
 }
 
 /**
