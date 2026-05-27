@@ -15,7 +15,7 @@ import type { ServerNotificationMap } from '../messages.js';
  *
  * Formatted as a [SemVer](https://semver.org) `MAJOR.MINOR.PATCH` string.
  */
-export const PROTOCOL_VERSION = '0.2.0';
+export const PROTOCOL_VERSION = '0.3.0';
 
 // ─── SemVer Comparison ───────────────────────────────────────────────────────
 
@@ -89,6 +89,7 @@ export const ACTION_INTRODUCED_IN: { readonly [K in StateAction['type']]: string
   [ActionType.SessionCustomizationsChanged]: '0.1.0',
   [ActionType.SessionCustomizationToggled]: '0.1.0',
   [ActionType.SessionCustomizationUpdated]: '0.1.0',
+  [ActionType.SessionCustomizationRemoved]: '0.2.0',
   [ActionType.SessionTruncated]: '0.1.0',
   [ActionType.SessionIsReadChanged]: '0.1.0',
   [ActionType.SessionIsArchivedChanged]: '0.1.0',

@@ -135,7 +135,7 @@ During the handshake, clients MAY include `initialSubscriptions` in `initialize`
   "method": "initialize",
   "params": {
     "channel": "ahp-root://",
-    "protocolVersions": ["0.2.0"],
+    "protocolVersions": ["0.3.0"],
     "clientId": "client-abc",
     "initialSubscriptions": ["ahp-root://", "ahp-session:/<prev-session>"]
   }

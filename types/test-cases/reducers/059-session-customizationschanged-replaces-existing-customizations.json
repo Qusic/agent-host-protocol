@@ -14,10 +14,10 @@
     "turns": [],
     "customizations": [
       {
-        "customization": {
-          "uri": "https://plugins.example/a",
-          "displayName": "Plugin A"
-        },
+        "type": "plugin",
+        "id": "plugin-a",
+        "uri": "https://plugins.example/a",
+        "name": "Plugin A",
         "enabled": true
       }
     ]
@@ -27,10 +27,10 @@
       "type": "session/customizationsChanged",
       "customizations": [
         {
-          "customization": {
-            "uri": "https://plugins.example/b",
-            "displayName": "Plugin B"
-          },
+          "type": "plugin",
+          "id": "plugin-b",
+          "uri": "https://plugins.example/b",
+          "name": "Plugin B",
           "enabled": false
         }
       ]
@@ -49,10 +49,10 @@
     "turns": [],
     "customizations": [
       {
-        "customization": {
-          "uri": "https://plugins.example/b",
-          "displayName": "Plugin B"
-        },
+        "type": "plugin",
+        "id": "plugin-b",
+        "uri": "https://plugins.example/b",
+        "name": "Plugin B",
         "enabled": false
       }
     ]

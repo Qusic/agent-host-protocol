@@ -58,7 +58,7 @@ Send an `initialize` **notification** (no `id` field):
   "jsonrpc": "2.0",
   "method": "initialize",
   "params": {
-    "protocolVersions": ["0.2.0"],
+    "protocolVersions": ["0.3.0"],
     "clientId": "<unique-client-id>",
     "initialSubscriptions": ["ahp-root://"]
   }
