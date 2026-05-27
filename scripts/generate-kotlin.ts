@@ -1558,7 +1558,13 @@ function checkExhaustiveness(project: Project): void {
   const knownSpecial = new Set<string>([
     'URI',                          // type alias for string
     'BaseParams',                    // marker base interface; flattened into each command params struct
-    'PingParams',                    // empty interface; no Kotlin type emitted
+    // PingParams shape is `interface PingParams extends BaseParams { channel: 'ahp-root://' }`
+    // (i.e. a `BaseParams` with `channel` narrowed to a string literal). We don't
+    // emit a dedicated data class because the only useful payload is the
+    // hard-coded channel value and a typed `AhpCommands.ping(...)` helper can
+    // construct the request without forcing consumers through a wrapper.
+    // Matches the Swift generator's handling.
+    'PingParams',
     'ActionType',                   // emitted directly by generateActionsFile(), not via STATE_ENUMS
     'ChangesetOperationTargetKind', // discriminator enum embedded in the hand-rolled ChangesetOperationTarget union
     'StringOrMarkdown',              // generateStringOrMarkdown()
