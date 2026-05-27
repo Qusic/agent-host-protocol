@@ -61,7 +61,7 @@ the design rationale; this section covers the mechanics.
 | Spec       | `spec/vX.Y.Z`       | `.github/workflows/publish-spec.yml` | GitHub Release with schema assets. |
 | Rust       | `rust/vX.Y.Z`       | `.github/workflows/publish-rust.yml` | crates.io (`ahp-types`, `ahp`, `ahp-ws`). |
 | Kotlin     | `kotlin/vX.Y.Z`     | `.github/workflows/publish-kotlin.yml` | Maven Central (`com.microsoft.agenthostprotocol:agent-host-protocol`). |
-| TypeScript | _no tag — manual ADO trigger_ | `clients/typescript/pipeline.yml` (Azure DevOps) | npm (`@microsoft/agent-host-protocol`). |
+| TypeScript | `typescript/vX.Y.Z` | `.github/workflows/publish-typescript.yml` → triggers `clients/typescript/pipeline.yml` (Azure DevOps) | npm (`@microsoft/agent-host-protocol`). |
 | Swift      | `vX.Y.Z` (bare)     | `.github/workflows/publish-swift.yml` | SwiftPM resolves the tag directly. |
 
 > **Why Swift gets the bare semver tag namespace:** SwiftPM only resolves
@@ -69,16 +69,18 @@ the design rationale; this section covers the mechanics.
 > repo root. Path-prefixed tags like `swift/v0.2.0` are invisible to it. Bare
 > semver tags at this repo's root are therefore reserved for Swift releases.
 
-> **Why TypeScript releases through Azure DevOps:** the npm registry
-> publish for `@microsoft/agent-host-protocol` uses Microsoft's internal
-> `vscode-engineering` npm-package pipeline template (1ES-hosted agents,
-> signed publish, retention policy). The pipeline is triggered manually
-> from the Azure DevOps UI by toggling the `publishPackage` parameter on
-> a run. There is no `typescript/v*` git tag step, and `ghCreateTag: false`
-> is set explicitly. Because there's no per-tag GitHub Actions workflow
-> for TypeScript, the **`npm run verify:changelog` step in `ci.yml` is
-> the only "no release without a changelog entry" gate** for the TS
-> client — make sure it passes on `main` before toggling `publishPackage`.
+> **Why TypeScript uses a tag → ADO pipeline indirection:** the npm
+> registry publish for `@microsoft/agent-host-protocol` uses Microsoft's
+> internal `vscode-engineering` npm-package pipeline template (1ES-hosted
+> agents, signed publish, retention policy) — that machinery lives in
+> Azure DevOps. We keep the `typescript/vX.Y.Z` tag convention symmetric
+> with the other clients by having a GitHub Actions workflow do all the
+> validation (tag ↔ `package.json` match, CHANGELOG entry, release
+> metadata, full client build + tests), then trigger the ADO pipeline via
+> the [Pipelines REST API](https://learn.microsoft.com/rest/api/azure/devops/pipelines/runs/run-pipeline)
+> with `publishPackage: true` and `refName` pinned to the tag. The ADO
+> pipeline can also still be triggered manually from the ADO UI as a
+> hotfix escape hatch.
 
 ### Per-client release flow
 
@@ -112,13 +114,18 @@ the design rationale; this section covers the mechanics.
    interaction is required.
 7. Bump `VERSION_NAME` back to the next `-SNAPSHOT` for ongoing development.
 
-#### TypeScript (Azure DevOps pipeline)
+#### TypeScript (`typescript/vX.Y.Z`)
 
-> The TypeScript client publishes through `clients/typescript/pipeline.yml`
-> ([introduced in #157](https://github.com/microsoft/agent-host-protocol/pull/157)),
-> an Azure DevOps pipeline that extends Microsoft's internal
-> `vscode-engineering` npm-package template. There is no `typescript/v*`
-> git tag step; the pipeline is triggered manually from the ADO UI.
+The TypeScript client uses the same `<lang>/vX.Y.Z` tag convention as
+the other clients. The publish itself runs through an Azure DevOps
+pipeline (`clients/typescript/pipeline.yml`,
+[introduced in #157](https://github.com/microsoft/agent-host-protocol/pull/157))
+that extends Microsoft's internal `vscode-engineering` npm-package
+template. The GitHub Actions workflow at
+`.github/workflows/publish-typescript.yml` does all the validation, then
+triggers the ADO pipeline via the
+[Pipelines REST API](https://learn.microsoft.com/rest/api/azure/devops/pipelines/runs/run-pipeline)
+with `publishPackage: true` and `refName` pinned to the tag.
 
 1. Bump `version` in `clients/typescript/package.json`.
 2. `cd clients/typescript && npm install` to refresh the lockfile.
@@ -126,22 +133,21 @@ the design rationale; this section covers the mechanics.
    regenerated `clients/typescript/release-metadata.json`.
 4. Rotate `clients/typescript/CHANGELOG.md`: move `## [Unreleased]` to
    `## [X.Y.Z] — YYYY-MM-DD` with an `Implements AHP <version>` line.
-   **This is the only gate enforced by `ci.yml` (`npm run verify:changelog`).
-   The ADO pipeline re-checks it before producing the publish artifact,
-   but if the PR-time check passes, the publish-time check will too.**
-5. Merge to `main`. Wait for the ADO pipeline to complete its
-   non-publish run successfully.
-6. Go to the Azure DevOps pipeline UI, click "Run pipeline", and toggle
-   the **🚀 Publish @microsoft/agent-host-protocol** parameter to
-   `true`. Submit the run.
-7. The pipeline re-runs the full build + tests, re-validates
-   release-metadata and CHANGELOG, then publishes to npm.
+5. Merge to `main`.
+6. Tag: `git tag typescript/v0.X.Y && git push origin typescript/v0.X.Y`.
+7. `publish-typescript.yml` validates the tag, runs `verify:release-metadata`
+   and `verify:changelog`, then triggers the ADO pipeline run. After the
+   `ado-typescript-publish` environment approval gate clears (if
+   configured for manual approval), the ADO pipeline publishes
+   `@microsoft/agent-host-protocol` to npm with signed provenance via
+   the vscode-engineering template.
 
-Because there's no GitHub-side `typescript/v*` tag, dependents that
-need to pin to a specific source commit can use the npm-published
-version's git provenance (the pipeline ships with signed provenance
-attestations via the vscode-engineering template) or the merge commit
-SHA on `main`.
+The ADO pipeline can also be triggered manually from the ADO UI as a
+hotfix escape hatch — toggle the `publishPackage` parameter to `true`
+on a manual run. Both paths funnel through the same
+`verify:release-metadata` and `verify:changelog` steps in the ADO
+pipeline's `buildSteps` / `testSteps` so a release artifact can't ship
+from a broken state regardless of which trigger started the run.
 
 #### Swift (`vX.Y.Z`, bare)
 
@@ -194,7 +200,8 @@ function. They are set per-repo by a maintainer with admin access.
 | --- | --- | --- |
 | `crates-io` environment, `CARGO_REGISTRY_TOKEN` secret | `publish-rust.yml` | Authenticates `cargo publish` for `ahp-types` / `ahp` / `ahp-ws`. |
 | `maven-central` environment, `MAVEN_CENTRAL_USERNAME` / `MAVEN_CENTRAL_PASSWORD` / `SIGNING_IN_MEMORY_KEY` / `SIGNING_IN_MEMORY_KEY_PASSWORD` | `publish-kotlin.yml` | Sonatype Central Portal credentials + PGP key for signed artifact publish. |
-| Azure DevOps Service Connection to npm + npm publish creds | `clients/typescript/pipeline.yml` (vscode-engineering template) | Authenticates `npm publish` for `@microsoft/agent-host-protocol`. Provisioned inside the Microsoft ADO tenant; no GitHub secret required. |
+| `ado-typescript-publish` environment, `ADO_PIPELINE_TRIGGER_PAT` secret + `ADO_ORGANIZATION` / `ADO_PROJECT` / `ADO_PIPELINE_ID` variables | `publish-typescript.yml` | PAT (scope: "Build, Read & execute") used to POST to the ADO Pipelines REST API. Organization, project, and numeric pipeline ID identify which ADO pipeline to run. The actual npm publish credentials live inside ADO, provisioned by the vscode-engineering template. |
+| Azure DevOps Service Connection to npm + npm publish creds | `clients/typescript/pipeline.yml` (vscode-engineering template) | Authenticates `npm publish` for `@microsoft/agent-host-protocol`. Provisioned inside the Microsoft ADO tenant; no GitHub secret required for this step. |
 | (none required) | `publish-swift.yml`, `publish-spec.yml` | Both use the default `GITHUB_TOKEN` to create GitHub Releases. No external registry credentials needed. |
 
 ## Code-style and review
