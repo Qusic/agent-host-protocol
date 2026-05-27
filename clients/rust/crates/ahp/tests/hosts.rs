@@ -12,7 +12,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ahp::hosts::{
-    HostConfig, HostError, HostEvent, HostId, HostState, MultiHostClient, ReconnectPolicy,
+    ClientIdStore, FileClientIdStore, HostConfig, HostError, HostEvent, HostId, HostState,
+    InMemoryClientIdStore, MultiHostClient, ReconnectPolicy,
 };
 use ahp::transport::BoxedTransport;
 use ahp::{Transport, TransportError, TransportMessage};
@@ -703,6 +704,220 @@ async fn shutdown_is_not_blocked_by_a_hung_transport_factory() {
         matches!(removed, Ok(Ok(()))),
         "remove_host should not block on a hung connect; got {removed:?}"
     );
+}
+
+// ─── reconnect_all_unavailable / ClientIdStore tests ───────────────────────
+
+/// Reconnects every non-`Connected`/`Connecting` host: skips a host that
+/// is already connected and wakes one that has been pushed into `Failed`
+/// by `ReconnectPolicy::disabled` + a one-shot transport.
+#[tokio::test]
+async fn reconnect_all_unavailable_skips_connected_and_wakes_failed() {
+    let alive_state = FakeHostState::new();
+    let alive_factory = make_basic_factory(alive_state);
+
+    // Factory whose first connect fails (so the host with
+    // `disabled` reconnect policy lands in `Failed`), and whose
+    // second connect succeeds. Lets us assert that
+    // `reconnect_all_unavailable` actually drives it from `Failed`
+    // back to `Connected`.
+    let dead_state = FakeHostState::new();
+    let dead_state = Arc::new(dead_state);
+    let attempt = Arc::new(AtomicU32::new(0));
+    let dead_factory = {
+        let attempt = attempt.clone();
+        let dead_state = dead_state.clone();
+        move |_host_id: HostId| {
+            let attempt = attempt.clone();
+            let dead_state = dead_state.clone();
+            Box::pin(async move {
+                let n = attempt.fetch_add(1, Ordering::SeqCst);
+                if n == 0 {
+                    // First attempt: fail before returning a transport so
+                    // the host with disabled-reconnect policy lands in
+                    // `Failed`.
+                    Err::<BoxedTransport, TransportError>(TransportError::Closed)
+                } else {
+                    let (client_side, server_side) = pair();
+                    tokio::spawn(drive_fake_host_basic(server_side, (*dead_state).clone()));
+                    Ok(BoxedTransport::new(client_side))
+                }
+            })
+                as std::pin::Pin<
+                    Box<
+                        dyn std::future::Future<Output = Result<BoxedTransport, TransportError>>
+                            + Send,
+                    >,
+                >
+        }
+    };
+
+    let multi = MultiHostClient::new();
+    multi
+        .add_host(HostConfig::new("alive", "Alive", alive_factory))
+        .await
+        .unwrap();
+    multi
+        .add_host(
+            HostConfig::new("dead", "Dead", dead_factory)
+                .with_reconnect_policy(ReconnectPolicy::disabled()),
+        )
+        .await
+        .unwrap();
+
+    // Wait for both terminal states.
+    wait_for_state(&multi, &HostId::new("alive"), |s| s.is_connected(), 2000).await;
+    wait_for_state(&multi, &HostId::new("dead"), |s| s.is_failed(), 2000).await;
+
+    let errors = multi.reconnect_all_unavailable().await;
+    assert!(
+        errors.is_empty(),
+        "expected no per-host errors from reconnect_all_unavailable, got {errors:?}"
+    );
+
+    // The dead host should now be moving back through the connect
+    // path. We don't pin down the exact intermediate state, but it
+    // must end up `Connected` shortly.
+    wait_for_state(&multi, &HostId::new("dead"), |s| s.is_connected(), 2000).await;
+    // The alive host must stay connected — it was already connected,
+    // so `reconnect_all_unavailable` should have skipped it.
+    let alive = multi.host(&HostId::new("alive")).await.unwrap();
+    assert!(alive.state.is_connected());
+}
+
+/// `reconnect_all_unavailable` is a no-op when there are no hosts in
+/// an "unavailable" state — and never panics on an empty registry.
+#[tokio::test]
+async fn reconnect_all_unavailable_is_a_noop_with_no_hosts() {
+    let multi = MultiHostClient::new();
+    let errors = multi.reconnect_all_unavailable().await;
+    assert!(errors.is_empty());
+}
+
+#[tokio::test]
+async fn explicit_client_id_wins_over_store_and_is_persisted() {
+    // Pre-seed the store with one value for `alpha`, then add a host
+    // whose `HostConfig::with_client_id` supplies a different value.
+    // Explicit values win, AND the explicit value is persisted to the
+    // store so subsequent launches that don't pass an explicit value
+    // pick it up.
+    let store = Arc::new(InMemoryClientIdStore::new());
+    store
+        .store(HostId::new("alpha"), "from-store".into())
+        .await
+        .unwrap();
+
+    let multi = MultiHostClient::with_client_id_store(store.clone());
+    multi
+        .add_host(
+            HostConfig::new("alpha", "Alpha", make_basic_factory(FakeHostState::new()))
+                .with_client_id("from-explicit"),
+        )
+        .await
+        .unwrap();
+
+    wait_for_state(&multi, &HostId::new("alpha"), |s| s.is_connected(), 2000).await;
+    let snap = multi.host(&HostId::new("alpha")).await.unwrap();
+    assert_eq!(snap.client_id, "from-explicit");
+    assert_eq!(
+        store.load(HostId::new("alpha")).await.unwrap().as_deref(),
+        Some("from-explicit"),
+        "explicit value should be persisted back to the store"
+    );
+}
+
+#[tokio::test]
+async fn stored_client_id_is_reused_when_no_explicit_value_is_set() {
+    let store = Arc::new(InMemoryClientIdStore::new());
+    store
+        .store(HostId::new("alpha"), "stored-id".into())
+        .await
+        .unwrap();
+
+    let multi = MultiHostClient::with_client_id_store(store);
+    multi
+        .add_host(HostConfig::new(
+            "alpha",
+            "Alpha",
+            make_basic_factory(FakeHostState::new()),
+        ))
+        .await
+        .unwrap();
+
+    wait_for_state(&multi, &HostId::new("alpha"), |s| s.is_connected(), 2000).await;
+    let snap = multi.host(&HostId::new("alpha")).await.unwrap();
+    assert_eq!(snap.client_id, "stored-id");
+}
+
+#[tokio::test]
+async fn missing_store_entry_generates_and_persists_fresh_id() {
+    let store = Arc::new(InMemoryClientIdStore::new());
+    let multi = MultiHostClient::with_client_id_store(store.clone());
+    multi
+        .add_host(HostConfig::new(
+            "alpha",
+            "Alpha",
+            make_basic_factory(FakeHostState::new()),
+        ))
+        .await
+        .unwrap();
+
+    wait_for_state(&multi, &HostId::new("alpha"), |s| s.is_connected(), 2000).await;
+    let snap = multi.host(&HostId::new("alpha")).await.unwrap();
+    assert!(!snap.client_id.is_empty());
+    assert_eq!(
+        store.load(HostId::new("alpha")).await.unwrap().as_deref(),
+        Some(snap.client_id.as_str()),
+        "generated id should be persisted to the store"
+    );
+}
+
+#[tokio::test]
+async fn file_client_id_store_round_trips_through_multi_host() {
+    // End-to-end smoke test: write through one `MultiHostClient`, read
+    // through a fresh `MultiHostClient` (sharing the same on-disk
+    // store) and confirm the same `client_id` comes back out.
+    let dir = std::env::temp_dir().join(format!(
+        "ahp-hosts-file-store-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos()
+    ));
+    std::fs::create_dir_all(&dir).unwrap();
+    let store: Arc<dyn ClientIdStore> = Arc::new(FileClientIdStore::new(&dir));
+
+    let first = MultiHostClient::with_client_id_store(store.clone());
+    first
+        .add_host(HostConfig::new(
+            "alpha",
+            "Alpha",
+            make_basic_factory(FakeHostState::new()),
+        ))
+        .await
+        .unwrap();
+    wait_for_state(&first, &HostId::new("alpha"), |s| s.is_connected(), 2000).await;
+    let first_id = first.host(&HostId::new("alpha")).await.unwrap().client_id;
+    first.remove_host(&HostId::new("alpha")).await.unwrap();
+
+    let second = MultiHostClient::with_client_id_store(store);
+    second
+        .add_host(HostConfig::new(
+            "alpha",
+            "Alpha",
+            make_basic_factory(FakeHostState::new()),
+        ))
+        .await
+        .unwrap();
+    wait_for_state(&second, &HostId::new("alpha"), |s| s.is_connected(), 2000).await;
+    let second_id = second.host(&HostId::new("alpha")).await.unwrap().client_id;
+    assert_eq!(
+        first_id, second_id,
+        "FileClientIdStore should persist across MultiHostClient instances"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
