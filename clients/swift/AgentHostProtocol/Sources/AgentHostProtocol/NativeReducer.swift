@@ -839,33 +839,12 @@ func setCustomizationEnabled(_ c: inout Customization, _ enabled: Bool) {
     }
 }
 
-func setChildEnabled(_ c: inout ChildCustomization, _ enabled: Bool) {
-    switch c {
-    case .agent(var x): x.enabled = enabled; c = .agent(x)
-    case .skill(var x): x.enabled = enabled; c = .skill(x)
-    case .prompt(var x): x.enabled = enabled; c = .prompt(x)
-    case .rule(var x): x.enabled = enabled; c = .rule(x)
-    case .hook(var x): x.enabled = enabled; c = .hook(x)
-    case .mcpServer(var x): x.enabled = enabled; c = .mcpServer(x)
-    }
-}
-
 func toggleCustomization(in list: inout [Customization], id: String, enabled: Bool) -> Bool {
     for i in list.indices {
         if customizationId(list[i]) == id {
             var entry = list[i]
             setCustomizationEnabled(&entry, enabled)
             list[i] = entry
-            return true
-        }
-        var container = list[i]
-        guard var children = customizationChildren(container) else { continue }
-        if let childIdx = children.firstIndex(where: { childId($0) == id }) {
-            var child = children[childIdx]
-            setChildEnabled(&child, enabled)
-            children[childIdx] = child
-            setCustomizationChildren(&container, children)
-            list[i] = container
             return true
         }
     }

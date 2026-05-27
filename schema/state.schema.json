@@ -2563,10 +2563,6 @@
           },
           "description": "Icons for UI display."
         },
-        "enabled": {
-          "type": "boolean",
-          "description": "Whether this customization is currently active."
-        },
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
@@ -2575,8 +2571,7 @@
       "required": [
         "id",
         "uri",
-        "name",
-        "enabled"
+        "name"
       ]
     },
     "CustomizationLoadingState": {
@@ -2584,10 +2579,7 @@
       "description": "Container is being loaded by the host.",
       "properties": {
         "kind": {
-          "type": "string",
-          "enum": [
-            "loading"
-          ]
+          "$ref": "#/$defs/CustomizationLoadStatus.Loading"
         }
       },
       "required": [
@@ -2599,10 +2591,7 @@
       "description": "Container loaded successfully.",
       "properties": {
         "kind": {
-          "type": "string",
-          "enum": [
-            "loaded"
-          ]
+          "$ref": "#/$defs/CustomizationLoadStatus.Loaded"
         }
       },
       "required": [
@@ -2614,10 +2603,7 @@
       "description": "Container partially loaded but has warnings.",
       "properties": {
         "kind": {
-          "type": "string",
-          "enum": [
-            "degraded"
-          ]
+          "$ref": "#/$defs/CustomizationLoadStatus.Degraded"
         },
         "message": {
           "type": "string",
@@ -2634,10 +2620,7 @@
       "description": "Container failed to load.",
       "properties": {
         "kind": {
-          "type": "string",
-          "enum": [
-            "error"
-          ]
+          "$ref": "#/$defs/CustomizationLoadStatus.Error"
         },
         "message": {
           "type": "string",
@@ -2672,13 +2655,13 @@
           },
           "description": "Icons for UI display."
         },
-        "enabled": {
-          "type": "boolean",
-          "description": "Whether this customization is currently active."
-        },
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this container is currently enabled."
         },
         "clientId": {
           "type": "string",
@@ -2726,13 +2709,13 @@
           },
           "description": "Icons for UI display."
         },
-        "enabled": {
-          "type": "boolean",
-          "description": "Whether this customization is currently active."
-        },
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this container is currently enabled."
         },
         "clientId": {
           "type": "string",
@@ -2784,13 +2767,13 @@
           },
           "description": "Icons for UI display."
         },
-        "enabled": {
-          "type": "boolean",
-          "description": "Whether this customization is currently active."
-        },
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this container is currently enabled."
         },
         "clientId": {
           "type": "string",
@@ -2846,13 +2829,13 @@
           },
           "description": "Icons for UI display."
         },
-        "enabled": {
-          "type": "boolean",
-          "description": "Whether this customization is currently active."
-        },
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this container is currently enabled."
         },
         "clientId": {
           "type": "string",
@@ -2914,10 +2897,6 @@
           },
           "description": "Icons for UI display."
         },
-        "enabled": {
-          "type": "boolean",
-          "description": "Whether this customization is currently active."
-        },
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
@@ -2934,7 +2913,6 @@
         "id",
         "uri",
         "name",
-        "enabled",
         "type"
       ]
     },
@@ -2961,10 +2939,6 @@
           },
           "description": "Icons for UI display."
         },
-        "enabled": {
-          "type": "boolean",
-          "description": "Whether this customization is currently active."
-        },
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
@@ -2985,7 +2959,6 @@
         "id",
         "uri",
         "name",
-        "enabled",
         "type"
       ]
     },
@@ -3012,10 +2985,6 @@
           },
           "description": "Icons for UI display."
         },
-        "enabled": {
-          "type": "boolean",
-          "description": "Whether this customization is currently active."
-        },
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
@@ -3032,7 +3001,6 @@
         "id",
         "uri",
         "name",
-        "enabled",
         "type"
       ]
     },
@@ -3058,10 +3026,6 @@
             "$ref": "#/$defs/Icon"
           },
           "description": "Icons for UI display."
-        },
-        "enabled": {
-          "type": "boolean",
-          "description": "Whether this customization is currently active."
         },
         "range": {
           "$ref": "#/$defs/TextRange",
@@ -3090,7 +3054,6 @@
         "id",
         "uri",
         "name",
-        "enabled",
         "type"
       ]
     },
@@ -3117,10 +3080,6 @@
           },
           "description": "Icons for UI display."
         },
-        "enabled": {
-          "type": "boolean",
-          "description": "Whether this customization is currently active."
-        },
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
@@ -3133,7 +3092,6 @@
         "id",
         "uri",
         "name",
-        "enabled",
         "type"
       ]
     },
@@ -3160,10 +3118,6 @@
           },
           "description": "Icons for UI display."
         },
-        "enabled": {
-          "type": "boolean",
-          "description": "Whether this customization is currently active."
-        },
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
@@ -3176,7 +3130,6 @@
         "id",
         "uri",
         "name",
-        "enabled",
         "type"
       ]
     },

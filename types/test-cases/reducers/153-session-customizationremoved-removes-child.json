@@ -24,15 +24,13 @@
             "type": "skill",
             "id": "skill-1",
             "uri": "https://plugins.example/a#skills/lint",
-            "name": "lint",
-            "enabled": true
+            "name": "lint"
           },
           {
             "type": "skill",
             "id": "skill-2",
             "uri": "https://plugins.example/a#skills/refactor",
-            "name": "refactor",
-            "enabled": true
+            "name": "refactor"
           }
         ]
       }
@@ -67,8 +65,7 @@
             "type": "skill",
             "id": "skill-2",
             "uri": "https://plugins.example/a#skills/refactor",
-            "name": "refactor",
-            "enabled": true
+            "name": "refactor"
           }
         ]
       }

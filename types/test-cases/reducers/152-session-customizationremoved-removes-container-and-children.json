@@ -24,8 +24,7 @@
             "type": "skill",
             "id": "skill-1",
             "uri": "https://plugins.example/a#skills/lint",
-            "name": "lint",
-            "enabled": true
+            "name": "lint"
           }
         ]
       },

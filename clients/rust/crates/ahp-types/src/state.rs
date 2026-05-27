@@ -258,6 +258,19 @@ pub enum CustomizationType {
     McpServer,
 }
 
+/// Discriminant values for {@link CustomizationLoadState}.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum CustomizationLoadStatus {
+    #[serde(rename = "loading")]
+    Loading,
+    #[serde(rename = "loaded")]
+    Loaded,
+    #[serde(rename = "degraded")]
+    Degraded,
+    #[serde(rename = "error")]
+    Error,
+}
+
 /// Discriminant for terminal claim kinds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TerminalClaimKind {
@@ -1845,14 +1858,14 @@ pub struct PluginCustomization {
     /// Icons for UI display.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icons: Option<Vec<Icon>>,
-    /// Whether this customization is currently active.
-    pub enabled: bool,
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Whether this container is currently enabled.
+    pub enabled: bool,
     /// `clientId` of the client that contributed this container. Absent for
     /// server-originated entries.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1899,14 +1912,14 @@ pub struct ClientPluginCustomization {
     /// Icons for UI display.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icons: Option<Vec<Icon>>,
-    /// Whether this customization is currently active.
-    pub enabled: bool,
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Whether this container is currently enabled.
+    pub enabled: bool,
     /// `clientId` of the client that contributed this container. Absent for
     /// server-originated entries.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1956,14 +1969,14 @@ pub struct DirectoryCustomization {
     /// Icons for UI display.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icons: Option<Vec<Icon>>,
-    /// Whether this customization is currently active.
-    pub enabled: bool,
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Whether this container is currently enabled.
+    pub enabled: bool,
     /// `clientId` of the client that contributed this container. Absent for
     /// server-originated entries.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -2010,8 +2023,6 @@ pub struct AgentCustomization {
     /// Icons for UI display.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icons: Option<Vec<Icon>>,
-    /// Whether this customization is currently active.
-    pub enabled: bool,
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
@@ -2050,8 +2061,6 @@ pub struct SkillCustomization {
     /// Icons for UI display.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icons: Option<Vec<Icon>>,
-    /// Whether this customization is currently active.
-    pub enabled: bool,
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
@@ -2090,8 +2099,6 @@ pub struct PromptCustomization {
     /// Icons for UI display.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icons: Option<Vec<Icon>>,
-    /// Whether this customization is currently active.
-    pub enabled: bool,
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
@@ -2132,8 +2139,6 @@ pub struct RuleCustomization {
     /// Icons for UI display.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icons: Option<Vec<Icon>>,
-    /// Whether this customization is currently active.
-    pub enabled: bool,
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
@@ -2175,8 +2180,6 @@ pub struct HookCustomization {
     /// Icons for UI display.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icons: Option<Vec<Icon>>,
-    /// Whether this customization is currently active.
-    pub enabled: bool,
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
@@ -2211,8 +2214,6 @@ pub struct McpServerCustomization {
     /// Icons for UI display.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icons: Option<Vec<Icon>>,
-    /// Whether this customization is currently active.
-    pub enabled: bool,
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).

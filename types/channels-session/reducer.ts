@@ -622,28 +622,12 @@ export function sessionReducer(state: SessionState, action: SessionAction, log?:
       if (!list) {
         return state;
       }
-      let changed = false;
-      const updated = list.map(container => {
-        if (container.id === action.id) {
-          changed = true;
-          return { ...container, enabled: action.enabled };
-        }
-        const children = container.children;
-        if (!children) {
-          return container;
-        }
-        const childIdx = children.findIndex(c => c.id === action.id);
-        if (childIdx < 0) {
-          return container;
-        }
-        changed = true;
-        const newChildren = [...children];
-        newChildren[childIdx] = { ...children[childIdx], enabled: action.enabled };
-        return { ...container, children: newChildren };
-      });
-      if (!changed) {
+      const idx = list.findIndex(c => c.id === action.id);
+      if (idx < 0) {
         return state;
       }
+      const updated = [...list];
+      updated[idx] = { ...list[idx], enabled: action.enabled };
       return { ...state, customizations: updated };
     }
 

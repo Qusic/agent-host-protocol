@@ -102,7 +102,7 @@ stateDiagram-v2
 
 ## Children
 
-Every child carries the same base fields (`id`, `uri`, `name`, `enabled`, optional `icons`). Children are leaf nodes — no further nesting — and their parent is implied by which container holds them in its `children` array. Children have no `clientId`: client provenance lives on the container, since clients can only contribute containers, not individual children.
+Every child carries the same base fields (`id`, `uri`, `name`, optional `icons`). Children are leaf nodes — no further nesting — and their parent is implied by which container holds them in its `children` array. Children have no `enabled` or `clientId`: only containers can be toggled, and client provenance lives on the container since clients can only contribute containers, not individual children.
 
 Each child type carries optional metadata sourced from its [Open Plugins](https://open-plugins.com/plugin-builders/specification.md) component definition (typically the file's YAML frontmatter):
 
@@ -127,17 +127,17 @@ state.customizations
 
 ## Toggling
 
-Any client can enable or disable a customization at either level by dispatching `session/customizationToggled` with the entry's `id`:
+Any client can enable or disable a top-level container by dispatching `session/customizationToggled` with the container's `id`:
 
 ```typescript
 {
   type: 'session/customizationToggled'
-  id: string         // container or child id
+  id: string         // container id
   enabled: boolean
 }
 ```
 
-The reducer searches every container and its children for the matching `id` and flips the `enabled` flag. The action is a no-op if no entry has that id.
+Only containers (plugins and directories) have an `enabled` flag — children are always active when their container is enabled. The action is a no-op if no container has that id.
 
 ```mermaid
 sequenceDiagram
@@ -361,9 +361,9 @@ sequenceDiagram
     Server->>Client: customizationUpdated (Plugin C: load: loading)
     Server->>Client: customizationUpdated (Plugin C: load: loaded, children: [...])
 
-    Note over Client,Server: 3. Client disables a skill inside Plugin A
+    Note over Client,Server: 3. Client disables Plugin A
 
-    Client->>Server: customizationToggled (id: skill-1, enabled: false)
+    Client->>Server: customizationToggled (id: plugin-a, enabled: false)
     Server->>Client: action echoed
 
     Note over Client,Server: 4. Active client disconnects

@@ -577,11 +577,12 @@ export interface SessionCustomizationsChangedAction {
 }
 
 /**
- * A client toggled a customization on or off.
+ * A client toggled a container customization on or off.
  *
- * The reducer searches every container and its children for an entry
- * with the matching `id` and sets its `enabled` flag. Is a no-op when
- * no matching id is found.
+ * Targets a top-level container (plugin or directory) by `id`. Only
+ * containers have an `enabled` flag; children are always active when
+ * their container is enabled. Is a no-op when no matching container is
+ * found.
  *
  * @category Session Actions
  * @version 1
@@ -589,9 +590,9 @@ export interface SessionCustomizationsChangedAction {
  */
 export interface SessionCustomizationToggledAction {
   type: ActionType.SessionCustomizationToggled;
-  /** The id of the customization to toggle. */
+  /** The id of the container to toggle. */
   id: string;
-  /** Whether to enable or disable the customization. */
+  /** Whether to enable or disable the container. */
   enabled: boolean;
 }
 

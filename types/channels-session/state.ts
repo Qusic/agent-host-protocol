@@ -1339,8 +1339,6 @@ interface CustomizationBase {
   name: string;
   /** Icons for UI display. */
   icons?: Icon[];
-  /** Whether this customization is currently active. */
-  enabled: boolean;
   /**
    * Optional span within {@link CustomizationBase.uri | `uri`} when this
    * customization is a subset of a larger file (for example, one entry
@@ -1351,12 +1349,24 @@ interface CustomizationBase {
 }
 
 /**
+ * Discriminant values for {@link CustomizationLoadState}.
+ *
+ * @category Customization Types
+ */
+export const enum CustomizationLoadStatus {
+  Loading = 'loading',
+  Loaded = 'loaded',
+  Degraded = 'degraded',
+  Error = 'error',
+}
+
+/**
  * Container is being loaded by the host.
  *
  * @category Customization Types
  */
 export interface CustomizationLoadingState {
-  kind: 'loading';
+  kind: CustomizationLoadStatus.Loading;
 }
 
 /**
@@ -1365,7 +1375,7 @@ export interface CustomizationLoadingState {
  * @category Customization Types
  */
 export interface CustomizationLoadedState {
-  kind: 'loaded';
+  kind: CustomizationLoadStatus.Loaded;
 }
 
 /**
@@ -1374,7 +1384,7 @@ export interface CustomizationLoadedState {
  * @category Customization Types
  */
 export interface CustomizationDegradedState {
-  kind: 'degraded';
+  kind: CustomizationLoadStatus.Degraded;
   /** Human-readable description of the warning. */
   message: string;
 }
@@ -1385,7 +1395,7 @@ export interface CustomizationDegradedState {
  * @category Customization Types
  */
 export interface CustomizationErrorState {
-  kind: 'error';
+  kind: CustomizationLoadStatus.Error;
   /** Human-readable error message. */
   message: string;
 }
@@ -1408,6 +1418,8 @@ export type CustomizationLoadState =
  * @category Customization Types
  */
 interface ContainerCustomizationBase extends CustomizationBase {
+  /** Whether this container is currently enabled. */
+  enabled: boolean;
   /**
    * `clientId` of the client that contributed this container. Absent for
    * server-originated entries.

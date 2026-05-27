@@ -356,30 +356,10 @@ fn set_container_enabled(c: &mut Customization, enabled: bool) {
     }
 }
 
-fn set_child_enabled(c: &mut ChildCustomization, enabled: bool) {
-    match c {
-        ChildCustomization::Agent(x) => x.enabled = enabled,
-        ChildCustomization::Skill(x) => x.enabled = enabled,
-        ChildCustomization::Prompt(x) => x.enabled = enabled,
-        ChildCustomization::Rule(x) => x.enabled = enabled,
-        ChildCustomization::Hook(x) => x.enabled = enabled,
-        ChildCustomization::McpServer(x) => x.enabled = enabled,
-        ChildCustomization::Unknown(_) => {}
-    }
-}
-
 fn apply_toggle(list: &mut [Customization], id: &str, enabled: bool) -> bool {
-    for container in list.iter_mut() {
-        if customization_id(container) == Some(id) {
-            set_container_enabled(container, enabled);
-            return true;
-        }
-        if let Some(children) = container_children_mut(container) {
-            if let Some(child) = children.iter_mut().find(|c| child_id_of(c) == Some(id)) {
-                set_child_enabled(child, enabled);
-                return true;
-            }
-        }
+    if let Some(container) = list.iter_mut().find(|c| customization_id(c) == Some(id)) {
+        set_container_enabled(container, enabled);
+        return true;
     }
     false
 }

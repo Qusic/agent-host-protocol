@@ -206,6 +206,14 @@ public enum CustomizationType: String, Codable, Sendable {
     case mcpServer = "mcpServer"
 }
 
+/// Discriminant values for {@link CustomizationLoadState}.
+public enum CustomizationLoadStatus: String, Codable, Sendable {
+    case loading = "loading"
+    case loaded = "loaded"
+    case degraded = "degraded"
+    case error = "error"
+}
+
 /// Discriminant for terminal claim kinds.
 public enum TerminalClaimKind: String, Codable, Sendable {
     case client = "client"
@@ -2340,32 +2348,32 @@ public struct ToolResultSubagentContent: Codable, Sendable {
 }
 
 public struct CustomizationLoadingState: Codable, Sendable {
-    public var kind: String
+    public var kind: CustomizationLoadStatus
 
     public init(
-        kind: String
+        kind: CustomizationLoadStatus
     ) {
         self.kind = kind
     }
 }
 
 public struct CustomizationLoadedState: Codable, Sendable {
-    public var kind: String
+    public var kind: CustomizationLoadStatus
 
     public init(
-        kind: String
+        kind: CustomizationLoadStatus
     ) {
         self.kind = kind
     }
 }
 
 public struct CustomizationDegradedState: Codable, Sendable {
-    public var kind: String
+    public var kind: CustomizationLoadStatus
     /// Human-readable description of the warning.
     public var message: String
 
     public init(
-        kind: String,
+        kind: CustomizationLoadStatus,
         message: String
     ) {
         self.kind = kind
@@ -2374,12 +2382,12 @@ public struct CustomizationDegradedState: Codable, Sendable {
 }
 
 public struct CustomizationErrorState: Codable, Sendable {
-    public var kind: String
+    public var kind: CustomizationLoadStatus
     /// Human-readable error message.
     public var message: String
 
     public init(
-        kind: String,
+        kind: CustomizationLoadStatus,
         message: String
     ) {
         self.kind = kind
@@ -2404,13 +2412,13 @@ public struct PluginCustomization: Codable, Sendable {
     public var name: String
     /// Icons for UI display.
     public var icons: [Icon]?
-    /// Whether this customization is currently active.
-    public var enabled: Bool
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
     /// Absent when the customization covers the whole resource.
     public var range: TextRange?
+    /// Whether this container is currently enabled.
+    public var enabled: Bool
     /// `clientId` of the client that contributed this container. Absent for
     /// server-originated entries.
     public var clientId: String?
@@ -2430,8 +2438,8 @@ public struct PluginCustomization: Codable, Sendable {
         uri: String,
         name: String,
         icons: [Icon]? = nil,
-        enabled: Bool,
         range: TextRange? = nil,
+        enabled: Bool,
         clientId: String? = nil,
         load: CustomizationLoadState? = nil,
         children: [ChildCustomization]? = nil,
@@ -2441,8 +2449,8 @@ public struct PluginCustomization: Codable, Sendable {
         self.uri = uri
         self.name = name
         self.icons = icons
-        self.enabled = enabled
         self.range = range
+        self.enabled = enabled
         self.clientId = clientId
         self.load = load
         self.children = children
@@ -2467,13 +2475,13 @@ public struct ClientPluginCustomization: Codable, Sendable {
     public var name: String
     /// Icons for UI display.
     public var icons: [Icon]?
-    /// Whether this customization is currently active.
-    public var enabled: Bool
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
     /// Absent when the customization covers the whole resource.
     public var range: TextRange?
+    /// Whether this container is currently enabled.
+    public var enabled: Bool
     /// `clientId` of the client that contributed this container. Absent for
     /// server-originated entries.
     public var clientId: String?
@@ -2495,8 +2503,8 @@ public struct ClientPluginCustomization: Codable, Sendable {
         uri: String,
         name: String,
         icons: [Icon]? = nil,
-        enabled: Bool,
         range: TextRange? = nil,
+        enabled: Bool,
         clientId: String? = nil,
         load: CustomizationLoadState? = nil,
         children: [ChildCustomization]? = nil,
@@ -2507,8 +2515,8 @@ public struct ClientPluginCustomization: Codable, Sendable {
         self.uri = uri
         self.name = name
         self.icons = icons
-        self.enabled = enabled
         self.range = range
+        self.enabled = enabled
         self.clientId = clientId
         self.load = load
         self.children = children
@@ -2534,13 +2542,13 @@ public struct DirectoryCustomization: Codable, Sendable {
     public var name: String
     /// Icons for UI display.
     public var icons: [Icon]?
-    /// Whether this customization is currently active.
-    public var enabled: Bool
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
     /// Absent when the customization covers the whole resource.
     public var range: TextRange?
+    /// Whether this container is currently enabled.
+    public var enabled: Bool
     /// `clientId` of the client that contributed this container. Absent for
     /// server-originated entries.
     public var clientId: String?
@@ -2564,8 +2572,8 @@ public struct DirectoryCustomization: Codable, Sendable {
         uri: String,
         name: String,
         icons: [Icon]? = nil,
-        enabled: Bool,
         range: TextRange? = nil,
+        enabled: Bool,
         clientId: String? = nil,
         load: CustomizationLoadState? = nil,
         children: [ChildCustomization]? = nil,
@@ -2577,8 +2585,8 @@ public struct DirectoryCustomization: Codable, Sendable {
         self.uri = uri
         self.name = name
         self.icons = icons
-        self.enabled = enabled
         self.range = range
+        self.enabled = enabled
         self.clientId = clientId
         self.load = load
         self.children = children
@@ -2605,8 +2613,6 @@ public struct AgentCustomization: Codable, Sendable {
     public var name: String
     /// Icons for UI display.
     public var icons: [Icon]?
-    /// Whether this customization is currently active.
-    public var enabled: Bool
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
@@ -2622,7 +2628,6 @@ public struct AgentCustomization: Codable, Sendable {
         uri: String,
         name: String,
         icons: [Icon]? = nil,
-        enabled: Bool,
         range: TextRange? = nil,
         type: CustomizationType,
         description: String? = nil
@@ -2631,7 +2636,6 @@ public struct AgentCustomization: Codable, Sendable {
         self.uri = uri
         self.name = name
         self.icons = icons
-        self.enabled = enabled
         self.range = range
         self.type = type
         self.description = description
@@ -2655,8 +2659,6 @@ public struct SkillCustomization: Codable, Sendable {
     public var name: String
     /// Icons for UI display.
     public var icons: [Icon]?
-    /// Whether this customization is currently active.
-    public var enabled: Bool
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
@@ -2676,7 +2678,6 @@ public struct SkillCustomization: Codable, Sendable {
         uri: String,
         name: String,
         icons: [Icon]? = nil,
-        enabled: Bool,
         range: TextRange? = nil,
         type: CustomizationType,
         description: String? = nil,
@@ -2686,7 +2687,6 @@ public struct SkillCustomization: Codable, Sendable {
         self.uri = uri
         self.name = name
         self.icons = icons
-        self.enabled = enabled
         self.range = range
         self.type = type
         self.description = description
@@ -2711,8 +2711,6 @@ public struct PromptCustomization: Codable, Sendable {
     public var name: String
     /// Icons for UI display.
     public var icons: [Icon]?
-    /// Whether this customization is currently active.
-    public var enabled: Bool
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
@@ -2727,7 +2725,6 @@ public struct PromptCustomization: Codable, Sendable {
         uri: String,
         name: String,
         icons: [Icon]? = nil,
-        enabled: Bool,
         range: TextRange? = nil,
         type: CustomizationType,
         description: String? = nil
@@ -2736,7 +2733,6 @@ public struct PromptCustomization: Codable, Sendable {
         self.uri = uri
         self.name = name
         self.icons = icons
-        self.enabled = enabled
         self.range = range
         self.type = type
         self.description = description
@@ -2760,8 +2756,6 @@ public struct RuleCustomization: Codable, Sendable {
     public var name: String
     /// Icons for UI display.
     public var icons: [Icon]?
-    /// Whether this customization is currently active.
-    public var enabled: Bool
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
@@ -2783,7 +2777,6 @@ public struct RuleCustomization: Codable, Sendable {
         uri: String,
         name: String,
         icons: [Icon]? = nil,
-        enabled: Bool,
         range: TextRange? = nil,
         type: CustomizationType,
         description: String? = nil,
@@ -2794,7 +2787,6 @@ public struct RuleCustomization: Codable, Sendable {
         self.uri = uri
         self.name = name
         self.icons = icons
-        self.enabled = enabled
         self.range = range
         self.type = type
         self.description = description
@@ -2820,8 +2812,6 @@ public struct HookCustomization: Codable, Sendable {
     public var name: String
     /// Icons for UI display.
     public var icons: [Icon]?
-    /// Whether this customization is currently active.
-    public var enabled: Bool
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
@@ -2834,7 +2824,6 @@ public struct HookCustomization: Codable, Sendable {
         uri: String,
         name: String,
         icons: [Icon]? = nil,
-        enabled: Bool,
         range: TextRange? = nil,
         type: CustomizationType
     ) {
@@ -2842,7 +2831,6 @@ public struct HookCustomization: Codable, Sendable {
         self.uri = uri
         self.name = name
         self.icons = icons
-        self.enabled = enabled
         self.range = range
         self.type = type
     }
@@ -2865,8 +2853,6 @@ public struct McpServerCustomization: Codable, Sendable {
     public var name: String
     /// Icons for UI display.
     public var icons: [Icon]?
-    /// Whether this customization is currently active.
-    public var enabled: Bool
     /// Optional span within {@link CustomizationBase.uri | `uri`} when this
     /// customization is a subset of a larger file (for example, one entry
     /// in an inline `mcpServers` block of a `plugins.json` manifest).
@@ -2879,7 +2865,6 @@ public struct McpServerCustomization: Codable, Sendable {
         uri: String,
         name: String,
         icons: [Icon]? = nil,
-        enabled: Bool,
         range: TextRange? = nil,
         type: CustomizationType
     ) {
@@ -2887,7 +2872,6 @@ public struct McpServerCustomization: Codable, Sendable {
         self.uri = uri
         self.name = name
         self.icons = icons
-        self.enabled = enabled
         self.range = range
         self.type = type
     }
