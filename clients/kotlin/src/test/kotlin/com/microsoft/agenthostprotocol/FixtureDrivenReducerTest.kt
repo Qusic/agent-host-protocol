@@ -13,6 +13,7 @@ import kotlinx.serialization.json.jsonObject
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.assertAll
 import org.junit.jupiter.api.fail
@@ -23,9 +24,19 @@ import kotlin.test.assertTrue
  *
  * Loads test cases from `types/test-cases/reducers/` (shared with the
  * TypeScript / Rust / Swift reducer impls) and verifies that the Kotlin
- * reducers produce identical output. The fixture directory's absolute path
- * is supplied via the `ahp.reducerFixturesDir` system property set by
- * `build.gradle.kts` so the test works regardless of cwd.
+ * reducers produce identical output.
+ *
+ * The fixture directory is located by:
+ *
+ * 1. The `ahp.reducerFixturesDir` system property if set — this is wired
+ *    up automatically by `build.gradle.kts` when tests are run via
+ *    Gradle (including IDE runs that delegate to Gradle, which is the
+ *    IntelliJ default for Gradle projects).
+ * 2. Otherwise, by walking upward from `user.dir` looking for a
+ *    directory containing `types/test-cases/reducers/`. This makes
+ *    direct IDE test runs (e.g. with the JUnit runner instead of the
+ *    Gradle delegating runner) work without extra configuration as long
+ *    as `user.dir` is inside the repo.
  *
  * To run only this class:
  * ```
@@ -223,7 +234,27 @@ class FixtureDrivenReducerTest {
     private fun prettyPrint(element: JsonElement): String =
         Ahp.prettyJson.encodeToString(JsonElement.serializer(), element)
 
-    // ─── Fixture Loading ────────────────────────────────────────────────────
+    @Test
+    fun `fixtureDir falls back to walking up from cwd when system property is unset`() {
+        // Direct-IDE-run safety net: even without Gradle's system property
+        // wiring, fixtureDir() should still locate the shared fixtures by
+        // walking upward from cwd. This covers IDE test runners that don't
+        // delegate to Gradle.
+        val savedProperty = System.getProperty("ahp.reducerFixturesDir")
+        System.clearProperty("ahp.reducerFixturesDir")
+        try {
+            val dir = fixtureDir()
+            assertTrue(dir.isDirectory, "fallback returned non-directory: ${dir.path}")
+            assertTrue(
+                dir.toPath().endsWith(File("types/test-cases/reducers").toPath()),
+                "fallback returned unexpected path: ${dir.path}",
+            )
+        } finally {
+            if (savedProperty != null) System.setProperty("ahp.reducerFixturesDir", savedProperty)
+        }
+    }
+
+
 
     private fun loadFixtures(): List<Pair<File, JsonObject>> {
         val dir = fixtureDir()
@@ -237,17 +268,31 @@ class FixtureDrivenReducerTest {
     }
 
     private fun fixtureDir(): File {
-        val path = System.getProperty("ahp.reducerFixturesDir")
-            ?: error(
-                "ahp.reducerFixturesDir system property is not set. " +
-                    "Run tests via Gradle so build.gradle.kts can wire it up.",
+        val fromProperty = System.getProperty("ahp.reducerFixturesDir")?.let(::File)
+        if (fromProperty != null) {
+            assertTrue(
+                fromProperty.isDirectory,
+                "ahp.reducerFixturesDir points to '${fromProperty.path}' which is not a directory",
             )
-        val dir = File(path)
-        assertTrue(
-            dir.isDirectory,
-            "ahp.reducerFixturesDir points to '$path' which is not a directory",
+            return fromProperty
+        }
+        // Fallback: walk upward from cwd looking for the well-known fixtures
+        // path. Lets non-Gradle IDE test runners work without manual config
+        // (Gradle-delegated IDE runs always have the system property set).
+        val cwd = File(System.getProperty("user.dir") ?: ".").absoluteFile
+        var dir: File? = cwd
+        while (dir != null) {
+            val candidate = File(dir, "types/test-cases/reducers")
+            if (candidate.isDirectory) return candidate
+            dir = dir.parentFile
+        }
+        error(
+            "Could not locate the reducer fixtures directory. Set the " +
+                "'ahp.reducerFixturesDir' system property (Gradle does this " +
+                "automatically), or run tests from somewhere inside the repo " +
+                "checkout containing 'types/test-cases/reducers/'. " +
+                "Searched upward from '${cwd.path}'.",
         )
-        return dir
     }
 
     private companion object {

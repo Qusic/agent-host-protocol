@@ -258,7 +258,7 @@ private fun resolveSelectedOption(options: List<ConfirmationOption>?, id: String
     return options.firstOrNull { it.id == id }
 }
 
-private fun toolCallId(tc: ToolCallState): String = toolCallBase(tc).toolCallId
+private fun toolCallIdOf(tc: ToolCallState): String = toolCallBase(tc).toolCallId
 
 /**
  * Immutably updates the tool call inside a [ToolCallResponsePart] in the
@@ -276,7 +276,7 @@ private fun updateToolCallInParts(
 
     var found = false
     val responseParts = activeTurn.responseParts.map { part ->
-        if (part is ResponsePartToolCall && toolCallId(part.value.toolCall) == toolCallId) {
+        if (part is ResponsePartToolCall && toolCallIdOf(part.value.toolCall) == toolCallId) {
             val updated = updater(part.value.toolCall)
             if (updated === part.value.toolCall) {
                 part
@@ -310,7 +310,7 @@ private fun updateResponsePart(
     val responseParts = activeTurn.responseParts.map { part ->
         if (found) part else {
             val id: String? = when (part) {
-                is ResponsePartToolCall -> toolCallId(part.value.toolCall)
+                is ResponsePartToolCall -> toolCallIdOf(part.value.toolCall)
                 is ResponsePartMarkdown -> part.value.id
                 is ResponsePartReasoning -> part.value.id
                 else -> null

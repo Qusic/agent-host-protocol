@@ -184,7 +184,7 @@ Tests override this with a constant to produce deterministic output, then restor
 
 `FixtureDrivenReducerTest` loads every fixture under `types/test-cases/reducers/*.json` and verifies that the Kotlin reducer's output matches the fixture's `expected` state. Fixtures are shared with the TypeScript, Swift, and Rust reducer impls, so this test is the primary cross-language parity gate.
 
-The fixture path is wired into the test JVM via the `ahp.reducerFixturesDir` system property in `build.gradle.kts`, so the test works under `./gradlew test`, IDE runners, or CI without depending on the current working directory.
+The fixture path is wired into the test JVM via the `ahp.reducerFixturesDir` system property in `build.gradle.kts`, so the test works under `./gradlew test`, IDE runs that delegate to Gradle (the IntelliJ default), or CI without depending on the current working directory. When neither Gradle nor a delegating runner sets the property, the test falls back to walking upward from `user.dir` looking for `types/test-cases/reducers/`, so direct IDE JUnit runs from inside the repo still work.
 
 A small `SKIPPED_FIXTURES` set carries any fixtures intentionally skipped because they exercise wire-type decoding behaviour this package doesn't yet support (e.g. unknown `ResponsePart` discriminators). The `coverageReport().decodable-fixture-budget` assertion bounds the skip set size so regressions surface in CI. As of the initial port, exactly one fixture is skipped:
 
