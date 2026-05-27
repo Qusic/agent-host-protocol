@@ -135,10 +135,12 @@ export function resolveConfig(config: HostConfig): ResolvedHostConfig {
  * host: connection state, last error, protocol version, mirrored root
  * fields, subscribed URIs, cached session summaries, generation counter.
  *
- * Cheap to clone — fields are primitives or already-frozen arrays.
- * Snapshots are immutable; take a fresh one via
- * {@link MultiHostClient.host} or {@link MultiHostClient.hosts}, or
- * listen to {@link MultiHostClient.hostEvents}.
+ * Cheap to clone — fields are primitives or shallow-cloned arrays.
+ * Treat snapshots as immutable: they aren't deeply frozen, but the
+ * supervisor never mutates them after construction, and any field you
+ * care about should be re-read by taking a fresh snapshot via
+ * {@link MultiHostClient.host} or {@link MultiHostClient.hosts}, or by
+ * listening to {@link MultiHostClient.hostEvents}.
  */
 export interface HostHandle {
   /** Stable identifier. */
@@ -390,23 +392,34 @@ export class ClientIdStoreError extends HostMultiError {
 // ─── ID generation ───────────────────────────────────────────────────────────
 
 /**
- * Generate a fresh UUID-shaped `clientId`. Uses `crypto.randomUUID`
- * when available (Node 19+, modern browsers); falls back to a
- * locally-mixed UUIDv4 hex string otherwise so older Node runtimes
- * still work.
+ * Generate a fresh UUID-shaped `clientId`. Prefers
+ * `crypto.randomUUID()` (Node 19+, modern browsers); falls back to
+ * `crypto.getRandomValues()` for the 16 random bytes when only that is
+ * available (older browsers / non-secure contexts); and only falls
+ * back to `Math.random()` as a last resort for environments where no
+ * Web Crypto API is exposed at all.
  *
  * @internal
  */
 export function generateClientId(): string {
-  const cryptoObj = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  const cryptoObj = (globalThis as {
+    crypto?: {
+      randomUUID?: () => string;
+      getRandomValues?: <T extends ArrayBufferView>(array: T) => T;
+    };
+  }).crypto;
   if (cryptoObj && typeof cryptoObj.randomUUID === 'function') {
     return cryptoObj.randomUUID();
   }
-  // Fallback: synthesize a UUIDv4-shaped string from Math.random.
-  // Acceptable because consumers that need cross-launch identity should
-  // persist the value through a ClientIdStore anyway.
   const bytes = new Uint8Array(16);
-  for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
+  if (cryptoObj && typeof cryptoObj.getRandomValues === 'function') {
+    cryptoObj.getRandomValues(bytes);
+  } else {
+    // Last-resort fallback. `Math.random()` is not cryptographically
+    // strong, but consumers that need cross-launch identity should
+    // persist the value through a ClientIdStore anyway.
+    for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
+  }
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
   const hex = (n: number): string => n.toString(16).padStart(2, '0');

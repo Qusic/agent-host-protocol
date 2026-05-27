@@ -242,6 +242,62 @@ test('InMemoryClientIdStore round-trips and overwrites', async () => {
   assert.equal(await store.load('a'), 'second');
 });
 
+// ─── generateClientId fallback chain ────────────────────────────────────────
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+/**
+ * Replace `globalThis.crypto` with `value` for the duration of the test.
+ * Node exposes `globalThis.crypto` as a getter-only property so plain
+ * assignment fails — use `Object.defineProperty` and restore the original
+ * descriptor afterwards.
+ */
+function withStubbedCrypto<T>(value: unknown, body: () => T): T {
+  const target = globalThis as object;
+  const originalDescriptor = Object.getOwnPropertyDescriptor(target, 'crypto');
+  Object.defineProperty(target, 'crypto', {
+    value,
+    configurable: true,
+    writable: true,
+  });
+  try {
+    return body();
+  } finally {
+    if (originalDescriptor) {
+      Object.defineProperty(target, 'crypto', originalDescriptor);
+    } else {
+      delete (target as { crypto?: unknown }).crypto;
+    }
+  }
+}
+
+test('generateClientId prefers crypto.getRandomValues over Math.random when randomUUID is missing', async () => {
+  const { generateClientId } = await import('../src/client/hosts/types.js');
+  let getRandomCalls = 0;
+  const stub = {
+    // no randomUUID — force the fallback path
+    getRandomValues<T extends ArrayBufferView>(view: T): T {
+      getRandomCalls += 1;
+      // Fill with a known deterministic pattern so we can assert
+      // the bytes round-trip through the UUIDv4 framing.
+      const bytes = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+      for (let i = 0; i < bytes.length; i++) bytes[i] = 0xab;
+      return view;
+    },
+  };
+  const id = withStubbedCrypto(stub, () => generateClientId());
+  assert.equal(getRandomCalls, 1, 'expected exactly one getRandomValues call');
+  assert.match(id, UUID_RE);
+  assert.equal(id[14], '4', 'UUID version digit should be 4');
+  assert.ok('89ab'.includes(id[19]), 'UUID variant digit should be 8, 9, a, or b');
+});
+
+test('generateClientId still returns a UUIDv4-shaped string when only Math.random is available', async () => {
+  const { generateClientId } = await import('../src/client/hosts/types.js');
+  const id = withStubbedCrypto(undefined, () => generateClientId());
+  assert.match(id, UUID_RE);
+});
+
 // ─── HostedResourceKey ──────────────────────────────────────────────────────
 
 test('hostedResourceKey distinguishes hosts with the same URI', () => {
