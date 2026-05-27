@@ -5,7 +5,7 @@
  */
 
 import { ActionType } from '../common/actions.js';
-import type { URI, StringOrMarkdown, ErrorInfo, FileEdit, UsageInfo } from '../common/state.js';
+import type { StringOrMarkdown, ErrorInfo, FileEdit, UsageInfo } from '../common/state.js';
 import type {
   UserMessage,
   ResponsePart,
