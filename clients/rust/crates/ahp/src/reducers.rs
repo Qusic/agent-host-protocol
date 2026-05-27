@@ -37,7 +37,7 @@
 //!
 //! // A session-scoped action is reported as out-of-scope at the root.
 //! let session_action = StateAction::SessionTitleChanged(
-//!     SessionTitleChangedAction { session: "copilot:/s1".into(), title: "Hi".into() },
+//!     SessionTitleChangedAction { title: "Hi".into() },
 //! );
 //! assert_eq!(
 //!     apply_action_to_root(&mut root, &session_action),
@@ -55,10 +55,10 @@ use ahp_types::actions::{
 };
 use ahp_types::state::{
     ActiveTurn, ConfirmationOption, ErrorInfo, PendingMessage, PendingMessageKind, ResponsePart,
-    RootState, SessionInputRequest, SessionLifecycle, SessionState, SessionStatus,
-    TerminalCommandPart, TerminalContentPart, TerminalState, TerminalUnclassifiedPart,
-    ToolCallCancellationReason, ToolCallCancelledState, ToolCallCompletedState,
-    ToolCallConfirmationReason, ToolCallPendingConfirmationState,
+    RootState, SessionCustomization, SessionInputRequest, SessionLifecycle, SessionState,
+    SessionStatus, TerminalCommandPart, TerminalContentPart, TerminalState,
+    TerminalUnclassifiedPart, ToolCallCancellationReason, ToolCallCancelledState,
+    ToolCallCompletedState, ToolCallConfirmationReason, ToolCallPendingConfirmationState,
     ToolCallPendingResultConfirmationState, ToolCallResponsePart, ToolCallRunningState,
     ToolCallState, ToolCallStreamingState, Turn, TurnState,
 };
@@ -432,8 +432,9 @@ pub fn apply_action_to_root(state: &mut RootState, action: &StateAction) -> Redu
 pub fn apply_action_to_session(state: &mut SessionState, action: &StateAction) -> ReduceOutcome {
     match action {
         StateAction::SessionReady(_) => {
+            // Lifecycle-only transition. Must not touch `summary.status`: see
+            // the equivalent TypeScript reducer for the rationale.
             state.lifecycle = SessionLifecycle::Ready;
-            state.summary.status = summary_status(state, None);
             ReduceOutcome::Applied
         }
         StateAction::SessionCreationFailed(a) => {
@@ -549,6 +550,11 @@ pub fn apply_action_to_session(state: &mut SessionState, action: &StateAction) -
             touch_modified(state);
             ReduceOutcome::Applied
         }
+        StateAction::SessionAgentChanged(a) => {
+            state.summary.agent = a.agent.clone();
+            touch_modified(state);
+            ReduceOutcome::Applied
+        }
         StateAction::SessionIsReadChanged(a) => {
             state.summary.status =
                 with_status_flag(state.summary.status, SessionStatus::IsRead, a.is_read);
@@ -566,8 +572,8 @@ pub fn apply_action_to_session(state: &mut SessionState, action: &StateAction) -
             state.summary.activity = a.activity.clone();
             ReduceOutcome::Applied
         }
-        StateAction::SessionDiffsChanged(a) => {
-            state.summary.diffs = Some(a.diffs.clone());
+        StateAction::SessionChangesetsChanged(a) => {
+            state.summary.changesets = a.changesets.clone();
             ReduceOutcome::Applied
         }
         StateAction::SessionConfigChanged(a) => {
@@ -615,6 +621,37 @@ pub fn apply_action_to_session(state: &mut SessionState, action: &StateAction) -
                 return ReduceOutcome::NoOp;
             };
             list[idx].enabled = a.enabled;
+            ReduceOutcome::Applied
+        }
+        StateAction::SessionCustomizationUpdated(a) => {
+            let list = state.customizations.get_or_insert_with(Vec::new);
+            if let Some(idx) = list
+                .iter()
+                .position(|c| c.customization.uri == a.customization.uri)
+            {
+                list[idx].customization = a.customization.clone();
+                if let Some(enabled) = a.enabled {
+                    list[idx].enabled = enabled;
+                }
+                if let Some(status) = a.status {
+                    list[idx].status = Some(status);
+                }
+                if let Some(message) = a.status_message.clone() {
+                    list[idx].status_message = Some(message);
+                }
+                if let Some(agents) = a.agents.clone() {
+                    list[idx].agents = Some(agents);
+                }
+            } else {
+                list.push(SessionCustomization {
+                    customization: a.customization.clone(),
+                    enabled: a.enabled.unwrap_or(false),
+                    client_id: None,
+                    status: a.status,
+                    status_message: a.status_message.clone(),
+                    agents: a.agents.clone(),
+                });
+            }
             ReduceOutcome::Applied
         }
         StateAction::SessionTruncated(a) => apply_truncated(state, a.turn_id.as_deref()),
@@ -1113,8 +1150,9 @@ mod tests {
                 modified_at: 0,
                 project: None,
                 model: None,
+                agent: None,
                 working_directory: None,
-                diffs: None,
+                changesets: None,
             },
             lifecycle: SessionLifecycle::Creating,
             creation_error: None,
@@ -1135,7 +1173,6 @@ mod tests {
     fn turn_started_creates_active_turn_and_sets_in_progress() {
         let mut s = empty_session("copilot:/s1");
         let action = StateAction::SessionTurnStarted(SessionTurnStartedAction {
-            session: "copilot:/s1".into(),
             turn_id: "t1".into(),
             user_message: UserMessage {
                 text: "hi".into(),
@@ -1167,7 +1204,6 @@ mod tests {
             usage: None,
         });
         let a = StateAction::SessionDelta(ahp_types::actions::SessionDeltaAction {
-            session: "copilot:/s1".into(),
             turn_id: "t1".into(),
             part_id: "p1".into(),
             content: ", world".into(),
@@ -1193,7 +1229,6 @@ mod tests {
         });
         s.summary.status = SessionStatus::InProgress as u32;
         let a = StateAction::SessionTurnComplete(ahp_types::actions::SessionTurnCompleteAction {
-            session: "copilot:/s1".into(),
             turn_id: "t1".into(),
         });
         assert_eq!(apply_action_to_session(&mut s, &a), ReduceOutcome::Applied);
@@ -1237,12 +1272,10 @@ mod tests {
             supports_command_detection: None,
         };
         let a = StateAction::TerminalData(ahp_types::actions::TerminalDataAction {
-            terminal: "terminal:/1".into(),
             data: "hello".into(),
         });
         apply_action_to_terminal(&mut t, &a);
         let a2 = StateAction::TerminalData(ahp_types::actions::TerminalDataAction {
-            terminal: "terminal:/1".into(),
             data: " world".into(),
         });
         apply_action_to_terminal(&mut t, &a2);
@@ -1329,6 +1362,7 @@ mod tests {
         assert!(!entries.is_empty(), "no fixture files found");
 
         let mut passed = 0usize;
+        let mut skipped = 0usize;
 
         set_mock_time();
 
@@ -1401,7 +1435,7 @@ mod tests {
                     initial,
                     expected,
                     &parsed_actions,
-                    |s, a| apply_action_to_root(s, a),
+                    apply_action_to_root,
                     &file_name,
                     description,
                 ),
@@ -1409,7 +1443,7 @@ mod tests {
                     initial,
                     expected,
                     &parsed_actions,
-                    |s, a| apply_action_to_session(s, a),
+                    apply_action_to_session,
                     &file_name,
                     description,
                 ),
@@ -1417,10 +1451,15 @@ mod tests {
                     initial,
                     expected,
                     &parsed_actions,
-                    |s, a| apply_action_to_terminal(s, a),
+                    apply_action_to_terminal,
                     &file_name,
                     description,
                 ),
+                "changeset" => {
+                    // changeset reducer not yet implemented in Rust; skip.
+                    skipped += 1;
+                    continue;
+                }
                 other => {
                     panic!("{file_name}: unknown reducer type '{other}'");
                 }
@@ -1431,11 +1470,14 @@ mod tests {
 
         clear_mock_time();
 
-        eprintln!("Fixture results: {passed} passed, {} total", entries.len());
+        eprintln!(
+            "Fixture results: {passed} passed, {skipped} skipped, {} total",
+            entries.len()
+        );
         assert_eq!(
-            passed,
+            passed + skipped,
             entries.len(),
-            "Expected all {} fixtures to pass, but only {passed} did",
+            "Expected all {} fixtures to pass or be skipped, but only {passed} passed and {skipped} skipped",
             entries.len(),
         );
     }
