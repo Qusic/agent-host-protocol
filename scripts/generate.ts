@@ -12,6 +12,7 @@ import { generateJsonSchemas } from './generate-json-schema.js';
 import { generateActionOrigin } from './generate-action-origin.js';
 import { generateSwiftPackage } from './generate-swift.js';
 import { generateRustCrate } from './generate-rust.js';
+import { generateTypeScriptClient } from './generate-typescript.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -21,6 +22,7 @@ const SCHEMA_DIR = path.join(ROOT, 'schema');
 const SCHEMA_PUBLIC_DIR = path.join(ROOT, 'docs', 'public', 'schema');
 const SWIFT_DIR = path.join(ROOT, 'clients', 'swift', 'AgentHostProtocol');
 const RUST_DIR = path.join(ROOT, 'clients', 'rust');
+const TYPESCRIPT_TYPES_DIR = path.join(ROOT, 'clients', 'typescript', 'src', 'types');
 
 const args = process.argv.slice(2);
 const docsOnly = args.includes('--docs');
@@ -28,7 +30,8 @@ const schemaOnly = args.includes('--schema');
 const actionOriginOnly = args.includes('--action-origin');
 const swiftOnly = args.includes('--swift');
 const rustOnly = args.includes('--rust');
-const generateAll = !docsOnly && !schemaOnly && !actionOriginOnly && !swiftOnly && !rustOnly;
+const typescriptOnly = args.includes('--typescript');
+const generateAll = !docsOnly && !schemaOnly && !actionOriginOnly && !swiftOnly && !rustOnly && !typescriptOnly;
 
 // Load the TypeScript project
 const project = new Project({
@@ -70,6 +73,12 @@ if (generateAll || rustOnly) {
   console.log('Generating Rust crate...');
   generateRustCrate(project, RUST_DIR);
   console.log(`  → Rust crate written to ${path.relative(ROOT, RUST_DIR)}/`);
+}
+
+if (generateAll || typescriptOnly) {
+  console.log('Generating TypeScript client sources...');
+  generateTypeScriptClient(project, TYPES_DIR, TYPESCRIPT_TYPES_DIR);
+  console.log(`  → TypeScript sources written to ${path.relative(ROOT, TYPESCRIPT_TYPES_DIR)}/`);
 }
 
 console.log('Done.');
