@@ -121,6 +121,11 @@ export class MultiHostClient {
    *
    * Throws {@link ClientIdStoreError} if the configured store fails to
    * load or persist the host's `clientId`.
+   *
+   * Throws {@link HostShutDownError} if the multi-host client has been
+   * shut down — either before this call or while it was awaiting the
+   * {@link ClientIdStore}. The pending-id reservation is always cleared
+   * before returning, regardless of which error path is taken.
    */
   async addHost(config: HostConfig): Promise<HostHandle> {
     this.assertOpen();
@@ -133,8 +138,13 @@ export class MultiHostClient {
     try {
       const resolved = resolveConfig(config);
       const clientId = await this.resolveClientId(id, resolved.clientId);
-      // Defensive re-check: a concurrent removeHost+addHost could have
-      // landed while we were awaiting the store.
+      // Defensive re-checks after the store await:
+      //  - `shutdown()` may have closed the client while we awaited the
+      //    store. Surfacing the same error as `assertOpen` keeps the
+      //    post-shutdown guarantee that future operations throw.
+      //  - A concurrent removeHost+addHost could have landed a runtime
+      //    under our id, which would clobber it if we proceeded.
+      this.assertOpen();
       if (this.hosts.has(id)) {
         throw new DuplicateHostError(id);
       }

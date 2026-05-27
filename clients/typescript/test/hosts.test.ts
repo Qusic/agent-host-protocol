@@ -730,6 +730,109 @@ test('MultiHostClient.shutdown is idempotent', async () => {
   assert.equal(multi.host('idemp'), undefined);
 });
 
+// ─── Cancellation: factory signal aborts on manual reconnect ────────────────
+
+test('manual reconnectHost aborts a slow in-flight transport factory', async () => {
+  let attempt = 0;
+  const firstAttemptSignal: { value: AbortSignal | null } = { value: null };
+  const firstAttemptCalled = { value: false };
+  const factory: HostTransportFactory = async (_id, signal) => {
+    attempt += 1;
+    if (attempt === 1) {
+      // Capture the signal and hang until it aborts, then reject like
+      // a transport open that bailed out on the signal would.
+      firstAttemptSignal.value = signal;
+      firstAttemptCalled.value = true;
+      await new Promise<void>((resolve, reject) => {
+        if (signal.aborted) {
+          reject(new Error('aborted'));
+          return;
+        }
+        signal.addEventListener(
+          'abort',
+          () => reject(new Error('aborted')),
+          { once: true },
+        );
+      });
+      throw new Error('unreachable');
+    }
+    // Second attempt succeeds.
+    const [c, s] = InMemoryTransport.pair();
+    void driveFakeHost(s, makeFakeState());
+    return c;
+  };
+
+  const multi = new MultiHostClient();
+  try {
+    await multi.addHost({
+      id: 'slow',
+      label: 'slow',
+      transportFactory: factory,
+    });
+    // Wait for the first factory invocation so the supervisor is parked
+    // on the hung promise.
+    await waitUntil(() => firstAttemptCalled.value);
+    assert.equal(firstAttemptSignal.value?.aborted, false, 'factory signal should not be aborted yet');
+
+    // Manual reconnect should abort the first-attempt signal and let
+    // the supervisor open a fresh transport.
+    await multi.reconnectHost('slow');
+    await waitUntil(() => multi.host('slow')?.state.status === 'connected');
+    assert.equal(firstAttemptSignal.value?.aborted, true, 'factory signal should be aborted by manual reconnect');
+    assert.equal(attempt, 2, 'expected a second factory invocation after manual reconnect');
+  } finally {
+    await multi.shutdown();
+  }
+});
+
+// ─── Race: shutdown during addHost ──────────────────────────────────────────
+
+test('addHost throws HostShutDownError when shutdown lands during ClientIdStore.load', async () => {
+  // A store that exposes its in-flight load promise so the test can
+  // sequence: addHost starts → shutdown runs → store resolves.
+  let releaseLoad!: (value: string | null) => void;
+  const loadStarted = { value: false };
+  const slowStore: ClientIdStore = {
+    async load() {
+      loadStarted.value = true;
+      return new Promise<string | null>(resolve => {
+        releaseLoad = resolve;
+      });
+    },
+    async store() {
+      // unreachable in this test
+    },
+  };
+  const factoryCallCount = { value: 0 };
+  const factory: HostTransportFactory = async () => {
+    factoryCallCount.value += 1;
+    const [c, s] = InMemoryTransport.pair();
+    void driveFakeHost(s, makeFakeState());
+    return c;
+  };
+
+  const multi = new MultiHostClient({ clientIdStore: slowStore });
+  const addPromise = multi.addHost({
+    id: 'racey',
+    label: 'racey',
+    transportFactory: factory,
+  });
+  await waitUntil(() => loadStarted.value);
+
+  // Shutdown lands while addHost is still awaiting the store.
+  const shutdownPromise = multi.shutdown();
+  // Now resolve the store; addHost must re-check shutDown and bail.
+  releaseLoad(null);
+
+  await assert.rejects(
+    addPromise,
+    (err: unknown) => err instanceof HostShutDownError,
+  );
+  await shutdownPromise;
+  assert.equal(multi.host('racey'), undefined, 'no runtime should be registered');
+  assert.equal(factoryCallCount.value, 0, 'transport factory must not have been invoked');
+});
+
 // ─── Unknown host ───────────────────────────────────────────────────────────
 
 test('subscribe/unsubscribe/dispatch on an unknown host throws UnknownHostError', async () => {

@@ -225,6 +225,32 @@ function waitForAbort(...signals: AbortSignal[]): Promise<void> {
   });
 }
 
+/**
+ * Return an {@link AbortSignal} that aborts whenever any of the supplied
+ * input signals aborts. Used to thread a single composite signal through
+ * the connect/handshake path so the operation bails on either shutdown
+ * or manual reconnect.
+ *
+ * @internal
+ */
+function linkAbortSignals(...signals: AbortSignal[]): AbortSignal {
+  const controller = new AbortController();
+  if (signals.some(s => s.aborted)) {
+    controller.abort();
+    return controller.signal;
+  }
+  const cleanup: Array<() => void> = [];
+  const onAbort = (): void => {
+    for (const fn of cleanup) fn();
+    controller.abort();
+  };
+  for (const signal of signals) {
+    signal.addEventListener('abort', onAbort, { once: true });
+    cleanup.push(() => signal.removeEventListener('abort', onAbort));
+  }
+  return controller.signal;
+}
+
 // ─── Runtime ─────────────────────────────────────────────────────────────────
 
 const EMPTY_ROOT_STATE: RootState = { agents: [] };
@@ -399,6 +425,16 @@ export class HostRuntime {
         connection = await this.connectOnce();
       } catch (err) {
         if (this.shared.shutdownReason !== null) break;
+        // If the in-flight connect was interrupted by a manual reconnect
+        // request, skip the backoff and immediately retry with a fresh
+        // controller. The error is the deliberate "aborted" sentinel,
+        // not a real connect failure, so we don't surface it as
+        // `lastError` or log a warning.
+        if (this.manualReconnectController.signal.aborted) {
+          this.resetManualReconnectController();
+          attempt = 0;
+          continue;
+        }
         const error = toError(err);
         this.shared.lastError = error;
         // eslint-disable-next-line no-console
@@ -464,16 +500,20 @@ export class HostRuntime {
    * handshake response and the moment we enter the event loop are
    * delivered instead of dropped.
    *
-   * Races each await against the shutdown signal so an in-flight
-   * factory or handshake doesn't block teardown. The factory also
-   * receives the shutdown signal so it can bail out internally.
+   * Races each await against a combined signal that aborts on either
+   * shutdown OR manual reconnect, so an in-flight factory or handshake
+   * doesn't block teardown or a user-initiated reconnect. The factory
+   * receives the same combined signal so it can bail out internally
+   * (matching the {@link HostTransportFactory} contract).
    */
   private async connectOnce(): Promise<{ client: AhpClient; events: AsyncIterableIterator<ClientEvent> }> {
     const shutdownSignal = this.shutdownController.signal;
+    const manualSignal = this.manualReconnectController.signal;
+    const cancelSignal = linkAbortSignals(shutdownSignal, manualSignal);
 
     const transportResult = await raceWithAbort(
-      this.config.transportFactory(this.shared.id, shutdownSignal),
-      shutdownSignal,
+      this.config.transportFactory(this.shared.id, cancelSignal),
+      cancelSignal,
     );
     if (transportResult === ABORTED) {
       throw new Error('connect aborted');
@@ -511,12 +551,13 @@ export class HostRuntime {
               lastSeenServerSeq: prior.serverSeq,
               subscriptions: prior.subscriptions,
             }),
-            shutdownSignal,
+            cancelSignal,
           );
           if (reconnectRes === ABORTED) throw new Error('reconnect aborted');
           reconnectResult = reconnectRes;
         } catch (err) {
           if (this.shared.shutdownReason !== null) throw err;
+          if (cancelSignal.aborted) throw err;
           // Server refused reconnect (likely too much state has
           // elapsed); fall back to initialize. Only RPC-level errors
           // are eligible — transport errors propagate.
@@ -527,7 +568,7 @@ export class HostRuntime {
               protocolVersions: [PROTOCOL_VERSION],
               initialSubscriptions: prior.subscriptions,
             }),
-            shutdownSignal,
+            cancelSignal,
           );
           if (initResult === ABORTED) throw new Error('initialize aborted');
           initSnapshots = initResult.snapshots;
@@ -543,7 +584,7 @@ export class HostRuntime {
             protocolVersions: [PROTOCOL_VERSION],
             initialSubscriptions: prior.subscriptions,
           }),
-          shutdownSignal,
+          cancelSignal,
         );
         if (initResult === ABORTED) throw new Error('initialize aborted');
         initSnapshots = initResult.snapshots;
@@ -562,14 +603,14 @@ export class HostRuntime {
             channel: ROOT_RESOURCE_URI as 'ahp-root://',
             filter: undefined,
           }),
-          shutdownSignal,
+          cancelSignal,
         );
         if (res !== ABORTED) summaries = res;
       } catch {
         // Tolerate; the connect itself still succeeded.
       }
 
-      if (shutdownSignal.aborted) throw new Error('connect aborted');
+      if (cancelSignal.aborted) throw new Error('connect aborted');
 
       // Apply replay envelopes BEFORE transitioning to `connected` so
       // consumers observing the `connected` host event already see the
