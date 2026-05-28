@@ -10,12 +10,12 @@
  *    version against the generated constants and the metadata file.
  *  - `verify-changelog` checks that whenever someone bumps a version
  *    they also rotate the CHANGELOG. Every per-tag publish workflow
- *    (`publish-spec.yml`, `publish-rust.yml`, `publish-kotlin.yml`,
- *    `publish-swift.yml`, `publish-typescript.yml`) and the TypeScript
- *    ADO `pipeline.yml` re-run this script as a release-time gate, on
- *    top of the same check in `ci.yml` for every PR. Defense in depth:
- *    a release artifact can't ship with a missing CHANGELOG heading
- *    regardless of which entry path triggered the publish.
+ *    (`publish-spec.yml`, `publish-rust.yml`, `publish-swift.yml`) and
+ *    the ADO publish pipelines for Kotlin/TypeScript re-run this script
+ *    as a release-time gate, on top of the same check in `ci.yml` for
+ *    every PR. Defense in depth: a release artifact can't ship with a
+ *    missing CHANGELOG heading regardless of which entry path triggered
+ *    the publish.
  *
  * The check is intentionally lenient about the rest of the heading line
  * (e.g. ` — YYYY-MM-DD` or ` — Unreleased`) — only the version-bracket

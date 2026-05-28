@@ -87,23 +87,16 @@ SessionStatus.IDLE in combined   // true
 
 ## Distribution
 
-Artifacts are published to Maven Central (Sonatype Central Portal) via [`gradle-maven-publish-plugin`](https://github.com/vanniktech/gradle-maven-publish-plugin) v0.36+ on `kotlin/v*` git tags.
+Artifacts are published to Maven Central (Sonatype Central Portal) via Microsoft's ESRP-backed `vscode-engineering` `maven-package` pipeline template on `kotlin/v*` git tags. The [`gradle-maven-publish-plugin`](https://github.com/vanniktech/gradle-maven-publish-plugin) (v0.36+) is used to stage the artifacts into a local Maven repository layout that ESRP then signs and uploads.
 
-The release pipeline (`.github/workflows/publish-kotlin.yml`):
+The release pipeline ([`clients/kotlin/pipeline.yml`](pipeline.yml)) is an Azure DevOps pipeline (GitHub Actions cannot trigger ADO in this repo — PATs are not permitted):
 
-1. **`validate` job** — re-runs `npm run generate:kotlin` (fails on diff) and `./gradlew check`.
-2. **`publish` job** — verifies the git tag matches `gradle.properties` `VERSION_NAME` (read via `./gradlew properties -q`), then runs `./gradlew publishAndReleaseToMavenCentral`.
+1. **Tag validation** — verifies the `kotlin/vX.Y.Z` tag matches `gradle.properties` `VERSION_NAME`, that the version is not `-SNAPSHOT`, and that `CHANGELOG.md` has a matching `## [X.Y.Z]` heading.
+2. **Generator + Gradle check** — re-runs `npm run generate:kotlin` (fails on diff) and `./gradlew check`.
+3. **Stage** — `./gradlew -Pahp.signPublications=false publishAllPublicationsToStagingRepository` writes a Maven layout to `build/maven-staging/`. Local PGP signing is skipped because ESRP signs server-side.
+4. **ESRP publish** — the `maven-package` template hands the staging folder to ESRP (`contenttype: maven`), which signs and uploads to Maven Central via the Sonatype Central Portal.
 
-### Required repository secrets (`maven-central` GitHub environment)
-
-| Secret                          | Purpose                                                                              |
-| ------------------------------- | ------------------------------------------------------------------------------------ |
-| `MAVEN_CENTRAL_USERNAME`        | Sonatype Central Portal user-token username.                                         |
-| `MAVEN_CENTRAL_PASSWORD`        | Sonatype Central Portal user-token password.                                         |
-| `SIGNING_IN_MEMORY_KEY`         | ASCII-armored PGP private key (entire `-----BEGIN PGP PRIVATE KEY BLOCK-----` body). |
-| `SIGNING_IN_MEMORY_KEY_PASSWORD`| Passphrase for the PGP key (omit secret if the key is unprotected).                  |
-
-The Vanniktech plugin reads these from `ORG_GRADLE_PROJECT_*`-prefixed env vars at publish time, which the workflow sets from the secrets above.
+No GitHub-side secrets are required — ESRP credentials live inside the Microsoft ADO tenant.
 
 ### Cutting a release
 
@@ -114,8 +107,8 @@ Summary, scoped to Kotlin:
 2. Run `npm run generate:metadata` and commit the regenerated `clients/kotlin/release-metadata.json`.
 3. Rotate the `## [Unreleased]` section of `clients/kotlin/CHANGELOG.md` to `## [X.Y.Z] — YYYY-MM-DD` with an `Implements AHP <version>` line. The publish workflow fails if no `## [X.Y.Z]` heading exists for the tag version.
 4. Commit, merge to `main`.
-5. Tag the merge commit using `kotlin/v` + the same version (e.g. `git tag kotlin/v0.2.0 && git push origin kotlin/v0.2.0`). The publish workflow rejects any mismatch between the tag and `VERSION_NAME`, and refuses `*-SNAPSHOT` tags outright.
-6. The publish workflow runs and pushes to Maven Central. With `automaticRelease = true` set in `mavenPublishing { ... }`, no manual Sonatype UI interaction is required.
+5. Tag the merge commit using `kotlin/v` + the same version (e.g. `git tag kotlin/v0.2.0 && git push origin kotlin/v0.2.0`). The ADO publish pipeline rejects any mismatch between the tag and `VERSION_NAME`, and refuses `*-SNAPSHOT` tags outright.
+6. The ADO pipeline runs, stages the Maven artifacts, and hands them to ESRP for signing and upload to Maven Central. With `automaticRelease = true` set in `mavenPublishing { ... }` and ESRP handling the publish, no manual Sonatype UI interaction is required.
 7. Bump `VERSION_NAME` back to the next `-SNAPSHOT` for ongoing development.
 
 ## Building and testing locally

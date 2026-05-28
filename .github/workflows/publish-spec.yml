@@ -49,7 +49,8 @@ jobs:
       - run: npm ci
 
       # Strict tag → PROTOCOL_VERSION cross-check. Mirrors the
-      # equivalent validation in `publish-rust.yml` / `publish-kotlin.yml`.
+      # equivalent validation in `publish-rust.yml` and the ADO
+      # publish pipelines.
       - name: Verify tag matches PROTOCOL_VERSION
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#spec/v}"
