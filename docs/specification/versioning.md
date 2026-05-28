@@ -86,7 +86,7 @@ Coupling client versions to the spec version was considered and rejected:
 
 Bare `vX.Y.Z` tags at the repository root are reserved for the Swift release pipeline because SwiftPM only resolves bare semver tags at the manifest's repo root; path-prefixed tags like `swift/v0.2.0` are invisible to it.
 
-The TypeScript client uses an Azure DevOps pipeline (`clients/typescript/pipeline.yml`) for the actual npm publish, but exposes the same `typescript/vX.Y.Z` git tag convention as the other clients via `publish-typescript.yml`, which validates the tag and then triggers the ADO pipeline via the Pipelines REST API.
+The TypeScript client publishes via an Azure DevOps pipeline (`clients/typescript/pipeline.yml`) that picks up `typescript/vX.Y.Z` tags directly — the validation and npm publish both run in ADO.
 
 ### Mapping client releases to spec versions
 

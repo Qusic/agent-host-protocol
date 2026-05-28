@@ -8,7 +8,7 @@ mapping between the current source tree and protocol versions.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the package follows [SemVer](https://semver.org).
 
-The `publish-typescript.yml` workflow refuses to publish a `typescript/vX.Y.Z`
+The `clients/typescript/pipeline.yml` ADO publish pipeline refuses to publish a `typescript/vX.Y.Z`
 tag whose matching `## [X.Y.Z]` heading is missing from this file. The
 workflow validates the tag, runs `npm run verify:release-metadata` and
 `npm run verify:changelog`, and only then triggers the Azure DevOps

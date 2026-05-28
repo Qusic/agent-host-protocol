@@ -8,7 +8,7 @@ mapping between the current source tree and protocol versions.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the package follows [SemVer](https://semver.org).
 
-The `publish-kotlin.yml` workflow refuses to publish a `kotlin/vX.Y.Z` tag
+The `clients/kotlin/pipeline.yml` ADO publish pipeline refuses to publish a `kotlin/vX.Y.Z` tag
 whose matching `## [X.Y.Z]` heading is missing from this file. Snapshot
 versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 `VERSION_NAME` in `gradle.properties` to a non-SNAPSHOT value before tagging.

@@ -7,7 +7,8 @@ name: Publish Swift Package
 # invisible to SwiftPM). See `RELEASING.md` for the tag-namespace
 # convention.
 #
-# Unlike publish-rust.yml / publish-kotlin.yml / publish-typescript.yml,
+# Unlike publish-rust.yml and the ADO publish pipelines for
+# Kotlin/TypeScript,
 # there's no registry push step: SwiftPM consumers resolve the tag
 # directly from this git repository. The workflow's role is to validate
 # the tag, verify the CHANGELOG, run the same build + test pipeline CI
