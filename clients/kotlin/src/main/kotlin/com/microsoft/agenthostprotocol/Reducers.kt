@@ -37,6 +37,7 @@ import com.microsoft.agenthostprotocol.generated.ResponsePartReasoning
 import com.microsoft.agenthostprotocol.generated.ResponsePartToolCall
 import com.microsoft.agenthostprotocol.generated.RootState
 import com.microsoft.agenthostprotocol.generated.SessionActiveClient
+import com.microsoft.agenthostprotocol.generated.ResourceWatchState
 import com.microsoft.agenthostprotocol.generated.SessionInputRequest
 import com.microsoft.agenthostprotocol.generated.SessionLifecycle
 import com.microsoft.agenthostprotocol.generated.SessionState
@@ -52,6 +53,7 @@ import com.microsoft.agenthostprotocol.generated.StateActionRootActiveSessionsCh
 import com.microsoft.agenthostprotocol.generated.StateActionRootAgentsChanged
 import com.microsoft.agenthostprotocol.generated.StateActionRootConfigChanged
 import com.microsoft.agenthostprotocol.generated.StateActionRootTerminalsChanged
+import com.microsoft.agenthostprotocol.generated.StateActionResourceWatchChanged
 import com.microsoft.agenthostprotocol.generated.StateActionSessionActiveClientChanged
 import com.microsoft.agenthostprotocol.generated.StateActionSessionActiveClientToolsChanged
 import com.microsoft.agenthostprotocol.generated.StateActionSessionActivityChanged
@@ -139,7 +141,7 @@ import kotlinx.serialization.json.JsonElement
  * no mutation of [state] and no side effects.
  *
  * The companion top-level functions ([rootReducer], [sessionReducer],
- * [terminalReducer], [changesetReducer]) are the canonical implementations.
+ * [terminalReducer], [changesetReducer], [resourceWatchReducer]) are the canonical implementations.
  * The object instances on this interface ([RootReducer], [SessionReducer],
  * [TerminalReducer], [ChangesetReducer]) wrap them for use as values where
  * an instance is needed.
@@ -170,6 +172,12 @@ public object TerminalReducer : Reducer<TerminalState, StateAction> {
 public object ChangesetReducer : Reducer<ChangesetState, StateAction> {
     override fun reduce(state: ChangesetState, action: StateAction): ChangesetState =
         changesetReducer(state, action)
+}
+
+/** Pure resource-watch reducer as a [Reducer] instance. Delegates to [resourceWatchReducer]. */
+public object ResourceWatchReducer : Reducer<ResourceWatchState, StateAction> {
+    override fun reduce(state: ResourceWatchState, action: StateAction): ResourceWatchState =
+        resourceWatchReducer(state, action)
 }
 
 // ─── Timestamp Provider ─────────────────────────────────────────────────────
@@ -1300,5 +1308,20 @@ public fun changesetReducer(state: ChangesetState, action: StateAction): Changes
     is StateActionChangesetCleared ->
         if (state.files.isEmpty()) state else state.copy(files = emptyList())
 
+    else -> state
+}
+
+/**
+ * Pure reducer for an [ResourceWatchState]. Pattern-matches on the
+ * `resourceWatch/changed` action; actions belonging to other channels
+ * (or unknown variants) are no-ops that return [state] unchanged.
+ *
+ * Watches are intentionally event-pass-through: `resourceWatch/changed`
+ * delivers events directly to subscribers and the reducer keeps no
+ * history of them. The state captured at subscription time is therefore
+ * immutable for the life of the watch.
+ */
+public fun resourceWatchReducer(state: ResourceWatchState, action: StateAction): ResourceWatchState = when (action) {
+    is StateActionResourceWatchChanged -> state
     else -> state
 }

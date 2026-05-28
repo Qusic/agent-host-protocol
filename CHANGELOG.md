@@ -46,6 +46,17 @@ commits between `spec/v0.1.0` (not yet tagged) and `spec/v0.2.0`. Highlights:
 - New `session/agentChanged`, `session/customizationRemoved`,
   `session/changesetsChanged`, and the `changeset/*` action family.
 - Customizations redesigned as a typed two-level tree.
+- New `resourceResolve` (stat + realpath; throws `NotFound` for the
+  existence check) and `resourceMkdir` (`mkdir -p` semantics) requests.
+- New `createResourceWatch` request plus the `ahp-resource-watch:/<id>`
+  channel with the `resourceWatch/changed` action — long-lived file-change
+  streams over the standard subscription mechanism.
+- `resourceWrite` extended with `mode` (`truncate` | `append` | `insert`),
+  `position`, and `ifMatch` for optimistic concurrency. New
+  `Conflict` (`-32011`) error code for stale `ifMatch` writes.
+- The entire content-bearing `resource*` family is now formally
+  bidirectional — the methods appear in `ServerCommandMap` and may be
+  initiated by either peer (matches VS Code's existing implementation).
 
 ## [0.1.0] — Pre-tagging
 

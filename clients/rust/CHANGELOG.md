@@ -21,10 +21,14 @@ The in-tree source already supports protocol version `0.2.0` even though the
 last published crates are `0.1.0`. The next Rust release will bump the
 workspace version to align with the current spec.
 
-### Added
+- Wire types for the extended `resource*` family: `resourceResolve`,
+  `resourceMkdir`, `createResourceWatch`, and the new `ahp-resource-watch:/`
+  channel with the `resourceWatch/changed` action. `ResourceWriteParams`
+  gains `mode` / `position` / `ifMatch`. New `Conflict` (`-32011`) error
+  code. The whole content-bearing `resource*` family is now bidirectional
+  (it appears in both `CommandMap` and `ServerCommandMap`).
 - `UserMessage.meta` optional `JsonObject` field (serialized as `_meta`),
   exposing the new spec-level provider metadata channel on user messages.
-
 ## [0.1.0] — 2026-01-01
 
 Implements AHP `0.1.0`.

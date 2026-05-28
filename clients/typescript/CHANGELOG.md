@@ -22,10 +22,14 @@ hotfix escape hatch.
 
 Implements AHP `0.2.0`.
 
-### Added
+- Wire types for the extended `resource*` family: `resourceResolve`,
+  `resourceMkdir`, `createResourceWatch`, and the new `ahp-resource-watch:/`
+  channel with the `resourceWatch/changed` action. `ResourceWriteParams`
+  gains `mode` / `position` / `ifMatch`. New `Conflict` (`-32011`) error
+  code. The whole content-bearing `resource*` family is now bidirectional
+  (it appears in both `CommandMap` and `ServerCommandMap`).
 - `UserMessage._meta` optional `Record<string, unknown>` field, exposing the
   new spec-level provider metadata channel on user messages.
-
 ## [0.2.0] — Unreleased
 
 Implements AHP `0.2.0`.

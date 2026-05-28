@@ -79,6 +79,7 @@ const (
 	ActionTypeTerminalCommandDetectionAvailable ActionType = "terminal/commandDetectionAvailable"
 	ActionTypeTerminalCommandExecuted           ActionType = "terminal/commandExecuted"
 	ActionTypeTerminalCommandFinished           ActionType = "terminal/commandFinished"
+	ActionTypeResourceWatchChanged              ActionType = "resourceWatch/changed"
 )
 
 // ─── Action Envelope ─────────────────────────────────────────────────
@@ -866,6 +867,19 @@ type TerminalCommandFinishedAction struct {
 	DurationMs *int64 `json:"durationMs,omitempty"`
 }
 
+// A batch of resource changes observed by the watcher.
+//
+// Watch events are coalesced into batches by the server to keep the
+// action stream tractable; an empty `changes.items` list MUST NOT be
+// dispatched. The reducer does not retain change history — these
+// actions exist purely to deliver events to subscribers, who consume
+// them directly off the action stream and apply their own logic.
+type ResourceWatchChangedAction struct {
+	Type ActionType `json:"type"`
+	// The set of changes in this batch, wrapped for forward compatibility.
+	Changes json.RawMessage `json:"changes"`
+}
+
 // ─── StateAction Union ───────────────────────────────────────────────
 
 // StateAction is the discriminated union of every state action.
@@ -937,6 +951,7 @@ func (*TerminalClearedAction) isStateAction()                   {}
 func (*TerminalCommandDetectionAvailableAction) isStateAction() {}
 func (*TerminalCommandExecutedAction) isStateAction()           {}
 func (*TerminalCommandFinishedAction) isStateAction()           {}
+func (*ResourceWatchChangedAction) isStateAction()              {}
 
 // StateActionUnknown carries an unrecognized StateAction variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
 type StateActionUnknown struct {
@@ -1308,6 +1323,12 @@ func (u *StateAction) UnmarshalJSON(data []byte) error {
 		u.Value = &value
 	case "terminal/commandFinished":
 		var value TerminalCommandFinishedAction
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	case "resourceWatch/changed":
+		var value ResourceWatchChangedAction
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err
 		}

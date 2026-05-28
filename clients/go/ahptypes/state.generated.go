@@ -261,6 +261,15 @@ const (
 	ChangesetOperationScopeRange ChangesetOperationScope = "range"
 )
 
+// Discriminant for {@link ResourceChange.type}.
+type ResourceChangeType string
+
+const (
+	ResourceChangeTypeAdded   ResourceChangeType = "added"
+	ResourceChangeTypeUpdated ResourceChangeType = "updated"
+	ResourceChangeTypeDeleted ResourceChangeType = "deleted"
+)
+
 // ─── Structs ──────────────────────────────────────────────────────────
 
 // An optionally-sized icon that can be displayed in a user interface.
@@ -2114,6 +2123,39 @@ type TelemetryCapabilities struct {
 	// notifications). No template variables are defined by this protocol
 	// version.
 	Metrics *URI `json:"metrics,omitempty"`
+}
+
+// Full state for a single resource watch, returned when a client subscribes
+// to an `ahp-resource-watch:` URI.
+//
+// Watches are otherwise stateless: the watcher exists to deliver
+// {@link ResourceWatchChangedAction} events. The state carries only the
+// descriptor of what is being watched so a re-subscribing client can
+// recover the watch configuration after reconnecting.
+type ResourceWatchState struct {
+	// The URI being watched. For recursive watches this is the root of the
+	// subtree; for non-recursive watches this is the single file or
+	// directory.
+	Root URI `json:"root"`
+	// `true` if the watcher reports changes for descendants of `root`;
+	// `false` if it only reports changes to `root` itself (and, when
+	// `root` is a directory, its direct children).
+	Recursive bool `json:"recursive"`
+	// Optional glob patterns or paths relative to `root` to exclude from
+	// change reporting.
+	Excludes *json.RawMessage `json:"excludes,omitempty"`
+	// Optional glob patterns or paths relative to `root` to restrict
+	// change reporting to. Omit to report every change under `root`
+	// subject to `excludes`.
+	Includes *json.RawMessage `json:"includes,omitempty"`
+}
+
+// A single change observed by a resource watcher.
+type ResourceChange struct {
+	// The URI of the resource that changed.
+	Uri URI `json:"uri"`
+	// The kind of change observed.
+	Type ResourceChangeType `json:"type"`
 }
 
 // ─── Discriminated Unions ─────────────────────────────────────────────

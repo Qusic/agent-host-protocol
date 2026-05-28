@@ -741,7 +741,7 @@ const STATE_ENUMS = [
   'TurnState', 'MessageAttachmentKind', 'ResponsePartKind', 'ToolCallStatus',
   'ToolCallConfirmationReason', 'ToolCallCancellationReason', 'ConfirmationOptionKind',
   'ToolResultContentType', 'CustomizationType', 'CustomizationLoadStatus', 'TerminalClaimKind',
-  'ChangesetStatus', 'ChangesetOperationScope',
+  'ChangesetStatus', 'ChangesetOperationScope', 'ResourceChangeType',
 ];
 
 const STATE_STRUCTS = [
@@ -781,6 +781,7 @@ const STATE_STRUCTS = [
   'UsageInfo', 'ErrorInfo', 'Snapshot',
   'ChangesetSummary', 'ChangesetState', 'ChangesetFile', 'ChangesetOperation',
   'TelemetryCapabilities',
+  'ResourceWatchState', 'ResourceChange',
 ];
 
 const RESPONSE_PART_UNION: UnionConfig = {
@@ -1047,6 +1048,7 @@ const ACTION_VARIANTS: { type: string; caseName: string; tsInterface: string }[]
   { type: 'terminal/commandDetectionAvailable', caseName: 'TerminalCommandDetectionAvailable', tsInterface: 'TerminalCommandDetectionAvailableAction' },
   { type: 'terminal/commandExecuted', caseName: 'TerminalCommandExecuted', tsInterface: 'TerminalCommandExecutedAction' },
   { type: 'terminal/commandFinished', caseName: 'TerminalCommandFinished', tsInterface: 'TerminalCommandFinishedAction' },
+  { type: 'resourceWatch/changed', caseName: 'ResourceWatchChanged', tsInterface: 'ResourceWatchChangedAction' },
 ];
 
 /** Merged data class for the approved/denied tool call confirmed action. */
@@ -1182,7 +1184,7 @@ function generateActionsFile(project: Project): string {
 
 // ─── Commands File Generator ─────────────────────────────────────────────────
 
-const COMMAND_ENUMS = ['ReconnectResultType', 'ContentEncoding', 'CompletionItemKind'];
+const COMMAND_ENUMS = ['ReconnectResultType', 'ContentEncoding', 'CompletionItemKind', 'ResourceType', 'ResourceWriteMode'];
 
 const COMMAND_STRUCTS = [
   'InitializeParams', 'InitializeResult',
@@ -1196,7 +1198,10 @@ const COMMAND_STRUCTS = [
   'ResourceCopyParams', 'ResourceCopyResult',
   'ResourceDeleteParams', 'ResourceDeleteResult',
   'ResourceMoveParams', 'ResourceMoveResult',
+  'ResourceResolveParams', 'ResourceResolveResult',
+  'ResourceMkdirParams', 'ResourceMkdirResult',
   'ResourceRequestParams', 'ResourceRequestResult',
+  'CreateResourceWatchParams', 'CreateResourceWatchResult',
   'FetchTurnsParams', 'FetchTurnsResult',
   'UnsubscribeParams', 'DispatchActionParams',
   'AuthenticateParams', 'AuthenticateResult',

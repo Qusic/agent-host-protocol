@@ -22,12 +22,16 @@ Implements AHP `0.2.0`.
 [`VERSION`](VERSION) currently pins `0.2.0`; the first tag-driven Swift
 release will use the bare `v0.2.0` tag.
 
-### Added
+- Wire types for the extended `resource*` family: `resourceResolve`,
+  `resourceMkdir`, `createResourceWatch`, and the new `ahp-resource-watch:/`
+  channel with the `resourceWatch/changed` action. `ResourceWriteParams`
+  gains `mode` / `position` / `ifMatch`. New `Conflict` (`-32011`) error
+  code. The whole content-bearing `resource*` family is now bidirectional
+  (it appears in both `CommandMap` and `ServerCommandMap`).
 - `UserMessage.meta` optional `[String: AnyCodable]?` field (serialized as
   `_meta`), exposing the new spec-level provider metadata channel on user
   messages. The generated `init` gains a trailing `meta:` parameter that
   defaults to `nil`.
-
 ## [0.2.0] — Unreleased
 
 Implements AHP `0.2.0`.

@@ -14,11 +14,15 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 
 ## [Unreleased]
 
-### Added
+- Wire types for the extended `resource*` family: `resourceResolve`,
+  `resourceMkdir`, `createResourceWatch`, and the new `ahp-resource-watch:/`
+  channel with the `resourceWatch/changed` action. `ResourceWriteParams`
+  gains `mode` / `position` / `ifMatch`. New `Conflict` (`-32011`) error
+  code. The whole content-bearing `resource*` family is now bidirectional
+  (it appears in both `CommandMap` and `ServerCommandMap`).
 - `UserMessage._meta` optional map field, generated as
   `Map[string]json.RawMessage`, exposing the new spec-level provider
   metadata channel on user messages.
-
 ## [0.1.0]
 
 Implements AHP `0.2.0`.
