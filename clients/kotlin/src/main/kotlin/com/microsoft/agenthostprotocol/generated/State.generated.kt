@@ -461,6 +461,19 @@ enum class ChangesetOperationScope {
     RANGE
 }
 
+/**
+ * Discriminant for {@link ResourceChange.type}.
+ */
+@Serializable
+enum class ResourceChangeType {
+    @SerialName("added")
+    ADDED,
+    @SerialName("updated")
+    UPDATED,
+    @SerialName("deleted")
+    DELETED
+}
+
 // ─── State Types ────────────────────────────────────────────────────────────
 
 @Serializable
@@ -2994,6 +3007,45 @@ data class TelemetryCapabilities(
      * version.
      */
     val metrics: String? = null
+)
+
+@Serializable
+data class ResourceWatchState(
+    /**
+     * The URI being watched. For recursive watches this is the root of the
+     * subtree; for non-recursive watches this is the single file or
+     * directory.
+     */
+    val root: String,
+    /**
+     * `true` if the watcher reports changes for descendants of `root`;
+     * `false` if it only reports changes to `root` itself (and, when
+     * `root` is a directory, its direct children).
+     */
+    val recursive: Boolean,
+    /**
+     * Optional glob patterns or paths relative to `root` to exclude from
+     * change reporting.
+     */
+    val excludes: JsonElement? = null,
+    /**
+     * Optional glob patterns or paths relative to `root` to restrict
+     * change reporting to. Omit to report every change under `root`
+     * subject to `excludes`.
+     */
+    val includes: JsonElement? = null
+)
+
+@Serializable
+data class ResourceChange(
+    /**
+     * The URI of the resource that changed.
+     */
+    val uri: String,
+    /**
+     * The kind of change observed.
+     */
+    val type: ResourceChangeType
 )
 
 // ─── Discriminated Unions ───────────────────────────────────────────────────

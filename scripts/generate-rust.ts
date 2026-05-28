@@ -524,7 +524,7 @@ const STATE_ENUMS = [
   'ToolCallConfirmationReason', 'ToolCallCancellationReason',
   'ConfirmationOptionKind',
   'ToolResultContentType', 'CustomizationType', 'CustomizationLoadStatus', 'TerminalClaimKind',
-  'ChangesetStatus', 'ChangesetOperationScope',
+  'ChangesetStatus', 'ChangesetOperationScope', 'ResourceChangeType',
 ];
 
 /**
@@ -624,6 +624,8 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: str
   { name: 'ChangesetFile' },
   { name: 'ChangesetOperation' },
   { name: 'TelemetryCapabilities' },
+  { name: 'ResourceWatchState' },
+  { name: 'ResourceChange' },
 ];
 
 const RESPONSE_PART_UNION: UnionConfig = {
@@ -925,6 +927,7 @@ const ACTION_VARIANTS: {
   { type: 'terminal/commandDetectionAvailable', variantName: 'TerminalCommandDetectionAvailable', tsInterface: 'TerminalCommandDetectionAvailableAction' },
   { type: 'terminal/commandExecuted', variantName: 'TerminalCommandExecuted', tsInterface: 'TerminalCommandExecutedAction' },
   { type: 'terminal/commandFinished', variantName: 'TerminalCommandFinished', tsInterface: 'TerminalCommandFinishedAction' },
+  { type: 'resourceWatch/changed', variantName: 'ResourceWatchChanged', tsInterface: 'ResourceWatchChangedAction' },
 ];
 
 function generateMergedToolCallConfirmedStruct(): string {
@@ -1038,7 +1041,7 @@ pub struct ActionEnvelope {
 
 // ─── Commands File Generator ─────────────────────────────────────────────────
 
-const COMMAND_ENUMS = ['ReconnectResultType', 'ContentEncoding', 'CompletionItemKind'];
+const COMMAND_ENUMS = ['ReconnectResultType', 'ContentEncoding', 'CompletionItemKind', 'ResourceType', 'ResourceWriteMode'];
 
 const COMMAND_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: string }[] = [
   { name: 'InitializeParams' }, { name: 'InitializeResult' },
@@ -1056,7 +1059,10 @@ const COMMAND_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: s
   { name: 'ResourceCopyParams' }, { name: 'ResourceCopyResult' },
   { name: 'ResourceDeleteParams' }, { name: 'ResourceDeleteResult' },
   { name: 'ResourceMoveParams' }, { name: 'ResourceMoveResult' },
+  { name: 'ResourceResolveParams' }, { name: 'ResourceResolveResult' },
+  { name: 'ResourceMkdirParams' }, { name: 'ResourceMkdirResult' },
   { name: 'ResourceRequestParams' }, { name: 'ResourceRequestResult' },
+  { name: 'CreateResourceWatchParams' }, { name: 'CreateResourceWatchResult' },
   { name: 'FetchTurnsParams' }, { name: 'FetchTurnsResult' },
   { name: 'UnsubscribeParams' }, { name: 'DispatchActionParams' },
   { name: 'AuthenticateParams' }, { name: 'AuthenticateResult' },

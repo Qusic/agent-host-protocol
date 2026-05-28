@@ -145,7 +145,9 @@ enum class ActionType {
     @SerialName("terminal/commandExecuted")
     TERMINAL_COMMAND_EXECUTED,
     @SerialName("terminal/commandFinished")
-    TERMINAL_COMMAND_FINISHED
+    TERMINAL_COMMAND_FINISHED,
+    @SerialName("resourceWatch/changed")
+    RESOURCE_WATCH_CHANGED
 }
 
 // ─── Action Infrastructure ──────────────────────────────────────────────────
@@ -971,6 +973,15 @@ data class TerminalCommandFinishedAction(
     val durationMs: Long? = null
 )
 
+@Serializable
+data class ResourceWatchChangedAction(
+    val type: ActionType,
+    /**
+     * The set of changes in this batch, wrapped for forward compatibility.
+     */
+    val changes: JsonElement
+)
+
 // ─── StateAction Union ──────────────────────────────────────────────────────
 
 /**
@@ -1043,6 +1054,7 @@ sealed interface StateAction
 @JvmInline value class StateActionTerminalCommandDetectionAvailable(val value: TerminalCommandDetectionAvailableAction) : StateAction
 @JvmInline value class StateActionTerminalCommandExecuted(val value: TerminalCommandExecutedAction) : StateAction
 @JvmInline value class StateActionTerminalCommandFinished(val value: TerminalCommandFinishedAction) : StateAction
+@JvmInline value class StateActionResourceWatchChanged(val value: ResourceWatchChangedAction) : StateAction
 @JvmInline value class StateActionUnknown(val type: String) : StateAction
 
 internal object StateActionSerializer : KSerializer<StateAction> {
@@ -1118,6 +1130,7 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             "terminal/commandDetectionAvailable" -> StateActionTerminalCommandDetectionAvailable(input.json.decodeFromJsonElement(TerminalCommandDetectionAvailableAction.serializer(), element))
             "terminal/commandExecuted" -> StateActionTerminalCommandExecuted(input.json.decodeFromJsonElement(TerminalCommandExecutedAction.serializer(), element))
             "terminal/commandFinished" -> StateActionTerminalCommandFinished(input.json.decodeFromJsonElement(TerminalCommandFinishedAction.serializer(), element))
+            "resourceWatch/changed" -> StateActionResourceWatchChanged(input.json.decodeFromJsonElement(ResourceWatchChangedAction.serializer(), element))
             else -> StateActionUnknown(type)
         }
     }
@@ -1186,6 +1199,7 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             is StateActionTerminalCommandDetectionAvailable -> output.json.encodeToJsonElement(TerminalCommandDetectionAvailableAction.serializer(), value.value)
             is StateActionTerminalCommandExecuted -> output.json.encodeToJsonElement(TerminalCommandExecutedAction.serializer(), value.value)
             is StateActionTerminalCommandFinished -> output.json.encodeToJsonElement(TerminalCommandFinishedAction.serializer(), value.value)
+            is StateActionResourceWatchChanged -> output.json.encodeToJsonElement(ResourceWatchChangedAction.serializer(), value.value)
             is StateActionUnknown -> buildJsonObject {
                 put("type", JsonPrimitive(value.type))
             }

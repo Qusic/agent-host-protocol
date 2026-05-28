@@ -115,6 +115,7 @@ export const ACTION_INTRODUCED_IN: { readonly [K in StateAction['type']]: string
   [ActionType.TerminalCommandDetectionAvailable]: '0.1.0',
   [ActionType.TerminalCommandExecuted]: '0.1.0',
   [ActionType.TerminalCommandFinished]: '0.1.0',
+  [ActionType.ResourceWatchChanged]: '0.2.0',
 };
 
 /**
