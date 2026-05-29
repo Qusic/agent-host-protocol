@@ -49,6 +49,8 @@ A single browser- and Node-friendly package on
 with four subpath entry points (wire types, client, multi-host
 orchestration, WebSocket transport):
 
+[![npm](https://img.shields.io/npm/v/@microsoft/agent-host-protocol.svg)](https://www.npmjs.com/package/@microsoft/agent-host-protocol)
+
 ```bash
 npm install @microsoft/agent-host-protocol
 ```
@@ -67,6 +69,8 @@ Pure Kotlin/JVM artifact on
 [Maven Central](https://central.sonatype.com/artifact/com.microsoft.agenthostprotocol/agent-host-protocol).
 Targets Java 8 bytecode, so it can be consumed unchanged from
 Android, server-side JVM services, and KMP/JVM targets.
+
+[![Maven Central](https://img.shields.io/maven-central/v/com.microsoft.agenthostprotocol/agent-host-protocol)](https://central.sonatype.com/artifact/com.microsoft.agenthostprotocol/agent-host-protocol)
 
 ### Gradle (Kotlin DSL)
 
