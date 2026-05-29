@@ -43,6 +43,7 @@ export default withMermaid(defineConfig({
           text: 'More',
           items: [
             { text: 'AHP and ACP', link: '/guide/ahp-and-acp' },
+            { text: 'Clients', link: '/guide/clients' },
             { text: 'Implementations', link: '/guide/implementations' },
           ],
         },
