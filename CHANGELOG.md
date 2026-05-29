@@ -23,6 +23,16 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 `NOTIFICATION_INTRODUCED_IN` maps in
 [`types/version/registry.ts`](types/version/registry.ts).
 
+## [0.3.0] — Unreleased
+
+Spec version: `0.3.0`
+
+- Renamed the `UserMessage` type to `Message` and surfaced it consistently
+  across turn state (`Turn.message`, `ActiveTurn.message`, `PendingMessage.message`)
+  and the actions that carry it (`session/turnStarted`,
+  `session/pendingMessageSet`). The type now carries an `origin` field and an
+  optional `_meta` object.
+
 ## [0.2.0] — 2026-05-28
 
 Spec version: `0.2.0`

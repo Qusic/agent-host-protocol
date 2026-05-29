@@ -1201,6 +1201,7 @@ mod tests {
             text: text.into(),
             origin: serde_json::json!({ "kind": "user" }),
             attachments: None,
+            meta: None,
         }
     }
 
@@ -1240,11 +1241,7 @@ mod tests {
         let mut s = empty_session("copilot:/s1");
         let action = StateAction::SessionTurnStarted(SessionTurnStartedAction {
             turn_id: "t1".into(),
-            user_message: UserMessage {
-                text: "hi".into(),
-                attachments: None,
-                meta: None,
-            },
+            message: user_message("hi"),
             queued_message_id: None,
         });
         assert_eq!(
@@ -1260,11 +1257,7 @@ mod tests {
         let mut s = empty_session("copilot:/s1");
         s.active_turn = Some(ActiveTurn {
             id: "t1".into(),
-            user_message: UserMessage {
-                text: "hi".into(),
-                attachments: None,
-                meta: None,
-            },
+            message: user_message("hi"),
             response_parts: vec![ResponsePart::Markdown(MarkdownResponsePart {
                 id: "p1".into(),
                 content: "Hello".into(),
@@ -1288,11 +1281,7 @@ mod tests {
         let mut s = empty_session("copilot:/s1");
         s.active_turn = Some(ActiveTurn {
             id: "t1".into(),
-            user_message: UserMessage {
-                text: "hi".into(),
-                attachments: None,
-                meta: None,
-            },
+            message: user_message("hi"),
             response_parts: Vec::new(),
             usage: None,
         });

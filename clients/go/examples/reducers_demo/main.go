@@ -26,7 +26,7 @@ func main() {
 		{Value: &ahptypes.SessionTurnStartedAction{
 			Type:        ahptypes.ActionTypeSessionTurnStarted,
 			TurnId:      "t1",
-			UserMessage: ahptypes.UserMessage{Text: "Hello!"},
+			Message: ahptypes.Message{Text: "Hello!"},
 		}},
 		{Value: &ahptypes.SessionResponsePartAction{
 			Type:   ahptypes.ActionTypeSessionResponsePart,

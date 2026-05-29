@@ -34,7 +34,7 @@ export const PROTOCOL_VERSION = '0.3.0';
  * `scripts/verify-release-metadata.ts`.
  */
 export const SUPPORTED_PROTOCOL_VERSIONS: readonly string[] = Object.freeze([
-  '0.2.0',
+  '0.3.0',
 ]);
 
 // ─── SemVer Comparison ───────────────────────────────────────────────────────

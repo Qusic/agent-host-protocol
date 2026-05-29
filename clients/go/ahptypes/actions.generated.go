@@ -141,13 +141,15 @@ type SessionCreationFailedAction struct {
 	Error ErrorInfo `json:"error"`
 }
 
-// User sent a message; server starts agent processing.
+// A new message has been sent to the agent, and a new turn starts.
+//
+// A client is only allowed to send {@link MessageKind.User} messages.
 type SessionTurnStartedAction struct {
 	Type ActionType `json:"type"`
 	// Turn identifier
 	TurnId string `json:"turnId"`
-	// User's message
-	UserMessage UserMessage `json:"userMessage"`
+	// The new message
+	Message Message `json:"message"`
 	// If this turn was auto-started from a queued message, the ID of that message
 	QueuedMessageId *string `json:"queuedMessageId,omitempty"`
 }
@@ -278,7 +280,7 @@ type SessionToolCallConfirmedAction struct {
 	Confirmed        *ToolCallConfirmationReason `json:"confirmed,omitempty"`
 	Reason           *ToolCallCancellationReason `json:"reason,omitempty"`
 	EditedToolInput  *string                     `json:"editedToolInput,omitempty"`
-	UserSuggestion   *UserMessage                `json:"userSuggestion,omitempty"`
+	UserSuggestion   *Message                    `json:"userSuggestion,omitempty"`
 	ReasonMessage    *StringOrMarkdown           `json:"reasonMessage,omitempty"`
 	SelectedOptionId *string                     `json:"selectedOptionId,omitempty"`
 }
@@ -493,6 +495,8 @@ type SessionActiveClientToolsChangedAction struct {
 // updated in place; otherwise it is appended to the queue. If the session is
 // idle when a queued message is set, the server SHOULD immediately consume it
 // and start a new turn.
+//
+// A client is only allowed to send {@link MessageKind.User} messages.
 type SessionPendingMessageSetAction struct {
 	Type ActionType `json:"type"`
 	// Whether this is a steering or queued message
@@ -500,7 +504,7 @@ type SessionPendingMessageSetAction struct {
 	// Unique identifier for this pending message
 	Id string `json:"id"`
 	// The message content
-	UserMessage UserMessage `json:"userMessage"`
+	Message Message `json:"message"`
 }
 
 // A pending message was removed (steering or queued).

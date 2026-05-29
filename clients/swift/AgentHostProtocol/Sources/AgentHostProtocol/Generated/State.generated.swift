@@ -919,12 +919,14 @@ public struct Message: Codable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case text
+        case origin
         case attachments
         case meta = "_meta"
     }
 
     public init(
         text: String,
+        origin: AnyCodable,
         attachments: [MessageAttachment]? = nil,
         meta: [String: AnyCodable]? = nil
     ) {

@@ -203,7 +203,7 @@ func endTurn(state *ahptypes.SessionState, turnID string, turnState ahptypes.Tur
 
 	turn := ahptypes.Turn{
 		Id:            active.Id,
-		UserMessage:   active.UserMessage,
+		Message:       active.Message,
 		ResponseParts: parts,
 		Usage:         active.Usage,
 		State:         turnState,
@@ -619,7 +619,7 @@ func ApplyActionToSession(state *ahptypes.SessionState, action ahptypes.StateAct
 		touchModified(state)
 		return ReduceOutcomeApplied
 	case *ahptypes.SessionPendingMessageSetAction:
-		entry := ahptypes.PendingMessage{Id: a.Id, UserMessage: a.UserMessage}
+		entry := ahptypes.PendingMessage{Id: a.Id, Message: a.Message}
 		switch a.Kind {
 		case ahptypes.PendingMessageKindSteering:
 			state.SteeringMessage = &entry
@@ -708,7 +708,7 @@ func ApplyActionToSession(state *ahptypes.SessionState, action ahptypes.StateAct
 func applyTurnStarted(state *ahptypes.SessionState, a *ahptypes.SessionTurnStartedAction) ReduceOutcome {
 	state.ActiveTurn = &ahptypes.ActiveTurn{
 		Id:            a.TurnId,
-		UserMessage:   a.UserMessage,
+		Message:       a.Message,
 		ResponseParts: []ahptypes.ResponsePart{},
 	}
 	state.Summary.Status = summaryStatus(state, nil)
