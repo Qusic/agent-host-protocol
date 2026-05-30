@@ -212,9 +212,9 @@ data class SessionTurnStartedAction(
      */
     val turnId: String,
     /**
-     * User's message
+     * The new message
      */
-    val userMessage: UserMessage,
+    val message: Message,
     /**
      * If this turn was auto-started from a queued message, the ID of that message
      */
@@ -392,7 +392,7 @@ data class SessionToolCallConfirmedAction(
     /** Why the tool was cancelled (present when denied) */
     val reason: ToolCallCancellationReason? = null,
     /** What the user suggested instead (present when denied) */
-    val userSuggestion: UserMessage? = null,
+    val userSuggestion: Message? = null,
     /** Explanation for the denial */
     val reasonMessage: StringOrMarkdown? = null,
     /** ID of the selected confirmation option, if the server provided options */
@@ -625,7 +625,7 @@ data class SessionPendingMessageSetAction(
     /**
      * The message content
      */
-    val userMessage: UserMessage
+    val message: Message
 )
 
 @Serializable

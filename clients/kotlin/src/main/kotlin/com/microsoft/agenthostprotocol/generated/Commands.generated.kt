@@ -49,7 +49,7 @@ enum class ContentEncoding {
 @Serializable
 enum class CompletionItemKind {
     /**
-     * Completions for the text of a {@link UserMessage} the user is composing.
+     * Completions for the text of a {@link Message} the user is composing.
      * Each returned item carries an attachment that gets associated with the
      * message when accepted.
      */
@@ -156,7 +156,7 @@ data class InitializeResult(
      */
     val defaultDirectory: String? = null,
     /**
-     * Characters that, when typed in a {@link UserMessage} input, SHOULD cause
+     * Characters that, when typed in a {@link Message} input, SHOULD cause
      * the client to issue a `completions` request with
      * {@link CompletionItemKind.UserMessage}. Typically includes characters like
      * `'@'` or `'/'`.
@@ -949,7 +949,7 @@ data class CompletionItem(
      * 
      * Note: this range refers to positions in the *current* input. The
      * attachment's own `rangeStart`/`rangeEnd` (when present) refer to
-     * positions in the final {@link UserMessage.text} after the item is
+     * positions in the final {@link Message.text} after the item is
      * accepted.
      */
     val rangeStart: Long? = null,

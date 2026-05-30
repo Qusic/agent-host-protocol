@@ -504,7 +504,7 @@ const STATE_STRUCTS = [
   'Icon', 'ProtectedResourceMetadata', 'RootState', 'RootConfigState', 'AgentInfo',
   'SessionModelInfo', 'ModelSelection', 'AgentSelection', 'ConfigPropertySchema', 'ConfigSchema',
   'PendingMessage', 'SessionState', 'SessionActiveClient',
-  'SessionSummary', 'ProjectInfo', 'SessionConfigState', 'Turn', 'ActiveTurn', 'UserMessage',
+  'SessionSummary', 'ProjectInfo', 'SessionConfigState', 'Turn', 'ActiveTurn', 'Message',
   'SessionInputOption',
   'SessionInputTextAnswerValue', 'SessionInputNumberAnswerValue',
   'SessionInputBooleanAnswerValue', 'SessionInputSelectedAnswerValue',
@@ -929,7 +929,7 @@ public struct SessionToolCallConfirmedAction: Codable, Sendable {
     /// Why the tool was cancelled (present when denied)
     public var reason: ToolCallCancellationReason?
     /// What the user suggested instead (present when denied)
-    public var userSuggestion: UserMessage?
+    public var userSuggestion: Message?
     /// Explanation for the denial
     public var reasonMessage: StringOrMarkdown?
     /// ID of the selected confirmation option, if the server provided options
@@ -950,7 +950,7 @@ public struct SessionToolCallConfirmedAction: Codable, Sendable {
         confirmed: ToolCallConfirmationReason? = nil,
         editedToolInput: String? = nil,
         reason: ToolCallCancellationReason? = nil,
-        userSuggestion: UserMessage? = nil,
+        userSuggestion: Message? = nil,
         reasonMessage: StringOrMarkdown? = nil,
         selectedOptionId: String? = nil,
         meta: [String: AnyCodable]? = nil

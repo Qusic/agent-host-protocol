@@ -496,8 +496,8 @@ type ConfigSchema struct {
 type PendingMessage struct {
 	// Unique identifier for this pending message
 	Id string `json:"id"`
-	// The message content
-	UserMessage UserMessage `json:"userMessage"`
+	// The message that will start the next turn
+	Message Message `json:"message"`
 }
 
 // Full state for a single session, loaded when a client subscribes to the session's URI.
@@ -667,8 +667,8 @@ type SessionConfigState struct {
 type Turn struct {
 	// Turn identifier
 	Id string `json:"id"`
-	// The user's input
-	UserMessage UserMessage `json:"userMessage"`
+	// The message that initiated the turn
+	Message Message `json:"message"`
 	// All response content in stream order: text, tool calls, reasoning, and content refs.
 	//
 	// Consumers should derive display text by concatenating markdown parts,
@@ -686,8 +686,8 @@ type Turn struct {
 type ActiveTurn struct {
 	// Turn identifier
 	Id string `json:"id"`
-	// The user's input
-	UserMessage UserMessage `json:"userMessage"`
+	// The message that initiated the turn
+	Message Message `json:"message"`
 	// All response content in stream order: text, tool calls, reasoning, and content refs.
 	//
 	// Tool call parts include `pendingPermissions` when permissions are awaiting user approval.
@@ -696,15 +696,18 @@ type ActiveTurn struct {
 	Usage *UsageInfo `json:"usage,omitempty"`
 }
 
-// A user message and its associated attachments.
+// A message that initiates or steers a turn. Messages can originate from the
+// user or be system-generated (see {@link MessageKind}).
 //
-// Attachments MAY be referenced inside {@link UserMessage.text} via their
+// Attachments MAY be referenced inside {@link Message.text} via their
 // {@link MessageAttachmentBase.range} field. Attachments without a range are
 // still associated with the message but do not correspond to a specific span
 // in the text.
-type UserMessage struct {
+type Message struct {
 	// Message text
 	Text string `json:"text"`
+	// The origin of the message
+	Origin json.RawMessage `json:"origin"`
 	// File/selection attachments
 	Attachments []MessageAttachment `json:"attachments,omitempty"`
 	// Additional provider-specific metadata for this message.
@@ -914,7 +917,7 @@ type SimpleMessageAttachment struct {
 	// A human-readable label for the attachment (e.g. the filename of a file
 	// attachment). Used for display in UI.
 	Label string `json:"label"`
-	// If defined, the range in {@link UserMessage.text} that references this
+	// If defined, the range in {@link Message.text} that references this
 	// attachment. This is a text range, not a byte range.
 	Range *TextRange `json:"range,omitempty"`
 	// Advisory display hint for clients rendering this attachment. Recognized
@@ -954,7 +957,7 @@ type MessageEmbeddedResourceAttachment struct {
 	// A human-readable label for the attachment (e.g. the filename of a file
 	// attachment). Used for display in UI.
 	Label string `json:"label"`
-	// If defined, the range in {@link UserMessage.text} that references this
+	// If defined, the range in {@link Message.text} that references this
 	// attachment. This is a text range, not a byte range.
 	Range *TextRange `json:"range,omitempty"`
 	// Advisory display hint for clients rendering this attachment. Recognized
@@ -993,7 +996,7 @@ type MessageResourceAttachment struct {
 	// A human-readable label for the attachment (e.g. the filename of a file
 	// attachment). Used for display in UI.
 	Label string `json:"label"`
-	// If defined, the range in {@link UserMessage.text} that references this
+	// If defined, the range in {@link Message.text} that references this
 	// attachment. This is a text range, not a byte range.
 	Range *TextRange `json:"range,omitempty"`
 	// Advisory display hint for clients rendering this attachment. Recognized
@@ -1358,7 +1361,7 @@ type ToolCallCancelledState struct {
 	// Optional message explaining the cancellation
 	ReasonMessage *StringOrMarkdown `json:"reasonMessage,omitempty"`
 	// What the user suggested doing instead
-	UserSuggestion *UserMessage `json:"userSuggestion,omitempty"`
+	UserSuggestion *Message `json:"userSuggestion,omitempty"`
 	// The confirmation option the user selected, if confirmation options were provided
 	SelectedOption *ConfirmationOption `json:"selectedOption,omitempty"`
 }
@@ -2771,7 +2774,7 @@ func (u ToolResultContent) MarshalJSON() ([]byte, error) {
 	return json.Marshal(u.Value)
 }
 
-// MessageAttachment is an attachment associated with a UserMessage.
+// MessageAttachment is an attachment associated with a Message.
 type MessageAttachment struct {
 	Value isMessageAttachment
 }

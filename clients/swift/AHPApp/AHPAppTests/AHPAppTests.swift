@@ -1504,7 +1504,7 @@ private func makeDeviceCodeResponse() throws -> DeviceCodeResponse {
 
 private func makeInitializeResult(serverSeq: Int) -> InitializeResult {
     InitializeResult(
-        protocolVersion: "0.2.0",
+        protocolVersion: "0.3.0",
         serverSeq: serverSeq,
         snapshots: [Snapshot(
             resource: "ahp-root://",
@@ -1554,6 +1554,6 @@ private func makeTurnStartedAction(text: String) -> StateAction {
     .sessionTurnStarted(SessionTurnStartedAction(
         type: .sessionTurnStarted,
         turnId: UUID().uuidString,
-        userMessage: UserMessage(text: text)
+        message: Message(text: text, origin: AnyCodable(["kind": "user"]))
     ))
 }

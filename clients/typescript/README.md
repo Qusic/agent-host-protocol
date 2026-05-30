@@ -38,7 +38,7 @@ client.connect();
 
 const init = await client.initialize({
   clientId: 'my-client',
-  protocolVersions: ['0.2.0'],
+  protocolVersions: ['0.3.0'],
   initialSubscriptions: ['ahp-root://'],
 });
 

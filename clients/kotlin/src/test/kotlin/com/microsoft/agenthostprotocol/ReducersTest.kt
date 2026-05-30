@@ -11,6 +11,7 @@ import com.microsoft.agenthostprotocol.generated.ChangesetFileSetAction
 import com.microsoft.agenthostprotocol.generated.CustomizationUnknown
 import com.microsoft.agenthostprotocol.generated.ErrorInfo
 import com.microsoft.agenthostprotocol.generated.FileEdit
+import com.microsoft.agenthostprotocol.generated.Message
 import com.microsoft.agenthostprotocol.generated.PendingMessage
 import com.microsoft.agenthostprotocol.generated.PendingMessageKind
 import com.microsoft.agenthostprotocol.generated.RootAgentsChangedAction
@@ -40,10 +41,10 @@ import com.microsoft.agenthostprotocol.generated.TerminalContentPartUnclassified
 import com.microsoft.agenthostprotocol.generated.TerminalDataAction
 import com.microsoft.agenthostprotocol.generated.TerminalInputAction
 import com.microsoft.agenthostprotocol.generated.TerminalState
-import com.microsoft.agenthostprotocol.generated.UserMessage
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -168,9 +169,9 @@ class ReducersTest {
     @Test
     fun `queued message reorder preserves messages not mentioned in order`() {
         val original = listOf(
-            PendingMessage(id = "m1", userMessage = UserMessage(text = "1")),
-            PendingMessage(id = "m2", userMessage = UserMessage(text = "2")),
-            PendingMessage(id = "m3", userMessage = UserMessage(text = "3")),
+            PendingMessage(id = "m1", message = userMessage("1")),
+            PendingMessage(id = "m2", message = userMessage("2")),
+            PendingMessage(id = "m3", message = userMessage("3")),
         )
         val session = newSession().copy(queuedMessages = original)
         val reorder = StateActionSessionQueuedMessagesReordered(
@@ -186,8 +187,8 @@ class ReducersTest {
     @Test
     fun `queued message reorder ignores duplicate and unknown ids`() {
         val original = listOf(
-            PendingMessage(id = "m1", userMessage = UserMessage(text = "1")),
-            PendingMessage(id = "m2", userMessage = UserMessage(text = "2")),
+            PendingMessage(id = "m1", message = userMessage("1")),
+            PendingMessage(id = "m2", message = userMessage("2")),
         )
         val session = newSession().copy(queuedMessages = original)
         val reorder = StateActionSessionQueuedMessagesReordered(
@@ -208,7 +209,7 @@ class ReducersTest {
                 type = ActionType.SESSION_PENDING_MESSAGE_SET,
                 kind = PendingMessageKind.STEERING,
                 id = "s1",
-                userMessage = UserMessage(text = "steer"),
+                message = userMessage("steer"),
             ),
         )
         val withSteering = sessionReducer(session, setSteering)
@@ -220,7 +221,7 @@ class ReducersTest {
                 type = ActionType.SESSION_PENDING_MESSAGE_SET,
                 kind = PendingMessageKind.QUEUED,
                 id = "q1",
-                userMessage = UserMessage(text = "q-1"),
+                message = userMessage("q-1"),
             ),
         )
         val setQueued2 = StateActionSessionPendingMessageSet(
@@ -228,7 +229,7 @@ class ReducersTest {
                 type = ActionType.SESSION_PENDING_MESSAGE_SET,
                 kind = PendingMessageKind.QUEUED,
                 id = "q2",
-                userMessage = UserMessage(text = "q-2"),
+                message = userMessage("q-2"),
             ),
         )
         val withTwo = sessionReducer(sessionReducer(withSteering, setQueued1), setQueued2)
@@ -240,12 +241,12 @@ class ReducersTest {
                 type = ActionType.SESSION_PENDING_MESSAGE_SET,
                 kind = PendingMessageKind.QUEUED,
                 id = "q1",
-                userMessage = UserMessage(text = "q-1-revised"),
+                message = userMessage("q-1-revised"),
             ),
         )
         val withReplacement = sessionReducer(withTwo, replaceQueued1)
         assertEquals(listOf("q1", "q2"), withReplacement.queuedMessages?.map { it.id })
-        assertEquals("q-1-revised", withReplacement.queuedMessages?.first()?.userMessage?.text)
+        assertEquals("q-1-revised", withReplacement.queuedMessages?.first()?.message?.text)
     }
 
     @Test
@@ -354,5 +355,8 @@ class ReducersTest {
 
     private companion object {
         private const val MOCK_NOW: Long = 9999L
+
+        private fun userMessage(text: String): Message =
+            Message(text = text, origin = buildJsonObject { put("kind", "user") })
     }
 }

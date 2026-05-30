@@ -738,7 +738,7 @@ const STATE_ENUMS = [
   'PolicyState', 'PendingMessageKind', 'SessionLifecycle', 'SessionStatus',
   'SessionInputAnswerState', 'SessionInputAnswerValueKind', 'SessionInputQuestionKind',
   'SessionInputResponseKind',
-  'TurnState', 'MessageAttachmentKind', 'ResponsePartKind', 'ToolCallStatus',
+  'TurnState', 'MessageKind', 'MessageAttachmentKind', 'ResponsePartKind', 'ToolCallStatus',
   'ToolCallConfirmationReason', 'ToolCallCancellationReason', 'ConfirmationOptionKind',
   'ToolResultContentType', 'CustomizationType', 'CustomizationLoadStatus', 'TerminalClaimKind',
   'ChangesetStatus', 'ChangesetOperationScope', 'ResourceChangeType',
@@ -748,7 +748,7 @@ const STATE_STRUCTS = [
   'Icon', 'ProtectedResourceMetadata', 'RootState', 'RootConfigState', 'AgentInfo',
   'SessionModelInfo', 'ModelSelection', 'AgentSelection', 'ConfigPropertySchema', 'ConfigSchema',
   'PendingMessage', 'SessionState', 'SessionActiveClient',
-  'SessionSummary', 'ProjectInfo', 'SessionConfigState', 'Turn', 'ActiveTurn', 'UserMessage',
+  'SessionSummary', 'ProjectInfo', 'SessionConfigState', 'Turn', 'ActiveTurn', 'Message',
   'SessionInputOption',
   'SessionInputTextAnswerValue', 'SessionInputNumberAnswerValue',
   'SessionInputBooleanAnswerValue', 'SessionInputSelectedAnswerValue',
@@ -1073,7 +1073,7 @@ data class SessionToolCallConfirmedAction(
     /** Why the tool was cancelled (present when denied) */
     val reason: ToolCallCancellationReason? = null,
     /** What the user suggested instead (present when denied) */
-    val userSuggestion: UserMessage? = null,
+    val userSuggestion: Message? = null,
     /** Explanation for the denial */
     val reasonMessage: StringOrMarkdown? = null,
     /** ID of the selected confirmation option, if the server provided options */

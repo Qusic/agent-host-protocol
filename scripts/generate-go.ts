@@ -654,7 +654,7 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; goName?: strin
   { name: 'SessionConfigState' },
   { name: 'Turn' },
   { name: 'ActiveTurn' },
-  { name: 'UserMessage' },
+  { name: 'Message' },
   { name: 'SessionInputOption' },
   { name: 'SessionInputTextAnswerValue' },
   { name: 'SessionInputNumberAnswerValue' },
@@ -839,7 +839,7 @@ const TOOL_RESULT_CONTENT_UNION: UnionConfig = {
 const MESSAGE_ATTACHMENT_UNION: UnionConfig = {
   name: 'MessageAttachment',
   discriminantField: 'type',
-  doc: 'MessageAttachment is an attachment associated with a UserMessage.',
+  doc: 'MessageAttachment is an attachment associated with a Message.',
   variants: [
     { variantName: 'Simple', innerType: 'SimpleMessageAttachment', wireValue: 'simple' },
     { variantName: 'EmbeddedResource', innerType: 'MessageEmbeddedResourceAttachment', wireValue: 'embeddedResource' },
@@ -1102,7 +1102,7 @@ type SessionToolCallConfirmedAction struct {
 \tConfirmed       *ToolCallConfirmationReason    \`json:"confirmed,omitempty"\`
 \tReason          *ToolCallCancellationReason    \`json:"reason,omitempty"\`
 \tEditedToolInput *string                        \`json:"editedToolInput,omitempty"\`
-\tUserSuggestion  *UserMessage                   \`json:"userSuggestion,omitempty"\`
+\tUserSuggestion  *Message                       \`json:"userSuggestion,omitempty"\`
 \tReasonMessage   *StringOrMarkdown              \`json:"reasonMessage,omitempty"\`
 \tSelectedOptionId *string                       \`json:"selectedOptionId,omitempty"\`
 }`;

@@ -35,7 +35,7 @@ const (
 type CompletionItemKind string
 
 const (
-	// Completions for the text of a {@link UserMessage} the user is composing.
+	// Completions for the text of a {@link Message} the user is composing.
 	// Each returned item carries an attachment that gets associated with the
 	// message when accepted.
 	CompletionItemKindUserMessage CompletionItemKind = "userMessage"
@@ -120,7 +120,7 @@ type InitializeResult struct {
 	Snapshots []Snapshot `json:"snapshots"`
 	// Suggested default directory for remote filesystem browsing
 	DefaultDirectory *URI `json:"defaultDirectory,omitempty"`
-	// Characters that, when typed in a {@link UserMessage} input, SHOULD cause
+	// Characters that, when typed in a {@link Message} input, SHOULD cause
 	// the client to issue a `completions` request with
 	// {@link CompletionItemKind.UserMessage}. Typically includes characters like
 	// `'@'` or `'/'`.
@@ -777,7 +777,7 @@ type CompletionsParams struct {
 // When the user accepts an item, the client SHOULD:
 //  1. Replace the range `[rangeStart, rangeEnd)` in the input with `insertText`
 //     (or insert `insertText` at the cursor when the range is omitted).
-//  2. Associate the item's `attachment` with the resulting {@link UserMessage}.
+//  2. Associate the item's `attachment` with the resulting {@link Message}.
 type CompletionItem struct {
 	// The text inserted into the input when this item is accepted.
 	InsertText string `json:"insertText"`
@@ -790,7 +790,7 @@ type CompletionItem struct {
 	//
 	// Note: this range refers to positions in the *current* input. The
 	// attachment's own `rangeStart`/`rangeEnd` (when present) refer to
-	// positions in the final {@link UserMessage.text} after the item is
+	// positions in the final {@link Message.text} after the item is
 	// accepted.
 	RangeStart *int64 `json:"rangeStart,omitempty"`
 	// The end of the range in the input's `text` that is replaced by

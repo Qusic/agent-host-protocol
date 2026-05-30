@@ -244,6 +244,17 @@ enum class TurnState {
 }
 
 /**
+ * Discriminant for Message types.
+ */
+@Serializable
+enum class MessageKind {
+    @SerialName("user")
+    USER,
+    @SerialName("systemNotification")
+    SYSTEM_NOTIFICATION
+}
+
+/**
  * Discriminant for {@link MessageAttachment} variants.
  */
 @Serializable
@@ -794,9 +805,9 @@ data class PendingMessage(
      */
     val id: String,
     /**
-     * The message content
+     * The message that will start the next turn
      */
-    val userMessage: UserMessage
+    val message: Message
 )
 
 @Serializable
@@ -985,9 +996,9 @@ data class Turn(
      */
     val id: String,
     /**
-     * The user's input
+     * The message that initiated the turn
      */
-    val userMessage: UserMessage,
+    val message: Message,
     /**
      * All response content in stream order: text, tool calls, reasoning, and content refs.
      * 
@@ -1016,9 +1027,9 @@ data class ActiveTurn(
      */
     val id: String,
     /**
-     * The user's input
+     * The message that initiated the turn
      */
-    val userMessage: UserMessage,
+    val message: Message,
     /**
      * All response content in stream order: text, tool calls, reasoning, and content refs.
      * 
@@ -1032,11 +1043,15 @@ data class ActiveTurn(
 )
 
 @Serializable
-data class UserMessage(
+data class Message(
     /**
      * Message text
      */
     val text: String,
+    /**
+     * The origin of the message
+     */
+    val origin: JsonElement,
     /**
      * File/selection attachments
      */
@@ -1359,7 +1374,7 @@ data class SimpleMessageAttachment(
      */
     val label: String,
     /**
-     * If defined, the range in {@link UserMessage.text} that references this
+     * If defined, the range in {@link Message.text} that references this
      * attachment. This is a text range, not a byte range.
      */
     val range: TextRange? = null,
@@ -1409,7 +1424,7 @@ data class MessageEmbeddedResourceAttachment(
      */
     val label: String,
     /**
-     * If defined, the range in {@link UserMessage.text} that references this
+     * If defined, the range in {@link Message.text} that references this
      * attachment. This is a text range, not a byte range.
      */
     val range: TextRange? = null,
@@ -1464,7 +1479,7 @@ data class MessageResourceAttachment(
      */
     val label: String,
     /**
-     * If defined, the range in {@link UserMessage.text} that references this
+     * If defined, the range in {@link Message.text} that references this
      * attachment. This is a text range, not a byte range.
      */
     val range: TextRange? = null,
@@ -2000,7 +2015,7 @@ data class ToolCallCancelledState(
     /**
      * What the user suggested doing instead
      */
-    val userSuggestion: UserMessage? = null,
+    val userSuggestion: Message? = null,
     /**
      * The confirmation option the user selected, if confirmation options were provided
      */

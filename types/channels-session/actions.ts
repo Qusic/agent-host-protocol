@@ -7,7 +7,7 @@
 import { ActionType } from '../common/actions.js';
 import type { StringOrMarkdown, ErrorInfo, FileEdit, UsageInfo } from '../common/state.js';
 import type {
-  UserMessage,
+  Message,
   ResponsePart,
   ToolCallResult,
   ToolResultContent,
@@ -78,7 +78,9 @@ export interface SessionCreationFailedAction {
 }
 
 /**
- * User sent a message; server starts agent processing.
+ * A new message has been sent to the agent, and a new turn starts.
+ * 
+ * A client is only allowed to send {@link MessageKind.User} messages.
  *
  * @category Session Actions
  * @version 1
@@ -88,8 +90,8 @@ export interface SessionTurnStartedAction {
   type: ActionType.SessionTurnStarted;
   /** Turn identifier */
   turnId: string;
-  /** User's message */
-  userMessage: UserMessage;
+  /** The new message */
+  message: Message;
   /** If this turn was auto-started from a queued message, the ID of that message */
   queuedMessageId?: string;
 }
@@ -241,7 +243,7 @@ export interface SessionToolCallDeniedAction extends ToolCallActionBase {
   /** Why the tool was cancelled */
   reason: ToolCallCancellationReason.Denied | ToolCallCancellationReason.Skipped;
   /** What the user suggested doing instead */
-  userSuggestion?: UserMessage;
+  userSuggestion?: Message;
   /** Optional explanation for the denial */
   reasonMessage?: StringOrMarkdown;
   /** ID of the selected confirmation option, if the server provided options */
@@ -699,6 +701,8 @@ export interface SessionTruncatedAction {
  * updated in place; otherwise it is appended to the queue. If the session is
  * idle when a queued message is set, the server SHOULD immediately consume it
  * and start a new turn.
+ * 
+ * A client is only allowed to send {@link MessageKind.User} messages.
  *
  * @category Session Actions
  * @version 1
@@ -711,7 +715,7 @@ export interface SessionPendingMessageSetAction {
   /** Unique identifier for this pending message */
   id: string;
   /** The message content */
-  userMessage: UserMessage;
+  message: Message;
 }
 
 /**

@@ -590,14 +590,14 @@
           "type": "string",
           "description": "Unique identifier for this pending message"
         },
-        "userMessage": {
-          "$ref": "#/$defs/UserMessage",
-          "description": "The message content"
+        "message": {
+          "$ref": "#/$defs/Message",
+          "description": "The message that will start the next turn"
         }
       },
       "required": [
         "id",
-        "userMessage"
+        "message"
       ]
     },
     "SessionState": {
@@ -1390,9 +1390,9 @@
           "type": "string",
           "description": "Turn identifier"
         },
-        "userMessage": {
-          "$ref": "#/$defs/UserMessage",
-          "description": "The user's input"
+        "message": {
+          "$ref": "#/$defs/Message",
+          "description": "The message that initiated the turn"
         },
         "responseParts": {
           "type": "array",
@@ -1416,7 +1416,7 @@
       },
       "required": [
         "id",
-        "userMessage",
+        "message",
         "responseParts",
         "usage",
         "state"
@@ -1430,9 +1430,9 @@
           "type": "string",
           "description": "Turn identifier"
         },
-        "userMessage": {
-          "$ref": "#/$defs/UserMessage",
-          "description": "The user's input"
+        "message": {
+          "$ref": "#/$defs/Message",
+          "description": "The message that initiated the turn"
         },
         "responseParts": {
           "type": "array",
@@ -1448,18 +1448,30 @@
       },
       "required": [
         "id",
-        "userMessage",
+        "message",
         "responseParts",
         "usage"
       ]
     },
-    "UserMessage": {
+    "Message": {
       "type": "object",
-      "description": "A user message and its associated attachments.\n\nAttachments MAY be referenced inside {@link UserMessage.text} via their\n{@link MessageAttachmentBase.range} field. Attachments without a range are\nstill associated with the message but do not correspond to a specific span\nin the text.",
+      "description": "A message that initiates or steers a turn. Messages can originate from the\nuser or be system-generated (see {@link MessageKind}).\n\nAttachments MAY be referenced inside {@link Message.text} via their\n{@link MessageAttachmentBase.range} field. Attachments without a range are\nstill associated with the message but do not correspond to a specific span\nin the text.",
       "properties": {
         "text": {
           "type": "string",
           "description": "Message text"
+        },
+        "origin": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "description": "The origin of the message"
         },
         "attachments": {
           "type": "array",
@@ -1475,7 +1487,8 @@
         }
       },
       "required": [
-        "text"
+        "text",
+        "origin"
       ]
     },
     "MessageAttachmentBase": {
@@ -1488,7 +1501,7 @@
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment. This is a text range, not a byte range."
+          "description": "If defined, the range in {@link Message.text} that references this\nattachment. This is a text range, not a byte range."
         },
         "displayKind": {
           "type": "string",
@@ -1514,7 +1527,7 @@
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment. This is a text range, not a byte range."
+          "description": "If defined, the range in {@link Message.text} that references this\nattachment. This is a text range, not a byte range."
         },
         "displayKind": {
           "type": "string",
@@ -1549,7 +1562,7 @@
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment. This is a text range, not a byte range."
+          "description": "If defined, the range in {@link Message.text} that references this\nattachment. This is a text range, not a byte range."
         },
         "displayKind": {
           "type": "string",
@@ -1594,7 +1607,7 @@
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "If defined, the range in {@link UserMessage.text} that references this\nattachment. This is a text range, not a byte range."
+          "description": "If defined, the range in {@link Message.text} that references this\nattachment. This is a text range, not a byte range."
         },
         "displayKind": {
           "type": "string",
@@ -2264,7 +2277,7 @@
           "description": "Optional message explaining the cancellation"
         },
         "userSuggestion": {
-          "$ref": "#/$defs/UserMessage",
+          "$ref": "#/$defs/Message",
           "description": "What the user suggested doing instead"
         },
         "selectedOption": {
@@ -3610,7 +3623,7 @@
           "$ref": "#/$defs/MessageResourceAttachment"
         }
       ],
-      "description": "An attachment associated with a {@link UserMessage}."
+      "description": "An attachment associated with a {@link Message}."
     },
     "ResponsePart": {
       "oneOf": [

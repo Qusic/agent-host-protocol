@@ -119,7 +119,7 @@ The client → server dispatch path uses a different method, `dispatchAction`, w
   "params": {
     "channel": "ahp-session:/<uuid>",
     "clientSeq": 1,
-    "action": { "type": "session/turnStarted", "turnId": "t1", "userMessage": { "text": "Hi" } }
+    "action": { "type": "session/turnStarted", "turnId": "t1", "message": { "text": "Hi", "origin": { "kind": "user" } } }
   }
 }
 ```
@@ -137,7 +137,7 @@ During the handshake, clients MAY include `initialSubscriptions` in `initialize`
   "method": "initialize",
   "params": {
     "channel": "ahp-root://",
-    "protocolVersions": ["0.2.0"],
+    "protocolVersions": ["0.3.0"],
     "clientId": "client-abc",
     "initialSubscriptions": ["ahp-root://", "ahp-session:/<prev-session>"]
   }

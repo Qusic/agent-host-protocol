@@ -456,7 +456,7 @@ private fun endTurn(
 
     val turn = Turn(
         id = active.id,
-        userMessage = active.userMessage,
+        message = active.message,
         responseParts = finalizedParts,
         usage = active.usage,
         state = turnState,
@@ -557,7 +557,7 @@ public fun sessionReducer(state: SessionState, action: StateAction): SessionStat
         val withTurn = state.copy(
             activeTurn = ActiveTurn(
                 id = a.turnId,
-                userMessage = a.userMessage,
+                message = a.message,
                 responseParts = emptyList(),
                 usage = null,
             ),
@@ -1101,7 +1101,7 @@ public fun sessionReducer(state: SessionState, action: StateAction): SessionStat
 
     is StateActionSessionPendingMessageSet -> {
         val a = action.value
-        val entry = PendingMessage(id = a.id, userMessage = a.userMessage)
+        val entry = PendingMessage(id = a.id, message = a.message)
         if (a.kind == PendingMessageKind.STEERING) {
             state.copy(steeringMessage = entry)
         } else {

@@ -22,7 +22,7 @@ The agent host advertises which OTel signals it emits — and on which channel U
   "jsonrpc": "2.0",
   "id": 1,
   "result": {
-    "protocolVersion": "0.2.0",
+    "protocolVersion": "0.3.0",
     "serverSeq": 0,
     "snapshots": [],
     "telemetry": {
