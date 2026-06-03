@@ -38,6 +38,10 @@ hotfix escape hatch.
   server customization by id.
 - `ClientCapabilities` type on `InitializeParams.capabilities` with
   first entry `mcpApps`.
+### Added
+- `status` and `error` fields on `ChangesetOperation` and the
+  `changeset/operationStatusChanged` action, tracking the
+  `idle → running → error` lifecycle of a changeset operation.
 
 ### Changed
 
@@ -46,7 +50,6 @@ hotfix escape hatch.
   with `{ kind: 'client'; clientId }` and `{ kind: 'mcp'; customizationId }`
   variants). `session/toolCallStart` carries the new `contributor`
   field as well.
-
 ## [0.2.0] — 2026-05-28
 
 Implements AHP `0.2.0`.

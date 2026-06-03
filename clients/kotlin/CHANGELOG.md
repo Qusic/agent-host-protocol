@@ -32,6 +32,10 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
   by id.
 - `ClientCapabilities` data class on `InitializeParams.capabilities`
   with first entry `mcpApps`.
+### Added
+- `status` and `error` fields on `ChangesetOperation` and the
+  `changeset/operationStatusChanged` action, tracking the
+  `idle → running → error` lifecycle of a changeset operation.
 
 ### Changed
 
@@ -40,7 +44,6 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
   with `Client(clientId)` and `Mcp(customizationId)` variants).
   `SessionToolCallStartAction` carries the new `contributor` field as
   well.
-
 ## [0.2.0] — 2026-05-28
 
 Implements AHP `0.2.0`.

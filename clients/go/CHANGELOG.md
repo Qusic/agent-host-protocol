@@ -32,6 +32,10 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
   server customization by id.
 - `ClientCapabilities` struct on `InitializeParams.Capabilities` with
   first entry `McpApps`.
+### Added
+- `status` and `error` fields on `ChangesetOperation` and the
+  `changeset/operationStatusChanged` action, tracking the
+  `idle → running → error` lifecycle of a changeset operation.
 
 ### Changed
 
@@ -40,7 +44,6 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
   `Client { ClientId }` and `Mcp { CustomizationId }` variants).
   `SessionToolCallStartAction` carries the new `Contributor` field as
   well. The reducer follows the rename.
-
 ## [0.1.0] — 2026-05-28
 
 Implements AHP `0.2.0`.

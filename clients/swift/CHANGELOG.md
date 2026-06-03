@@ -35,6 +35,10 @@ the tag matches the version pinned in [`VERSION`](VERSION).
   the protocol-based `NativeReducer.swift`.
 - `ClientCapabilities` struct on `InitializeParams.capabilities` with
   first entry `mcpApps`.
+### Added
+- `status` and `error` fields on `ChangesetOperation` and the
+  `changeset/operationStatusChanged` action, tracking the
+  `idle → running → error` lifecycle of a changeset operation.
 
 ### Changed
 
@@ -44,7 +48,6 @@ the tag matches the version pinned in [`VERSION`](VERSION).
   cases). `SessionToolCallStartAction` carries the new `contributor`
   field as well. `Reducers.swift`, `NativeReducer.swift`, and
   `ToolCallStateExtensions.swift` follow the rename.
-
 ## [0.2.0] — 2026-05-28
 
 Implements AHP `0.2.0`.

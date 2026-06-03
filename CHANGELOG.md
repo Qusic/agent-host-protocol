@@ -54,6 +54,10 @@ Spec version: `0.3.0`
   clients that declared it.
 - New guide page `docs/guide/mcp.md` (with an MCP Apps subsection) and
   new spec page `docs/specification/mcp-channel.md`.
+- Added `status` and `error` to `ChangesetOperation` and a new
+  `changeset/operationStatusChanged` action so servers can reflect an
+  operation's execution lifecycle (`idle → running → error`) back into
+  changeset state.
 
 ### Changed
 

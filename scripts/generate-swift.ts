@@ -505,7 +505,7 @@ const STATE_ENUMS = [
   'ToolCallContributorKind',
   'ToolResultContentType', 'CustomizationType', 'CustomizationLoadStatus', 'TerminalClaimKind',
   'McpServerStatus', 'McpAuthRequiredReason',
-  'ChangesetStatus', 'ChangesetOperationScope', 'ResourceChangeType',
+  'ChangesetStatus', 'ChangesetOperationStatus', 'ChangesetOperationScope', 'ResourceChangeType',
 ];
 
 const STATE_STRUCTS = [
@@ -931,6 +931,7 @@ const ACTION_VARIANTS: { type: string; caseName: string; tsInterface: string }[]
   { type: 'changeset/fileSet', caseName: 'changesetFileSet', tsInterface: 'ChangesetFileSetAction' },
   { type: 'changeset/fileRemoved', caseName: 'changesetFileRemoved', tsInterface: 'ChangesetFileRemovedAction' },
   { type: 'changeset/operationsChanged', caseName: 'changesetOperationsChanged', tsInterface: 'ChangesetOperationsChangedAction' },
+  { type: 'changeset/operationStatusChanged', caseName: 'changesetOperationStatusChanged', tsInterface: 'ChangesetOperationStatusChangedAction' },
   { type: 'changeset/cleared', caseName: 'changesetCleared', tsInterface: 'ChangesetClearedAction' },
   { type: 'root/terminalsChanged', caseName: 'rootTerminalsChanged', tsInterface: 'RootTerminalsChangedAction' },
   { type: 'root/configChanged', caseName: 'rootConfigChanged', tsInterface: 'RootConfigChangedAction' },

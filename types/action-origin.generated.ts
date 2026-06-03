@@ -52,6 +52,7 @@ import type {
   ChangesetFileSetAction,
   ChangesetFileRemovedAction,
   ChangesetOperationsChangedAction,
+  ChangesetOperationStatusChangedAction,
   ChangesetClearedAction,
   TerminalDataAction,
   TerminalInputAction,
@@ -225,6 +226,7 @@ export type ChangesetAction =
   | ChangesetFileSetAction
   | ChangesetFileRemovedAction
   | ChangesetOperationsChangedAction
+  | ChangesetOperationStatusChangedAction
   | ChangesetClearedAction
 ;
 
@@ -239,6 +241,7 @@ export type ServerChangesetAction =
   | ChangesetFileSetAction
   | ChangesetFileRemovedAction
   | ChangesetOperationsChangedAction
+  | ChangesetOperationStatusChangedAction
   | ChangesetClearedAction
 ;
 
@@ -313,6 +316,7 @@ export const IS_CLIENT_DISPATCHABLE: { readonly [K in StateAction['type']]: bool
   [ActionType.ChangesetFileSet]: false,
   [ActionType.ChangesetFileRemoved]: false,
   [ActionType.ChangesetOperationsChanged]: false,
+  [ActionType.ChangesetOperationStatusChanged]: false,
   [ActionType.ChangesetCleared]: false,
   [ActionType.TerminalData]: false,
   [ActionType.TerminalInput]: true,
