@@ -36,6 +36,7 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 - `status` and `error` fields on `ChangesetOperation` and the
   `changeset/operationStatusChanged` action, tracking the
   `idle → running → error` lifecycle of a changeset operation.
+- `AgentCustomization._meta` provider metadata field.
 
 ### Changed
 

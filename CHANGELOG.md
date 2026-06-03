@@ -67,6 +67,8 @@ Spec version: `0.3.0`
   tool calls can be attributed back to their originating
   `McpServerCustomization`. `session/toolCallStart` carries the new
   `contributor?` field in place of `toolClientId?`.
+
+- Added optional `_meta` provider metadata to `AgentCustomization`.
 - Renamed the `UserMessage` type to `Message` and surfaced it consistently
   across turn state (`Turn.message`, `ActiveTurn.message`, `PendingMessage.message`)
   and the actions that carry it (`session/turnStarted`,
