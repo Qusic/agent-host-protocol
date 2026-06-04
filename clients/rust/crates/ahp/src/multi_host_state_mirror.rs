@@ -36,7 +36,9 @@ use std::collections::HashMap;
 
 use ahp_types::actions::ActionEnvelope;
 use ahp_types::common::ROOT_RESOURCE_URI;
-use ahp_types::state::{ChangesetState, CommentsState, RootState, SessionState, SnapshotState, TerminalState};
+use ahp_types::state::{
+    ChangesetState, CommentsState, RootState, SessionState, SnapshotState, TerminalState,
+};
 
 use crate::hosts::{HostId, HostSubscriptionEvent};
 use crate::reducers::{apply_action_to_root, apply_action_to_session, apply_action_to_terminal};

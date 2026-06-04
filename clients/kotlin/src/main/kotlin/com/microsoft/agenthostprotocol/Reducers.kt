@@ -21,6 +21,9 @@ import com.microsoft.agenthostprotocol.generated.ChildCustomizationPrompt
 import com.microsoft.agenthostprotocol.generated.ChildCustomizationRule
 import com.microsoft.agenthostprotocol.generated.ChildCustomizationSkill
 import com.microsoft.agenthostprotocol.generated.ChildCustomizationUnknown
+import com.microsoft.agenthostprotocol.generated.Comment
+import com.microsoft.agenthostprotocol.generated.CommentThread
+import com.microsoft.agenthostprotocol.generated.CommentsState
 import com.microsoft.agenthostprotocol.generated.ConfirmationOption
 import com.microsoft.agenthostprotocol.generated.Customization
 import com.microsoft.agenthostprotocol.generated.CustomizationDirectory
@@ -52,6 +55,11 @@ import com.microsoft.agenthostprotocol.generated.StateActionChangesetFileSet
 import com.microsoft.agenthostprotocol.generated.StateActionChangesetOperationsChanged
 import com.microsoft.agenthostprotocol.generated.StateActionChangesetOperationStatusChanged
 import com.microsoft.agenthostprotocol.generated.StateActionChangesetStatusChanged
+import com.microsoft.agenthostprotocol.generated.StateActionCommentsCleared
+import com.microsoft.agenthostprotocol.generated.StateActionCommentsCommentRemoved
+import com.microsoft.agenthostprotocol.generated.StateActionCommentsCommentSet
+import com.microsoft.agenthostprotocol.generated.StateActionCommentsThreadRemoved
+import com.microsoft.agenthostprotocol.generated.StateActionCommentsThreadSet
 import com.microsoft.agenthostprotocol.generated.StateActionRootActiveSessionsChanged
 import com.microsoft.agenthostprotocol.generated.StateActionRootAgentsChanged
 import com.microsoft.agenthostprotocol.generated.StateActionRootConfigChanged

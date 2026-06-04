@@ -19,8 +19,8 @@ var _ = json.RawMessage(nil)
 type PolicyState string
 
 const (
-	PolicyStateEnabled PolicyState = "enabled"
-	PolicyStateDisabled PolicyState = "disabled"
+	PolicyStateEnabled      PolicyState = "enabled"
+	PolicyStateDisabled     PolicyState = "disabled"
 	PolicyStateUnconfigured PolicyState = "unconfigured"
 )
 
@@ -38,8 +38,8 @@ const (
 type SessionLifecycle string
 
 const (
-	SessionLifecycleCreating SessionLifecycle = "creating"
-	SessionLifecycleReady SessionLifecycle = "ready"
+	SessionLifecycleCreating       SessionLifecycle = "creating"
+	SessionLifecycleReady          SessionLifecycle = "ready"
 	SessionLifecycleCreationFailed SessionLifecycle = "creationFailed"
 )
 
@@ -75,19 +75,19 @@ func (s SessionStatus) Or(other SessionStatus) SessionStatus { return s | other 
 type SessionInputAnswerState string
 
 const (
-	SessionInputAnswerStateDraft SessionInputAnswerState = "draft"
+	SessionInputAnswerStateDraft     SessionInputAnswerState = "draft"
 	SessionInputAnswerStateSubmitted SessionInputAnswerState = "submitted"
-	SessionInputAnswerStateSkipped SessionInputAnswerState = "skipped"
+	SessionInputAnswerStateSkipped   SessionInputAnswerState = "skipped"
 )
 
 // Answer value kind.
 type SessionInputAnswerValueKind string
 
 const (
-	SessionInputAnswerValueKindText SessionInputAnswerValueKind = "text"
-	SessionInputAnswerValueKindNumber SessionInputAnswerValueKind = "number"
-	SessionInputAnswerValueKindBoolean SessionInputAnswerValueKind = "boolean"
-	SessionInputAnswerValueKindSelected SessionInputAnswerValueKind = "selected"
+	SessionInputAnswerValueKindText         SessionInputAnswerValueKind = "text"
+	SessionInputAnswerValueKindNumber       SessionInputAnswerValueKind = "number"
+	SessionInputAnswerValueKindBoolean      SessionInputAnswerValueKind = "boolean"
+	SessionInputAnswerValueKindSelected     SessionInputAnswerValueKind = "selected"
 	SessionInputAnswerValueKindSelectedMany SessionInputAnswerValueKind = "selected-many"
 )
 
@@ -95,30 +95,30 @@ const (
 type SessionInputQuestionKind string
 
 const (
-	SessionInputQuestionKindText SessionInputQuestionKind = "text"
-	SessionInputQuestionKindNumber SessionInputQuestionKind = "number"
-	SessionInputQuestionKindInteger SessionInputQuestionKind = "integer"
-	SessionInputQuestionKindBoolean SessionInputQuestionKind = "boolean"
+	SessionInputQuestionKindText         SessionInputQuestionKind = "text"
+	SessionInputQuestionKindNumber       SessionInputQuestionKind = "number"
+	SessionInputQuestionKindInteger      SessionInputQuestionKind = "integer"
+	SessionInputQuestionKindBoolean      SessionInputQuestionKind = "boolean"
 	SessionInputQuestionKindSingleSelect SessionInputQuestionKind = "single-select"
-	SessionInputQuestionKindMultiSelect SessionInputQuestionKind = "multi-select"
+	SessionInputQuestionKindMultiSelect  SessionInputQuestionKind = "multi-select"
 )
 
 // How a client completed an input request.
 type SessionInputResponseKind string
 
 const (
-	SessionInputResponseKindAccept SessionInputResponseKind = "accept"
+	SessionInputResponseKindAccept  SessionInputResponseKind = "accept"
 	SessionInputResponseKindDecline SessionInputResponseKind = "decline"
-	SessionInputResponseKindCancel SessionInputResponseKind = "cancel"
+	SessionInputResponseKindCancel  SessionInputResponseKind = "cancel"
 )
 
 // How a turn ended.
 type TurnState string
 
 const (
-	TurnStateComplete TurnState = "complete"
+	TurnStateComplete  TurnState = "complete"
 	TurnStateCancelled TurnState = "cancelled"
-	TurnStateError TurnState = "error"
+	TurnStateError     TurnState = "error"
 )
 
 // Discriminant for {@link MessageAttachment} variants.
@@ -137,10 +137,10 @@ const (
 type ResponsePartKind string
 
 const (
-	ResponsePartKindMarkdown ResponsePartKind = "markdown"
-	ResponsePartKindContentRef ResponsePartKind = "contentRef"
-	ResponsePartKindToolCall ResponsePartKind = "toolCall"
-	ResponsePartKindReasoning ResponsePartKind = "reasoning"
+	ResponsePartKindMarkdown           ResponsePartKind = "markdown"
+	ResponsePartKindContentRef         ResponsePartKind = "contentRef"
+	ResponsePartKindToolCall           ResponsePartKind = "toolCall"
+	ResponsePartKindReasoning          ResponsePartKind = "reasoning"
 	ResponsePartKindSystemNotification ResponsePartKind = "systemNotification"
 )
 
@@ -148,12 +148,12 @@ const (
 type ToolCallStatus string
 
 const (
-	ToolCallStatusStreaming ToolCallStatus = "streaming"
-	ToolCallStatusPendingConfirmation ToolCallStatus = "pending-confirmation"
-	ToolCallStatusRunning ToolCallStatus = "running"
+	ToolCallStatusStreaming                 ToolCallStatus = "streaming"
+	ToolCallStatusPendingConfirmation       ToolCallStatus = "pending-confirmation"
+	ToolCallStatusRunning                   ToolCallStatus = "running"
 	ToolCallStatusPendingResultConfirmation ToolCallStatus = "pending-result-confirmation"
-	ToolCallStatusCompleted ToolCallStatus = "completed"
-	ToolCallStatusCancelled ToolCallStatus = "cancelled"
+	ToolCallStatusCompleted                 ToolCallStatus = "completed"
+	ToolCallStatusCancelled                 ToolCallStatus = "cancelled"
 )
 
 // How a tool call was confirmed for execution.
@@ -164,17 +164,17 @@ const (
 type ToolCallConfirmationReason string
 
 const (
-	ToolCallConfirmationReasonNotNeeded ToolCallConfirmationReason = "not-needed"
+	ToolCallConfirmationReasonNotNeeded  ToolCallConfirmationReason = "not-needed"
 	ToolCallConfirmationReasonUserAction ToolCallConfirmationReason = "user-action"
-	ToolCallConfirmationReasonSetting ToolCallConfirmationReason = "setting"
+	ToolCallConfirmationReasonSetting    ToolCallConfirmationReason = "setting"
 )
 
 // Why a tool call was cancelled.
 type ToolCallCancellationReason string
 
 const (
-	ToolCallCancellationReasonDenied ToolCallCancellationReason = "denied"
-	ToolCallCancellationReasonSkipped ToolCallCancellationReason = "skipped"
+	ToolCallCancellationReasonDenied       ToolCallCancellationReason = "denied"
+	ToolCallCancellationReasonSkipped      ToolCallCancellationReason = "skipped"
 	ToolCallCancellationReasonResultDenied ToolCallCancellationReason = "result-denied"
 )
 
@@ -183,26 +183,26 @@ type ConfirmationOptionKind string
 
 const (
 	ConfirmationOptionKindApprove ConfirmationOptionKind = "approve"
-	ConfirmationOptionKindDeny ConfirmationOptionKind = "deny"
+	ConfirmationOptionKindDeny    ConfirmationOptionKind = "deny"
 )
 
 type ToolCallContributorKind string
 
 const (
 	ToolCallContributorKindClient ToolCallContributorKind = "client"
-	ToolCallContributorKindMCP ToolCallContributorKind = "mcp"
+	ToolCallContributorKindMCP    ToolCallContributorKind = "mcp"
 )
 
 // Discriminant for tool result content types.
 type ToolResultContentType string
 
 const (
-	ToolResultContentTypeText ToolResultContentType = "text"
+	ToolResultContentTypeText             ToolResultContentType = "text"
 	ToolResultContentTypeEmbeddedResource ToolResultContentType = "embeddedResource"
-	ToolResultContentTypeResource ToolResultContentType = "resource"
-	ToolResultContentTypeFileEdit ToolResultContentType = "fileEdit"
-	ToolResultContentTypeTerminal ToolResultContentType = "terminal"
-	ToolResultContentTypeSubagent ToolResultContentType = "subagent"
+	ToolResultContentTypeResource         ToolResultContentType = "resource"
+	ToolResultContentTypeFileEdit         ToolResultContentType = "fileEdit"
+	ToolResultContentTypeTerminal         ToolResultContentType = "terminal"
+	ToolResultContentTypeSubagent         ToolResultContentType = "subagent"
 )
 
 // Discriminant for the kind of customization.
@@ -217,13 +217,13 @@ const (
 type CustomizationType string
 
 const (
-	CustomizationTypePlugin CustomizationType = "plugin"
+	CustomizationTypePlugin    CustomizationType = "plugin"
 	CustomizationTypeDirectory CustomizationType = "directory"
-	CustomizationTypeAgent CustomizationType = "agent"
-	CustomizationTypeSkill CustomizationType = "skill"
-	CustomizationTypePrompt CustomizationType = "prompt"
-	CustomizationTypeRule CustomizationType = "rule"
-	CustomizationTypeHook CustomizationType = "hook"
+	CustomizationTypeAgent     CustomizationType = "agent"
+	CustomizationTypeSkill     CustomizationType = "skill"
+	CustomizationTypePrompt    CustomizationType = "prompt"
+	CustomizationTypeRule      CustomizationType = "rule"
+	CustomizationTypeHook      CustomizationType = "hook"
 	CustomizationTypeMcpServer CustomizationType = "mcpServer"
 )
 
@@ -231,17 +231,17 @@ const (
 type CustomizationLoadStatus string
 
 const (
-	CustomizationLoadStatusLoading CustomizationLoadStatus = "loading"
-	CustomizationLoadStatusLoaded CustomizationLoadStatus = "loaded"
+	CustomizationLoadStatusLoading  CustomizationLoadStatus = "loading"
+	CustomizationLoadStatusLoaded   CustomizationLoadStatus = "loaded"
 	CustomizationLoadStatusDegraded CustomizationLoadStatus = "degraded"
-	CustomizationLoadStatusError CustomizationLoadStatus = "error"
+	CustomizationLoadStatusError    CustomizationLoadStatus = "error"
 )
 
 // Discriminant for terminal claim kinds.
 type TerminalClaimKind string
 
 const (
-	TerminalClaimKindClient TerminalClaimKind = "client"
+	TerminalClaimKindClient  TerminalClaimKind = "client"
 	TerminalClaimKindSession TerminalClaimKind = "session"
 )
 
@@ -342,7 +342,7 @@ const (
 type ResourceChangeType string
 
 const (
-	ResourceChangeTypeAdded ResourceChangeType = "added"
+	ResourceChangeTypeAdded   ResourceChangeType = "added"
 	ResourceChangeTypeUpdated ResourceChangeType = "updated"
 	ResourceChangeTypeDeleted ResourceChangeType = "deleted"
 )
@@ -842,30 +842,30 @@ type SessionInputOption struct {
 
 // Value captured for one answer.
 type SessionInputTextAnswerValue struct {
-	Kind SessionInputAnswerValueKind `json:"kind"`
-	Value string `json:"value"`
+	Kind  SessionInputAnswerValueKind `json:"kind"`
+	Value string                      `json:"value"`
 }
 
 type SessionInputNumberAnswerValue struct {
-	Kind SessionInputAnswerValueKind `json:"kind"`
-	Value float64 `json:"value"`
+	Kind  SessionInputAnswerValueKind `json:"kind"`
+	Value float64                     `json:"value"`
 }
 
 type SessionInputBooleanAnswerValue struct {
-	Kind SessionInputAnswerValueKind `json:"kind"`
-	Value bool `json:"value"`
+	Kind  SessionInputAnswerValueKind `json:"kind"`
+	Value bool                        `json:"value"`
 }
 
 type SessionInputSelectedAnswerValue struct {
-	Kind SessionInputAnswerValueKind `json:"kind"`
-	Value string `json:"value"`
+	Kind  SessionInputAnswerValueKind `json:"kind"`
+	Value string                      `json:"value"`
 	// Free-form text entered instead of selecting an option
 	FreeformValues []string `json:"freeformValues,omitempty"`
 }
 
 type SessionInputSelectedManyAnswerValue struct {
-	Kind SessionInputAnswerValueKind `json:"kind"`
-	Value []string `json:"value"`
+	Kind  SessionInputAnswerValueKind `json:"kind"`
+	Value []string                    `json:"value"`
 	// Free-form text entered in addition to selected options
 	FreeformValues []string `json:"freeformValues,omitempty"`
 }
@@ -893,8 +893,8 @@ type SessionInputTextQuestion struct {
 	// Prompt shown to the user
 	Message string `json:"message"`
 	// Whether the user must answer this question to accept the request
-	Required *bool `json:"required,omitempty"`
-	Kind SessionInputQuestionKind `json:"kind"`
+	Required *bool                    `json:"required,omitempty"`
+	Kind     SessionInputQuestionKind `json:"kind"`
 	// Format hint for text questions, such as `email`, `uri`, `date`, or `date-time`
 	Format *string `json:"format,omitempty"`
 	// Minimum string length
@@ -914,8 +914,8 @@ type SessionInputNumberQuestion struct {
 	// Prompt shown to the user
 	Message string `json:"message"`
 	// Whether the user must answer this question to accept the request
-	Required *bool `json:"required,omitempty"`
-	Kind SessionInputQuestionKind `json:"kind"`
+	Required *bool                    `json:"required,omitempty"`
+	Kind     SessionInputQuestionKind `json:"kind"`
 	// Minimum value
 	Min *float64 `json:"min,omitempty"`
 	// Maximum value
@@ -933,8 +933,8 @@ type SessionInputBooleanQuestion struct {
 	// Prompt shown to the user
 	Message string `json:"message"`
 	// Whether the user must answer this question to accept the request
-	Required *bool `json:"required,omitempty"`
-	Kind SessionInputQuestionKind `json:"kind"`
+	Required *bool                    `json:"required,omitempty"`
+	Kind     SessionInputQuestionKind `json:"kind"`
 	// Default boolean value
 	DefaultValue *bool `json:"defaultValue,omitempty"`
 }
@@ -948,8 +948,8 @@ type SessionInputSingleSelectQuestion struct {
 	// Prompt shown to the user
 	Message string `json:"message"`
 	// Whether the user must answer this question to accept the request
-	Required *bool `json:"required,omitempty"`
-	Kind SessionInputQuestionKind `json:"kind"`
+	Required *bool                    `json:"required,omitempty"`
+	Kind     SessionInputQuestionKind `json:"kind"`
 	// Options the user may select from
 	Options []SessionInputOption `json:"options"`
 	// Whether the user may enter text instead of selecting an option
@@ -965,8 +965,8 @@ type SessionInputMultiSelectQuestion struct {
 	// Prompt shown to the user
 	Message string `json:"message"`
 	// Whether the user must answer this question to accept the request
-	Required *bool `json:"required,omitempty"`
-	Kind SessionInputQuestionKind `json:"kind"`
+	Required *bool                    `json:"required,omitempty"`
+	Kind     SessionInputQuestionKind `json:"kind"`
 	// Options the user may select from
 	Options []SessionInputOption `json:"options"`
 	// Whether the user may enter text in addition to selecting options
@@ -1258,8 +1258,8 @@ type ToolCallStreamingState struct {
 	// This MAY include a `ui` field corresponding to the MCP Apps (SEP-1865)
 	// `McpUiToolMeta` found in MCP tool calls, which may be used in combination
 	// with the {@link contributor} to serve MCP Apps.
-	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
-	Status ToolCallStatus `json:"status"`
+	Meta   map[string]json.RawMessage `json:"_meta,omitempty"`
+	Status ToolCallStatus             `json:"status"`
 	// Partial parameters accumulated so far
 	PartialInput *string `json:"partialInput,omitempty"`
 	// Progress message shown while parameters are streaming
@@ -1286,8 +1286,8 @@ type ToolCallPendingConfirmationState struct {
 	// Message describing what the tool will do
 	InvocationMessage StringOrMarkdown `json:"invocationMessage"`
 	// Raw tool input
-	ToolInput *string `json:"toolInput,omitempty"`
-	Status ToolCallStatus `json:"status"`
+	ToolInput *string        `json:"toolInput,omitempty"`
+	Status    ToolCallStatus `json:"status"`
 	// Short title for the confirmation prompt (e.g. `"Run in terminal"`, `"Write file"`)
 	ConfirmationTitle *StringOrMarkdown `json:"confirmationTitle,omitempty"`
 	// File edits that this tool call will perform, for preview before confirmation
@@ -1320,8 +1320,8 @@ type ToolCallRunningState struct {
 	// Message describing what the tool will do
 	InvocationMessage StringOrMarkdown `json:"invocationMessage"`
 	// Raw tool input
-	ToolInput *string `json:"toolInput,omitempty"`
-	Status ToolCallStatus `json:"status"`
+	ToolInput *string        `json:"toolInput,omitempty"`
+	Status    ToolCallStatus `json:"status"`
 	// How the tool was confirmed for execution
 	Confirmed ToolCallConfirmationReason `json:"confirmed"`
 	// The confirmation option the user selected, if confirmation options were provided
@@ -1366,8 +1366,8 @@ type ToolCallPendingResultConfirmationState struct {
 	// This mirrors the `structuredContent` field of MCP `CallToolResult`.
 	StructuredContent map[string]json.RawMessage `json:"structuredContent,omitempty"`
 	// Error details if the tool failed
-	Error *json.RawMessage `json:"error,omitempty"`
-	Status ToolCallStatus `json:"status"`
+	Error  *json.RawMessage `json:"error,omitempty"`
+	Status ToolCallStatus   `json:"status"`
 	// How the tool was confirmed for execution
 	Confirmed ToolCallConfirmationReason `json:"confirmed"`
 	// The confirmation option the user selected, if confirmation options were provided
@@ -1407,8 +1407,8 @@ type ToolCallCompletedState struct {
 	// This mirrors the `structuredContent` field of MCP `CallToolResult`.
 	StructuredContent map[string]json.RawMessage `json:"structuredContent,omitempty"`
 	// Error details if the tool failed
-	Error *json.RawMessage `json:"error,omitempty"`
-	Status ToolCallStatus `json:"status"`
+	Error  *json.RawMessage `json:"error,omitempty"`
+	Status ToolCallStatus   `json:"status"`
 	// How the tool was confirmed for execution
 	Confirmed ToolCallConfirmationReason `json:"confirmed"`
 	// The confirmation option the user selected, if confirmation options were provided
@@ -1434,8 +1434,8 @@ type ToolCallCancelledState struct {
 	// Message describing what the tool will do
 	InvocationMessage StringOrMarkdown `json:"invocationMessage"`
 	// Raw tool input
-	ToolInput *string `json:"toolInput,omitempty"`
-	Status ToolCallStatus `json:"status"`
+	ToolInput *string        `json:"toolInput,omitempty"`
+	Status    ToolCallStatus `json:"status"`
 	// Why the tool was cancelled
 	Reason ToolCallCancellationReason `json:"reason"`
 	// Optional message explaining the cancellation
@@ -1517,8 +1517,8 @@ type ToolResultResourceContent struct {
 	// Approximate size in bytes
 	SizeHint *int64 `json:"sizeHint,omitempty"`
 	// Content MIME type
-	ContentType *string `json:"contentType,omitempty"`
-	Type ToolResultContentType `json:"type"`
+	ContentType *string               `json:"contentType,omitempty"`
+	Type        ToolResultContentType `json:"type"`
 }
 
 // Describes a file modification performed by a tool.
@@ -1528,7 +1528,7 @@ type ToolResultFileEditContent struct {
 	// The file state after the edit. Absent for file deletions.
 	After *json.RawMessage `json:"after,omitempty"`
 	// Optional diff display metadata
-	Diff *json.RawMessage `json:"diff,omitempty"`
+	Diff *json.RawMessage      `json:"diff,omitempty"`
 	Type ToolResultContentType `json:"type"`
 }
 
@@ -1621,7 +1621,7 @@ type PluginCustomization struct {
 	// array means the host parsed the container and it contributes
 	// nothing.
 	Children []ChildCustomization `json:"children,omitempty"`
-	Type CustomizationType `json:"type"`
+	Type     CustomizationType    `json:"type"`
 }
 
 // A {@link PluginCustomization} as published by a client. Extends the
@@ -1669,7 +1669,7 @@ type ClientPluginCustomization struct {
 	// array means the host parsed the container and it contributes
 	// nothing.
 	Children []ChildCustomization `json:"children,omitempty"`
-	Type CustomizationType `json:"type"`
+	Type     CustomizationType    `json:"type"`
 	// Opaque version token used by the host to detect changes.
 	Nonce *string `json:"nonce,omitempty"`
 }
@@ -1719,7 +1719,7 @@ type DirectoryCustomization struct {
 	// array means the host parsed the container and it contributes
 	// nothing.
 	Children []ChildCustomization `json:"children,omitempty"`
-	Type CustomizationType `json:"type"`
+	Type     CustomizationType    `json:"type"`
 	// Which child customization type this directory holds.
 	Contents CustomizationType `json:"contents"`
 	// Whether clients may write into this directory.
@@ -1752,8 +1752,8 @@ type AgentCustomization struct {
 	// customization is a subset of a larger file (for example, one entry
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
-	Range *TextRange `json:"range,omitempty"`
-	Type CustomizationType `json:"type"`
+	Range *TextRange        `json:"range,omitempty"`
+	Type  CustomizationType `json:"type"`
 	// Short description of what the agent specializes in and when to
 	// invoke it. Sourced from the agent file's frontmatter `description`.
 	Description *string `json:"description,omitempty"`
@@ -1790,8 +1790,8 @@ type SkillCustomization struct {
 	// customization is a subset of a larger file (for example, one entry
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
-	Range *TextRange `json:"range,omitempty"`
-	Type CustomizationType `json:"type"`
+	Range *TextRange        `json:"range,omitempty"`
+	Type  CustomizationType `json:"type"`
 	// Short description used for help text and auto-invocation matching.
 	// Sourced from the skill's frontmatter `description`.
 	Description *string `json:"description,omitempty"`
@@ -1823,8 +1823,8 @@ type PromptCustomization struct {
 	// customization is a subset of a larger file (for example, one entry
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
-	Range *TextRange `json:"range,omitempty"`
-	Type CustomizationType `json:"type"`
+	Range *TextRange        `json:"range,omitempty"`
+	Type  CustomizationType `json:"type"`
 	// Short description of what the prompt does.
 	Description *string `json:"description,omitempty"`
 }
@@ -1859,8 +1859,8 @@ type RuleCustomization struct {
 	// customization is a subset of a larger file (for example, one entry
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
-	Range *TextRange `json:"range,omitempty"`
-	Type CustomizationType `json:"type"`
+	Range *TextRange        `json:"range,omitempty"`
+	Type  CustomizationType `json:"type"`
 	// Description of what the rule enforces.
 	Description *string `json:"description,omitempty"`
 	// When `true`, the rule is always active (subject to `globs` if any).
@@ -1894,8 +1894,8 @@ type HookCustomization struct {
 	// customization is a subset of a larger file (for example, one entry
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
-	Range *TextRange `json:"range,omitempty"`
-	Type CustomizationType `json:"type"`
+	Range *TextRange        `json:"range,omitempty"`
+	Type  CustomizationType `json:"type"`
 }
 
 // An MCP server contributed by a plugin or directory.
@@ -1927,8 +1927,8 @@ type McpServerCustomization struct {
 	// customization is a subset of a larger file (for example, one entry
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
-	Range *TextRange `json:"range,omitempty"`
-	Type CustomizationType `json:"type"`
+	Range *TextRange        `json:"range,omitempty"`
+	Type  CustomizationType `json:"type"`
 	// Whether this MCP server is currently enabled.
 	Enabled bool `json:"enabled"`
 	// Current lifecycle state of the MCP server.
@@ -1985,20 +1985,20 @@ type McpServerCustomizationApps struct {
 // An agent host MUST only advertise a capability when it actually accepts the
 // corresponding methods/notifications on the `mcp://` channel:
 //
-// - {@link serverTools}: host proxies `tools/list` and `tools/call` to
-//   the MCP server. When `listChanged` is `true`, the host also forwards
-//   `notifications/tools/list_changed`.
-// - {@link serverResources}: host proxies `resources/read`,
-//   `resources/list`, and `resources/templates/list` to the MCP server.
-//   When `listChanged` is `true`, the host also forwards
-//   `notifications/resources/list_changed`.
-// - {@link logging}: host accepts `notifications/message` log entries
-//   from the App and forwards them via `mcpNotification` (and forwards
-//   `logging/setLevel` calls to the server).
-// - {@link sampling}: host serves `sampling/createMessage` via
-//   `mcpMethodCall`. When `sampling.tools` is present, the host also
-//   accepts SEP-1577 `tools` / `toolChoice` / `tool_use` content blocks
-//   inside `CreateMessageRequest`.
+//   - {@link serverTools}: host proxies `tools/list` and `tools/call` to
+//     the MCP server. When `listChanged` is `true`, the host also forwards
+//     `notifications/tools/list_changed`.
+//   - {@link serverResources}: host proxies `resources/read`,
+//     `resources/list`, and `resources/templates/list` to the MCP server.
+//     When `listChanged` is `true`, the host also forwards
+//     `notifications/resources/list_changed`.
+//   - {@link logging}: host accepts `notifications/message` log entries
+//     from the App and forwards them via `mcpNotification` (and forwards
+//     `logging/setLevel` calls to the server).
+//   - {@link sampling}: host serves `sampling/createMessage` via
+//     `mcpMethodCall`. When `sampling.tools` is present, the host also
+//     accepts SEP-1577 `tools` / `toolChoice` / `tool_use` content blocks
+//     inside `CreateMessageRequest`.
 type AhpMcpUiHostCapabilities struct {
 	// Producer proxies the MCP `tools/*` methods to the upstream server.
 	ServerTools *json.RawMessage `json:"serverTools,omitempty"`
@@ -2521,10 +2521,10 @@ type ResponsePart struct {
 // concrete variant of ResponsePart.
 type isResponsePart interface{ isResponsePart() }
 
-func (*MarkdownResponsePart) isResponsePart() {}
-func (*ResourceResponsePart) isResponsePart() {}
-func (*ToolCallResponsePart) isResponsePart() {}
-func (*ReasoningResponsePart) isResponsePart() {}
+func (*MarkdownResponsePart) isResponsePart()           {}
+func (*ResourceResponsePart) isResponsePart()           {}
+func (*ToolCallResponsePart) isResponsePart()           {}
+func (*ReasoningResponsePart) isResponsePart()          {}
 func (*SystemNotificationResponsePart) isResponsePart() {}
 
 // ResponsePartUnknown carries an unrecognized ResponsePart variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
@@ -2602,12 +2602,12 @@ type ToolCallState struct {
 // concrete variant of ToolCallState.
 type isToolCallState interface{ isToolCallState() }
 
-func (*ToolCallStreamingState) isToolCallState() {}
-func (*ToolCallPendingConfirmationState) isToolCallState() {}
-func (*ToolCallRunningState) isToolCallState() {}
+func (*ToolCallStreamingState) isToolCallState()                 {}
+func (*ToolCallPendingConfirmationState) isToolCallState()       {}
+func (*ToolCallRunningState) isToolCallState()                   {}
 func (*ToolCallPendingResultConfirmationState) isToolCallState() {}
-func (*ToolCallCompletedState) isToolCallState() {}
-func (*ToolCallCancelledState) isToolCallState() {}
+func (*ToolCallCompletedState) isToolCallState()                 {}
+func (*ToolCallCancelledState) isToolCallState()                 {}
 
 // ToolCallStateUnknown carries an unrecognized ToolCallState variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
 type ToolCallStateUnknown struct {
@@ -2690,7 +2690,7 @@ type TerminalClaim struct {
 // concrete variant of TerminalClaim.
 type isTerminalClaim interface{ isTerminalClaim() }
 
-func (*TerminalClientClaim) isTerminalClaim() {}
+func (*TerminalClientClaim) isTerminalClaim()  {}
 func (*TerminalSessionClaim) isTerminalClaim() {}
 
 // TerminalClaimUnknown carries an unrecognized TerminalClaim variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
@@ -2751,7 +2751,7 @@ type TerminalContentPart struct {
 type isTerminalContentPart interface{ isTerminalContentPart() }
 
 func (*TerminalUnclassifiedPart) isTerminalContentPart() {}
-func (*TerminalCommandPart) isTerminalContentPart() {}
+func (*TerminalCommandPart) isTerminalContentPart()      {}
 
 // TerminalContentPartUnknown carries an unrecognized TerminalContentPart variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
 type TerminalContentPartUnknown struct {
@@ -2810,11 +2810,11 @@ type SessionInputQuestion struct {
 // concrete variant of SessionInputQuestion.
 type isSessionInputQuestion interface{ isSessionInputQuestion() }
 
-func (*SessionInputTextQuestion) isSessionInputQuestion() {}
-func (*SessionInputNumberQuestion) isSessionInputQuestion() {}
-func (*SessionInputBooleanQuestion) isSessionInputQuestion() {}
+func (*SessionInputTextQuestion) isSessionInputQuestion()         {}
+func (*SessionInputNumberQuestion) isSessionInputQuestion()       {}
+func (*SessionInputBooleanQuestion) isSessionInputQuestion()      {}
 func (*SessionInputSingleSelectQuestion) isSessionInputQuestion() {}
-func (*SessionInputMultiSelectQuestion) isSessionInputQuestion() {}
+func (*SessionInputMultiSelectQuestion) isSessionInputQuestion()  {}
 
 // SessionInputQuestionUnknown carries an unrecognized SessionInputQuestion variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
 type SessionInputQuestionUnknown struct {
@@ -2897,10 +2897,10 @@ type SessionInputAnswerValue struct {
 // concrete variant of SessionInputAnswerValue.
 type isSessionInputAnswerValue interface{ isSessionInputAnswerValue() }
 
-func (*SessionInputTextAnswerValue) isSessionInputAnswerValue() {}
-func (*SessionInputNumberAnswerValue) isSessionInputAnswerValue() {}
-func (*SessionInputBooleanAnswerValue) isSessionInputAnswerValue() {}
-func (*SessionInputSelectedAnswerValue) isSessionInputAnswerValue() {}
+func (*SessionInputTextAnswerValue) isSessionInputAnswerValue()         {}
+func (*SessionInputNumberAnswerValue) isSessionInputAnswerValue()       {}
+func (*SessionInputBooleanAnswerValue) isSessionInputAnswerValue()      {}
+func (*SessionInputSelectedAnswerValue) isSessionInputAnswerValue()     {}
 func (*SessionInputSelectedManyAnswerValue) isSessionInputAnswerValue() {}
 
 // SessionInputAnswerValueUnknown carries an unrecognized SessionInputAnswerValue variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
@@ -2979,7 +2979,7 @@ type SessionInputAnswer struct {
 type isSessionInputAnswer interface{ isSessionInputAnswer() }
 
 func (*SessionInputAnswered) isSessionInputAnswer() {}
-func (*SessionInputSkipped) isSessionInputAnswer() {}
+func (*SessionInputSkipped) isSessionInputAnswer()  {}
 
 // SessionInputAnswerUnknown carries an unrecognized SessionInputAnswer variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
 type SessionInputAnswerUnknown struct {
@@ -3044,12 +3044,12 @@ type ToolResultContent struct {
 // concrete variant of ToolResultContent.
 type isToolResultContent interface{ isToolResultContent() }
 
-func (*ToolResultTextContent) isToolResultContent() {}
+func (*ToolResultTextContent) isToolResultContent()             {}
 func (*ToolResultEmbeddedResourceContent) isToolResultContent() {}
-func (*ToolResultResourceContent) isToolResultContent() {}
-func (*ToolResultFileEditContent) isToolResultContent() {}
-func (*ToolResultTerminalContent) isToolResultContent() {}
-func (*ToolResultSubagentContent) isToolResultContent() {}
+func (*ToolResultResourceContent) isToolResultContent()         {}
+func (*ToolResultFileEditContent) isToolResultContent()         {}
+func (*ToolResultTerminalContent) isToolResultContent()         {}
+func (*ToolResultSubagentContent) isToolResultContent()         {}
 
 // ToolResultContentUnknown carries an unrecognized ToolResultContent variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
 type ToolResultContentUnknown struct {
@@ -3132,9 +3132,9 @@ type MessageAttachment struct {
 // concrete variant of MessageAttachment.
 type isMessageAttachment interface{ isMessageAttachment() }
 
-func (*SimpleMessageAttachment) isMessageAttachment() {}
+func (*SimpleMessageAttachment) isMessageAttachment()           {}
 func (*MessageEmbeddedResourceAttachment) isMessageAttachment() {}
-func (*MessageResourceAttachment) isMessageAttachment() {}
+func (*MessageResourceAttachment) isMessageAttachment()         {}
 
 // MessageAttachmentUnknown carries an unrecognized MessageAttachment variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
 type MessageAttachmentUnknown struct {
@@ -3199,7 +3199,7 @@ type Customization struct {
 // concrete variant of Customization.
 type isCustomization interface{ isCustomization() }
 
-func (*PluginCustomization) isCustomization() {}
+func (*PluginCustomization) isCustomization()    {}
 func (*DirectoryCustomization) isCustomization() {}
 func (*McpServerCustomization) isCustomization() {}
 
@@ -3266,11 +3266,11 @@ type ChildCustomization struct {
 // concrete variant of ChildCustomization.
 type isChildCustomization interface{ isChildCustomization() }
 
-func (*AgentCustomization) isChildCustomization() {}
-func (*SkillCustomization) isChildCustomization() {}
-func (*PromptCustomization) isChildCustomization() {}
-func (*RuleCustomization) isChildCustomization() {}
-func (*HookCustomization) isChildCustomization() {}
+func (*AgentCustomization) isChildCustomization()     {}
+func (*SkillCustomization) isChildCustomization()     {}
+func (*PromptCustomization) isChildCustomization()    {}
+func (*RuleCustomization) isChildCustomization()      {}
+func (*HookCustomization) isChildCustomization()      {}
 func (*McpServerCustomization) isChildCustomization() {}
 
 // ChildCustomizationUnknown carries an unrecognized ChildCustomization variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
@@ -3354,10 +3354,10 @@ type CustomizationLoadState struct {
 // concrete variant of CustomizationLoadState.
 type isCustomizationLoadState interface{ isCustomizationLoadState() }
 
-func (*CustomizationLoadingState) isCustomizationLoadState() {}
-func (*CustomizationLoadedState) isCustomizationLoadState() {}
+func (*CustomizationLoadingState) isCustomizationLoadState()  {}
+func (*CustomizationLoadedState) isCustomizationLoadState()   {}
 func (*CustomizationDegradedState) isCustomizationLoadState() {}
-func (*CustomizationErrorState) isCustomizationLoadState() {}
+func (*CustomizationErrorState) isCustomizationLoadState()    {}
 
 // CustomizationLoadStateUnknown carries an unrecognized CustomizationLoadState variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
 type CustomizationLoadStateUnknown struct {
@@ -3428,11 +3428,11 @@ type McpServerState struct {
 // concrete variant of McpServerState.
 type isMcpServerState interface{ isMcpServerState() }
 
-func (*McpServerStartingState) isMcpServerState() {}
-func (*McpServerReadyState) isMcpServerState() {}
+func (*McpServerStartingState) isMcpServerState()     {}
+func (*McpServerReadyState) isMcpServerState()        {}
 func (*McpServerAuthRequiredState) isMcpServerState() {}
-func (*McpServerErrorState) isMcpServerState() {}
-func (*McpServerStoppedState) isMcpServerState() {}
+func (*McpServerErrorState) isMcpServerState()        {}
+func (*McpServerStoppedState) isMcpServerState()      {}
 
 // McpServerStateUnknown carries an unrecognized McpServerState variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
 type McpServerStateUnknown struct {
@@ -3510,7 +3510,7 @@ type ToolCallContributor struct {
 type isToolCallContributor interface{ isToolCallContributor() }
 
 func (*ToolCallClientContributor) isToolCallContributor() {}
-func (*ToolCallMcpContributor) isToolCallContributor() {}
+func (*ToolCallMcpContributor) isToolCallContributor()    {}
 
 // ToolCallContributorUnknown carries an unrecognized ToolCallContributor variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
 type ToolCallContributorUnknown struct {
