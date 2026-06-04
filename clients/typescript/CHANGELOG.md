@@ -22,6 +22,8 @@ hotfix escape hatch.
 
 ### Added
 
+- `changeKind` field on `Changeset` (well-known values: `'session'`,
+  `'branch'`, `'uncommitted'`, `'turn'`, `'turn-compare'`).
 - `status` and `error` fields on `ChangesetOperation` and the
   `changeset/operationStatusChanged` action, tracking the
   `idle → running → error` lifecycle of a changeset operation.
