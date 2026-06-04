@@ -1002,15 +1002,6 @@ data class InvokeChangesetOperationResult(
 )
 
 @Serializable
-data class ChangesetOperationFollowUp(
-    val content: ContentRef,
-    /**
-     * When `true`, open in an external handler rather than inline.
-     */
-    val external: Boolean? = null
-)
-
-@Serializable
 data class CreateCommentThreadParams(
     /**
      * Channel URI this command targets.
@@ -1140,6 +1131,15 @@ data class DeleteCommentParams(
      * {@link Comment.id} to remove.
      */
     val commentId: String
+)
+
+@Serializable
+data class ChangesetOperationFollowUp(
+    val content: ContentRef,
+    /**
+     * When `true`, open in an external handler rather than inline.
+     */
+    val external: Boolean? = null
 )
 
 // ─── ReconnectResult Union ──────────────────────────────────────────────────

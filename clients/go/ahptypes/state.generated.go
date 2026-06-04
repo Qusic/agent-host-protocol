@@ -3195,10 +3195,9 @@ func (u CustomizationLoadState) MarshalJSON() ([]byte, error) {
 }
 
 // SnapshotState is the state payload of a snapshot — root, session,
-// terminal, changeset, or comments state. The active variant is chosen
-// by which pointer field is non-nil; UnmarshalJSON probes for required
-// fields in the canonical order (session → terminal → changeset →
-// comments → root).
+// terminal, changeset, or comments state. The active variant is chosen by which
+// pointer field is non-nil; UnmarshalJSON probes for required fields in
+// the canonical order (session → terminal → changeset → comments → root).
 type SnapshotState struct {
 	Root      *RootState      `json:"-"`
 	Session   *SessionState   `json:"-"`

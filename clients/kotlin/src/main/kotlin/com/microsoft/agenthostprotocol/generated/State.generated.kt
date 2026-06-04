@@ -3917,7 +3917,8 @@ internal object ToolResultContentSerializer : KSerializer<ToolResultContent> {
 }
 
 /**
- * The state payload of a snapshot — root, session, terminal, changeset, or comments state.
+ * The state payload of a snapshot — root, session, terminal, changeset,
+ * or comments state.
  */
 @Serializable(with = SnapshotStateSerializer::class)
 sealed interface SnapshotState {
@@ -3940,8 +3941,8 @@ internal object SnapshotStateSerializer : KSerializer<SnapshotState> {
             ?: error("Expected JsonObject for SnapshotState")
         // Try the most distinctive shape first. SessionState has required
         // `summary`; ChangesetState has required `status` + `files`;
-        // CommentsState has required `threads`; TerminalState has
-        // `uri` / `size` / `buffer`; RootState is the catch-all.
+        // CommentsState has required `threads`; TerminalState has `uri`
+        // / `size` / `buffer`; RootState is the catch-all.
         return when {
             obj.containsKey("summary") -> SnapshotState.Session(input.json.decodeFromJsonElement(SessionState.serializer(), element))
             obj.containsKey("status") && obj.containsKey("files") ->

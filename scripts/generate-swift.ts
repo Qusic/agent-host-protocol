@@ -498,7 +498,7 @@ const STATE_ENUMS = [
   'TurnState', 'MessageAttachmentKind', 'ResponsePartKind', 'ToolCallStatus',
   'ToolCallConfirmationReason', 'ToolCallCancellationReason', 'ConfirmationOptionKind',
   'ToolResultContentType', 'CustomizationType', 'CustomizationLoadStatus', 'TerminalClaimKind',
-  'ChangesetStatus', 'ChangesetOperationStatus', 'ChangesetOperationScope', 'CommentSource', 'ResourceChangeType',
+  'ChangesetStatus', 'ChangesetOperationStatus', 'ChangesetOperationScope', 'ResourceChangeType',
 ];
 
 const STATE_STRUCTS = [
@@ -537,12 +537,8 @@ const STATE_STRUCTS = [
   'TerminalClientClaim', 'TerminalSessionClaim', 'TerminalState',
   'TerminalUnclassifiedPart', 'TerminalCommandPart',
   'UsageInfo', 'ErrorInfo', 'Snapshot',
-<<<<<<< Updated upstream
   'Changeset', 'ChangesetState', 'ChangesetFile', 'ChangesetOperation',
-=======
-  'ChangesetSummary', 'ChangesetState', 'ChangesetFile', 'ChangesetOperation',
-  'CommentsSummary', 'CommentsState', 'CommentThread', 'Comment',
->>>>>>> Stashed changes
+  'CommentsSummary', 'CommentsState', 'CommentThread', 'Comment', 'NewComment',
   'TelemetryCapabilities',
   'ResourceWatchState', 'ResourceChange',
 ];
@@ -905,12 +901,11 @@ const ACTION_VARIANTS: { type: string; caseName: string; tsInterface: string }[]
   { type: 'changeset/operationsChanged', caseName: 'changesetOperationsChanged', tsInterface: 'ChangesetOperationsChangedAction' },
   { type: 'changeset/operationStatusChanged', caseName: 'changesetOperationStatusChanged', tsInterface: 'ChangesetOperationStatusChangedAction' },
   { type: 'changeset/cleared', caseName: 'changesetCleared', tsInterface: 'ChangesetClearedAction' },
-  { type: 'session/commentsChanged', caseName: 'sessionCommentsChanged', tsInterface: 'SessionCommentsChangedAction' },
-  { type: 'comment/threadSet', caseName: 'commentThreadSet', tsInterface: 'CommentThreadSetAction' },
-  { type: 'comment/threadRemoved', caseName: 'commentThreadRemoved', tsInterface: 'CommentThreadRemovedAction' },
-  { type: 'comment/set', caseName: 'commentSet', tsInterface: 'CommentSetAction' },
-  { type: 'comment/removed', caseName: 'commentRemoved', tsInterface: 'CommentRemovedAction' },
-  { type: 'comment/cleared', caseName: 'commentsCleared', tsInterface: 'CommentsClearedAction' },
+  { type: 'comments/threadSet', caseName: 'commentsThreadSet', tsInterface: 'CommentsThreadSetAction' },
+  { type: 'comments/threadRemoved', caseName: 'commentsThreadRemoved', tsInterface: 'CommentsThreadRemovedAction' },
+  { type: 'comments/commentSet', caseName: 'commentsCommentSet', tsInterface: 'CommentsCommentSetAction' },
+  { type: 'comments/commentRemoved', caseName: 'commentsCommentRemoved', tsInterface: 'CommentsCommentRemovedAction' },
+  { type: 'comments/cleared', caseName: 'commentsCleared', tsInterface: 'CommentsClearedAction' },
   { type: 'root/terminalsChanged', caseName: 'rootTerminalsChanged', tsInterface: 'RootTerminalsChangedAction' },
   { type: 'root/configChanged', caseName: 'rootConfigChanged', tsInterface: 'RootConfigChangedAction' },
   { type: 'terminal/data', caseName: 'terminalData', tsInterface: 'TerminalDataAction' },
@@ -1094,7 +1089,6 @@ const COMMAND_STRUCTS = [
   'SessionConfigValueItem',
   'CompletionsParams', 'CompletionItem', 'CompletionsResult',
   'InvokeChangesetOperationParams', 'InvokeChangesetOperationResult',
-  'NewComment',
   'CreateCommentThreadParams', 'CreateCommentThreadResult',
   'UpdateCommentThreadParams',
   'DeleteCommentThreadParams',

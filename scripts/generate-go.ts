@@ -726,6 +726,11 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; goName?: strin
   { name: 'ChangesetState' },
   { name: 'ChangesetFile' },
   { name: 'ChangesetOperation' },
+  { name: 'CommentsSummary' },
+  { name: 'CommentsState' },
+  { name: 'CommentThread' },
+  { name: 'Comment' },
+  { name: 'NewComment' },
   { name: 'TelemetryCapabilities' },
   { name: 'ResourceWatchState' },
   { name: 'ResourceChange' },
@@ -891,14 +896,15 @@ const CUSTOMIZATION_LOAD_STATE_UNION: UnionConfig = {
 
 function generateSnapshotState(): string {
   return `// SnapshotState is the state payload of a snapshot — root, session,
-// terminal, or changeset state. The active variant is chosen by which
+// terminal, changeset, or comments state. The active variant is chosen by which
 // pointer field is non-nil; UnmarshalJSON probes for required fields in
-// the canonical order (session → terminal → changeset → root).
+// the canonical order (session → terminal → changeset → comments → root).
 type SnapshotState struct {
 \tRoot      *RootState      \`json:"-"\`
 \tSession   *SessionState   \`json:"-"\`
 \tTerminal  *TerminalState  \`json:"-"\`
 \tChangeset *ChangesetState \`json:"-"\`
+	Comments  *CommentsState  \`json:"-"\`
 }
 
 // MarshalJSON encodes whichever variant is currently populated.
@@ -910,6 +916,8 @@ func (s SnapshotState) MarshalJSON() ([]byte, error) {
 \t\treturn json.Marshal(s.Terminal)
 \tcase s.Changeset != nil:
 \t\treturn json.Marshal(s.Changeset)
+	case s.Comments != nil:
+		return json.Marshal(s.Comments)
 \tcase s.Root != nil:
 \t\treturn json.Marshal(s.Root)
 \tdefault:
@@ -944,6 +952,12 @@ func (s *SnapshotState) UnmarshalJSON(data []byte) error {
 \t\t\treturn err
 \t\t}
 \t\ts.Changeset = &v
+	case containsAll(probe, "threads"):
+		var v CommentsState
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		s.Comments = &v
 \tdefault:
 \t\tvar v RootState
 \t\tif err := json.Unmarshal(data, &v); err != nil {
@@ -1078,6 +1092,11 @@ const ACTION_VARIANTS: {
   { type: 'changeset/operationsChanged', variantName: 'ChangesetOperationsChanged', tsInterface: 'ChangesetOperationsChangedAction' },
   { type: 'changeset/operationStatusChanged', variantName: 'ChangesetOperationStatusChanged', tsInterface: 'ChangesetOperationStatusChangedAction' },
   { type: 'changeset/cleared', variantName: 'ChangesetCleared', tsInterface: 'ChangesetClearedAction' },
+  { type: 'comments/threadSet', variantName: 'CommentsThreadSet', tsInterface: 'CommentsThreadSetAction' },
+  { type: 'comments/threadRemoved', variantName: 'CommentsThreadRemoved', tsInterface: 'CommentsThreadRemovedAction' },
+  { type: 'comments/commentSet', variantName: 'CommentsCommentSet', tsInterface: 'CommentsCommentSetAction' },
+  { type: 'comments/commentRemoved', variantName: 'CommentsCommentRemoved', tsInterface: 'CommentsCommentRemovedAction' },
+  { type: 'comments/cleared', variantName: 'CommentsCleared', tsInterface: 'CommentsClearedAction' },
   { type: 'root/terminalsChanged', variantName: 'RootTerminalsChanged', tsInterface: 'RootTerminalsChangedAction' },
   { type: 'terminal/data', variantName: 'TerminalData', tsInterface: 'TerminalDataAction' },
   { type: 'terminal/input', variantName: 'TerminalInput', tsInterface: 'TerminalInputAction' },
@@ -1222,6 +1241,10 @@ const COMMAND_STRUCTS: { name: string; omitDiscriminants?: boolean; goName?: str
   { name: 'CompletionsParams' }, { name: 'CompletionItem' }, { name: 'CompletionsResult' },
   { name: 'InvokeChangesetOperationParams' }, { name: 'InvokeChangesetOperationResult' },
   { name: 'ChangesetOperationFollowUp' },
+  { name: 'CreateCommentThreadParams' }, { name: 'CreateCommentThreadResult' },
+  { name: 'UpdateCommentThreadParams' }, { name: 'DeleteCommentThreadParams' },
+  { name: 'AddCommentParams' }, { name: 'AddCommentResult' },
+  { name: 'EditCommentParams' }, { name: 'DeleteCommentParams' },
 ];
 
 const RECONNECT_RESULT_UNION: UnionConfig = {

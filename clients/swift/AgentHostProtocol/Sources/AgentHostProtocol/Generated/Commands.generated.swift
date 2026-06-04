@@ -1145,20 +1145,6 @@ public struct InvokeChangesetOperationResult: Codable, Sendable {
     }
 }
 
-public struct ChangesetOperationFollowUp: Codable, Sendable {
-    public var content: ContentRef
-    /// When `true`, open in an external handler rather than inline.
-    public var external: Bool?
-
-    public init(
-        content: ContentRef,
-        external: Bool? = nil
-    ) {
-        self.content = content
-        self.external = external
-    }
-}
-
 public struct CreateCommentThreadParams: Codable, Sendable {
     /// Channel URI this command targets.
     public var channel: String
@@ -1312,6 +1298,20 @@ public struct DeleteCommentParams: Codable, Sendable {
         self.channel = channel
         self.threadId = threadId
         self.commentId = commentId
+    }
+}
+
+public struct ChangesetOperationFollowUp: Codable, Sendable {
+    public var content: ContentRef
+    /// When `true`, open in an external handler rather than inline.
+    public var external: Bool?
+
+    public init(
+        content: ContentRef,
+        external: Bool? = nil
+    ) {
+        self.content = content
+        self.external = external
     }
 }
 
