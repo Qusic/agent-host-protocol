@@ -69,6 +69,7 @@ fn session_state(title: &str, resource: &str) -> SessionState {
         input_requests: None,
         config: None,
         customizations: None,
+        changesets: None,
         meta: None,
     }
 }

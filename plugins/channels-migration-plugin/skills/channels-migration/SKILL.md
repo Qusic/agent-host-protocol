@@ -74,8 +74,9 @@ Concretely:
   fields are gone from individual actions. Routing is by envelope.
 - **Notifications are top-level methods**: the `notification` wrapper and
   the `ProtocolNotification` union are gone.
-- **`SessionDiffsChangedAction` is gone**: replaced by a new family of
-  per-changeset actions (`changeset/statusChanged`,
+- **`SessionDiffsChangedAction` is gone**: replaced by
+  `SessionChangesetsChangedAction` (catalogue updates on a session) plus a
+  new family of per-changeset actions (`changeset/statusChanged`,
   `changeset/fileSet`, `changeset/fileRemoved`,
   `changeset/operationsChanged`, `changeset/cleared`) and the
   `invokeChangesetOperation` command. See `docs/guide/changesets.md`.
@@ -208,6 +209,8 @@ Action interfaces that lost their channel field — full list:
   `SessionCustomizationUpdatedAction`, `SessionTruncatedAction`,
   `SessionIsReadChangedAction`, `SessionIsArchivedChangedAction`,
   `SessionActivityChangedAction`,
+  `SessionChangesetsChangedAction` (replaces the removed
+  `SessionDiffsChangedAction`),
   `SessionConfigChangedAction`, `SessionMetaChangedAction`.
 - Tool-call actions also lost `session` because `ToolCallActionBase` no
   longer carries it. `turnId` and `toolCallId` remain.
@@ -429,9 +432,8 @@ After the migration, your code should:
       `NotificationMethodParams`, or `NotificationMap`.
 - [ ] Resolve a session's provider via `SessionSummary.provider`, not via
       the URI scheme.
-- [ ] No `SessionDiffsChangedAction` / `summary.diffs` references;
-      subscribe to a changeset URI and consume the `changeset/*` action
-      family instead.
+- [ ] No `SessionDiffsChangedAction` / `summary.diffs` references; consume
+      `SessionState.changesets` plus the `changeset/*` action family instead.
 - [ ] Every command's params carries `channel: URI`. Channel-scoped
       commands (`createSession`, `disposeSession`, `createTerminal`,
       `disposeTerminal`, `fetchTurns`, `completions`,
@@ -454,7 +456,7 @@ documents in the `microsoft/agent-host-protocol` repository:
 - `docs/specification/terminal-channel.md` — Terminal channel data flow
   and command detection
 - `docs/specification/lifecycle.md` — Connection handshake and reconnection
-- `docs/guide/changesets.md` — Changeset channel model,
+- `docs/guide/changesets.md` — Changeset channel model, catalogue,
   per-changeset state, and `invokeChangesetOperation`
 - `types/actions.ts`, `types/commands.ts`, `types/messages.ts`,
   `types/notifications.ts` — Source-of-truth type definitions

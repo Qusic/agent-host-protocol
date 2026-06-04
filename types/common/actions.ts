@@ -53,6 +53,7 @@ import type {
   SessionIsReadChangedAction,
   SessionIsArchivedChangedAction,
   SessionActivityChangedAction,
+  SessionChangesetsChangedAction,
   SessionConfigChangedAction,
   SessionMetaChangedAction,
 } from '../channels-session/actions.js';
@@ -131,6 +132,7 @@ export const enum ActionType {
   SessionIsReadChanged = 'session/isReadChanged',
   SessionIsArchivedChanged = 'session/isArchivedChanged',
   SessionActivityChanged = 'session/activityChanged',
+  SessionChangesetsChanged = 'session/changesetsChanged',
   SessionConfigChanged = 'session/configChanged',
   SessionMetaChanged = 'session/metaChanged',
   ChangesetStatusChanged = 'changeset/statusChanged',
@@ -230,6 +232,7 @@ export type StateAction =
   | SessionIsReadChangedAction
   | SessionIsArchivedChangedAction
   | SessionActivityChangedAction
+  | SessionChangesetsChangedAction
   | SessionConfigChangedAction
   | SessionMetaChangedAction
   | ChangesetStatusChangedAction

@@ -9,15 +9,19 @@ each with its own URI, lifecycle, and update stream.
 
 ## Concepts
 
-### Changeset Discovery
+### Changeset Catalogue
 
-Clients discover a session's changesets out of band — typically through
-provider-specific knowledge of the URI scheme used for changeset
-resources, or by expanding RFC 6570 URI templates the provider
-documents. Once a client has a concrete changeset URI it can subscribe
-to it like any other resource.
+Each session's `SessionState` advertises the set of changesets the
+server can produce. The catalogue entry is intentionally lightweight —
+just enough to render a chip or list row without subscribing — and
+references a full subscribable `ChangesetState` by URI.
 
 ```typescript
+SessionState {
+  // ...existing fields...
+  changesets?: Changeset[]
+}
+
 Changeset {
   /** Human-readable label, e.g. `"Uncommitted Changes"`. */
   label: string
@@ -144,15 +148,17 @@ a JSON-RPC error.
 
 ## Lifecycle
 
-1. The client obtains a concrete changeset URI (e.g. by expanding a
-   template the provider documents) and subscribes to it.
-2. The server returns a `ChangesetState` snapshot (`status: 'computing'`
+1. The server publishes the catalogue on `SessionState.changesets`.
+   Updates ride on the `session/changesetsChanged` action.
+2. The client picks catalogue entries whose template variables it can
+   satisfy and subscribes to the resulting URIs.
+3. The server returns a `ChangesetState` snapshot (`status: 'computing'`
    is allowed if scanning is async) and pushes `changeset/*` actions as
    files become available.
-3. The user invokes a `ChangesetOperation`. The client calls
+4. The user invokes a `ChangesetOperation`. The client calls
    `invokeChangesetOperation`. The server applies the operation and
    emits any resulting changeset updates.
-4. When a session ends, all of its changesets implicitly become
+5. When a session ends, all of its changesets implicitly become
    un-subscribable. Existing subscriptions receive `changeset/disposed`
    and the server unsubscribes them.
 

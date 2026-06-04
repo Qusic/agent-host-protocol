@@ -45,6 +45,7 @@ public enum ActionType: String, Codable, Sendable {
     case sessionIsReadChanged = "session/isReadChanged"
     case sessionIsArchivedChanged = "session/isArchivedChanged"
     case sessionActivityChanged = "session/activityChanged"
+    case sessionChangesetsChanged = "session/changesetsChanged"
     case sessionConfigChanged = "session/configChanged"
     case sessionMetaChanged = "session/metaChanged"
     case changesetStatusChanged = "changeset/statusChanged"
@@ -700,6 +701,20 @@ public struct SessionActivityChangedAction: Codable, Sendable {
     }
 }
 
+public struct SessionChangesetsChangedAction: Codable, Sendable {
+    public var type: ActionType
+    /// New catalogue, or `undefined` to clear it
+    public var changesets: [Changeset]?
+
+    public init(
+        type: ActionType,
+        changesets: [Changeset]? = nil
+    ) {
+        self.type = type
+        self.changesets = changesets
+    }
+}
+
 public struct SessionServerToolsChangedAction: Codable, Sendable {
     public var type: ActionType
     /// Updated server tools list (full replacement)
@@ -1339,6 +1354,7 @@ public enum StateAction: Codable, Sendable {
     case sessionIsReadChanged(SessionIsReadChangedAction)
     case sessionIsArchivedChanged(SessionIsArchivedChangedAction)
     case sessionActivityChanged(SessionActivityChangedAction)
+    case sessionChangesetsChanged(SessionChangesetsChangedAction)
     case sessionServerToolsChanged(SessionServerToolsChangedAction)
     case sessionActiveClientChanged(SessionActiveClientChangedAction)
     case sessionActiveClientToolsChanged(SessionActiveClientToolsChangedAction)
@@ -1433,6 +1449,8 @@ public enum StateAction: Codable, Sendable {
             self = .sessionIsArchivedChanged(try SessionIsArchivedChangedAction(from: decoder))
         case "session/activityChanged":
             self = .sessionActivityChanged(try SessionActivityChangedAction(from: decoder))
+        case "session/changesetsChanged":
+            self = .sessionChangesetsChanged(try SessionChangesetsChangedAction(from: decoder))
         case "session/serverToolsChanged":
             self = .sessionServerToolsChanged(try SessionServerToolsChangedAction(from: decoder))
         case "session/activeClientChanged":
@@ -1538,6 +1556,7 @@ public enum StateAction: Codable, Sendable {
         case .sessionIsReadChanged(let v): try v.encode(to: encoder)
         case .sessionIsArchivedChanged(let v): try v.encode(to: encoder)
         case .sessionActivityChanged(let v): try v.encode(to: encoder)
+        case .sessionChangesetsChanged(let v): try v.encode(to: encoder)
         case .sessionServerToolsChanged(let v): try v.encode(to: encoder)
         case .sessionActiveClientChanged(let v): try v.encode(to: encoder)
         case .sessionActiveClientToolsChanged(let v): try v.encode(to: encoder)

@@ -26,6 +26,7 @@ import {
   ToolCallCancellationReason,
   PendingMessageKind,
 } from './state.js';
+import type { Changeset } from '../channels-changeset/state.js';
 
 // ─── Tool Call Action Base ───────────────────────────────────────────────────
 
@@ -488,6 +489,27 @@ export interface SessionActivityChangedAction {
   type: ActionType.SessionActivityChanged;
   /** Human-readable description of current activity, or `undefined` to clear */
   activity: string | undefined;
+}
+
+/**
+ * The {@link Changeset | catalogue of changesets} the agent host
+ * advertises for this session changed. Replaces
+ * {@link SessionState.changesets | `state.changesets`} entirely
+ * (full-replacement semantics) — set to `undefined` to clear the
+ * catalogue.
+ *
+ * Producers dispatch this whenever entries are added or removed. The
+ * fan-out happens through this action so observers see catalogue
+ * mutations in the same {@link ChangesetAction | per-changeset} action
+ * stream they already follow for file-level updates.
+ *
+ * @category Session Actions
+ * @version 1
+ */
+export interface SessionChangesetsChangedAction {
+  type: ActionType.SessionChangesetsChanged;
+  /** New catalogue, or `undefined` to clear it */
+  changesets: Changeset[] | undefined;
 }
 
 /**

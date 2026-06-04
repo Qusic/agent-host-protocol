@@ -38,9 +38,9 @@ Spec version: `0.3.0`
 - Removed the `additions`, `deletions`, and `files` fields from
   `ChangesetSummary`. Aggregate counts now live on `SessionSummary.changes`;
   per-changeset views derive their own totals from `ChangesetState.files`.
-- Removed the `changesets` catalogue from `SessionSummary` and the
-  matching `session/changesetsChanged` action. Clients discover
-  changeset URIs out of band and subscribe to them directly.
+- Moved the `changesets` catalogue from `SessionSummary` to
+  `SessionState`. The `session/changesetsChanged` action now updates
+  `state.changesets` directly instead of `state.summary.changesets`.
 - Renamed the `ChangesetSummary` interface to `Changeset`. The
   on-the-wire shape is unchanged.
 - Renamed the `UserMessage` type to `Message` and surfaced it consistently

@@ -567,6 +567,13 @@ export function sessionReducer(state: SessionState, action: SessionAction, log?:
         summary: { ...state.summary, activity: action.activity },
       };
 
+    case ActionType.SessionChangesetsChanged: {
+      const { changesets: _omit, ...stateWithoutChangesets } = state;
+      return action.changesets
+        ? { ...stateWithoutChangesets, changesets: action.changesets }
+        : stateWithoutChangesets;
+    }
+
     case ActionType.SessionConfigChanged:
       if (!state.config) {
         return state;

@@ -555,6 +555,12 @@ type SessionState struct {
 	// and the host propagates them into this list (typically with the
 	// container's `clientId` set and `children` populated).
 	Customizations []Customization `json:"customizations,omitempty"`
+	// Catalogue of changesets the server can produce for this session. Each
+	// entry advertises a subscribable view of file changes (uncommitted,
+	// session-wide, per-turn, etc.) and the URI template the client expands
+	// before subscribing. See {@link Changeset} for the full shape and
+	// {@link /guide/changesets | Changesets} for an overview of the model.
+	Changesets []Changeset `json:"changesets,omitempty"`
 	// Additional provider-specific metadata for this session.
 	//
 	// Clients MAY look for well-known keys here to provide enhanced UI.

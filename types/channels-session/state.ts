@@ -18,6 +18,7 @@ import type {
   UsageInfo,
 } from '../common/state.js';
 import type { ModelSelection } from '../channels-root/state.js';
+import type { Changeset } from '../channels-changeset/state.js';
 
 // ─── Pending Message Types ───────────────────────────────────────────────────
 
@@ -128,6 +129,14 @@ export interface SessionState {
    * container's `clientId` set and `children` populated).
    */
   customizations?: Customization[];
+  /**
+   * Catalogue of changesets the server can produce for this session. Each
+   * entry advertises a subscribable view of file changes (uncommitted,
+   * session-wide, per-turn, etc.) and the URI template the client expands
+   * before subscribing. See {@link Changeset} for the full shape and
+   * {@link /guide/changesets | Changesets} for an overview of the model.
+   */
+  changesets?: Changeset[];
   /**
    * Additional provider-specific metadata for this session.
    *
