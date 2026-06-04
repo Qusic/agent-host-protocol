@@ -30,7 +30,7 @@ Changeset {
   description?: string
   /**
    * Advisory hint: one of `'session'`, `'branch'`, `'uncommitted'`,
-   * `'turn'`, or `'turn-compare'`. Other values allowed.
+   * `'turn'`, or `'compare-turns'`. Other values allowed.
    */
   changeKind: string
   additions?: number

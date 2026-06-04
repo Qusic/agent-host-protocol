@@ -2980,7 +2980,7 @@ data class Changeset(
      * - `'uncommitted'`: the workspace's current uncommitted changes.
      * - `'turn'`: changes produced by a single turn. Typically paired with a
      * `{turnId}` variable in {@link uriTemplate}.
-     * - `'turn-compare'`: a diff between two turns. Typically paired with
+     * - `'compare-turns'`: a diff between two turns. Typically paired with
      * `{originalTurnId}` and `{modifiedTurnId}` variables in
      * {@link uriTemplate}.
      * 
