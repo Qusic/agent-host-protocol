@@ -18,6 +18,8 @@ pipeline at `pipeline.yml` (via the Pipelines REST API with
 The ADO pipeline can also be triggered manually from the ADO UI as a
 hotfix escape hatch.
 
+## [Unreleased]
+
 ## [0.3.0] — 2026-06-05
 
 Implements AHP 0.3.0.
