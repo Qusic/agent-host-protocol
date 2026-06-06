@@ -20,6 +20,10 @@ hotfix escape hatch.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-06-05
+
+Implements AHP 0.3.0.
+
 ### Added
 
 - `McpServerCustomization` now exposes the full MCP lifecycle: `enabled`,
