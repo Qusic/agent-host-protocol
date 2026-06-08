@@ -26,7 +26,8 @@
  *     `uint32` with named flag constants plus `Has` / `Or` helpers, so
  *     unknown future bits round-trip losslessly.
  *   - The generator runs `gofmt -w` after writing to keep style stable
- *     and to validate the emitted code compiles.
+ *     and to validate the emitted code compiles, unless `gofmt` is missing
+ *     and the caller explicitly allows unformatted output.
  */
 
 import {
@@ -57,6 +58,10 @@ const HEADER_WITH_IMPORTS =
   '// stripping it when a generated file has no struct that mentions\n' +
   '// json.RawMessage directly (rare but possible). Compiled out.\n' +
   'var _ = json.RawMessage(nil)\n';
+
+export interface GenerateGoModuleOptions {
+  readonly allowMissingFormatter?: boolean;
+}
 
 // ─── Name Mapping ────────────────────────────────────────────────────────────
 
@@ -1778,7 +1783,7 @@ function gofmtCandidates(): string[] {
   return orderedCandidates;
 }
 
-function resolveGoFmt(): string {
+function resolveGoFmt(allowMissingFormatter: boolean): string | undefined {
   for (const candidate of gofmtCandidates()) {
     try {
       execFileSync(candidate, [], { input: '', stdio: ['pipe', 'ignore', 'ignore'] });
@@ -1788,18 +1793,27 @@ function resolveGoFmt(): string {
     }
   }
 
-  const searched = gofmtCandidates().map(candidate => `  - ${candidate}`).join('\n');
+  if (allowMissingFormatter) {
+    console.warn(
+      `gofmt was not found, so the generated Go module may not be formatted.\n` +
+      `Generated Go files must be formatted before they can be merged.\n` +
+      `Install Go or add gofmt to PATH to restore formatting.\n`
+    );
+    return undefined;
+  }
+
   throw new Error(
     `gofmt was not found, so the Go generator cannot produce stable output.\n` +
+    `Generated Go files must be formatted before they can be merged.\n` +
     `Install Go or add gofmt to PATH, then rerun npm run generate:go.\n` +
-    `Searched:\n${searched}`,
+    `To generate anyway without formatting, rerun with --allow-missing-formatter.`
   );
 }
 
 // ─── Main Entry Point ────────────────────────────────────────────────────────
 
-export function generateGoModule(project: Project, outputDir: string): void {
-  const gofmt = resolveGoFmt();
+export function generateGoModule(project: Project, outputDir: string, options: GenerateGoModuleOptions = {}): void {
+  const gofmt = resolveGoFmt(options.allowMissingFormatter ?? false);
 
   checkExhaustiveness(project);
 
@@ -1814,9 +1828,11 @@ export function generateGoModule(project: Project, outputDir: string): void {
   fs.writeFileSync(path.join(srcDir, 'messages.generated.go'), generateMessagesFile());
   fs.writeFileSync(path.join(srcDir, 'version.generated.go'), generateVersionFile(project));
 
-  try {
-    execFileSync(gofmt, ['-w', 'ahptypes'], { cwd: outputDir, stdio: 'inherit' });
-  } catch (e) {
-    throw new Error(`gofmt -w failed for the generated Go module: ${String(e)}`);
+  if (gofmt) {
+    try {
+      execFileSync(gofmt, ['-w', 'ahptypes'], { cwd: outputDir, stdio: 'inherit' });
+    } catch (e) {
+      throw new Error(`gofmt -w failed for the generated Go module: ${String(e)}`);
+    }
   }
 }

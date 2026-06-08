@@ -39,6 +39,7 @@ const kotlinOnly = args.includes('--kotlin');
 const typescriptOnly = args.includes('--typescript');
 const goOnly = args.includes('--go');
 const metadataOnly = args.includes('--metadata');
+const allowMissingFormatter = args.includes('--allow-missing-formatter');
 const generateAll =
   !docsOnly &&
   !schemaOnly &&
@@ -88,7 +89,7 @@ if (generateAll || swiftOnly) {
 
 if (generateAll || rustOnly) {
   console.log('Generating Rust crate...');
-  generateRustCrate(project, RUST_DIR);
+  generateRustCrate(project, RUST_DIR, { allowMissingFormatter });
   console.log(`  → Rust crate written to ${path.relative(ROOT, RUST_DIR)}/`);
 }
 
@@ -106,7 +107,7 @@ if (generateAll || typescriptOnly) {
 
 if (generateAll || goOnly) {
   console.log('Generating Go module...');
-  generateGoModule(project, GO_DIR);
+  generateGoModule(project, GO_DIR, { allowMissingFormatter });
   console.log(`  → Go module written to ${path.relative(ROOT, GO_DIR)}/`);
 }
 
