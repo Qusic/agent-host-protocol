@@ -35,7 +35,7 @@ import {
   EnumDeclaration,
   PropertySignature,
 } from 'ts-morph';
-import { execSync, execFileSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { findProtocolSourceFiles } from './find-protocol-sources.js';
@@ -1757,19 +1757,49 @@ function checkExhaustiveness(project: Project): void {
   }
 }
 
+function gofmtCandidates(): string[] {
+  const candidates = ['gofmt'];
+  const goRoot = process.env.GOROOT;
+  if (goRoot) {
+    candidates.push(path.join(goRoot, 'bin', process.platform === 'win32' ? 'gofmt.exe' : 'gofmt'));
+  }
+  if (process.platform === 'win32') {
+    const programFiles = [process.env.ProgramFiles, process.env['ProgramFiles(x86)']].filter((value): value is string => !!value);
+    for (const root of programFiles) {
+      candidates.push(path.join(root, 'Go', 'bin', 'gofmt.exe'));
+    }
+  }
+  const orderedCandidates: string[] = [];
+  for (const candidate of candidates) {
+    if (!orderedCandidates.includes(candidate)) {
+      orderedCandidates.push(candidate);
+    }
+  }
+  return orderedCandidates;
+}
+
+function resolveGoFmt(): string {
+  for (const candidate of gofmtCandidates()) {
+    try {
+      execFileSync(candidate, [], { input: '', stdio: ['pipe', 'ignore', 'ignore'] });
+      return candidate;
+    } catch {
+      // Try the next candidate.
+    }
+  }
+
+  const searched = gofmtCandidates().map(candidate => `  - ${candidate}`).join('\n');
+  throw new Error(
+    `gofmt was not found, so the Go generator cannot produce stable output.\n` +
+    `Install Go or add gofmt to PATH, then rerun npm run generate:go.\n` +
+    `Searched:\n${searched}`,
+  );
+}
+
 // ─── Main Entry Point ────────────────────────────────────────────────────────
 
 export function generateGoModule(project: Project, outputDir: string): void {
-  // Skip generation when no Go toolchain is available. We still emit
-  // the files but skip the `gofmt -w` post-process so contributors
-  // without Go installed can at least see the output diff.
-  let goAvailable = true;
-  try {
-    execFileSync('go', ['version'], { stdio: 'ignore' });
-  } catch {
-    console.warn('  ⚠ go not found — skipping gofmt -w post-process for the Go module.');
-    goAvailable = false;
-  }
+  const gofmt = resolveGoFmt();
 
   checkExhaustiveness(project);
 
@@ -1784,11 +1814,9 @@ export function generateGoModule(project: Project, outputDir: string): void {
   fs.writeFileSync(path.join(srcDir, 'messages.generated.go'), generateMessagesFile());
   fs.writeFileSync(path.join(srcDir, 'version.generated.go'), generateVersionFile(project));
 
-  if (goAvailable) {
-    try {
-      execSync('gofmt -w ahptypes', { cwd: outputDir, stdio: 'inherit' });
-    } catch (e) {
-      console.error('  ⚠ gofmt -w failed:', e);
-    }
+  try {
+    execFileSync(gofmt, ['-w', 'ahptypes'], { cwd: outputDir, stdio: 'inherit' });
+  } catch (e) {
+    throw new Error(`gofmt -w failed for the generated Go module: ${String(e)}`);
   }
 }
