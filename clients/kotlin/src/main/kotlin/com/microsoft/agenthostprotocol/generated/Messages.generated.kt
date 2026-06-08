@@ -146,23 +146,23 @@ object AhpCommands {
     fun invokeChangesetOperation(id: Long, params: InvokeChangesetOperationParams): JsonRpcRequest<InvokeChangesetOperationParams> =
         JsonRpcRequest(id = id, method = "invokeChangesetOperation", params = params)
 
-    fun createCommentThread(id: Long, params: CreateCommentThreadParams): JsonRpcRequest<CreateCommentThreadParams> =
-        JsonRpcRequest(id = id, method = "createCommentThread", params = params)
+    fun createAnnotation(id: Long, params: CreateAnnotationParams): JsonRpcRequest<CreateAnnotationParams> =
+        JsonRpcRequest(id = id, method = "createAnnotation", params = params)
 
-    fun updateCommentThread(id: Long, params: UpdateCommentThreadParams): JsonRpcRequest<UpdateCommentThreadParams> =
-        JsonRpcRequest(id = id, method = "updateCommentThread", params = params)
+    fun updateAnnotation(id: Long, params: UpdateAnnotationParams): JsonRpcRequest<UpdateAnnotationParams> =
+        JsonRpcRequest(id = id, method = "updateAnnotation", params = params)
 
-    fun deleteCommentThread(id: Long, params: DeleteCommentThreadParams): JsonRpcRequest<DeleteCommentThreadParams> =
-        JsonRpcRequest(id = id, method = "deleteCommentThread", params = params)
+    fun deleteAnnotation(id: Long, params: DeleteAnnotationParams): JsonRpcRequest<DeleteAnnotationParams> =
+        JsonRpcRequest(id = id, method = "deleteAnnotation", params = params)
 
-    fun addComment(id: Long, params: AddCommentParams): JsonRpcRequest<AddCommentParams> =
-        JsonRpcRequest(id = id, method = "addComment", params = params)
+    fun addAnnotationEntry(id: Long, params: AddAnnotationEntryParams): JsonRpcRequest<AddAnnotationEntryParams> =
+        JsonRpcRequest(id = id, method = "addAnnotationEntry", params = params)
 
-    fun editComment(id: Long, params: EditCommentParams): JsonRpcRequest<EditCommentParams> =
-        JsonRpcRequest(id = id, method = "editComment", params = params)
+    fun editAnnotationEntry(id: Long, params: EditAnnotationEntryParams): JsonRpcRequest<EditAnnotationEntryParams> =
+        JsonRpcRequest(id = id, method = "editAnnotationEntry", params = params)
 
-    fun deleteComment(id: Long, params: DeleteCommentParams): JsonRpcRequest<DeleteCommentParams> =
-        JsonRpcRequest(id = id, method = "deleteComment", params = params)
+    fun deleteAnnotationEntry(id: Long, params: DeleteAnnotationEntryParams): JsonRpcRequest<DeleteAnnotationEntryParams> =
+        JsonRpcRequest(id = id, method = "deleteAnnotationEntry", params = params)
 }
 
 /**

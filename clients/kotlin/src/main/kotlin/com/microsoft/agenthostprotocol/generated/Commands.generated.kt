@@ -1028,7 +1028,7 @@ data class InvokeChangesetOperationResult(
 )
 
 @Serializable
-data class CreateCommentThreadParams(
+data class CreateAnnotationParams(
     /**
      * Channel URI this command targets.
      */
@@ -1042,40 +1042,40 @@ data class CreateCommentThreadParams(
      */
     val resource: String,
     /**
-     * Anchored range within {@link resource}. When omitted the thread is
+     * Anchored range within {@link resource}. When omitted the annotation is
      * anchored to the entire file.
      */
     val range: TextRange? = null,
     /**
-     * First comment in the thread. The server assigns its {@link Comment.id}.
+     * First entry in the annotation. The server assigns its {@link AnnotationEntry.id}.
      */
-    val comment: NewComment
+    val entry: NewAnnotationEntry
 )
 
 @Serializable
-data class CreateCommentThreadResult(
+data class CreateAnnotationResult(
     /**
-     * Server-assigned {@link CommentThread.id}.
+     * Server-assigned {@link Annotation.id}.
      */
-    val threadId: String,
+    val annotationId: String,
     /**
-     * Server-assigned {@link Comment.id} of the initial comment.
+     * Server-assigned {@link AnnotationEntry.id} of the initial entry.
      */
-    val commentId: String
+    val entryId: String
 )
 
 @Serializable
-data class UpdateCommentThreadParams(
+data class UpdateAnnotationParams(
     /**
      * Channel URI this command targets.
      */
     val channel: String,
     /**
-     * The {@link CommentThread.id} to update.
+     * The {@link Annotation.id} to update.
      */
-    val threadId: String,
+    val annotationId: String,
     /**
-     * New {@link CommentThread.turnId}, if changing.
+     * New {@link Annotation.turnId}, if changing.
      */
     val turnId: String? = null,
     /**
@@ -1087,81 +1087,81 @@ data class UpdateCommentThreadParams(
      */
     val range: TextRange? = null,
     /**
-     * New {@link CommentThread.resolved} state, if changing.
+     * New {@link Annotation.resolved} state, if changing.
      */
     val resolved: Boolean? = null
 )
 
 @Serializable
-data class DeleteCommentThreadParams(
+data class DeleteAnnotationParams(
     /**
      * Channel URI this command targets.
      */
     val channel: String,
     /**
-     * The {@link CommentThread.id} to delete.
+     * The {@link Annotation.id} to delete.
      */
-    val threadId: String
+    val annotationId: String
 )
 
 @Serializable
-data class AddCommentParams(
+data class AddAnnotationEntryParams(
     /**
      * Channel URI this command targets.
      */
     val channel: String,
     /**
-     * Thread that receives the new comment.
+     * Annotation that receives the new entry.
      */
-    val threadId: String,
+    val annotationId: String,
     /**
-     * Comment payload — the server assigns the id.
+     * Entry payload — the server assigns the id.
      */
-    val comment: NewComment
+    val entry: NewAnnotationEntry
 )
 
 @Serializable
-data class AddCommentResult(
+data class AddAnnotationEntryResult(
     /**
-     * Server-assigned {@link Comment.id} of the new comment.
+     * Server-assigned {@link AnnotationEntry.id} of the new entry.
      */
-    val commentId: String
+    val entryId: String
 )
 
 @Serializable
-data class EditCommentParams(
+data class EditAnnotationEntryParams(
     /**
      * Channel URI this command targets.
      */
     val channel: String,
     /**
-     * Enclosing thread.
+     * Enclosing annotation.
      */
-    val threadId: String,
+    val annotationId: String,
     /**
-     * {@link Comment.id} to edit.
+     * {@link AnnotationEntry.id} to edit.
      */
-    val commentId: String,
+    val entryId: String,
     /**
-     * New comment body. See {@link Comment.text}.
+     * New entry body. See {@link AnnotationEntry.text}.
      */
     val text: StringOrMarkdown
 )
 
 @Serializable
-data class DeleteCommentParams(
+data class DeleteAnnotationEntryParams(
     /**
      * Channel URI this command targets.
      */
     val channel: String,
     /**
-     * Enclosing thread.
+     * Enclosing annotation.
      */
-    val threadId: String,
+    val annotationId: String,
     /**
-     * {@link Comment.id} to remove.
+     * {@link AnnotationEntry.id} to remove.
      */
-    val commentId: String
+    val entryId: String
 )
 
 @Serializable

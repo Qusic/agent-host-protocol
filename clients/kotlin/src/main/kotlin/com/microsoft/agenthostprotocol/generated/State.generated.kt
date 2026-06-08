@@ -275,10 +275,10 @@ enum class MessageAttachmentKind {
     @SerialName("resource")
     RESOURCE,
     /**
-     * An attachment that references comment threads on a comments channel.
+     * An attachment that references annotations on an annotations channel.
      */
-    @SerialName("comments")
-    COMMENTS
+    @SerialName("annotations")
+    ANNOTATIONS
 }
 
 /**
@@ -1100,12 +1100,12 @@ data class SessionSummary(
      */
     val changes: ChangesSummary? = null,
     /**
-     * Lightweight summary of this session's inline comments channel
-     * (`ahp-session:/<uuid>/comments`). Surfaced so badge UI can render
-     * thread / comment counts without subscribing. Absent when the session
-     * does not expose a comments channel.
+     * Lightweight summary of this session's inline annotations channel
+     * (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
+     * annotation / entry counts without subscribing. Absent when the session
+     * does not expose an annotations channel.
      */
-    val comments: CommentsSummary? = null
+    val annotations: AnnotationsSummary? = null
 )
 
 @Serializable
@@ -1690,7 +1690,7 @@ data class MessageResourceAttachment(
 )
 
 @Serializable
-data class MessageCommentsAttachment(
+data class MessageAnnotationsAttachment(
     /**
      * A human-readable label for the attachment (e.g. the filename of a file
      * attachment). Used for display in UI.
@@ -1729,15 +1729,15 @@ data class MessageCommentsAttachment(
      */
     val type: MessageAttachmentKind,
     /**
-     * The comments channel URI (typically `ahp-session:/<uuid>/comments`).
-     * Matches {@link CommentsSummary.resource}.
+     * The annotations channel URI (typically `ahp-session:/<uuid>/annotations`).
+     * Matches {@link AnnotationsSummary.resource}.
      */
     val resource: String,
     /**
-     * Specific {@link CommentThread.id | thread ids} to reference. When
-     * omitted, the attachment references all threads on the channel.
+     * Specific {@link Annotation.id | annotation ids} to reference. When
+     * omitted, the attachment references all annotations on the channel.
      */
-    val threadIds: List<String>? = null
+    val annotationIds: List<String>? = null
 )
 
 @Serializable
@@ -3347,63 +3347,63 @@ data class ChangesetOperation(
 )
 
 @Serializable
-data class CommentsSummary(
+data class AnnotationsSummary(
     /**
-     * The subscribable comments channel URI for the owning session
-     * (typically `ahp-session:/<uuid>/comments`). Surfaced explicitly even
+     * The subscribable annotations channel URI for the owning session
+     * (typically `ahp-session:/<uuid>/annotations`). Surfaced explicitly even
      * though it is derivable from the session URI so badge UI does not need
      * to know the derivation rule.
      */
     val resource: String,
     /**
-     * Total number of {@link CommentThread} entries in the channel.
+     * Total number of {@link Annotation} entries in the channel.
      */
-    val threadCount: Long,
+    val annotationCount: Long,
     /**
-     * Total number of {@link Comment} entries across every thread.
+     * Total number of {@link AnnotationEntry} entries across every annotation.
      */
-    val commentCount: Long
+    val entryCount: Long
 )
 
 @Serializable
-data class CommentsState(
+data class AnnotationsState(
     /**
-     * Comment threads in this channel, keyed by {@link CommentThread.id}.
+     * Annotations in this channel, keyed by {@link Annotation.id}.
      */
-    val threads: List<CommentThread>
+    val annotations: List<Annotation>
 )
 
 @Serializable
-data class CommentThread(
+data class Annotation(
     /**
-     * Stable identifier within the comments channel. Server-assigned.
+     * Stable identifier within the annotations channel. Server-assigned.
      */
     val id: String,
     /**
-     * Turn that produced the file versions this thread is anchored to.
+     * Turn that produced the file versions this annotation is anchored to.
      * Matches a {@link Turn.id} on the owning session.
      */
     val turnId: String,
     /**
-     * The file the thread is anchored to.
+     * The file the annotation is anchored to.
      */
     val resource: String,
     /**
-     * Range within {@link resource} the thread is anchored to. When omitted
-     * the thread is anchored to the entire file.
+     * Range within {@link resource} the annotation is anchored to. When
+     * omitted the annotation is anchored to the entire file.
      */
     val range: TextRange? = null,
     /**
-     * Whether the thread has been resolved. Newly created threads are always
-     * unresolved (`false`); a client marks a thread resolved (or re-opens it)
-     * through {@link UpdateCommentThreadParams | `updateCommentThread`}.
+     * Whether the annotation has been resolved. Newly created annotations are
+     * always unresolved (`false`); a client marks an annotation resolved (or
+     * re-opens it) through {@link UpdateAnnotationParams | `updateAnnotation`}.
      */
     val resolved: Boolean,
     /**
-     * Comments in this thread, in dispatch order (oldest first). MUST
+     * Entries in this annotation, in dispatch order (oldest first). MUST
      * contain at least one entry.
      */
-    val comments: List<Comment>,
+    val entries: List<AnnotationEntry>,
     /**
      * Server-defined opaque metadata, surfaced to tooling but not
      * interpreted by the protocol.
@@ -3413,13 +3413,13 @@ data class CommentThread(
 )
 
 @Serializable
-data class Comment(
+data class AnnotationEntry(
     /**
-     * Stable identifier within the enclosing thread. Server-assigned.
+     * Stable identifier within the enclosing annotation. Server-assigned.
      */
     val id: String,
     /**
-     * Comment body. A bare `string` is rendered as plain text; pass
+     * Entry body. A bare `string` is rendered as plain text; pass
      * `{ markdown: "…" }` to opt into Markdown rendering. See
      * {@link StringOrMarkdown}.
      */
@@ -3433,14 +3433,14 @@ data class Comment(
 )
 
 @Serializable
-data class NewComment(
+data class NewAnnotationEntry(
     /**
-     * Comment body. See {@link Comment.text}.
+     * Entry body. See {@link AnnotationEntry.text}.
      */
     val text: StringOrMarkdown,
     /**
      * Server-defined opaque metadata, forwarded onto the resulting
-     * {@link Comment._meta}.
+     * {@link AnnotationEntry._meta}.
      */
     @SerialName("_meta")
     val meta: Map<String, JsonElement>? = null
@@ -3930,7 +3930,7 @@ value class MessageAttachmentEmbeddedResource(val value: MessageEmbeddedResource
 @JvmInline
 value class MessageAttachmentResource(val value: MessageResourceAttachment) : MessageAttachment
 @JvmInline
-value class MessageAttachmentComments(val value: MessageCommentsAttachment) : MessageAttachment
+value class MessageAttachmentAnnotations(val value: MessageAnnotationsAttachment) : MessageAttachment
 /**
  * Forward-compat catch-all for unknown MessageAttachment discriminators.
  *
@@ -3958,7 +3958,7 @@ internal object MessageAttachmentSerializer : KSerializer<MessageAttachment> {
             "simple" -> MessageAttachmentSimple(input.json.decodeFromJsonElement(SimpleMessageAttachment.serializer(), element))
             "embeddedResource" -> MessageAttachmentEmbeddedResource(input.json.decodeFromJsonElement(MessageEmbeddedResourceAttachment.serializer(), element))
             "resource" -> MessageAttachmentResource(input.json.decodeFromJsonElement(MessageResourceAttachment.serializer(), element))
-            "comments" -> MessageAttachmentComments(input.json.decodeFromJsonElement(MessageCommentsAttachment.serializer(), element))
+            "annotations" -> MessageAttachmentAnnotations(input.json.decodeFromJsonElement(MessageAnnotationsAttachment.serializer(), element))
             else -> MessageAttachmentUnknown(obj)
         }
     }
@@ -3970,7 +3970,7 @@ internal object MessageAttachmentSerializer : KSerializer<MessageAttachment> {
             is MessageAttachmentSimple -> output.json.encodeToJsonElement(SimpleMessageAttachment.serializer(), value.value)
             is MessageAttachmentEmbeddedResource -> output.json.encodeToJsonElement(MessageEmbeddedResourceAttachment.serializer(), value.value)
             is MessageAttachmentResource -> output.json.encodeToJsonElement(MessageResourceAttachment.serializer(), value.value)
-            is MessageAttachmentComments -> output.json.encodeToJsonElement(MessageCommentsAttachment.serializer(), value.value)
+            is MessageAttachmentAnnotations -> output.json.encodeToJsonElement(MessageAnnotationsAttachment.serializer(), value.value)
             is MessageAttachmentUnknown -> value.raw
         }
         output.encodeJsonElement(element)
@@ -4321,7 +4321,7 @@ internal object ToolResultContentSerializer : KSerializer<ToolResultContent> {
 
 /**
  * The state payload of a snapshot — root, session, terminal, changeset,
- * or comments state.
+ * or annotations state.
  */
 @Serializable(with = SnapshotStateSerializer::class)
 sealed interface SnapshotState {
@@ -4329,7 +4329,7 @@ sealed interface SnapshotState {
     @JvmInline value class Session(val value: SessionState) : SnapshotState
     @JvmInline value class Terminal(val value: TerminalState) : SnapshotState
     @JvmInline value class Changeset(val value: ChangesetState) : SnapshotState
-    @JvmInline value class Comments(val value: CommentsState) : SnapshotState
+    @JvmInline value class Annotations(val value: AnnotationsState) : SnapshotState
 }
 
 internal object SnapshotStateSerializer : KSerializer<SnapshotState> {
@@ -4344,14 +4344,14 @@ internal object SnapshotStateSerializer : KSerializer<SnapshotState> {
             ?: error("Expected JsonObject for SnapshotState")
         // Try the most distinctive shape first. SessionState has required
         // `summary`; ChangesetState has required `status` + `files`;
-        // CommentsState has required `threads`; TerminalState has `uri`
+        // AnnotationsState has required `annotations`; TerminalState has `uri`
         // / `size` / `buffer`; RootState is the catch-all.
         return when {
             obj.containsKey("summary") -> SnapshotState.Session(input.json.decodeFromJsonElement(SessionState.serializer(), element))
             obj.containsKey("status") && obj.containsKey("files") ->
                 SnapshotState.Changeset(input.json.decodeFromJsonElement(ChangesetState.serializer(), element))
-            obj.containsKey("threads") ->
-                SnapshotState.Comments(input.json.decodeFromJsonElement(CommentsState.serializer(), element))
+            obj.containsKey("annotations") ->
+                SnapshotState.Annotations(input.json.decodeFromJsonElement(AnnotationsState.serializer(), element))
             obj.containsKey("size") || obj.containsKey("uri") || obj.containsKey("buffer") ->
                 SnapshotState.Terminal(input.json.decodeFromJsonElement(TerminalState.serializer(), element))
             else -> SnapshotState.Root(input.json.decodeFromJsonElement(RootState.serializer(), element))
@@ -4366,7 +4366,7 @@ internal object SnapshotStateSerializer : KSerializer<SnapshotState> {
             is SnapshotState.Session -> output.json.encodeToJsonElement(SessionState.serializer(), value.value)
             is SnapshotState.Terminal -> output.json.encodeToJsonElement(TerminalState.serializer(), value.value)
             is SnapshotState.Changeset -> output.json.encodeToJsonElement(ChangesetState.serializer(), value.value)
-            is SnapshotState.Comments -> output.json.encodeToJsonElement(CommentsState.serializer(), value.value)
+            is SnapshotState.Annotations -> output.json.encodeToJsonElement(AnnotationsState.serializer(), value.value)
         }
         output.encodeJsonElement(element)
     }

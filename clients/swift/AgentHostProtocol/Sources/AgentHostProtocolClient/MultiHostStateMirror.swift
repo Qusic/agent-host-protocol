@@ -47,7 +47,7 @@ public actor MultiHostStateMirror {
     public private(set) var sessions: [HostedResourceKey: SessionState] = [:]
     public private(set) var terminals: [HostedResourceKey: TerminalState] = [:]
     public private(set) var changesets: [HostedResourceKey: ChangesetState] = [:]
-    public private(set) var comments: [HostedResourceKey: CommentsState] = [:]
+    public private(set) var annotations: [HostedResourceKey: AnnotationsState] = [:]
 
     public init() {}
 
@@ -88,8 +88,8 @@ public actor MultiHostStateMirror {
             // mutated only when fresh snapshots arrive.
             return
         }
-        if comments[key] != nil {
-            // Comments are also seeded by `applySnapshot` and currently
+        if annotations[key] != nil {
+            // Annotations are also seeded by `applySnapshot` and currently
             // mutated only when fresh snapshots arrive.
             return
         }
@@ -98,7 +98,7 @@ public actor MultiHostStateMirror {
     }
 
     /// Seed the mirror from a `Snapshot` scoped to `host` — root,
-    /// session, terminal, changeset, or comments as the snapshot's
+    /// session, terminal, changeset, or annotations as the snapshot's
     /// `state` discriminator dictates.
     public func applySnapshot(host: HostId, snapshot: Snapshot) {
         let key = HostedResourceKey(hostId: host, uri: snapshot.resource)
@@ -111,21 +111,21 @@ public actor MultiHostStateMirror {
             terminals[key] = state
         case .changeset(let state):
             changesets[key] = state
-        case .comments(let state):
-            comments[key] = state
+        case .annotations(let state):
+            annotations[key] = state
         }
     }
 
     /// Reset every slot for `host` — drops the root state, all sessions
     /// keyed under that host, all terminals keyed under that host, all
-    /// changesets keyed under that host, and all comments keyed under
+    /// changesets keyed under that host, and all annotations keyed under
     /// that host.
     public func reset(host: HostId) {
         rootStates.removeValue(forKey: host)
         sessions = sessions.filter { $0.key.hostId != host }
         terminals = terminals.filter { $0.key.hostId != host }
         changesets = changesets.filter { $0.key.hostId != host }
-        comments = comments.filter { $0.key.hostId != host }
+        annotations = annotations.filter { $0.key.hostId != host }
     }
 
     /// Reset every host's state.
@@ -134,6 +134,6 @@ public actor MultiHostStateMirror {
         sessions.removeAll()
         terminals.removeAll()
         changesets.removeAll()
-        comments.removeAll()
+        annotations.removeAll()
     }
 }

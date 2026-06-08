@@ -412,7 +412,7 @@
               "$ref": "#/$defs/ChangesetState"
             },
             {
-              "$ref": "#/$defs/CommentsState"
+              "$ref": "#/$defs/AnnotationsState"
             }
           ],
           "description": "The current state of the resource"
@@ -790,9 +790,9 @@
           "$ref": "#/$defs/ChangesSummary",
           "description": "Aggregate summary of file changes associated with this session. Servers\nmay populate this to give clients a quick at-a-glance view of the\nsession's footprint (e.g., for list rendering) without requiring the\nclient to subscribe to a changeset."
         },
-        "comments": {
-          "$ref": "#/$defs/CommentsSummary",
-          "description": "Lightweight summary of this session's inline comments channel\n(`ahp-session:/<uuid>/comments`). Surfaced so badge UI can render\nthread / comment counts without subscribing. Absent when the session\ndoes not expose a comments channel."
+        "annotations": {
+          "$ref": "#/$defs/AnnotationsSummary",
+          "description": "Lightweight summary of this session's inline annotations channel\n(`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render\nannotation / entry counts without subscribing. Absent when the session\ndoes not expose an annotations channel."
         }
       },
       "required": [
@@ -1674,9 +1674,9 @@
         "type"
       ]
     },
-    "MessageCommentsAttachment": {
+    "MessageAnnotationsAttachment": {
       "type": "object",
-      "description": "An attachment that references comment threads on a session's comments\nchannel (see {@link CommentsState}).\n\nWhen {@link threadIds} is omitted the attachment references every thread\non the channel; when present it references only the listed\n{@link CommentThread.id | thread ids}.",
+      "description": "An attachment that references annotations on a session's annotations\nchannel (see {@link AnnotationsState}).\n\nWhen {@link annotationIds} is omitted the attachment references every\nannotation on the channel; when present it references only the listed\n{@link Annotation.id | annotation ids}.",
       "properties": {
         "label": {
           "type": "string",
@@ -1696,19 +1696,19 @@
           "description": "Additional implementation-defined metadata for the attachment.\n\nIf the attachment was produced by the `completions` command, the client\nMUST preserve every property of `_meta` originally returned by the agent\nhost when sending the user message containing the accepted completion."
         },
         "type": {
-          "$ref": "#/$defs/MessageAttachmentKind.Comments",
+          "$ref": "#/$defs/MessageAttachmentKind.Annotations",
           "description": "Discriminant"
         },
         "resource": {
           "$ref": "#/$defs/URI",
-          "description": "The comments channel URI (typically `ahp-session:/<uuid>/comments`).\nMatches {@link CommentsSummary.resource}."
+          "description": "The annotations channel URI (typically `ahp-session:/<uuid>/annotations`).\nMatches {@link AnnotationsSummary.resource}."
         },
-        "threadIds": {
+        "annotationIds": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Specific {@link CommentThread.id | thread ids} to reference. When\nomitted, the attachment references all threads on the channel."
+          "description": "Specific {@link Annotation.id | annotation ids} to reference. When\nomitted, the attachment references all annotations on the channel."
         }
       },
       "required": [
@@ -3729,75 +3729,75 @@
         "status"
       ]
     },
-    "CommentsSummary": {
+    "AnnotationsSummary": {
       "type": "object",
-      "description": "Lightweight per-session summary of the comments channel, surfaced on\n{@link SessionSummary.comments} so badge UI can render thread / comment\ncounts without subscribing to the channel itself.",
+      "description": "Lightweight per-session summary of the annotations channel, surfaced on\n{@link SessionSummary.annotations} so badge UI can render annotation /\nentry counts without subscribing to the channel itself.",
       "properties": {
         "resource": {
           "$ref": "#/$defs/URI",
-          "description": "The subscribable comments channel URI for the owning session\n(typically `ahp-session:/<uuid>/comments`). Surfaced explicitly even\nthough it is derivable from the session URI so badge UI does not need\nto know the derivation rule."
+          "description": "The subscribable annotations channel URI for the owning session\n(typically `ahp-session:/<uuid>/annotations`). Surfaced explicitly even\nthough it is derivable from the session URI so badge UI does not need\nto know the derivation rule."
         },
-        "threadCount": {
+        "annotationCount": {
           "type": "number",
-          "description": "Total number of {@link CommentThread} entries in the channel."
+          "description": "Total number of {@link Annotation} entries in the channel."
         },
-        "commentCount": {
+        "entryCount": {
           "type": "number",
-          "description": "Total number of {@link Comment} entries across every thread."
+          "description": "Total number of {@link AnnotationEntry} entries across every annotation."
         }
       },
       "required": [
         "resource",
-        "threadCount",
-        "commentCount"
+        "annotationCount",
+        "entryCount"
       ]
     },
-    "CommentsState": {
+    "AnnotationsState": {
       "type": "object",
-      "description": "Full state for a session's comments channel, returned when a client\nsubscribes to an `ahp-session:/<uuid>/comments` URI.",
+      "description": "Full state for a session's annotations channel, returned when a client\nsubscribes to an `ahp-session:/<uuid>/annotations` URI.",
       "properties": {
-        "threads": {
+        "annotations": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/CommentThread"
+            "$ref": "#/$defs/Annotation"
           },
-          "description": "Comment threads in this channel, keyed by {@link CommentThread.id}."
+          "description": "Annotations in this channel, keyed by {@link Annotation.id}."
         }
       },
       "required": [
-        "threads"
+        "annotations"
       ]
     },
-    "CommentThread": {
+    "Annotation": {
       "type": "object",
-      "description": "A conversation anchored to a specific file produced by a specific turn,\noptionally narrowed to a range within that file.\n\n{@link turnId} anchors the thread to the file versions that turn\nproduced, so a later turn that rewrites the same file does not silently\ninvalidate the comment's anchor — clients can resolve {@link resource}\nand {@link range} against the turn's changeset. When {@link range} is\nomitted the thread is anchored to the entire file.\n\nEvery thread MUST contain at least one {@link Comment}. The server\nenforces this invariant: {@link CreateCommentThreadParams |\n`createCommentThread`} requires an initial comment, and deleting the\nlast remaining comment collapses the thread into a\n{@link CommentsThreadRemovedAction} rather than leaving an empty thread\nbehind.",
+      "description": "A conversation anchored to a specific file produced by a specific turn,\noptionally narrowed to a range within that file.\n\n{@link turnId} anchors the annotation to the file versions that turn\nproduced, so a later turn that rewrites the same file does not silently\ninvalidate the annotation's anchor — clients can resolve {@link resource}\nand {@link range} against the turn's changeset. When {@link range} is\nomitted the annotation is anchored to the entire file.\n\nEvery annotation MUST contain at least one {@link AnnotationEntry}. The\nserver enforces this invariant: {@link CreateAnnotationParams |\n`createAnnotation`} requires an initial entry, and deleting the\nlast remaining entry collapses the annotation into a\n{@link AnnotationsRemovedAction} rather than leaving an empty annotation\nbehind.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Stable identifier within the comments channel. Server-assigned."
+          "description": "Stable identifier within the annotations channel. Server-assigned."
         },
         "turnId": {
           "type": "string",
-          "description": "Turn that produced the file versions this thread is anchored to.\nMatches a {@link Turn.id} on the owning session."
+          "description": "Turn that produced the file versions this annotation is anchored to.\nMatches a {@link Turn.id} on the owning session."
         },
         "resource": {
           "$ref": "#/$defs/URI",
-          "description": "The file the thread is anchored to."
+          "description": "The file the annotation is anchored to."
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "Range within {@link resource} the thread is anchored to. When omitted\nthe thread is anchored to the entire file."
+          "description": "Range within {@link resource} the annotation is anchored to. When\nomitted the annotation is anchored to the entire file."
         },
         "resolved": {
           "type": "boolean",
-          "description": "Whether the thread has been resolved. Newly created threads are always\nunresolved (`false`); a client marks a thread resolved (or re-opens it)\nthrough {@link UpdateCommentThreadParams | `updateCommentThread`}."
+          "description": "Whether the annotation has been resolved. Newly created annotations are\nalways unresolved (`false`); a client marks an annotation resolved (or\nre-opens it) through {@link UpdateAnnotationParams | `updateAnnotation`}."
         },
-        "comments": {
+        "entries": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/Comment"
+            "$ref": "#/$defs/AnnotationEntry"
           },
-          "description": "Comments in this thread, in dispatch order (oldest first). MUST\ncontain at least one entry."
+          "description": "Entries in this annotation, in dispatch order (oldest first). MUST\ncontain at least one entry."
         },
         "_meta": {
           "type": "object",
@@ -3810,20 +3810,20 @@
         "turnId",
         "resource",
         "resolved",
-        "comments"
+        "entries"
       ]
     },
-    "Comment": {
+    "AnnotationEntry": {
       "type": "object",
-      "description": "A single comment within a {@link CommentThread}.",
+      "description": "A single entry within an {@link Annotation}.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Stable identifier within the enclosing thread. Server-assigned."
+          "description": "Stable identifier within the enclosing annotation. Server-assigned."
         },
         "text": {
           "$ref": "#/$defs/StringOrMarkdown",
-          "description": "Comment body. A bare `string` is rendered as plain text; pass\n`{ markdown: \"…\" }` to opt into Markdown rendering. See\n{@link StringOrMarkdown}."
+          "description": "Entry body. A bare `string` is rendered as plain text; pass\n`{ markdown: \"…\" }` to opt into Markdown rendering. See\n{@link StringOrMarkdown}."
         },
         "_meta": {
           "type": "object",
@@ -3836,18 +3836,18 @@
         "text"
       ]
     },
-    "NewComment": {
+    "NewAnnotationEntry": {
       "type": "object",
-      "description": "Input shape passed to {@link CreateCommentThreadParams | `createCommentThread`}\nand {@link AddCommentParams | `addComment`}. The server assigns the\nresulting {@link Comment.id}.",
+      "description": "Input shape passed to {@link CreateAnnotationParams | `createAnnotation`}\nand {@link AddAnnotationEntryParams | `addAnnotationEntry`}. The server\nassigns the resulting {@link AnnotationEntry.id}.",
       "properties": {
         "text": {
           "$ref": "#/$defs/StringOrMarkdown",
-          "description": "Comment body. See {@link Comment.text}."
+          "description": "Entry body. See {@link AnnotationEntry.text}."
         },
         "_meta": {
           "type": "object",
           "additionalProperties": {},
-          "description": "Server-defined opaque metadata, forwarded onto the resulting\n{@link Comment._meta}."
+          "description": "Server-defined opaque metadata, forwarded onto the resulting\n{@link AnnotationEntry._meta}."
         }
       },
       "required": [
@@ -4014,7 +4014,7 @@
           "$ref": "#/$defs/MessageResourceAttachment"
         },
         {
-          "$ref": "#/$defs/MessageCommentsAttachment"
+          "$ref": "#/$defs/MessageAnnotationsAttachment"
         }
       ],
       "description": "An attachment associated with a {@link Message}."

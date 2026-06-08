@@ -54,11 +54,10 @@ import type {
   ChangesetOperationsChangedAction,
   ChangesetOperationStatusChangedAction,
   ChangesetClearedAction,
-  CommentsThreadSetAction,
-  CommentsThreadRemovedAction,
-  CommentsCommentSetAction,
-  CommentsCommentRemovedAction,
-  CommentsClearedAction,
+  AnnotationsSetAction,
+  AnnotationsRemovedAction,
+  AnnotationsEntrySetAction,
+  AnnotationsEntryRemovedAction,
   TerminalDataAction,
   TerminalInputAction,
   TerminalResizedAction,
@@ -250,27 +249,25 @@ export type ServerChangesetAction =
   | ChangesetClearedAction
 ;
 
-/** Union of all comments-scoped actions. */
-export type CommentsAction =
-  | CommentsThreadSetAction
-  | CommentsThreadRemovedAction
-  | CommentsCommentSetAction
-  | CommentsCommentRemovedAction
-  | CommentsClearedAction
+/** Union of all annotations-scoped actions. */
+export type AnnotationsAction =
+  | AnnotationsSetAction
+  | AnnotationsRemovedAction
+  | AnnotationsEntrySetAction
+  | AnnotationsEntryRemovedAction
 ;
 
-/** Union of comments actions that clients may dispatch. */
-export type ClientCommentsAction =
+/** Union of annotations actions that clients may dispatch. */
+export type ClientAnnotationsAction =
   never
 ;
 
-/** Union of comments actions that only the server may produce. */
-export type ServerCommentsAction =
-  | CommentsThreadSetAction
-  | CommentsThreadRemovedAction
-  | CommentsCommentSetAction
-  | CommentsCommentRemovedAction
-  | CommentsClearedAction
+/** Union of annotations actions that only the server may produce. */
+export type ServerAnnotationsAction =
+  | AnnotationsSetAction
+  | AnnotationsRemovedAction
+  | AnnotationsEntrySetAction
+  | AnnotationsEntryRemovedAction
 ;
 
 /** Union of all resource-watch-scoped actions. */
@@ -346,11 +343,10 @@ export const IS_CLIENT_DISPATCHABLE: { readonly [K in StateAction['type']]: bool
   [ActionType.ChangesetOperationsChanged]: false,
   [ActionType.ChangesetOperationStatusChanged]: false,
   [ActionType.ChangesetCleared]: false,
-  [ActionType.CommentsThreadSet]: false,
-  [ActionType.CommentsThreadRemoved]: false,
-  [ActionType.CommentsCommentSet]: false,
-  [ActionType.CommentsCommentRemoved]: false,
-  [ActionType.CommentsCleared]: false,
+  [ActionType.AnnotationsSet]: false,
+  [ActionType.AnnotationsRemoved]: false,
+  [ActionType.AnnotationsEntrySet]: false,
+  [ActionType.AnnotationsEntryRemoved]: false,
   [ActionType.TerminalData]: false,
   [ActionType.TerminalInput]: true,
   [ActionType.TerminalResized]: true,

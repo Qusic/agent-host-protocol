@@ -40,18 +40,18 @@ matching `## [X.Y.Z]` heading is missing from this file.
   `idle → running → error` lifecycle of a changeset operation.
 - `AgentCustomization._meta` provider metadata field.
 - Optional `changes` field on `SessionSummary` (`ChangesSummary` with optional `additions`, `deletions`, and `files` counts) summarising a session's file-change footprint.
-- New comments channel wire types (`ahp-session:/<uuid>/comments`):
-  `CommentsState`, `CommentThread`, `Comment`, `NewComment`,
-  `CommentsSummary`; the
-  `comments/threadSet` / `comments/threadRemoved` / `comments/commentSet`
-  / `comments/commentRemoved` / `comments/cleared` action variants;
-  `createCommentThread`, `updateCommentThread`, `deleteCommentThread`,
-  `addComment`, `editComment`, and `deleteComment` command structs;
-  `MultiHostStateMirror.comments()` and `SnapshotState::Comments`.
+- New annotations channel wire types (`ahp-session:/<uuid>/annotations`):
+  `AnnotationsState`, `Annotation`, `AnnotationEntry`, `NewAnnotationEntry`,
+  `AnnotationsSummary`; the
+  `annotations/set` / `annotations/removed` / `annotations/entrySet`
+  / `annotations/entryRemoved` action variants;
+  `createAnnotation`, `updateAnnotation`, `deleteAnnotation`,
+  `addAnnotationEntry`, `editAnnotationEntry`, and `deleteAnnotationEntry` command structs;
+  `MultiHostStateMirror.annotations()` and `SnapshotState::Annotations`.
   Reducer logic is deferred (matches the changeset stub).
-- `MessageCommentsAttachment` (`comments` `MessageAttachment` variant)
-  referencing comment threads on a session's comments channel by `resource`
-  URI, optionally narrowed to a `threadIds` array.
+- `MessageAnnotationsAttachment` (`annotations` `MessageAttachment` variant)
+  referencing annotations on a session's annotations channel by `resource`
+  URI, optionally narrowed to an `annotationIds` array.
 
 
 ### Changed

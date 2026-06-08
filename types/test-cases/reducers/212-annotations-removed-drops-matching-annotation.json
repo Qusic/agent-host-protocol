@@ -1,8 +1,8 @@
 {
-  "description": "comments/threadRemoved drops the matching thread and is a no-op for unknown ids",
-  "reducer": "comments",
+  "description": "annotations/removed drops the matching annotation and is a no-op for unknown ids",
+  "reducer": "annotations",
   "initial": {
-    "threads": [
+    "annotations": [
       {
         "id": "t-1",
         "turnId": "turn-1",
@@ -12,7 +12,7 @@
           "end": { "line": 0, "character": 5 }
         },
         "resolved": false,
-        "comments": [
+        "entries": [
           { "id": "c-1", "text": "keep" }
         ]
       },
@@ -25,18 +25,18 @@
           "end": { "line": 2, "character": 4 }
         },
         "resolved": false,
-        "comments": [
+        "entries": [
           { "id": "c-2", "text": "drop me" }
         ]
       }
     ]
   },
   "actions": [
-    { "type": "comments/threadRemoved", "threadId": "t-2" },
-    { "type": "comments/threadRemoved", "threadId": "missing" }
+    { "type": "annotations/removed", "annotationId": "t-2" },
+    { "type": "annotations/removed", "annotationId": "missing" }
   ],
   "expected": {
-    "threads": [
+    "annotations": [
       {
         "id": "t-1",
         "turnId": "turn-1",
@@ -46,7 +46,7 @@
           "end": { "line": 0, "character": 5 }
         },
         "resolved": false,
-        "comments": [
+        "entries": [
           { "id": "c-1", "text": "keep" }
         ]
       }

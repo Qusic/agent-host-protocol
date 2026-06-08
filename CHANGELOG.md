@@ -75,22 +75,22 @@ Spec version: `0.3.0`
 - Added optional `changes` field of type `ChangesSummary` to `SessionSummary`,
   carrying optional `additions`, `deletions`, and `files` counts so servers
   can advertise an at-a-glance view of a session's file-change footprint.
-- Added a new comments channel exposed on `ahp-session:/<uuid>/comments`.
-  Threads anchor to a `(turnId, resource)` pair with an optional `range`
+- Added a new annotations channel exposed on `ahp-session:/<uuid>/annotations`.
+  Annotations anchor to a `(turnId, resource)` pair with an optional `range`
   (omitted to anchor to the entire file), carry a `resolved` flag (newly
-  created threads start unresolved; clients flip it via
-  `updateCommentThread`), and always carry at least one comment; new
-  `createCommentThread`, `updateCommentThread`,
-  `deleteCommentThread`, `addComment`, `editComment`, `deleteComment`
-  commands drive mutations and echo as `comments/threadSet`,
-  `comments/threadRemoved`, `comments/commentSet`, `comments/commentRemoved`,
-  and `comments/cleared` actions. `SessionSummary.comments` advertises the
-  per-session `CommentsSummary` (`{ resource, threadCount, commentCount }`)
+  created annotations start unresolved; clients flip it via
+  `updateAnnotation`), and always carry at least one entry; new
+  `createAnnotation`, `updateAnnotation`,
+  `deleteAnnotation`, `addAnnotationEntry`, `editAnnotationEntry`, `deleteAnnotationEntry`
+  commands drive mutations and echo as `annotations/set`,
+  `annotations/removed`, `annotations/entrySet`, and `annotations/entryRemoved`
+  actions. `SessionSummary.annotations` advertises the
+  per-session `AnnotationsSummary` (`{ resource, annotationCount, entryCount }`)
   for badge UI.
-- Added a `comments` `MessageAttachment` variant
-  (`MessageCommentsAttachment`) that references comment threads on a
-  session's comments channel by its `resource` URI, optionally narrowed to
-  a `threadIds` array (omitted to reference every thread).
+- Added an `annotations` `MessageAttachment` variant
+  (`MessageAnnotationsAttachment`) that references annotations on a
+  session's annotations channel by its `resource` URI, optionally narrowed to
+  an `annotationIds` array (omitted to reference every annotation).
 - Removed the `additions`, `deletions`, and `files` fields from
   `ChangesetSummary`. Aggregate counts now live on `SessionSummary.changes`;
   per-changeset views derive their own totals from `ChangesetState.files`.

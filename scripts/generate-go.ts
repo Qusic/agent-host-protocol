@@ -158,7 +158,7 @@ function mapType(tsType: string): string {
     tsType === 'RootState | SessionState' ||
     tsType === 'RootState | SessionState | TerminalState' ||
     tsType === 'RootState | SessionState | TerminalState | ChangesetState'
-    || tsType === 'RootState | SessionState | TerminalState | ChangesetState | CommentsState'
+    || tsType === 'RootState | SessionState | TerminalState | ChangesetState | AnnotationsState'
   ) {
     return 'SnapshotState';
   }
@@ -680,7 +680,7 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; goName?: strin
   { name: 'SimpleMessageAttachment' },
   { name: 'MessageEmbeddedResourceAttachment' },
   { name: 'MessageResourceAttachment' },
-  { name: 'MessageCommentsAttachment' },
+  { name: 'MessageAnnotationsAttachment' },
   { name: 'MarkdownResponsePart' },
   { name: 'ContentRef' },
   { name: 'ResourceReponsePart', goName: 'ResourceResponsePart' },
@@ -739,11 +739,11 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; goName?: strin
   { name: 'ChangesetState' },
   { name: 'ChangesetFile' },
   { name: 'ChangesetOperation' },
-  { name: 'CommentsSummary' },
-  { name: 'CommentsState' },
-  { name: 'CommentThread' },
-  { name: 'Comment' },
-  { name: 'NewComment' },
+  { name: 'AnnotationsSummary' },
+  { name: 'AnnotationsState' },
+  { name: 'Annotation' },
+  { name: 'AnnotationEntry' },
+  { name: 'NewAnnotationEntry' },
   { name: 'TelemetryCapabilities' },
   { name: 'ResourceWatchState' },
   { name: 'ResourceChange' },
@@ -864,7 +864,7 @@ const MESSAGE_ATTACHMENT_UNION: UnionConfig = {
     { variantName: 'Simple', innerType: 'SimpleMessageAttachment', wireValue: 'simple' },
     { variantName: 'EmbeddedResource', innerType: 'MessageEmbeddedResourceAttachment', wireValue: 'embeddedResource' },
     { variantName: 'Resource', innerType: 'MessageResourceAttachment', wireValue: 'resource' },
-    { variantName: 'Comments', innerType: 'MessageCommentsAttachment', wireValue: 'comments' },
+    { variantName: 'Annotations', innerType: 'MessageAnnotationsAttachment', wireValue: 'annotations' },
   ],
   unknown: true,
 };
@@ -936,15 +936,15 @@ const TOOL_CALL_CONTRIBUTOR_UNION: UnionConfig = {
 
 function generateSnapshotState(): string {
   return `// SnapshotState is the state payload of a snapshot — root, session,
-// terminal, changeset, or comments state. The active variant is chosen by which
+// terminal, changeset, or annotations state. The active variant is chosen by which
 // pointer field is non-nil; UnmarshalJSON probes for required fields in
-// the canonical order (session → terminal → changeset → comments → root).
+// the canonical order (session → terminal → changeset → annotations → root).
 type SnapshotState struct {
 \tRoot      *RootState      \`json:"-"\`
 \tSession   *SessionState   \`json:"-"\`
 \tTerminal  *TerminalState  \`json:"-"\`
 \tChangeset *ChangesetState \`json:"-"\`
-	Comments  *CommentsState  \`json:"-"\`
+	Annotations *AnnotationsState  \`json:"-"\`
 }
 
 // MarshalJSON encodes whichever variant is currently populated.
@@ -956,8 +956,8 @@ func (s SnapshotState) MarshalJSON() ([]byte, error) {
 \t\treturn json.Marshal(s.Terminal)
 \tcase s.Changeset != nil:
 \t\treturn json.Marshal(s.Changeset)
-	case s.Comments != nil:
-		return json.Marshal(s.Comments)
+	case s.Annotations != nil:
+		return json.Marshal(s.Annotations)
 \tcase s.Root != nil:
 \t\treturn json.Marshal(s.Root)
 \tdefault:
@@ -992,12 +992,12 @@ func (s *SnapshotState) UnmarshalJSON(data []byte) error {
 \t\t\treturn err
 \t\t}
 \t\ts.Changeset = &v
-	case containsAll(probe, "threads"):
-		var v CommentsState
+	case containsAll(probe, "annotations"):
+		var v AnnotationsState
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		s.Comments = &v
+		s.Annotations = &v
 \tdefault:
 \t\tvar v RootState
 \t\tif err := json.Unmarshal(data, &v); err != nil {
@@ -1137,11 +1137,10 @@ const ACTION_VARIANTS: {
   { type: 'changeset/operationsChanged', variantName: 'ChangesetOperationsChanged', tsInterface: 'ChangesetOperationsChangedAction' },
   { type: 'changeset/operationStatusChanged', variantName: 'ChangesetOperationStatusChanged', tsInterface: 'ChangesetOperationStatusChangedAction' },
   { type: 'changeset/cleared', variantName: 'ChangesetCleared', tsInterface: 'ChangesetClearedAction' },
-  { type: 'comments/threadSet', variantName: 'CommentsThreadSet', tsInterface: 'CommentsThreadSetAction' },
-  { type: 'comments/threadRemoved', variantName: 'CommentsThreadRemoved', tsInterface: 'CommentsThreadRemovedAction' },
-  { type: 'comments/commentSet', variantName: 'CommentsCommentSet', tsInterface: 'CommentsCommentSetAction' },
-  { type: 'comments/commentRemoved', variantName: 'CommentsCommentRemoved', tsInterface: 'CommentsCommentRemovedAction' },
-  { type: 'comments/cleared', variantName: 'CommentsCleared', tsInterface: 'CommentsClearedAction' },
+  { type: 'annotations/set', variantName: 'AnnotationsSet', tsInterface: 'AnnotationsSetAction' },
+  { type: 'annotations/removed', variantName: 'AnnotationsRemoved', tsInterface: 'AnnotationsRemovedAction' },
+  { type: 'annotations/entrySet', variantName: 'AnnotationsEntrySet', tsInterface: 'AnnotationsEntrySetAction' },
+  { type: 'annotations/entryRemoved', variantName: 'AnnotationsEntryRemoved', tsInterface: 'AnnotationsEntryRemovedAction' },
   { type: 'root/terminalsChanged', variantName: 'RootTerminalsChanged', tsInterface: 'RootTerminalsChangedAction' },
   { type: 'terminal/data', variantName: 'TerminalData', tsInterface: 'TerminalDataAction' },
   { type: 'terminal/input', variantName: 'TerminalInput', tsInterface: 'TerminalInputAction' },
@@ -1287,10 +1286,10 @@ const COMMAND_STRUCTS: { name: string; omitDiscriminants?: boolean; goName?: str
   { name: 'CompletionsParams' }, { name: 'CompletionItem' }, { name: 'CompletionsResult' },
   { name: 'InvokeChangesetOperationParams' }, { name: 'InvokeChangesetOperationResult' },
   { name: 'ChangesetOperationFollowUp' },
-  { name: 'CreateCommentThreadParams' }, { name: 'CreateCommentThreadResult' },
-  { name: 'UpdateCommentThreadParams' }, { name: 'DeleteCommentThreadParams' },
-  { name: 'AddCommentParams' }, { name: 'AddCommentResult' },
-  { name: 'EditCommentParams' }, { name: 'DeleteCommentParams' },
+  { name: 'CreateAnnotationParams' }, { name: 'CreateAnnotationResult' },
+  { name: 'UpdateAnnotationParams' }, { name: 'DeleteAnnotationParams' },
+  { name: 'AddAnnotationEntryParams' }, { name: 'AddAnnotationEntryResult' },
+  { name: 'EditAnnotationEntryParams' }, { name: 'DeleteAnnotationEntryParams' },
 ];
 
 const RECONNECT_RESULT_UNION: UnionConfig = {

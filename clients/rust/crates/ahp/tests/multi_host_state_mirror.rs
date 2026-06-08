@@ -57,7 +57,7 @@ fn session_state(title: &str, resource: &str) -> SessionState {
             agent: None,
             working_directory: None,
             changes: None,
-            comments: None,
+            annotations: None,
         },
         lifecycle: SessionLifecycle::Ready,
         creation_error: None,
@@ -366,7 +366,7 @@ fn non_action_event_is_ignored() {
                 agent: None,
                 working_directory: None,
                 changes: None,
-                comments: None,
+                annotations: None,
             },
         }),
     };

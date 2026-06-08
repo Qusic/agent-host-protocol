@@ -131,8 +131,8 @@ const (
 	MessageAttachmentKindEmbeddedResource MessageAttachmentKind = "embeddedResource"
 	// An attachment that references a resource by URI.
 	MessageAttachmentKindResource MessageAttachmentKind = "resource"
-	// An attachment that references comment threads on a comments channel.
-	MessageAttachmentKindComments MessageAttachmentKind = "comments"
+	// An attachment that references annotations on an annotations channel.
+	MessageAttachmentKindAnnotations MessageAttachmentKind = "annotations"
 )
 
 // Discriminant for response part types.
@@ -690,11 +690,11 @@ type SessionSummary struct {
 	// session's footprint (e.g., for list rendering) without requiring the
 	// client to subscribe to a changeset.
 	Changes *ChangesSummary `json:"changes,omitempty"`
-	// Lightweight summary of this session's inline comments channel
-	// (`ahp-session:/<uuid>/comments`). Surfaced so badge UI can render
-	// thread / comment counts without subscribing. Absent when the session
-	// does not expose a comments channel.
-	Comments *CommentsSummary `json:"comments,omitempty"`
+	// Lightweight summary of this session's inline annotations channel
+	// (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
+	// annotation / entry counts without subscribing. Absent when the session
+	// does not expose an annotations channel.
+	Annotations *AnnotationsSummary `json:"annotations,omitempty"`
 }
 
 // Aggregate counts describing the file changes associated with a session.
@@ -1143,13 +1143,13 @@ type MessageResourceAttachment struct {
 	Selection *TextSelection `json:"selection,omitempty"`
 }
 
-// An attachment that references comment threads on a session's comments
-// channel (see {@link CommentsState}).
+// An attachment that references annotations on a session's annotations
+// channel (see {@link AnnotationsState}).
 //
-// When {@link threadIds} is omitted the attachment references every thread
-// on the channel; when present it references only the listed
-// {@link CommentThread.id | thread ids}.
-type MessageCommentsAttachment struct {
+// When {@link annotationIds} is omitted the attachment references every
+// annotation on the channel; when present it references only the listed
+// {@link Annotation.id | annotation ids}.
+type MessageAnnotationsAttachment struct {
 	// A human-readable label for the attachment (e.g. the filename of a file
 	// attachment). Used for display in UI.
 	Label string `json:"label"`
@@ -1176,12 +1176,12 @@ type MessageCommentsAttachment struct {
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 	// Discriminant
 	Type MessageAttachmentKind `json:"type"`
-	// The comments channel URI (typically `ahp-session:/<uuid>/comments`).
-	// Matches {@link CommentsSummary.resource}.
+	// The annotations channel URI (typically `ahp-session:/<uuid>/annotations`).
+	// Matches {@link AnnotationsSummary.resource}.
 	Resource URI `json:"resource"`
-	// Specific {@link CommentThread.id | thread ids} to reference. When
-	// omitted, the attachment references all threads on the channel.
-	ThreadIds []string `json:"threadIds,omitempty"`
+	// Specific {@link Annotation.id | annotation ids} to reference. When
+	// omitted, the attachment references all annotations on the channel.
+	AnnotationIds []string `json:"annotationIds,omitempty"`
 }
 
 type MarkdownResponsePart struct {
@@ -2395,71 +2395,71 @@ type ChangesetOperation struct {
 	Error *ErrorInfo `json:"error,omitempty"`
 }
 
-// Lightweight per-session summary of the comments channel, surfaced on
-// {@link SessionSummary.comments} so badge UI can render thread / comment
-// counts without subscribing to the channel itself.
-type CommentsSummary struct {
-	// The subscribable comments channel URI for the owning session
-	// (typically `ahp-session:/<uuid>/comments`). Surfaced explicitly even
+// Lightweight per-session summary of the annotations channel, surfaced on
+// {@link SessionSummary.annotations} so badge UI can render annotation /
+// entry counts without subscribing to the channel itself.
+type AnnotationsSummary struct {
+	// The subscribable annotations channel URI for the owning session
+	// (typically `ahp-session:/<uuid>/annotations`). Surfaced explicitly even
 	// though it is derivable from the session URI so badge UI does not need
 	// to know the derivation rule.
 	Resource URI `json:"resource"`
-	// Total number of {@link CommentThread} entries in the channel.
-	ThreadCount int64 `json:"threadCount"`
-	// Total number of {@link Comment} entries across every thread.
-	CommentCount int64 `json:"commentCount"`
+	// Total number of {@link Annotation} entries in the channel.
+	AnnotationCount int64 `json:"annotationCount"`
+	// Total number of {@link AnnotationEntry} entries across every annotation.
+	EntryCount int64 `json:"entryCount"`
 }
 
-// Full state for a session's comments channel, returned when a client
-// subscribes to an `ahp-session:/<uuid>/comments` URI.
-type CommentsState struct {
-	// Comment threads in this channel, keyed by {@link CommentThread.id}.
-	Threads []CommentThread `json:"threads"`
+// Full state for a session's annotations channel, returned when a client
+// subscribes to an `ahp-session:/<uuid>/annotations` URI.
+type AnnotationsState struct {
+	// Annotations in this channel, keyed by {@link Annotation.id}.
+	Annotations []Annotation `json:"annotations"`
 }
 
 // A conversation anchored to a specific file produced by a specific turn,
 // optionally narrowed to a range within that file.
 //
-// {@link turnId} anchors the thread to the file versions that turn
+// {@link turnId} anchors the annotation to the file versions that turn
 // produced, so a later turn that rewrites the same file does not silently
-// invalidate the comment's anchor — clients can resolve {@link resource}
+// invalidate the annotation's anchor — clients can resolve {@link resource}
 // and {@link range} against the turn's changeset. When {@link range} is
-// omitted the thread is anchored to the entire file.
+// omitted the annotation is anchored to the entire file.
 //
-// Every thread MUST contain at least one {@link Comment}. The server
-// enforces this invariant: {@link CreateCommentThreadParams |
-// `createCommentThread`} requires an initial comment, and deleting the
-// last remaining comment collapses the thread into a
-// {@link CommentsThreadRemovedAction} rather than leaving an empty thread
+// Every annotation MUST contain at least one {@link AnnotationEntry}. The
+// server enforces this invariant: {@link CreateAnnotationParams |
+// `createAnnotation`} requires an initial entry, and deleting the
+// last remaining entry collapses the annotation into a
+// {@link AnnotationsRemovedAction} rather than leaving an empty annotation
 // behind.
-type CommentThread struct {
-	// Stable identifier within the comments channel. Server-assigned.
+type Annotation struct {
+	// Stable identifier within the annotations channel. Server-assigned.
 	Id string `json:"id"`
-	// Turn that produced the file versions this thread is anchored to.
+	// Turn that produced the file versions this annotation is anchored to.
 	// Matches a {@link Turn.id} on the owning session.
 	TurnId string `json:"turnId"`
-	// The file the thread is anchored to.
+	// The file the annotation is anchored to.
 	Resource URI `json:"resource"`
-	// Range within {@link resource} the thread is anchored to. When omitted
-	// the thread is anchored to the entire file.
+	// Range within {@link resource} the annotation is anchored to. When
+	// omitted the annotation is anchored to the entire file.
 	Range *TextRange `json:"range,omitempty"`
-	// Whether the thread has been resolved. Newly created threads are always
-	// unresolved (`false`); a client marks a thread resolved (or re-opens it)
-	// through {@link UpdateCommentThreadParams | `updateCommentThread`}.
+	// Whether the annotation has been resolved. Newly created annotations are
+	// always unresolved (`false`); a client marks an annotation resolved (or
+	// re-opens it) through {@link UpdateAnnotationParams | `updateAnnotation`}.
 	Resolved bool `json:"resolved"`
-	// Comments in this thread, in dispatch order (oldest first). MUST
+	// Entries in this annotation, in dispatch order (oldest first). MUST
 	// contain at least one entry.
-	Comments []Comment `json:"comments"`
+	Entries []AnnotationEntry `json:"entries"`
 	// Server-defined opaque metadata, surfaced to tooling but not
 	// interpreted by the protocol.
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 }
 
-// A single comment within a {@link CommentThread}.
-type Comment struct {
-	// Stable identifier within the enclosing thread. Server-assigned.
+// A single entry within an {@link Annotation}.
+type AnnotationEntry struct {
+	// Stable identifier within the enclosing annotation. Server-assigned.
 	Id string `json:"id"`
-	// Comment body. A bare `string` is rendered as plain text; pass
+	// Entry body. A bare `string` is rendered as plain text; pass
 	// `{ markdown: "…" }` to opt into Markdown rendering. See
 	// {@link StringOrMarkdown}.
 	Text StringOrMarkdown `json:"text"`
@@ -2468,14 +2468,14 @@ type Comment struct {
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 }
 
-// Input shape passed to {@link CreateCommentThreadParams | `createCommentThread`}
-// and {@link AddCommentParams | `addComment`}. The server assigns the
-// resulting {@link Comment.id}.
-type NewComment struct {
-	// Comment body. See {@link Comment.text}.
+// Input shape passed to {@link CreateAnnotationParams | `createAnnotation`}
+// and {@link AddAnnotationEntryParams | `addAnnotationEntry`}. The server
+// assigns the resulting {@link AnnotationEntry.id}.
+type NewAnnotationEntry struct {
+	// Entry body. See {@link AnnotationEntry.text}.
 	Text StringOrMarkdown `json:"text"`
 	// Server-defined opaque metadata, forwarded onto the resulting
-	// {@link Comment._meta}.
+	// {@link AnnotationEntry._meta}.
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 }
 
@@ -3184,7 +3184,7 @@ type isMessageAttachment interface{ isMessageAttachment() }
 func (*SimpleMessageAttachment) isMessageAttachment() {}
 func (*MessageEmbeddedResourceAttachment) isMessageAttachment() {}
 func (*MessageResourceAttachment) isMessageAttachment() {}
-func (*MessageCommentsAttachment) isMessageAttachment() {}
+func (*MessageAnnotationsAttachment) isMessageAttachment() {}
 
 // MessageAttachmentUnknown carries an unrecognized MessageAttachment variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
 type MessageAttachmentUnknown struct {
@@ -3218,8 +3218,8 @@ func (u *MessageAttachment) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.Value = &value
-	case "comments":
-		var value MessageCommentsAttachment
+	case "annotations":
+		var value MessageAnnotationsAttachment
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err
 		}
@@ -3617,15 +3617,15 @@ func (u ToolCallContributor) MarshalJSON() ([]byte, error) {
 }
 
 // SnapshotState is the state payload of a snapshot — root, session,
-// terminal, changeset, or comments state. The active variant is chosen by which
+// terminal, changeset, or annotations state. The active variant is chosen by which
 // pointer field is non-nil; UnmarshalJSON probes for required fields in
-// the canonical order (session → terminal → changeset → comments → root).
+// the canonical order (session → terminal → changeset → annotations → root).
 type SnapshotState struct {
 	Root      *RootState      `json:"-"`
 	Session   *SessionState   `json:"-"`
 	Terminal  *TerminalState  `json:"-"`
 	Changeset *ChangesetState `json:"-"`
-	Comments  *CommentsState  `json:"-"`
+	Annotations *AnnotationsState  `json:"-"`
 }
 
 // MarshalJSON encodes whichever variant is currently populated.
@@ -3637,8 +3637,8 @@ func (s SnapshotState) MarshalJSON() ([]byte, error) {
 		return json.Marshal(s.Terminal)
 	case s.Changeset != nil:
 		return json.Marshal(s.Changeset)
-	case s.Comments != nil:
-		return json.Marshal(s.Comments)
+	case s.Annotations != nil:
+		return json.Marshal(s.Annotations)
 	case s.Root != nil:
 		return json.Marshal(s.Root)
 	default:
@@ -3673,12 +3673,12 @@ func (s *SnapshotState) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		s.Changeset = &v
-	case containsAll(probe, "threads"):
-		var v CommentsState
+	case containsAll(probe, "annotations"):
+		var v AnnotationsState
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		s.Comments = &v
+		s.Annotations = &v
 	default:
 		var v RootState
 		if err := json.Unmarshal(data, &v); err != nil {

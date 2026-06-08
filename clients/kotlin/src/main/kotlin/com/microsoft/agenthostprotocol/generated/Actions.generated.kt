@@ -124,16 +124,14 @@ enum class ActionType {
     CHANGESET_OPERATION_STATUS_CHANGED,
     @SerialName("changeset/cleared")
     CHANGESET_CLEARED,
-    @SerialName("comments/threadSet")
-    COMMENTS_THREAD_SET,
-    @SerialName("comments/threadRemoved")
-    COMMENTS_THREAD_REMOVED,
-    @SerialName("comments/commentSet")
-    COMMENTS_COMMENT_SET,
-    @SerialName("comments/commentRemoved")
-    COMMENTS_COMMENT_REMOVED,
-    @SerialName("comments/cleared")
-    COMMENTS_CLEARED,
+    @SerialName("annotations/set")
+    ANNOTATIONS_SET,
+    @SerialName("annotations/removed")
+    ANNOTATIONS_REMOVED,
+    @SerialName("annotations/entrySet")
+    ANNOTATIONS_ENTRY_SET,
+    @SerialName("annotations/entryRemoved")
+    ANNOTATIONS_ENTRY_REMOVED,
     @SerialName("root/terminalsChanged")
     ROOT_TERMINALS_CHANGED,
     @SerialName("root/configChanged")
@@ -888,52 +886,47 @@ data class ChangesetClearedAction(
 )
 
 @Serializable
-data class CommentsThreadSetAction(
+data class AnnotationsSetAction(
     val type: ActionType,
     /**
-     * The new or replacement thread. MUST contain at least one comment.
+     * The new or replacement annotation. MUST contain at least one entry.
      */
-    val thread: CommentThread
+    val annotation: Annotation
 )
 
 @Serializable
-data class CommentsThreadRemovedAction(
+data class AnnotationsRemovedAction(
     val type: ActionType,
     /**
-     * The {@link CommentThread.id} of the thread to remove.
+     * The {@link Annotation.id} of the annotation to remove.
      */
-    val threadId: String
+    val annotationId: String
 )
 
 @Serializable
-data class CommentsCommentSetAction(
+data class AnnotationsEntrySetAction(
     val type: ActionType,
     /**
-     * The {@link CommentThread.id} the comment belongs to.
+     * The {@link Annotation.id} the entry belongs to.
      */
-    val threadId: String,
+    val annotationId: String,
     /**
-     * The new or replacement comment.
+     * The new or replacement entry.
      */
-    val comment: Comment
+    val entry: AnnotationEntry
 )
 
 @Serializable
-data class CommentsCommentRemovedAction(
+data class AnnotationsEntryRemovedAction(
     val type: ActionType,
     /**
-     * The {@link CommentThread.id} the comment belongs to.
+     * The {@link Annotation.id} the entry belongs to.
      */
-    val threadId: String,
+    val annotationId: String,
     /**
-     * The {@link Comment.id} to remove.
+     * The {@link AnnotationEntry.id} to remove.
      */
-    val commentId: String
-)
-
-@Serializable
-data class CommentsClearedAction(
-    val type: ActionType
+    val entryId: String
 )
 
 @Serializable
@@ -1144,11 +1137,10 @@ sealed interface StateAction
 @JvmInline value class StateActionChangesetOperationsChanged(val value: ChangesetOperationsChangedAction) : StateAction
 @JvmInline value class StateActionChangesetOperationStatusChanged(val value: ChangesetOperationStatusChangedAction) : StateAction
 @JvmInline value class StateActionChangesetCleared(val value: ChangesetClearedAction) : StateAction
-@JvmInline value class StateActionCommentsThreadSet(val value: CommentsThreadSetAction) : StateAction
-@JvmInline value class StateActionCommentsThreadRemoved(val value: CommentsThreadRemovedAction) : StateAction
-@JvmInline value class StateActionCommentsCommentSet(val value: CommentsCommentSetAction) : StateAction
-@JvmInline value class StateActionCommentsCommentRemoved(val value: CommentsCommentRemovedAction) : StateAction
-@JvmInline value class StateActionCommentsCleared(val value: CommentsClearedAction) : StateAction
+@JvmInline value class StateActionAnnotationsSet(val value: AnnotationsSetAction) : StateAction
+@JvmInline value class StateActionAnnotationsRemoved(val value: AnnotationsRemovedAction) : StateAction
+@JvmInline value class StateActionAnnotationsEntrySet(val value: AnnotationsEntrySetAction) : StateAction
+@JvmInline value class StateActionAnnotationsEntryRemoved(val value: AnnotationsEntryRemovedAction) : StateAction
 @JvmInline value class StateActionRootTerminalsChanged(val value: RootTerminalsChangedAction) : StateAction
 @JvmInline value class StateActionRootConfigChanged(val value: RootConfigChangedAction) : StateAction
 @JvmInline value class StateActionTerminalData(val value: TerminalDataAction) : StateAction
@@ -1227,11 +1219,10 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             "changeset/operationsChanged" -> StateActionChangesetOperationsChanged(input.json.decodeFromJsonElement(ChangesetOperationsChangedAction.serializer(), element))
             "changeset/operationStatusChanged" -> StateActionChangesetOperationStatusChanged(input.json.decodeFromJsonElement(ChangesetOperationStatusChangedAction.serializer(), element))
             "changeset/cleared" -> StateActionChangesetCleared(input.json.decodeFromJsonElement(ChangesetClearedAction.serializer(), element))
-            "comments/threadSet" -> StateActionCommentsThreadSet(input.json.decodeFromJsonElement(CommentsThreadSetAction.serializer(), element))
-            "comments/threadRemoved" -> StateActionCommentsThreadRemoved(input.json.decodeFromJsonElement(CommentsThreadRemovedAction.serializer(), element))
-            "comments/commentSet" -> StateActionCommentsCommentSet(input.json.decodeFromJsonElement(CommentsCommentSetAction.serializer(), element))
-            "comments/commentRemoved" -> StateActionCommentsCommentRemoved(input.json.decodeFromJsonElement(CommentsCommentRemovedAction.serializer(), element))
-            "comments/cleared" -> StateActionCommentsCleared(input.json.decodeFromJsonElement(CommentsClearedAction.serializer(), element))
+            "annotations/set" -> StateActionAnnotationsSet(input.json.decodeFromJsonElement(AnnotationsSetAction.serializer(), element))
+            "annotations/removed" -> StateActionAnnotationsRemoved(input.json.decodeFromJsonElement(AnnotationsRemovedAction.serializer(), element))
+            "annotations/entrySet" -> StateActionAnnotationsEntrySet(input.json.decodeFromJsonElement(AnnotationsEntrySetAction.serializer(), element))
+            "annotations/entryRemoved" -> StateActionAnnotationsEntryRemoved(input.json.decodeFromJsonElement(AnnotationsEntryRemovedAction.serializer(), element))
             "root/terminalsChanged" -> StateActionRootTerminalsChanged(input.json.decodeFromJsonElement(RootTerminalsChangedAction.serializer(), element))
             "root/configChanged" -> StateActionRootConfigChanged(input.json.decodeFromJsonElement(RootConfigChangedAction.serializer(), element))
             "terminal/data" -> StateActionTerminalData(input.json.decodeFromJsonElement(TerminalDataAction.serializer(), element))
@@ -1303,11 +1294,10 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             is StateActionChangesetOperationsChanged -> output.json.encodeToJsonElement(ChangesetOperationsChangedAction.serializer(), value.value)
             is StateActionChangesetOperationStatusChanged -> output.json.encodeToJsonElement(ChangesetOperationStatusChangedAction.serializer(), value.value)
             is StateActionChangesetCleared -> output.json.encodeToJsonElement(ChangesetClearedAction.serializer(), value.value)
-            is StateActionCommentsThreadSet -> output.json.encodeToJsonElement(CommentsThreadSetAction.serializer(), value.value)
-            is StateActionCommentsThreadRemoved -> output.json.encodeToJsonElement(CommentsThreadRemovedAction.serializer(), value.value)
-            is StateActionCommentsCommentSet -> output.json.encodeToJsonElement(CommentsCommentSetAction.serializer(), value.value)
-            is StateActionCommentsCommentRemoved -> output.json.encodeToJsonElement(CommentsCommentRemovedAction.serializer(), value.value)
-            is StateActionCommentsCleared -> output.json.encodeToJsonElement(CommentsClearedAction.serializer(), value.value)
+            is StateActionAnnotationsSet -> output.json.encodeToJsonElement(AnnotationsSetAction.serializer(), value.value)
+            is StateActionAnnotationsRemoved -> output.json.encodeToJsonElement(AnnotationsRemovedAction.serializer(), value.value)
+            is StateActionAnnotationsEntrySet -> output.json.encodeToJsonElement(AnnotationsEntrySetAction.serializer(), value.value)
+            is StateActionAnnotationsEntryRemoved -> output.json.encodeToJsonElement(AnnotationsEntryRemovedAction.serializer(), value.value)
             is StateActionRootTerminalsChanged -> output.json.encodeToJsonElement(RootTerminalsChangedAction.serializer(), value.value)
             is StateActionRootConfigChanged -> output.json.encodeToJsonElement(RootConfigChangedAction.serializer(), value.value)
             is StateActionTerminalData -> output.json.encodeToJsonElement(TerminalDataAction.serializer(), value.value)

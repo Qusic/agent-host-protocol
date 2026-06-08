@@ -169,11 +169,11 @@ public struct PartialSessionSummary: Codable, Sendable {
     /// session's footprint (e.g., for list rendering) without requiring the
     /// client to subscribe to a changeset.
     public var changes: ChangesSummary?
-    /// Lightweight summary of this session's inline comments channel
-    /// (`ahp-session:/<uuid>/comments`). Surfaced so badge UI can render
-    /// thread / comment counts without subscribing. Absent when the session
-    /// does not expose a comments channel.
-    public var comments: CommentsSummary?
+    /// Lightweight summary of this session's inline annotations channel
+    /// (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
+    /// annotation / entry counts without subscribing. Absent when the session
+    /// does not expose an annotations channel.
+    public var annotations: AnnotationsSummary?
 
     public init(
         resource: String? = nil,
@@ -188,7 +188,7 @@ public struct PartialSessionSummary: Codable, Sendable {
         agent: AgentSelection? = nil,
         workingDirectory: String? = nil,
         changes: ChangesSummary? = nil,
-        comments: CommentsSummary? = nil
+        annotations: AnnotationsSummary? = nil
     ) {
         self.resource = resource
         self.provider = provider
@@ -202,6 +202,6 @@ public struct PartialSessionSummary: Codable, Sendable {
         self.agent = agent
         self.workingDirectory = workingDirectory
         self.changes = changes
-        self.comments = comments
+        self.annotations = annotations
     }
 }

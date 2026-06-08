@@ -89,7 +89,7 @@ export default withMermaid(defineConfig({
             { text: 'Session Channel', link: '/reference/session' },
             { text: 'Terminal Channel', link: '/reference/terminal' },
             { text: 'Changeset Channel', link: '/reference/changeset' },
-            { text: 'Comments Channel', link: '/reference/comments' },
+            { text: 'Annotations Channel', link: '/reference/annotations' },
             { text: 'Telemetry Channel', link: '/reference/otlp' },
           ],
         },

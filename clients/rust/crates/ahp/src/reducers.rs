@@ -1258,7 +1258,7 @@ mod tests {
                 agent: None,
                 working_directory: None,
                 changes: None,
-                comments: None,
+                annotations: None,
             },
             lifecycle: SessionLifecycle::Creating,
             creation_error: None,
@@ -1558,8 +1558,8 @@ mod tests {
                     skipped += 1;
                     continue;
                 }
-                "comments" => {
-                    // comments reducer not yet implemented in Rust; skip.
+                "annotations" => {
+                    // annotations reducer not yet implemented in Rust; skip.
                     skipped += 1;
                     continue;
                 }

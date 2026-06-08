@@ -15,7 +15,7 @@ public actor AHPStateMirror {
     public private(set) var sessions: [String: SessionState] = [:]
     public private(set) var terminals: [String: TerminalState] = [:]
     public private(set) var changesets: [String: ChangesetState] = [:]
-    public private(set) var comments: [String: CommentsState] = [:]
+    public private(set) var annotations: [String: AnnotationsState] = [:]
 
     public init() {}
 
@@ -49,15 +49,15 @@ public actor AHPStateMirror {
             // mutated only when fresh snapshots arrive.
             return
         }
-        if comments[channel] != nil {
-            // Comments are also seeded by `applySnapshot` and currently
+        if annotations[channel] != nil {
+            // Annotations are also seeded by `applySnapshot` and currently
             // mutated only when fresh snapshots arrive.
             return
         }
     }
 
     /// Seed the mirror from a `Snapshot` — root, session, terminal,
-    /// changeset, or comments as the snapshot's `state` discriminator
+    /// changeset, or annotations as the snapshot's `state` discriminator
     /// dictates.
     public func applySnapshot(_ snapshot: Snapshot) {
         switch snapshot.state {
@@ -69,8 +69,8 @@ public actor AHPStateMirror {
             terminals[snapshot.resource] = state
         case .changeset(let state):
             changesets[snapshot.resource] = state
-        case .comments(let state):
-            comments[snapshot.resource] = state
+        case .annotations(let state):
+            annotations[snapshot.resource] = state
         }
     }
 
@@ -80,6 +80,6 @@ public actor AHPStateMirror {
         sessions.removeAll()
         terminals.removeAll()
         changesets.removeAll()
-        comments.removeAll()
+        annotations.removeAll()
     }
 }

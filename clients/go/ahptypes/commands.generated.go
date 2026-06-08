@@ -881,121 +881,120 @@ type ChangesetOperationFollowUp struct {
 	External *bool `json:"external,omitempty"`
 }
 
-// Create a new {@link CommentThread} anchored to a file from a specific
+// Create a new {@link Annotation} anchored to a file from a specific
 // turn, optionally narrowed to a range within that file.
 //
-// The initial comment is required — the protocol forbids empty threads,
-// so thread creation and first-comment creation are fused into one
-// command. The created thread always starts unresolved
-// ({@link CommentThread.resolved} is `false`). The server assigns both
-// {@link CreateCommentThreadResult.threadId} and
-// {@link CreateCommentThreadResult.commentId}, then broadcasts a
-// {@link CommentsThreadSetAction} on the channel.
-type CreateCommentThreadParams struct {
+// The initial entry is required — the protocol forbids empty annotations,
+// so annotation creation and first-entry creation are fused into one
+// command. The created annotation always starts unresolved
+// ({@link Annotation.resolved} is `false`). The server assigns both
+// {@link CreateAnnotationResult.annotationId} and
+// {@link CreateAnnotationResult.entryId}, then broadcasts an
+// {@link AnnotationsSetAction} on the channel.
+type CreateAnnotationParams struct {
 	// Channel URI this command targets.
 	Channel URI `json:"channel"`
 	// Turn whose file versions {@link resource} + {@link range} address.
 	TurnId string `json:"turnId"`
 	// Anchored file URI.
 	Resource URI `json:"resource"`
-	// Anchored range within {@link resource}. When omitted the thread is
+	// Anchored range within {@link resource}. When omitted the annotation is
 	// anchored to the entire file.
 	Range *TextRange `json:"range,omitempty"`
-	// First comment in the thread. The server assigns its {@link Comment.id}.
-	Comment NewComment `json:"comment"`
+	// First entry in the annotation. The server assigns its {@link AnnotationEntry.id}.
+	Entry NewAnnotationEntry `json:"entry"`
 }
 
-// Result of {@link CreateCommentThreadParams | `createCommentThread`}.
-type CreateCommentThreadResult struct {
-	// Server-assigned {@link CommentThread.id}.
-	ThreadId string `json:"threadId"`
-	// Server-assigned {@link Comment.id} of the initial comment.
-	CommentId string `json:"commentId"`
+// Result of {@link CreateAnnotationParams | `createAnnotation`}.
+type CreateAnnotationResult struct {
+	// Server-assigned {@link Annotation.id}.
+	AnnotationId string `json:"annotationId"`
+	// Server-assigned {@link AnnotationEntry.id} of the initial entry.
+	EntryId string `json:"entryId"`
 }
 
-// Re-anchor or resolve an existing {@link CommentThread} — typically used
-// to re-pin a thread to a different range or a newer turn after an edit,
-// or to mark the thread {@link CommentThread.resolved | resolved} (or
-// re-open it). Comments themselves are not modified by this command; use
-// {@link AddCommentParams | `addComment`},
-// {@link EditCommentParams | `editComment`}, or
-// {@link DeleteCommentParams | `deleteComment`} for that.
+// Re-anchor or resolve an existing {@link Annotation} — typically used
+// to re-pin an annotation to a different range or a newer turn after an
+// edit, or to mark the annotation {@link Annotation.resolved | resolved}
+// (or re-open it). Entries themselves are not modified by this command;
+// use {@link AddAnnotationEntryParams | `addAnnotationEntry`},
+// {@link EditAnnotationEntryParams | `editAnnotationEntry`}, or
+// {@link DeleteAnnotationEntryParams | `deleteAnnotationEntry`} for that.
 //
 // Omitted optional fields preserve their current value. The server
-// echoes the resulting thread state as a {@link CommentsThreadSetAction}.
-type UpdateCommentThreadParams struct {
+// echoes the resulting annotation state as an {@link AnnotationsSetAction}.
+type UpdateAnnotationParams struct {
 	// Channel URI this command targets.
 	Channel URI `json:"channel"`
-	// The {@link CommentThread.id} to update.
-	ThreadId string `json:"threadId"`
-	// New {@link CommentThread.turnId}, if changing.
+	// The {@link Annotation.id} to update.
+	AnnotationId string `json:"annotationId"`
+	// New {@link Annotation.turnId}, if changing.
 	TurnId *string `json:"turnId,omitempty"`
 	// New anchored file URI, if changing.
 	Resource *URI `json:"resource,omitempty"`
 	// New anchored range, if changing.
 	Range *TextRange `json:"range,omitempty"`
-	// New {@link CommentThread.resolved} state, if changing.
+	// New {@link Annotation.resolved} state, if changing.
 	Resolved *bool `json:"resolved,omitempty"`
 }
 
-// Delete an entire comment thread (and every comment it contains). The
-// server echoes a {@link CommentsThreadRemovedAction} on the channel.
-type DeleteCommentThreadParams struct {
+// Delete an entire annotation (and every entry it contains). The
+// server echoes an {@link AnnotationsRemovedAction} on the channel.
+type DeleteAnnotationParams struct {
 	// Channel URI this command targets.
 	Channel URI `json:"channel"`
-	// The {@link CommentThread.id} to delete.
-	ThreadId string `json:"threadId"`
+	// The {@link Annotation.id} to delete.
+	AnnotationId string `json:"annotationId"`
 }
 
-// Append a new {@link Comment} to an existing thread. The server assigns
-// the resulting {@link Comment.id} and echoes a
-// {@link CommentsCommentSetAction}.
-type AddCommentParams struct {
+// Append a new {@link AnnotationEntry} to an existing annotation. The
+// server assigns the resulting {@link AnnotationEntry.id} and echoes an
+// {@link AnnotationsEntrySetAction}.
+type AddAnnotationEntryParams struct {
 	// Channel URI this command targets.
 	Channel URI `json:"channel"`
-	// Thread that receives the new comment.
-	ThreadId string `json:"threadId"`
-	// Comment payload — the server assigns the id.
-	Comment NewComment `json:"comment"`
+	// Annotation that receives the new entry.
+	AnnotationId string `json:"annotationId"`
+	// Entry payload — the server assigns the id.
+	Entry NewAnnotationEntry `json:"entry"`
 }
 
-// Result of {@link AddCommentParams | `addComment`}.
-type AddCommentResult struct {
-	// Server-assigned {@link Comment.id} of the new comment.
-	CommentId string `json:"commentId"`
+// Result of {@link AddAnnotationEntryParams | `addAnnotationEntry`}.
+type AddAnnotationEntryResult struct {
+	// Server-assigned {@link AnnotationEntry.id} of the new entry.
+	EntryId string `json:"entryId"`
 }
 
-// Edit the body of an existing comment in place. The server echoes a
-// {@link CommentsCommentSetAction} carrying the updated comment.
+// Edit the body of an existing entry in place. The server echoes an
+// {@link AnnotationsEntrySetAction} carrying the updated entry.
 //
 // Only the body is mutable through this command; to change
-// {@link Comment.source} or {@link Comment._meta} delete and re-create
-// the comment.
-type EditCommentParams struct {
+// {@link AnnotationEntry._meta} delete and re-create the entry.
+type EditAnnotationEntryParams struct {
 	// Channel URI this command targets.
 	Channel URI `json:"channel"`
-	// Enclosing thread.
-	ThreadId string `json:"threadId"`
-	// {@link Comment.id} to edit.
-	CommentId string `json:"commentId"`
-	// New comment body. See {@link Comment.text}.
+	// Enclosing annotation.
+	AnnotationId string `json:"annotationId"`
+	// {@link AnnotationEntry.id} to edit.
+	EntryId string `json:"entryId"`
+	// New entry body. See {@link AnnotationEntry.text}.
 	Text StringOrMarkdown `json:"text"`
 }
 
-// Remove a single comment from a thread.
+// Remove a single entry from an annotation.
 //
-// If the removal would leave the thread empty (i.e. the targeted comment
-// is the only one remaining), the server collapses the thread instead
-// — it dispatches a {@link CommentsThreadRemovedAction} and the thread
-// disappears from {@link CommentsState.threads}. Otherwise the server
-// echoes a {@link CommentsCommentRemovedAction}.
-type DeleteCommentParams struct {
+// If the removal would leave the annotation empty (i.e. the targeted entry
+// is the only one remaining), the server collapses the annotation instead
+// — it dispatches an {@link AnnotationsRemovedAction} and the annotation
+// disappears from {@link AnnotationsState.annotations}. Otherwise the server
+// echoes an {@link AnnotationsEntryRemovedAction}.
+type DeleteAnnotationEntryParams struct {
 	// Channel URI this command targets.
 	Channel URI `json:"channel"`
-	// Enclosing thread.
-	ThreadId string `json:"threadId"`
-	// {@link Comment.id} to remove.
-	CommentId string `json:"commentId"`
+	// Enclosing annotation.
+	AnnotationId string `json:"annotationId"`
+	// {@link AnnotationEntry.id} to remove.
+	EntryId string `json:"entryId"`
 }
 
 // ─── ReconnectResult Union ────────────────────────────────────────────

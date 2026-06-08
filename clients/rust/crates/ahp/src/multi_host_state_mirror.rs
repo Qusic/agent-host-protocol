@@ -37,7 +37,7 @@ use std::collections::HashMap;
 use ahp_types::actions::ActionEnvelope;
 use ahp_types::common::ROOT_RESOURCE_URI;
 use ahp_types::state::{
-    ChangesetState, CommentsState, RootState, SessionState, SnapshotState, TerminalState,
+    AnnotationsState, ChangesetState, RootState, SessionState, SnapshotState, TerminalState,
 };
 
 use crate::hosts::{HostId, HostSubscriptionEvent};
@@ -86,7 +86,7 @@ pub struct MultiHostStateMirror {
     sessions: HashMap<HostedResourceKey, SessionState>,
     terminals: HashMap<HostedResourceKey, TerminalState>,
     changesets: HashMap<HostedResourceKey, ChangesetState>,
-    comments: HashMap<HostedResourceKey, CommentsState>,
+    annotations: HashMap<HostedResourceKey, AnnotationsState>,
 }
 
 impl MultiHostStateMirror {
@@ -115,9 +115,9 @@ impl MultiHostStateMirror {
         &self.changesets
     }
 
-    /// Borrow the comments states map keyed by `(host_id, uri)`.
-    pub fn comments(&self) -> &HashMap<HostedResourceKey, CommentsState> {
-        &self.comments
+    /// Borrow the annotations states map keyed by `(host_id, uri)`.
+    pub fn annotations(&self) -> &HashMap<HostedResourceKey, AnnotationsState> {
+        &self.annotations
     }
 
     /// Convenience: apply a [`HostSubscriptionEvent`] produced by
@@ -181,20 +181,20 @@ impl MultiHostStateMirror {
             SnapshotState::Changeset(state) => {
                 self.changesets.insert(key, state.as_ref().clone());
             }
-            SnapshotState::Comments(state) => {
-                self.comments.insert(key, state.as_ref().clone());
+            SnapshotState::Annotations(state) => {
+                self.annotations.insert(key, state.as_ref().clone());
             }
         }
     }
 
     /// Drop every slot keyed under `host` — root state, sessions,
-    /// terminals, changesets, and comments.
+    /// terminals, changesets, and annotations.
     pub fn reset_host(&mut self, host: &HostId) {
         self.root_states.remove(host);
         self.sessions.retain(|key, _| &key.host_id != host);
         self.terminals.retain(|key, _| &key.host_id != host);
         self.changesets.retain(|key, _| &key.host_id != host);
-        self.comments.retain(|key, _| &key.host_id != host);
+        self.annotations.retain(|key, _| &key.host_id != host);
     }
 
     /// Drop every host's state.
@@ -203,6 +203,6 @@ impl MultiHostStateMirror {
         self.sessions.clear();
         self.terminals.clear();
         self.changesets.clear();
-        self.comments.clear();
+        self.annotations.clear();
     }
 }

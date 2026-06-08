@@ -68,11 +68,10 @@ const (
 	ActionTypeChangesetOperationsChanged ActionType = "changeset/operationsChanged"
 	ActionTypeChangesetOperationStatusChanged ActionType = "changeset/operationStatusChanged"
 	ActionTypeChangesetCleared ActionType = "changeset/cleared"
-	ActionTypeCommentsThreadSet ActionType = "comments/threadSet"
-	ActionTypeCommentsThreadRemoved ActionType = "comments/threadRemoved"
-	ActionTypeCommentsCommentSet ActionType = "comments/commentSet"
-	ActionTypeCommentsCommentRemoved ActionType = "comments/commentRemoved"
-	ActionTypeCommentsCleared ActionType = "comments/cleared"
+	ActionTypeAnnotationsSet ActionType = "annotations/set"
+	ActionTypeAnnotationsRemoved ActionType = "annotations/removed"
+	ActionTypeAnnotationsEntrySet ActionType = "annotations/entrySet"
+	ActionTypeAnnotationsEntryRemoved ActionType = "annotations/entryRemoved"
 	ActionTypeRootTerminalsChanged ActionType = "root/terminalsChanged"
 	ActionTypeRootConfigChanged ActionType = "root/configChanged"
 	ActionTypeTerminalData ActionType = "terminal/data"
@@ -801,67 +800,58 @@ type ChangesetClearedAction struct {
 	Type ActionType `json:"type"`
 }
 
-// Upsert a {@link CommentThread} in the comments channel — adds a new
-// thread, or replaces an existing one identified by
-// {@link CommentThread.id}. When replacing, the full thread payload
-// (including its {@link CommentThread.comments | comments} list) is
-// substituted; producers SHOULD prefer {@link CommentsCommentSetAction}
-// for per-comment edits to keep wire updates small.
-type CommentsThreadSetAction struct {
+// Upsert an {@link Annotation} in the annotations channel — adds a new
+// annotation, or replaces an existing one identified by
+// {@link Annotation.id}. When replacing, the full annotation payload
+// (including its {@link Annotation.entries | entries} list) is
+// substituted; producers SHOULD prefer {@link AnnotationsEntrySetAction}
+// for per-entry edits to keep wire updates small.
+type AnnotationsSetAction struct {
 	Type ActionType `json:"type"`
-	// The new or replacement thread. MUST contain at least one comment.
-	Thread CommentThread `json:"thread"`
+	// The new or replacement annotation. MUST contain at least one entry.
+	Annotation Annotation `json:"annotation"`
 }
 
-// Remove a {@link CommentThread} from the channel by its id.
+// Remove an {@link Annotation} from the channel by its id.
 //
 // The server emits this in two cases:
 // 1. The client explicitly invoked
-//    {@link DeleteCommentThreadParams | `deleteCommentThread`}.
-// 2. The client invoked {@link DeleteCommentParams | `deleteComment`} on
-//    the last remaining comment in the thread — the protocol collapses
-//    the thread rather than leaving an empty one behind.
-type CommentsThreadRemovedAction struct {
+//    {@link DeleteAnnotationParams | `deleteAnnotation`}.
+// 2. The client invoked {@link DeleteAnnotationEntryParams |
+//    `deleteAnnotationEntry`} on the last remaining entry in the
+//    annotation — the protocol collapses the annotation rather than
+//    leaving an empty one behind.
+type AnnotationsRemovedAction struct {
 	Type ActionType `json:"type"`
-	// The {@link CommentThread.id} of the thread to remove.
-	ThreadId string `json:"threadId"`
+	// The {@link Annotation.id} of the annotation to remove.
+	AnnotationId string `json:"annotationId"`
 }
 
-// Upsert a {@link Comment} within an existing thread — adds a new
-// comment, or replaces one identified by {@link Comment.id}. If
-// {@link threadId} does not match any current thread the action is a
-// no-op.
-type CommentsCommentSetAction struct {
+// Upsert an {@link AnnotationEntry} within an existing annotation — adds a
+// new entry, or replaces one identified by {@link AnnotationEntry.id}. If
+// {@link annotationId} does not match any current annotation the action is
+// a no-op.
+type AnnotationsEntrySetAction struct {
 	Type ActionType `json:"type"`
-	// The {@link CommentThread.id} the comment belongs to.
-	ThreadId string `json:"threadId"`
-	// The new or replacement comment.
-	Comment Comment `json:"comment"`
+	// The {@link Annotation.id} the entry belongs to.
+	AnnotationId string `json:"annotationId"`
+	// The new or replacement entry.
+	Entry AnnotationEntry `json:"entry"`
 }
 
-// Remove a single {@link Comment} from a thread without collapsing the
-// thread itself. Used when more than one comment remains — the server
-// MUST dispatch {@link CommentsThreadRemovedAction} instead when removing
-// the last comment would otherwise leave the thread empty.
+// Remove a single {@link AnnotationEntry} from an annotation without
+// collapsing the annotation itself. Used when more than one entry remains
+// — the server MUST dispatch {@link AnnotationsRemovedAction} instead when
+// removing the last entry would otherwise leave the annotation empty.
 //
-// If either {@link threadId} or {@link commentId} does not match the
+// If either {@link annotationId} or {@link entryId} does not match the
 // current state the action is a no-op.
-type CommentsCommentRemovedAction struct {
+type AnnotationsEntryRemovedAction struct {
 	Type ActionType `json:"type"`
-	// The {@link CommentThread.id} the comment belongs to.
-	ThreadId string `json:"threadId"`
-	// The {@link Comment.id} to remove.
-	CommentId string `json:"commentId"`
-}
-
-// Drop every thread from the comments channel.
-//
-// Dispatched when the owning session is going away and the channel is
-// about to become un-subscribable. Clients SHOULD release references on
-// receipt and react to the corresponding session-level lifecycle signal
-// (e.g. `root/sessionRemoved`) to fully tear down UI.
-type CommentsClearedAction struct {
-	Type ActionType `json:"type"`
+	// The {@link Annotation.id} the entry belongs to.
+	AnnotationId string `json:"annotationId"`
+	// The {@link AnnotationEntry.id} to remove.
+	EntryId string `json:"entryId"`
 }
 
 // Fired when the list of known terminals changes.
@@ -1069,11 +1059,10 @@ func (*ChangesetFileRemovedAction) isStateAction() {}
 func (*ChangesetOperationsChangedAction) isStateAction() {}
 func (*ChangesetOperationStatusChangedAction) isStateAction() {}
 func (*ChangesetClearedAction) isStateAction() {}
-func (*CommentsThreadSetAction) isStateAction() {}
-func (*CommentsThreadRemovedAction) isStateAction() {}
-func (*CommentsCommentSetAction) isStateAction() {}
-func (*CommentsCommentRemovedAction) isStateAction() {}
-func (*CommentsClearedAction) isStateAction() {}
+func (*AnnotationsSetAction) isStateAction() {}
+func (*AnnotationsRemovedAction) isStateAction() {}
+func (*AnnotationsEntrySetAction) isStateAction() {}
+func (*AnnotationsEntryRemovedAction) isStateAction() {}
 func (*RootTerminalsChangedAction) isStateAction() {}
 func (*TerminalDataAction) isStateAction() {}
 func (*TerminalInputAction) isStateAction() {}
@@ -1402,32 +1391,26 @@ func (u *StateAction) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.Value = &value
-	case "comments/threadSet":
-		var value CommentsThreadSetAction
+	case "annotations/set":
+		var value AnnotationsSetAction
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err
 		}
 		u.Value = &value
-	case "comments/threadRemoved":
-		var value CommentsThreadRemovedAction
+	case "annotations/removed":
+		var value AnnotationsRemovedAction
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err
 		}
 		u.Value = &value
-	case "comments/commentSet":
-		var value CommentsCommentSetAction
+	case "annotations/entrySet":
+		var value AnnotationsEntrySetAction
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err
 		}
 		u.Value = &value
-	case "comments/commentRemoved":
-		var value CommentsCommentRemovedAction
-		if err := json.Unmarshal(data, &value); err != nil {
-			return err
-		}
-		u.Value = &value
-	case "comments/cleared":
-		var value CommentsClearedAction
+	case "annotations/entryRemoved":
+		var value AnnotationsEntryRemovedAction
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err
 		}

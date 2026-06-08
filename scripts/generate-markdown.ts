@@ -53,7 +53,7 @@ const DIR_TO_PAGE: Record<string, string> = {
   'channels-session': 'session',
   'channels-terminal': 'terminal',
   'channels-changeset': 'changeset',
-  'channels-comments': 'comments',
+  'channels-annotations': 'annotations',
   'channels-otlp': 'otlp',
 };
 
@@ -1004,15 +1004,15 @@ function generateChangesetChannelPage(project: Project): string {
   return lines.join('\n');
 }
 
-function generateCommentsChannelPage(project: Project): string {
-  currentPage = 'comments';
-  const stateSf = findChannelSourceFile(project, 'channels-comments', 'state.ts');
-  const actionsSf = findChannelSourceFile(project, 'channels-comments', 'actions.ts');
-  const commandsSf = findChannelSourceFile(project, 'channels-comments', 'commands.ts');
+function generateAnnotationsChannelPage(project: Project): string {
+  currentPage = 'annotations';
+  const stateSf = findChannelSourceFile(project, 'channels-annotations', 'state.ts');
+  const actionsSf = findChannelSourceFile(project, 'channels-annotations', 'actions.ts');
+  const commandsSf = findChannelSourceFile(project, 'channels-annotations', 'commands.ts');
 
   const lines: string[] = [GENERATED_HEADER];
-  lines.push('# Comments Channel\n');
-  lines.push('Reference for the `ahp-session:/<uuid>/comments` channel — server-owned comment threads anchored to file ranges within a session turn. Clients mutate comments through commands; servers echo state changes as comments actions.\n');
+  lines.push('# Annotations Channel\n');
+  lines.push('Reference for the `ahp-session:/<uuid>/annotations` channel — server-owned annotations anchored to file ranges within a session turn. Clients mutate annotations through commands; servers echo state changes as annotations actions.\n');
   lines.push(schemaLink('state.schema.json'));
 
   if (stateSf) {
@@ -1021,7 +1021,7 @@ function generateCommentsChannelPage(project: Project): string {
   }
   if (actionsSf) {
     lines.push('## Actions\n');
-    lines.push('Mutate `CommentsState`. Scoped to a comments channel URI via the enclosing `ActionEnvelope.channel`.\n');
+    lines.push('Mutate `AnnotationsState`. Scoped to an annotations channel URI via the enclosing `ActionEnvelope.channel`.\n');
     lines.push(schemaLink('actions.schema.json'));
     lines.push(emitActionsSection([actionsSf]));
   }
@@ -1273,7 +1273,7 @@ export function generateMarkdownDocs(project: Project, outDir: string): void {
     { filename: 'session.md', generator: generateSessionChannelPage },
     { filename: 'terminal.md', generator: generateTerminalChannelPage },
     { filename: 'changeset.md', generator: generateChangesetChannelPage },
-    { filename: 'comments.md', generator: generateCommentsChannelPage },
+    { filename: 'annotations.md', generator: generateAnnotationsChannelPage },
     { filename: 'otlp.md', generator: generateOtlpChannelPage },
     { filename: 'messages.md', generator: generateMessagesPage },
     { filename: 'error-codes.md', generator: generateErrorCodesPage },

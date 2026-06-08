@@ -21,9 +21,9 @@ import com.microsoft.agenthostprotocol.generated.ChildCustomizationPrompt
 import com.microsoft.agenthostprotocol.generated.ChildCustomizationRule
 import com.microsoft.agenthostprotocol.generated.ChildCustomizationSkill
 import com.microsoft.agenthostprotocol.generated.ChildCustomizationUnknown
-import com.microsoft.agenthostprotocol.generated.Comment
-import com.microsoft.agenthostprotocol.generated.CommentThread
-import com.microsoft.agenthostprotocol.generated.CommentsState
+import com.microsoft.agenthostprotocol.generated.AnnotationEntry
+import com.microsoft.agenthostprotocol.generated.Annotation
+import com.microsoft.agenthostprotocol.generated.AnnotationsState
 import com.microsoft.agenthostprotocol.generated.ConfirmationOption
 import com.microsoft.agenthostprotocol.generated.Customization
 import com.microsoft.agenthostprotocol.generated.CustomizationDirectory
@@ -55,11 +55,10 @@ import com.microsoft.agenthostprotocol.generated.StateActionChangesetFileSet
 import com.microsoft.agenthostprotocol.generated.StateActionChangesetOperationsChanged
 import com.microsoft.agenthostprotocol.generated.StateActionChangesetOperationStatusChanged
 import com.microsoft.agenthostprotocol.generated.StateActionChangesetStatusChanged
-import com.microsoft.agenthostprotocol.generated.StateActionCommentsCleared
-import com.microsoft.agenthostprotocol.generated.StateActionCommentsCommentRemoved
-import com.microsoft.agenthostprotocol.generated.StateActionCommentsCommentSet
-import com.microsoft.agenthostprotocol.generated.StateActionCommentsThreadRemoved
-import com.microsoft.agenthostprotocol.generated.StateActionCommentsThreadSet
+import com.microsoft.agenthostprotocol.generated.StateActionAnnotationsEntryRemoved
+import com.microsoft.agenthostprotocol.generated.StateActionAnnotationsEntrySet
+import com.microsoft.agenthostprotocol.generated.StateActionAnnotationsRemoved
+import com.microsoft.agenthostprotocol.generated.StateActionAnnotationsSet
 import com.microsoft.agenthostprotocol.generated.StateActionRootActiveSessionsChanged
 import com.microsoft.agenthostprotocol.generated.StateActionRootAgentsChanged
 import com.microsoft.agenthostprotocol.generated.StateActionRootConfigChanged
@@ -153,9 +152,9 @@ import kotlinx.serialization.json.JsonElement
  * no mutation of [state] and no side effects.
  *
  * The companion top-level functions ([rootReducer], [sessionReducer],
- * [terminalReducer], [changesetReducer], [commentsReducer], [resourceWatchReducer]) are the canonical implementations.
+ * [terminalReducer], [changesetReducer], [annotationsReducer], [resourceWatchReducer]) are the canonical implementations.
  * The object instances on this interface ([RootReducer], [SessionReducer],
- * [TerminalReducer], [ChangesetReducer], [CommentsReducer]) wrap them for use as values where
+ * [TerminalReducer], [ChangesetReducer], [AnnotationsReducer]) wrap them for use as values where
  * an instance is needed.
  */
 public fun interface Reducer<S, A> {
@@ -186,10 +185,10 @@ public object ChangesetReducer : Reducer<ChangesetState, StateAction> {
         changesetReducer(state, action)
 }
 
-/** Pure comments reducer as a [Reducer] instance. Delegates to [commentsReducer]. */
-public object CommentsReducer : Reducer<CommentsState, StateAction> {
-    override fun reduce(state: CommentsState, action: StateAction): CommentsState =
-        commentsReducer(state, action)
+/** Pure annotations reducer as a [Reducer] instance. Delegates to [annotationsReducer]. */
+public object AnnotationsReducer : Reducer<AnnotationsState, StateAction> {
+    override fun reduce(state: AnnotationsState, action: StateAction): AnnotationsState =
+        annotationsReducer(state, action)
 }
 
 /** Pure resource-watch reducer as a [Reducer] instance. Delegates to [resourceWatchReducer]. */
@@ -1351,80 +1350,77 @@ public fun changesetReducer(state: ChangesetState, action: StateAction): Changes
     else -> state
 }
 
-// ─── Comments Reducer ──────────────────────────────────────────
+// ─── Annotations Reducer ──────────────────────────────────────────
 
 /**
- * Pure reducer for [CommentsState]. Handles all comments-channel action
+ * Pure reducer for [AnnotationsState]. Handles all annotations-channel action
  * variants; actions belonging to other channels (or unknown variants) are
  * no-ops that return [state] unchanged.
  *
- * The single-comment-minimum invariant is enforced by the server, not the
- * reducer — a malformed server that removes a thread's last comment via
- * `comments/commentRemoved` would leave an empty thread, which is
+ * The single-entry-minimum invariant is enforced by the server, not the
+ * reducer — a malformed server that removes an annotation's last entry via
+ * `annotations/entryRemoved` would leave an empty annotation, which is
  * observable but not catastrophic.
  */
-public fun commentsReducer(state: CommentsState, action: StateAction): CommentsState = when (action) {
-    is StateActionCommentsThreadSet -> {
-        val thread = action.value.thread
-        val idx = state.threads.indexOfFirst { it.id == thread.id }
+public fun annotationsReducer(state: AnnotationsState, action: StateAction): AnnotationsState = when (action) {
+    is StateActionAnnotationsSet -> {
+        val annotation = action.value.annotation
+        val idx = state.annotations.indexOfFirst { it.id == annotation.id }
         if (idx < 0) {
-            state.copy(threads = state.threads + thread)
+            state.copy(annotations = state.annotations + annotation)
         } else {
-            val next = state.threads.toMutableList().also { it[idx] = thread }
-            state.copy(threads = next)
+            val next = state.annotations.toMutableList().also { it[idx] = annotation }
+            state.copy(annotations = next)
         }
     }
 
-    is StateActionCommentsThreadRemoved -> {
-        val idx = state.threads.indexOfFirst { it.id == action.value.threadId }
+    is StateActionAnnotationsRemoved -> {
+        val idx = state.annotations.indexOfFirst { it.id == action.value.annotationId }
         if (idx < 0) {
             state
         } else {
-            val next: List<CommentThread> = state.threads.toMutableList().also { it.removeAt(idx) }
-            state.copy(threads = next)
+            val next: List<Annotation> = state.annotations.toMutableList().also { it.removeAt(idx) }
+            state.copy(annotations = next)
         }
     }
 
-    is StateActionCommentsCommentSet -> {
-        val tIdx = state.threads.indexOfFirst { it.id == action.value.threadId }
+    is StateActionAnnotationsEntrySet -> {
+        val tIdx = state.annotations.indexOfFirst { it.id == action.value.annotationId }
         if (tIdx < 0) {
             state
         } else {
-            val thread = state.threads[tIdx]
-            val comment = action.value.comment
-            val cIdx = thread.comments.indexOfFirst { it.id == comment.id }
-            val nextComments = if (cIdx < 0) {
-                thread.comments + comment
+            val annotation = state.annotations[tIdx]
+            val entry = action.value.entry
+            val cIdx = annotation.entries.indexOfFirst { it.id == entry.id }
+            val nextEntries = if (cIdx < 0) {
+                annotation.entries + entry
             } else {
-                thread.comments.toMutableList().also { it[cIdx] = comment }
+                annotation.entries.toMutableList().also { it[cIdx] = entry }
             }
-            val nextThreads = state.threads.toMutableList()
-                .also { it[tIdx] = thread.copy(comments = nextComments) }
-            state.copy(threads = nextThreads)
+            val nextAnnotations = state.annotations.toMutableList()
+                .also { it[tIdx] = annotation.copy(entries = nextEntries) }
+            state.copy(annotations = nextAnnotations)
         }
     }
 
-    is StateActionCommentsCommentRemoved -> {
-        val tIdx = state.threads.indexOfFirst { it.id == action.value.threadId }
+    is StateActionAnnotationsEntryRemoved -> {
+        val tIdx = state.annotations.indexOfFirst { it.id == action.value.annotationId }
         if (tIdx < 0) {
             state
         } else {
-            val thread = state.threads[tIdx]
-            val cIdx = thread.comments.indexOfFirst { it.id == action.value.commentId }
+            val annotation = state.annotations[tIdx]
+            val cIdx = annotation.entries.indexOfFirst { it.id == action.value.entryId }
             if (cIdx < 0) {
                 state
             } else {
-                val nextComments: List<Comment> = thread.comments.toMutableList()
+                val nextEntries: List<AnnotationEntry> = annotation.entries.toMutableList()
                     .also { it.removeAt(cIdx) }
-                val nextThreads = state.threads.toMutableList()
-                    .also { it[tIdx] = thread.copy(comments = nextComments) }
-                state.copy(threads = nextThreads)
+                val nextAnnotations = state.annotations.toMutableList()
+                    .also { it[tIdx] = annotation.copy(entries = nextEntries) }
+                state.copy(annotations = nextAnnotations)
             }
         }
     }
-
-    is StateActionCommentsCleared ->
-        if (state.threads.isEmpty()) state else state.copy(threads = emptyList())
 
     else -> state
 }

@@ -69,12 +69,11 @@ import type {
 } from '../channels-changeset/actions.js';
 
 import type {
-  CommentsThreadSetAction,
-  CommentsThreadRemovedAction,
-  CommentsCommentSetAction,
-  CommentsCommentRemovedAction,
-  CommentsClearedAction,
-} from '../channels-comments/actions.js';
+  AnnotationsSetAction,
+  AnnotationsRemovedAction,
+  AnnotationsEntrySetAction,
+  AnnotationsEntryRemovedAction,
+} from '../channels-annotations/actions.js';
 
 import type {
   TerminalDataAction,
@@ -151,11 +150,10 @@ export const enum ActionType {
   ChangesetOperationsChanged = 'changeset/operationsChanged',
   ChangesetOperationStatusChanged = 'changeset/operationStatusChanged',
   ChangesetCleared = 'changeset/cleared',
-  CommentsThreadSet = 'comments/threadSet',
-  CommentsThreadRemoved = 'comments/threadRemoved',
-  CommentsCommentSet = 'comments/commentSet',
-  CommentsCommentRemoved = 'comments/commentRemoved',
-  CommentsCleared = 'comments/cleared',
+  AnnotationsSet = 'annotations/set',
+  AnnotationsRemoved = 'annotations/removed',
+  AnnotationsEntrySet = 'annotations/entrySet',
+  AnnotationsEntryRemoved = 'annotations/entryRemoved',
   RootTerminalsChanged = 'root/terminalsChanged',
   RootConfigChanged = 'root/configChanged',
   TerminalData = 'terminal/data',
@@ -257,11 +255,10 @@ export type StateAction =
   | ChangesetOperationsChangedAction
   | ChangesetOperationStatusChangedAction
   | ChangesetClearedAction
-  | CommentsThreadSetAction
-  | CommentsThreadRemovedAction
-  | CommentsCommentSetAction
-  | CommentsCommentRemovedAction
-  | CommentsClearedAction
+  | AnnotationsSetAction
+  | AnnotationsRemovedAction
+  | AnnotationsEntrySetAction
+  | AnnotationsEntryRemovedAction
   | TerminalDataAction
   | TerminalInputAction
   | TerminalResizedAction

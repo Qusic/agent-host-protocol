@@ -200,10 +200,10 @@ data class PartialSessionSummary(
      */
     val changes: ChangesSummary? = null,
     /**
-     * Lightweight summary of this session's inline comments channel
-     * (`ahp-session:/<uuid>/comments`). Surfaced so badge UI can render
-     * thread / comment counts without subscribing. Absent when the session
-     * does not expose a comments channel.
+     * Lightweight summary of this session's inline annotations channel
+     * (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
+     * annotation / entry counts without subscribing. Absent when the session
+     * does not expose an annotations channel.
      */
-    val comments: CommentsSummary? = null
+    val annotations: AnnotationsSummary? = null
 )

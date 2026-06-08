@@ -55,11 +55,10 @@ public enum ActionType: String, Codable, Sendable {
     case changesetOperationsChanged = "changeset/operationsChanged"
     case changesetOperationStatusChanged = "changeset/operationStatusChanged"
     case changesetCleared = "changeset/cleared"
-    case commentsThreadSet = "comments/threadSet"
-    case commentsThreadRemoved = "comments/threadRemoved"
-    case commentsCommentSet = "comments/commentSet"
-    case commentsCommentRemoved = "comments/commentRemoved"
-    case commentsCleared = "comments/cleared"
+    case annotationsSet = "annotations/set"
+    case annotationsRemoved = "annotations/removed"
+    case annotationsEntrySet = "annotations/entrySet"
+    case annotationsEntryRemoved = "annotations/entryRemoved"
     case rootTerminalsChanged = "root/terminalsChanged"
     case rootConfigChanged = "root/configChanged"
     case terminalData = "terminal/data"
@@ -1141,77 +1140,67 @@ public struct ChangesetClearedAction: Codable, Sendable {
     }
 }
 
-public struct CommentsThreadSetAction: Codable, Sendable {
+public struct AnnotationsSetAction: Codable, Sendable {
     public var type: ActionType
-    /// The new or replacement thread. MUST contain at least one comment.
-    public var thread: CommentThread
+    /// The new or replacement annotation. MUST contain at least one entry.
+    public var annotation: Annotation
 
     public init(
         type: ActionType,
-        thread: CommentThread
+        annotation: Annotation
     ) {
         self.type = type
-        self.thread = thread
+        self.annotation = annotation
     }
 }
 
-public struct CommentsThreadRemovedAction: Codable, Sendable {
+public struct AnnotationsRemovedAction: Codable, Sendable {
     public var type: ActionType
-    /// The {@link CommentThread.id} of the thread to remove.
-    public var threadId: String
+    /// The {@link Annotation.id} of the annotation to remove.
+    public var annotationId: String
 
     public init(
         type: ActionType,
-        threadId: String
+        annotationId: String
     ) {
         self.type = type
-        self.threadId = threadId
+        self.annotationId = annotationId
     }
 }
 
-public struct CommentsCommentSetAction: Codable, Sendable {
+public struct AnnotationsEntrySetAction: Codable, Sendable {
     public var type: ActionType
-    /// The {@link CommentThread.id} the comment belongs to.
-    public var threadId: String
-    /// The new or replacement comment.
-    public var comment: Comment
+    /// The {@link Annotation.id} the entry belongs to.
+    public var annotationId: String
+    /// The new or replacement entry.
+    public var entry: AnnotationEntry
 
     public init(
         type: ActionType,
-        threadId: String,
-        comment: Comment
+        annotationId: String,
+        entry: AnnotationEntry
     ) {
         self.type = type
-        self.threadId = threadId
-        self.comment = comment
+        self.annotationId = annotationId
+        self.entry = entry
     }
 }
 
-public struct CommentsCommentRemovedAction: Codable, Sendable {
+public struct AnnotationsEntryRemovedAction: Codable, Sendable {
     public var type: ActionType
-    /// The {@link CommentThread.id} the comment belongs to.
-    public var threadId: String
-    /// The {@link Comment.id} to remove.
-    public var commentId: String
+    /// The {@link Annotation.id} the entry belongs to.
+    public var annotationId: String
+    /// The {@link AnnotationEntry.id} to remove.
+    public var entryId: String
 
     public init(
         type: ActionType,
-        threadId: String,
-        commentId: String
+        annotationId: String,
+        entryId: String
     ) {
         self.type = type
-        self.threadId = threadId
-        self.commentId = commentId
-    }
-}
-
-public struct CommentsClearedAction: Codable, Sendable {
-    public var type: ActionType
-
-    public init(
-        type: ActionType
-    ) {
-        self.type = type
+        self.annotationId = annotationId
+        self.entryId = entryId
     }
 }
 
@@ -1483,11 +1472,10 @@ public enum StateAction: Codable, Sendable {
     case changesetOperationsChanged(ChangesetOperationsChangedAction)
     case changesetOperationStatusChanged(ChangesetOperationStatusChangedAction)
     case changesetCleared(ChangesetClearedAction)
-    case commentsThreadSet(CommentsThreadSetAction)
-    case commentsThreadRemoved(CommentsThreadRemovedAction)
-    case commentsCommentSet(CommentsCommentSetAction)
-    case commentsCommentRemoved(CommentsCommentRemovedAction)
-    case commentsCleared(CommentsClearedAction)
+    case annotationsSet(AnnotationsSetAction)
+    case annotationsRemoved(AnnotationsRemovedAction)
+    case annotationsEntrySet(AnnotationsEntrySetAction)
+    case annotationsEntryRemoved(AnnotationsEntryRemovedAction)
     case rootTerminalsChanged(RootTerminalsChangedAction)
     case rootConfigChanged(RootConfigChangedAction)
     case terminalData(TerminalDataAction)
@@ -1609,16 +1597,14 @@ public enum StateAction: Codable, Sendable {
             self = .changesetOperationStatusChanged(try ChangesetOperationStatusChangedAction(from: decoder))
         case "changeset/cleared":
             self = .changesetCleared(try ChangesetClearedAction(from: decoder))
-        case "comments/threadSet":
-            self = .commentsThreadSet(try CommentsThreadSetAction(from: decoder))
-        case "comments/threadRemoved":
-            self = .commentsThreadRemoved(try CommentsThreadRemovedAction(from: decoder))
-        case "comments/commentSet":
-            self = .commentsCommentSet(try CommentsCommentSetAction(from: decoder))
-        case "comments/commentRemoved":
-            self = .commentsCommentRemoved(try CommentsCommentRemovedAction(from: decoder))
-        case "comments/cleared":
-            self = .commentsCleared(try CommentsClearedAction(from: decoder))
+        case "annotations/set":
+            self = .annotationsSet(try AnnotationsSetAction(from: decoder))
+        case "annotations/removed":
+            self = .annotationsRemoved(try AnnotationsRemovedAction(from: decoder))
+        case "annotations/entrySet":
+            self = .annotationsEntrySet(try AnnotationsEntrySetAction(from: decoder))
+        case "annotations/entryRemoved":
+            self = .annotationsEntryRemoved(try AnnotationsEntryRemovedAction(from: decoder))
         case "root/terminalsChanged":
             self = .rootTerminalsChanged(try RootTerminalsChangedAction(from: decoder))
         case "root/configChanged":
@@ -1703,11 +1689,10 @@ public enum StateAction: Codable, Sendable {
         case .changesetOperationsChanged(let v): try v.encode(to: encoder)
         case .changesetOperationStatusChanged(let v): try v.encode(to: encoder)
         case .changesetCleared(let v): try v.encode(to: encoder)
-        case .commentsThreadSet(let v): try v.encode(to: encoder)
-        case .commentsThreadRemoved(let v): try v.encode(to: encoder)
-        case .commentsCommentSet(let v): try v.encode(to: encoder)
-        case .commentsCommentRemoved(let v): try v.encode(to: encoder)
-        case .commentsCleared(let v): try v.encode(to: encoder)
+        case .annotationsSet(let v): try v.encode(to: encoder)
+        case .annotationsRemoved(let v): try v.encode(to: encoder)
+        case .annotationsEntrySet(let v): try v.encode(to: encoder)
+        case .annotationsEntryRemoved(let v): try v.encode(to: encoder)
         case .rootTerminalsChanged(let v): try v.encode(to: encoder)
         case .rootConfigChanged(let v): try v.encode(to: encoder)
         case .terminalData(let v): try v.encode(to: encoder)

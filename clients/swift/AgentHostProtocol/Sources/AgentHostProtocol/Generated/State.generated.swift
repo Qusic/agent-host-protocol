@@ -133,8 +133,8 @@ public enum MessageAttachmentKind: String, Codable, Sendable {
     case embeddedResource = "embeddedResource"
     /// An attachment that references a resource by URI.
     case resource = "resource"
-    /// An attachment that references comment threads on a comments channel.
-    case comments = "comments"
+    /// An attachment that references annotations on an annotations channel.
+    case annotations = "annotations"
 }
 
 /// Discriminant for response part types.
@@ -873,11 +873,11 @@ public struct SessionSummary: Codable, Sendable {
     /// session's footprint (e.g., for list rendering) without requiring the
     /// client to subscribe to a changeset.
     public var changes: ChangesSummary?
-    /// Lightweight summary of this session's inline comments channel
-    /// (`ahp-session:/<uuid>/comments`). Surfaced so badge UI can render
-    /// thread / comment counts without subscribing. Absent when the session
-    /// does not expose a comments channel.
-    public var comments: CommentsSummary?
+    /// Lightweight summary of this session's inline annotations channel
+    /// (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
+    /// annotation / entry counts without subscribing. Absent when the session
+    /// does not expose an annotations channel.
+    public var annotations: AnnotationsSummary?
 
     public init(
         resource: String,
@@ -892,7 +892,7 @@ public struct SessionSummary: Codable, Sendable {
         agent: AgentSelection? = nil,
         workingDirectory: String? = nil,
         changes: ChangesSummary? = nil,
-        comments: CommentsSummary? = nil
+        annotations: AnnotationsSummary? = nil
     ) {
         self.resource = resource
         self.provider = provider
@@ -906,7 +906,7 @@ public struct SessionSummary: Codable, Sendable {
         self.agent = agent
         self.workingDirectory = workingDirectory
         self.changes = changes
-        self.comments = comments
+        self.annotations = annotations
     }
 }
 
@@ -1634,7 +1634,7 @@ public struct MessageResourceAttachment: Codable, Sendable {
     }
 }
 
-public struct MessageCommentsAttachment: Codable, Sendable {
+public struct MessageAnnotationsAttachment: Codable, Sendable {
     /// A human-readable label for the attachment (e.g. the filename of a file
     /// attachment). Used for display in UI.
     public var label: String
@@ -1661,12 +1661,12 @@ public struct MessageCommentsAttachment: Codable, Sendable {
     public var meta: [String: AnyCodable]?
     /// Discriminant
     public var type: MessageAttachmentKind
-    /// The comments channel URI (typically `ahp-session:/<uuid>/comments`).
-    /// Matches {@link CommentsSummary.resource}.
+    /// The annotations channel URI (typically `ahp-session:/<uuid>/annotations`).
+    /// Matches {@link AnnotationsSummary.resource}.
     public var resource: String
-    /// Specific {@link CommentThread.id | thread ids} to reference. When
-    /// omitted, the attachment references all threads on the channel.
-    public var threadIds: [String]?
+    /// Specific {@link Annotation.id | annotation ids} to reference. When
+    /// omitted, the attachment references all annotations on the channel.
+    public var annotationIds: [String]?
 
     enum CodingKeys: String, CodingKey {
         case label
@@ -1675,7 +1675,7 @@ public struct MessageCommentsAttachment: Codable, Sendable {
         case meta = "_meta"
         case type
         case resource
-        case threadIds
+        case annotationIds
     }
 
     public init(
@@ -1685,7 +1685,7 @@ public struct MessageCommentsAttachment: Codable, Sendable {
         meta: [String: AnyCodable]? = nil,
         type: MessageAttachmentKind,
         resource: String,
-        threadIds: [String]? = nil
+        annotationIds: [String]? = nil
     ) {
         self.label = label
         self.range = range
@@ -1693,7 +1693,7 @@ public struct MessageCommentsAttachment: Codable, Sendable {
         self.meta = meta
         self.type = type
         self.resource = resource
-        self.threadIds = threadIds
+        self.annotationIds = annotationIds
     }
 }
 
@@ -3661,57 +3661,57 @@ public struct ChangesetOperation: Codable, Sendable {
     }
 }
 
-public struct CommentsSummary: Codable, Sendable {
-    /// The subscribable comments channel URI for the owning session
-    /// (typically `ahp-session:/<uuid>/comments`). Surfaced explicitly even
+public struct AnnotationsSummary: Codable, Sendable {
+    /// The subscribable annotations channel URI for the owning session
+    /// (typically `ahp-session:/<uuid>/annotations`). Surfaced explicitly even
     /// though it is derivable from the session URI so badge UI does not need
     /// to know the derivation rule.
     public var resource: String
-    /// Total number of {@link CommentThread} entries in the channel.
-    public var threadCount: Int
-    /// Total number of {@link Comment} entries across every thread.
-    public var commentCount: Int
+    /// Total number of {@link Annotation} entries in the channel.
+    public var annotationCount: Int
+    /// Total number of {@link AnnotationEntry} entries across every annotation.
+    public var entryCount: Int
 
     public init(
         resource: String,
-        threadCount: Int,
-        commentCount: Int
+        annotationCount: Int,
+        entryCount: Int
     ) {
         self.resource = resource
-        self.threadCount = threadCount
-        self.commentCount = commentCount
+        self.annotationCount = annotationCount
+        self.entryCount = entryCount
     }
 }
 
-public struct CommentsState: Codable, Sendable {
-    /// Comment threads in this channel, keyed by {@link CommentThread.id}.
-    public var threads: [CommentThread]
+public struct AnnotationsState: Codable, Sendable {
+    /// Annotations in this channel, keyed by {@link Annotation.id}.
+    public var annotations: [Annotation]
 
     public init(
-        threads: [CommentThread]
+        annotations: [Annotation]
     ) {
-        self.threads = threads
+        self.annotations = annotations
     }
 }
 
-public struct CommentThread: Codable, Sendable {
-    /// Stable identifier within the comments channel. Server-assigned.
+public struct Annotation: Codable, Sendable {
+    /// Stable identifier within the annotations channel. Server-assigned.
     public var id: String
-    /// Turn that produced the file versions this thread is anchored to.
+    /// Turn that produced the file versions this annotation is anchored to.
     /// Matches a {@link Turn.id} on the owning session.
     public var turnId: String
-    /// The file the thread is anchored to.
+    /// The file the annotation is anchored to.
     public var resource: String
-    /// Range within {@link resource} the thread is anchored to. When omitted
-    /// the thread is anchored to the entire file.
+    /// Range within {@link resource} the annotation is anchored to. When
+    /// omitted the annotation is anchored to the entire file.
     public var range: TextRange?
-    /// Whether the thread has been resolved. Newly created threads are always
-    /// unresolved (`false`); a client marks a thread resolved (or re-opens it)
-    /// through {@link UpdateCommentThreadParams | `updateCommentThread`}.
+    /// Whether the annotation has been resolved. Newly created annotations are
+    /// always unresolved (`false`); a client marks an annotation resolved (or
+    /// re-opens it) through {@link UpdateAnnotationParams | `updateAnnotation`}.
     public var resolved: Bool
-    /// Comments in this thread, in dispatch order (oldest first). MUST
+    /// Entries in this annotation, in dispatch order (oldest first). MUST
     /// contain at least one entry.
-    public var comments: [Comment]
+    public var entries: [AnnotationEntry]
     /// Server-defined opaque metadata, surfaced to tooling but not
     /// interpreted by the protocol.
     public var meta: [String: AnyCodable]?
@@ -3722,7 +3722,7 @@ public struct CommentThread: Codable, Sendable {
         case resource
         case range
         case resolved
-        case comments
+        case entries
         case meta = "_meta"
     }
 
@@ -3732,7 +3732,7 @@ public struct CommentThread: Codable, Sendable {
         resource: String,
         range: TextRange? = nil,
         resolved: Bool,
-        comments: [Comment],
+        entries: [AnnotationEntry],
         meta: [String: AnyCodable]? = nil
     ) {
         self.id = id
@@ -3740,15 +3740,15 @@ public struct CommentThread: Codable, Sendable {
         self.resource = resource
         self.range = range
         self.resolved = resolved
-        self.comments = comments
+        self.entries = entries
         self.meta = meta
     }
 }
 
-public struct Comment: Codable, Sendable {
-    /// Stable identifier within the enclosing thread. Server-assigned.
+public struct AnnotationEntry: Codable, Sendable {
+    /// Stable identifier within the enclosing annotation. Server-assigned.
     public var id: String
-    /// Comment body. A bare `string` is rendered as plain text; pass
+    /// Entry body. A bare `string` is rendered as plain text; pass
     /// `{ markdown: "…" }` to opt into Markdown rendering. See
     /// {@link StringOrMarkdown}.
     public var text: StringOrMarkdown
@@ -3773,11 +3773,11 @@ public struct Comment: Codable, Sendable {
     }
 }
 
-public struct NewComment: Codable, Sendable {
-    /// Comment body. See {@link Comment.text}.
+public struct NewAnnotationEntry: Codable, Sendable {
+    /// Entry body. See {@link AnnotationEntry.text}.
     public var text: StringOrMarkdown
     /// Server-defined opaque metadata, forwarded onto the resulting
-    /// {@link Comment._meta}.
+    /// {@link AnnotationEntry._meta}.
     public var meta: [String: AnyCodable]?
 
     enum CodingKeys: String, CodingKey {
@@ -4147,7 +4147,7 @@ public enum MessageAttachment: Codable, Sendable {
     case simple(SimpleMessageAttachment)
     case embeddedResource(MessageEmbeddedResourceAttachment)
     case resource(MessageResourceAttachment)
-    case comments(MessageCommentsAttachment)
+    case annotations(MessageAnnotationsAttachment)
 
     private enum DiscriminantKey: String, CodingKey {
         case discriminant = "type"
@@ -4163,8 +4163,8 @@ public enum MessageAttachment: Codable, Sendable {
             self = .embeddedResource(try MessageEmbeddedResourceAttachment(from: decoder))
         case "resource":
             self = .resource(try MessageResourceAttachment(from: decoder))
-        case "comments":
-            self = .comments(try MessageCommentsAttachment(from: decoder))
+        case "annotations":
+            self = .annotations(try MessageAnnotationsAttachment(from: decoder))
         default:
             throw DecodingError.dataCorruptedError(forKey: .discriminant, in: container, debugDescription: "Unknown MessageAttachment discriminant: \(discriminant)")
         }
@@ -4175,7 +4175,7 @@ public enum MessageAttachment: Codable, Sendable {
         case .simple(let value): try value.encode(to: encoder)
         case .embeddedResource(let value): try value.encode(to: encoder)
         case .resource(let value): try value.encode(to: encoder)
-        case .comments(let value): try value.encode(to: encoder)
+        case .annotations(let value): try value.encode(to: encoder)
         }
     }
 }
@@ -4419,13 +4419,13 @@ public enum ToolResultContent: Codable, Sendable {
     }
 }
 
-/// The state payload of a snapshot — root, session, terminal, changeset, or comments state.
+/// The state payload of a snapshot — root, session, terminal, changeset, or annotations state.
 public enum SnapshotState: Codable, Sendable {
     case root(RootState)
     case session(SessionState)
     case terminal(TerminalState)
     case changeset(ChangesetState)
-    case comments(CommentsState)
+    case annotations(AnnotationsState)
 
     public init(from decoder: Decoder) throws {
         // SessionState has required `summary` field, try it first
@@ -4435,8 +4435,8 @@ public enum SnapshotState: Codable, Sendable {
             self = .terminal(terminal)
         } else if let changeset = try? ChangesetState(from: decoder) {
             self = .changeset(changeset)
-        } else if let comments = try? CommentsState(from: decoder) {
-            self = .comments(comments)
+        } else if let annotations = try? AnnotationsState(from: decoder) {
+            self = .annotations(annotations)
         } else {
             self = .root(try RootState(from: decoder))
         }
@@ -4448,7 +4448,7 @@ public enum SnapshotState: Codable, Sendable {
         case .session(let state): try state.encode(to: encoder)
         case .terminal(let state): try state.encode(to: encoder)
         case .changeset(let state): try state.encode(to: encoder)
-        case .comments(let state): try state.encode(to: encoder)
+        case .annotations(let state): try state.encode(to: encoder)
         }
     }
 }

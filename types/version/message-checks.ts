@@ -75,12 +75,12 @@ type _ExpectedCommands =
   | 'sessionConfigCompletions'
   | 'completions'
   | 'invokeChangesetOperation'
-  | 'createCommentThread'
-  | 'updateCommentThread'
-  | 'deleteCommentThread'
-  | 'addComment'
-  | 'editComment'
-  | 'deleteComment';
+  | 'createAnnotation'
+  | 'updateAnnotation'
+  | 'deleteAnnotation'
+  | 'addAnnotationEntry'
+  | 'editAnnotationEntry'
+  | 'deleteAnnotationEntry';
 
 /** All methods annotated `@messageType Notification` (client → server). */
 type _ExpectedClientNotifications =

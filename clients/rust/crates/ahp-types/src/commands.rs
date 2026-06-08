@@ -15,9 +15,9 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 use crate::actions::{ActionEnvelope, StateAction};
 #[allow(unused_imports)]
 use crate::state::{
-    AgentSelection, ContentRef, MessageAttachment, ModelSelection, NewComment, SessionActiveClient,
-    SessionConfigSchema, SessionSummary, Snapshot, SnapshotState, TelemetryCapabilities,
-    TerminalClaim, TextRange, Turn,
+    AgentSelection, ContentRef, MessageAttachment, ModelSelection, NewAnnotationEntry,
+    SessionActiveClient, SessionConfigSchema, SessionSummary, Snapshot, SnapshotState,
+    TelemetryCapabilities, TerminalClaim, TextRange, Turn,
 };
 
 // ─── Enums ────────────────────────────────────────────────────────────
@@ -1050,61 +1050,61 @@ pub struct ChangesetOperationFollowUp {
     pub external: Option<bool>,
 }
 
-/// Create a new {@link CommentThread} anchored to a file from a specific
+/// Create a new {@link Annotation} anchored to a file from a specific
 /// turn, optionally narrowed to a range within that file.
 ///
-/// The initial comment is required — the protocol forbids empty threads,
-/// so thread creation and first-comment creation are fused into one
-/// command. The created thread always starts unresolved
-/// ({@link CommentThread.resolved} is `false`). The server assigns both
-/// {@link CreateCommentThreadResult.threadId} and
-/// {@link CreateCommentThreadResult.commentId}, then broadcasts a
-/// {@link CommentsThreadSetAction} on the channel.
+/// The initial entry is required — the protocol forbids empty annotations,
+/// so annotation creation and first-entry creation are fused into one
+/// command. The created annotation always starts unresolved
+/// ({@link Annotation.resolved} is `false`). The server assigns both
+/// {@link CreateAnnotationResult.annotationId} and
+/// {@link CreateAnnotationResult.entryId}, then broadcasts an
+/// {@link AnnotationsSetAction} on the channel.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateCommentThreadParams {
+pub struct CreateAnnotationParams {
     /// Channel URI this command targets.
     pub channel: Uri,
     /// Turn whose file versions {@link resource} + {@link range} address.
     pub turn_id: String,
     /// Anchored file URI.
     pub resource: Uri,
-    /// Anchored range within {@link resource}. When omitted the thread is
+    /// Anchored range within {@link resource}. When omitted the annotation is
     /// anchored to the entire file.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
-    /// First comment in the thread. The server assigns its {@link Comment.id}.
-    pub comment: NewComment,
+    /// First entry in the annotation. The server assigns its {@link AnnotationEntry.id}.
+    pub entry: NewAnnotationEntry,
 }
 
-/// Result of {@link CreateCommentThreadParams | `createCommentThread`}.
+/// Result of {@link CreateAnnotationParams | `createAnnotation`}.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateCommentThreadResult {
-    /// Server-assigned {@link CommentThread.id}.
-    pub thread_id: String,
-    /// Server-assigned {@link Comment.id} of the initial comment.
-    pub comment_id: String,
+pub struct CreateAnnotationResult {
+    /// Server-assigned {@link Annotation.id}.
+    pub annotation_id: String,
+    /// Server-assigned {@link AnnotationEntry.id} of the initial entry.
+    pub entry_id: String,
 }
 
-/// Re-anchor or resolve an existing {@link CommentThread} — typically used
-/// to re-pin a thread to a different range or a newer turn after an edit,
-/// or to mark the thread {@link CommentThread.resolved | resolved} (or
-/// re-open it). Comments themselves are not modified by this command; use
-/// {@link AddCommentParams | `addComment`},
-/// {@link EditCommentParams | `editComment`}, or
-/// {@link DeleteCommentParams | `deleteComment`} for that.
+/// Re-anchor or resolve an existing {@link Annotation} — typically used
+/// to re-pin an annotation to a different range or a newer turn after an
+/// edit, or to mark the annotation {@link Annotation.resolved | resolved}
+/// (or re-open it). Entries themselves are not modified by this command;
+/// use {@link AddAnnotationEntryParams | `addAnnotationEntry`},
+/// {@link EditAnnotationEntryParams | `editAnnotationEntry`}, or
+/// {@link DeleteAnnotationEntryParams | `deleteAnnotationEntry`} for that.
 ///
 /// Omitted optional fields preserve their current value. The server
-/// echoes the resulting thread state as a {@link CommentsThreadSetAction}.
+/// echoes the resulting annotation state as an {@link AnnotationsSetAction}.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UpdateCommentThreadParams {
+pub struct UpdateAnnotationParams {
     /// Channel URI this command targets.
     pub channel: Uri,
-    /// The {@link CommentThread.id} to update.
-    pub thread_id: String,
-    /// New {@link CommentThread.turnId}, if changing.
+    /// The {@link Annotation.id} to update.
+    pub annotation_id: String,
+    /// New {@link Annotation.turnId}, if changing.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub turn_id: Option<String>,
     /// New anchored file URI, if changing.
@@ -1113,79 +1113,78 @@ pub struct UpdateCommentThreadParams {
     /// New anchored range, if changing.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
-    /// New {@link CommentThread.resolved} state, if changing.
+    /// New {@link Annotation.resolved} state, if changing.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resolved: Option<bool>,
 }
 
-/// Delete an entire comment thread (and every comment it contains). The
-/// server echoes a {@link CommentsThreadRemovedAction} on the channel.
+/// Delete an entire annotation (and every entry it contains). The
+/// server echoes an {@link AnnotationsRemovedAction} on the channel.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DeleteCommentThreadParams {
+pub struct DeleteAnnotationParams {
     /// Channel URI this command targets.
     pub channel: Uri,
-    /// The {@link CommentThread.id} to delete.
-    pub thread_id: String,
+    /// The {@link Annotation.id} to delete.
+    pub annotation_id: String,
 }
 
-/// Append a new {@link Comment} to an existing thread. The server assigns
-/// the resulting {@link Comment.id} and echoes a
-/// {@link CommentsCommentSetAction}.
+/// Append a new {@link AnnotationEntry} to an existing annotation. The
+/// server assigns the resulting {@link AnnotationEntry.id} and echoes an
+/// {@link AnnotationsEntrySetAction}.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AddCommentParams {
+pub struct AddAnnotationEntryParams {
     /// Channel URI this command targets.
     pub channel: Uri,
-    /// Thread that receives the new comment.
-    pub thread_id: String,
-    /// Comment payload — the server assigns the id.
-    pub comment: NewComment,
+    /// Annotation that receives the new entry.
+    pub annotation_id: String,
+    /// Entry payload — the server assigns the id.
+    pub entry: NewAnnotationEntry,
 }
 
-/// Result of {@link AddCommentParams | `addComment`}.
+/// Result of {@link AddAnnotationEntryParams | `addAnnotationEntry`}.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AddCommentResult {
-    /// Server-assigned {@link Comment.id} of the new comment.
-    pub comment_id: String,
+pub struct AddAnnotationEntryResult {
+    /// Server-assigned {@link AnnotationEntry.id} of the new entry.
+    pub entry_id: String,
 }
 
-/// Edit the body of an existing comment in place. The server echoes a
-/// {@link CommentsCommentSetAction} carrying the updated comment.
+/// Edit the body of an existing entry in place. The server echoes an
+/// {@link AnnotationsEntrySetAction} carrying the updated entry.
 ///
 /// Only the body is mutable through this command; to change
-/// {@link Comment.source} or {@link Comment._meta} delete and re-create
-/// the comment.
+/// {@link AnnotationEntry._meta} delete and re-create the entry.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EditCommentParams {
+pub struct EditAnnotationEntryParams {
     /// Channel URI this command targets.
     pub channel: Uri,
-    /// Enclosing thread.
-    pub thread_id: String,
-    /// {@link Comment.id} to edit.
-    pub comment_id: String,
-    /// New comment body. See {@link Comment.text}.
+    /// Enclosing annotation.
+    pub annotation_id: String,
+    /// {@link AnnotationEntry.id} to edit.
+    pub entry_id: String,
+    /// New entry body. See {@link AnnotationEntry.text}.
     pub text: StringOrMarkdown,
 }
 
-/// Remove a single comment from a thread.
+/// Remove a single entry from an annotation.
 ///
-/// If the removal would leave the thread empty (i.e. the targeted comment
-/// is the only one remaining), the server collapses the thread instead
-/// — it dispatches a {@link CommentsThreadRemovedAction} and the thread
-/// disappears from {@link CommentsState.threads}. Otherwise the server
-/// echoes a {@link CommentsCommentRemovedAction}.
+/// If the removal would leave the annotation empty (i.e. the targeted entry
+/// is the only one remaining), the server collapses the annotation instead
+/// — it dispatches an {@link AnnotationsRemovedAction} and the annotation
+/// disappears from {@link AnnotationsState.annotations}. Otherwise the server
+/// echoes an {@link AnnotationsEntryRemovedAction}.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DeleteCommentParams {
+pub struct DeleteAnnotationEntryParams {
     /// Channel URI this command targets.
     pub channel: Uri,
-    /// Enclosing thread.
-    pub thread_id: String,
-    /// {@link Comment.id} to remove.
-    pub comment_id: String,
+    /// Enclosing annotation.
+    pub annotation_id: String,
+    /// {@link AnnotationEntry.id} to remove.
+    pub entry_id: String,
 }
 
 // ─── ReconnectResult Union ────────────────────────────────────────────

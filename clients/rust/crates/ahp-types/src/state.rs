@@ -145,9 +145,9 @@ pub enum MessageAttachmentKind {
     /// An attachment that references a resource by URI.
     #[serde(rename = "resource")]
     Resource,
-    /// An attachment that references comment threads on a comments channel.
-    #[serde(rename = "comments")]
-    Comments,
+    /// An attachment that references annotations on an annotations channel.
+    #[serde(rename = "annotations")]
+    Annotations,
 }
 
 /// Discriminant for response part types.
@@ -873,12 +873,12 @@ pub struct SessionSummary {
     /// client to subscribe to a changeset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub changes: Option<ChangesSummary>,
-    /// Lightweight summary of this session's inline comments channel
-    /// (`ahp-session:/<uuid>/comments`). Surfaced so badge UI can render
-    /// thread / comment counts without subscribing. Absent when the session
-    /// does not expose a comments channel.
+    /// Lightweight summary of this session's inline annotations channel
+    /// (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
+    /// annotation / entry counts without subscribing. Absent when the session
+    /// does not expose an annotations channel.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub comments: Option<CommentsSummary>,
+    pub annotations: Option<AnnotationsSummary>,
 }
 
 /// Aggregate counts describing the file changes associated with a session.
@@ -1428,15 +1428,15 @@ pub struct MessageResourceAttachment {
     pub selection: Option<TextSelection>,
 }
 
-/// An attachment that references comment threads on a session's comments
-/// channel (see {@link CommentsState}).
+/// An attachment that references annotations on a session's annotations
+/// channel (see {@link AnnotationsState}).
 ///
-/// When {@link threadIds} is omitted the attachment references every thread
-/// on the channel; when present it references only the listed
-/// {@link CommentThread.id | thread ids}.
+/// When {@link annotationIds} is omitted the attachment references every
+/// annotation on the channel; when present it references only the listed
+/// {@link Annotation.id | annotation ids}.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct MessageCommentsAttachment {
+pub struct MessageAnnotationsAttachment {
     /// A human-readable label for the attachment (e.g. the filename of a file
     /// attachment). Used for display in UI.
     pub label: String,
@@ -1464,13 +1464,13 @@ pub struct MessageCommentsAttachment {
     /// host when sending the user message containing the accepted completion.
     #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
     pub meta: Option<JsonObject>,
-    /// The comments channel URI (typically `ahp-session:/<uuid>/comments`).
-    /// Matches {@link CommentsSummary.resource}.
+    /// The annotations channel URI (typically `ahp-session:/<uuid>/annotations`).
+    /// Matches {@link AnnotationsSummary.resource}.
     pub resource: Uri,
-    /// Specific {@link CommentThread.id | thread ids} to reference. When
-    /// omitted, the attachment references all threads on the channel.
+    /// Specific {@link Annotation.id | annotation ids} to reference. When
+    /// omitted, the attachment references all annotations on the channel.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub thread_ids: Option<Vec<String>>,
+    pub annotation_ids: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -2880,81 +2880,81 @@ pub struct ChangesetOperation {
     pub error: Option<ErrorInfo>,
 }
 
-/// Lightweight per-session summary of the comments channel, surfaced on
-/// {@link SessionSummary.comments} so badge UI can render thread / comment
-/// counts without subscribing to the channel itself.
+/// Lightweight per-session summary of the annotations channel, surfaced on
+/// {@link SessionSummary.annotations} so badge UI can render annotation /
+/// entry counts without subscribing to the channel itself.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CommentsSummary {
-    /// The subscribable comments channel URI for the owning session
-    /// (typically `ahp-session:/<uuid>/comments`). Surfaced explicitly even
+pub struct AnnotationsSummary {
+    /// The subscribable annotations channel URI for the owning session
+    /// (typically `ahp-session:/<uuid>/annotations`). Surfaced explicitly even
     /// though it is derivable from the session URI so badge UI does not need
     /// to know the derivation rule.
     pub resource: Uri,
-    /// Total number of {@link CommentThread} entries in the channel.
-    pub thread_count: i64,
-    /// Total number of {@link Comment} entries across every thread.
-    pub comment_count: i64,
+    /// Total number of {@link Annotation} entries in the channel.
+    pub annotation_count: i64,
+    /// Total number of {@link AnnotationEntry} entries across every annotation.
+    pub entry_count: i64,
 }
 
-/// Full state for a session's comments channel, returned when a client
-/// subscribes to an `ahp-session:/<uuid>/comments` URI.
+/// Full state for a session's annotations channel, returned when a client
+/// subscribes to an `ahp-session:/<uuid>/annotations` URI.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CommentsState {
-    /// Comment threads in this channel, keyed by {@link CommentThread.id}.
-    pub threads: Vec<CommentThread>,
+pub struct AnnotationsState {
+    /// Annotations in this channel, keyed by {@link Annotation.id}.
+    pub annotations: Vec<Annotation>,
 }
 
 /// A conversation anchored to a specific file produced by a specific turn,
 /// optionally narrowed to a range within that file.
 ///
-/// {@link turnId} anchors the thread to the file versions that turn
+/// {@link turnId} anchors the annotation to the file versions that turn
 /// produced, so a later turn that rewrites the same file does not silently
-/// invalidate the comment's anchor — clients can resolve {@link resource}
+/// invalidate the annotation's anchor — clients can resolve {@link resource}
 /// and {@link range} against the turn's changeset. When {@link range} is
-/// omitted the thread is anchored to the entire file.
+/// omitted the annotation is anchored to the entire file.
 ///
-/// Every thread MUST contain at least one {@link Comment}. The server
-/// enforces this invariant: {@link CreateCommentThreadParams |
-/// `createCommentThread`} requires an initial comment, and deleting the
-/// last remaining comment collapses the thread into a
-/// {@link CommentsThreadRemovedAction} rather than leaving an empty thread
+/// Every annotation MUST contain at least one {@link AnnotationEntry}. The
+/// server enforces this invariant: {@link CreateAnnotationParams |
+/// `createAnnotation`} requires an initial entry, and deleting the
+/// last remaining entry collapses the annotation into a
+/// {@link AnnotationsRemovedAction} rather than leaving an empty annotation
 /// behind.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CommentThread {
-    /// Stable identifier within the comments channel. Server-assigned.
+pub struct Annotation {
+    /// Stable identifier within the annotations channel. Server-assigned.
     pub id: String,
-    /// Turn that produced the file versions this thread is anchored to.
+    /// Turn that produced the file versions this annotation is anchored to.
     /// Matches a {@link Turn.id} on the owning session.
     pub turn_id: String,
-    /// The file the thread is anchored to.
+    /// The file the annotation is anchored to.
     pub resource: Uri,
-    /// Range within {@link resource} the thread is anchored to. When omitted
-    /// the thread is anchored to the entire file.
+    /// Range within {@link resource} the annotation is anchored to. When
+    /// omitted the annotation is anchored to the entire file.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
-    /// Whether the thread has been resolved. Newly created threads are always
-    /// unresolved (`false`); a client marks a thread resolved (or re-opens it)
-    /// through {@link UpdateCommentThreadParams | `updateCommentThread`}.
+    /// Whether the annotation has been resolved. Newly created annotations are
+    /// always unresolved (`false`); a client marks an annotation resolved (or
+    /// re-opens it) through {@link UpdateAnnotationParams | `updateAnnotation`}.
     pub resolved: bool,
-    /// Comments in this thread, in dispatch order (oldest first). MUST
+    /// Entries in this annotation, in dispatch order (oldest first). MUST
     /// contain at least one entry.
-    pub comments: Vec<Comment>,
+    pub entries: Vec<AnnotationEntry>,
     /// Server-defined opaque metadata, surfaced to tooling but not
     /// interpreted by the protocol.
     #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
     pub meta: Option<JsonObject>,
 }
 
-/// A single comment within a {@link CommentThread}.
+/// A single entry within an {@link Annotation}.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Comment {
-    /// Stable identifier within the enclosing thread. Server-assigned.
+pub struct AnnotationEntry {
+    /// Stable identifier within the enclosing annotation. Server-assigned.
     pub id: String,
-    /// Comment body. A bare `string` is rendered as plain text; pass
+    /// Entry body. A bare `string` is rendered as plain text; pass
     /// `{ markdown: "…" }` to opt into Markdown rendering. See
     /// {@link StringOrMarkdown}.
     pub text: StringOrMarkdown,
@@ -2964,16 +2964,16 @@ pub struct Comment {
     pub meta: Option<JsonObject>,
 }
 
-/// Input shape passed to {@link CreateCommentThreadParams | `createCommentThread`}
-/// and {@link AddCommentParams | `addComment`}. The server assigns the
-/// resulting {@link Comment.id}.
+/// Input shape passed to {@link CreateAnnotationParams | `createAnnotation`}
+/// and {@link AddAnnotationEntryParams | `addAnnotationEntry`}. The server
+/// assigns the resulting {@link AnnotationEntry.id}.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct NewComment {
-    /// Comment body. See {@link Comment.text}.
+pub struct NewAnnotationEntry {
+    /// Entry body. See {@link AnnotationEntry.text}.
     pub text: StringOrMarkdown,
     /// Server-defined opaque metadata, forwarded onto the resulting
-    /// {@link Comment._meta}.
+    /// {@link AnnotationEntry._meta}.
     #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
     pub meta: Option<JsonObject>,
 }
@@ -3231,8 +3231,8 @@ pub enum MessageAttachment {
     EmbeddedResource(MessageEmbeddedResourceAttachment),
     #[serde(rename = "resource")]
     Resource(MessageResourceAttachment),
-    #[serde(rename = "comments")]
-    Comments(MessageCommentsAttachment),
+    #[serde(rename = "annotations")]
+    Annotations(MessageAnnotationsAttachment),
     /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.
     /// Reducers treat this as a no-op.
     #[serde(untagged)]
@@ -3330,11 +3330,11 @@ pub enum ToolCallContributor {
 }
 
 /// The state payload of a snapshot — root, session, terminal,
-/// changeset, or comments state.
+/// changeset, or annotations state.
 ///
 /// Deserialized by trying session first (has required `summary`), then
 /// terminal (has required `content`), then changeset (has required
-/// `status` and `files`), then comments (has required `threads`),
+/// `status` and `files`), then annotations (has required `annotations`),
 /// then root.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -3342,6 +3342,6 @@ pub enum SnapshotState {
     Session(Box<SessionState>),
     Terminal(Box<TerminalState>),
     Changeset(Box<ChangesetState>),
-    Comments(Box<CommentsState>),
+    Annotations(Box<AnnotationsState>),
     Root(Box<RootState>),
 }

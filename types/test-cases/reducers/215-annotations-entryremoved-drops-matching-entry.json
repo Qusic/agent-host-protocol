@@ -1,8 +1,8 @@
 {
-  "description": "comments/commentRemoved drops the matching comment and leaves other comments untouched",
-  "reducer": "comments",
+  "description": "annotations/entryRemoved drops the matching entry and leaves other entries untouched",
+  "reducer": "annotations",
   "initial": {
-    "threads": [
+    "annotations": [
       {
         "id": "t-1",
         "turnId": "turn-1",
@@ -12,7 +12,7 @@
           "end": { "line": 0, "character": 5 }
         },
         "resolved": false,
-        "comments": [
+        "entries": [
           { "id": "c-1", "text": "first" },
           { "id": "c-2", "text": "second" },
           { "id": "c-3", "text": "third" }
@@ -21,12 +21,12 @@
     ]
   },
   "actions": [
-    { "type": "comments/commentRemoved", "threadId": "t-1", "commentId": "c-2" },
-    { "type": "comments/commentRemoved", "threadId": "t-1", "commentId": "missing" },
-    { "type": "comments/commentRemoved", "threadId": "missing", "commentId": "c-1" }
+    { "type": "annotations/entryRemoved", "annotationId": "t-1", "entryId": "c-2" },
+    { "type": "annotations/entryRemoved", "annotationId": "t-1", "entryId": "missing" },
+    { "type": "annotations/entryRemoved", "annotationId": "missing", "entryId": "c-1" }
   ],
   "expected": {
-    "threads": [
+    "annotations": [
       {
         "id": "t-1",
         "turnId": "turn-1",
@@ -36,7 +36,7 @@
           "end": { "line": 0, "character": 5 }
         },
         "resolved": false,
-        "comments": [
+        "entries": [
           { "id": "c-1", "text": "first" },
           { "id": "c-3", "text": "third" }
         ]

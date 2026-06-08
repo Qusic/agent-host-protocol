@@ -1174,73 +1174,73 @@ public struct InvokeChangesetOperationResult: Codable, Sendable {
     }
 }
 
-public struct CreateCommentThreadParams: Codable, Sendable {
+public struct CreateAnnotationParams: Codable, Sendable {
     /// Channel URI this command targets.
     public var channel: String
     /// Turn whose file versions {@link resource} + {@link range} address.
     public var turnId: String
     /// Anchored file URI.
     public var resource: String
-    /// Anchored range within {@link resource}. When omitted the thread is
+    /// Anchored range within {@link resource}. When omitted the annotation is
     /// anchored to the entire file.
     public var range: TextRange?
-    /// First comment in the thread. The server assigns its {@link Comment.id}.
-    public var comment: NewComment
+    /// First entry in the annotation. The server assigns its {@link AnnotationEntry.id}.
+    public var entry: NewAnnotationEntry
 
     public init(
         channel: String,
         turnId: String,
         resource: String,
         range: TextRange? = nil,
-        comment: NewComment
+        entry: NewAnnotationEntry
     ) {
         self.channel = channel
         self.turnId = turnId
         self.resource = resource
         self.range = range
-        self.comment = comment
+        self.entry = entry
     }
 }
 
-public struct CreateCommentThreadResult: Codable, Sendable {
-    /// Server-assigned {@link CommentThread.id}.
-    public var threadId: String
-    /// Server-assigned {@link Comment.id} of the initial comment.
-    public var commentId: String
+public struct CreateAnnotationResult: Codable, Sendable {
+    /// Server-assigned {@link Annotation.id}.
+    public var annotationId: String
+    /// Server-assigned {@link AnnotationEntry.id} of the initial entry.
+    public var entryId: String
 
     public init(
-        threadId: String,
-        commentId: String
+        annotationId: String,
+        entryId: String
     ) {
-        self.threadId = threadId
-        self.commentId = commentId
+        self.annotationId = annotationId
+        self.entryId = entryId
     }
 }
 
-public struct UpdateCommentThreadParams: Codable, Sendable {
+public struct UpdateAnnotationParams: Codable, Sendable {
     /// Channel URI this command targets.
     public var channel: String
-    /// The {@link CommentThread.id} to update.
-    public var threadId: String
-    /// New {@link CommentThread.turnId}, if changing.
+    /// The {@link Annotation.id} to update.
+    public var annotationId: String
+    /// New {@link Annotation.turnId}, if changing.
     public var turnId: String?
     /// New anchored file URI, if changing.
     public var resource: String?
     /// New anchored range, if changing.
     public var range: TextRange?
-    /// New {@link CommentThread.resolved} state, if changing.
+    /// New {@link Annotation.resolved} state, if changing.
     public var resolved: Bool?
 
     public init(
         channel: String,
-        threadId: String,
+        annotationId: String,
         turnId: String? = nil,
         resource: String? = nil,
         range: TextRange? = nil,
         resolved: Bool? = nil
     ) {
         self.channel = channel
-        self.threadId = threadId
+        self.annotationId = annotationId
         self.turnId = turnId
         self.resource = resource
         self.range = range
@@ -1248,90 +1248,90 @@ public struct UpdateCommentThreadParams: Codable, Sendable {
     }
 }
 
-public struct DeleteCommentThreadParams: Codable, Sendable {
+public struct DeleteAnnotationParams: Codable, Sendable {
     /// Channel URI this command targets.
     public var channel: String
-    /// The {@link CommentThread.id} to delete.
-    public var threadId: String
+    /// The {@link Annotation.id} to delete.
+    public var annotationId: String
 
     public init(
         channel: String,
-        threadId: String
+        annotationId: String
     ) {
         self.channel = channel
-        self.threadId = threadId
+        self.annotationId = annotationId
     }
 }
 
-public struct AddCommentParams: Codable, Sendable {
+public struct AddAnnotationEntryParams: Codable, Sendable {
     /// Channel URI this command targets.
     public var channel: String
-    /// Thread that receives the new comment.
-    public var threadId: String
-    /// Comment payload — the server assigns the id.
-    public var comment: NewComment
+    /// Annotation that receives the new entry.
+    public var annotationId: String
+    /// Entry payload — the server assigns the id.
+    public var entry: NewAnnotationEntry
 
     public init(
         channel: String,
-        threadId: String,
-        comment: NewComment
+        annotationId: String,
+        entry: NewAnnotationEntry
     ) {
         self.channel = channel
-        self.threadId = threadId
-        self.comment = comment
+        self.annotationId = annotationId
+        self.entry = entry
     }
 }
 
-public struct AddCommentResult: Codable, Sendable {
-    /// Server-assigned {@link Comment.id} of the new comment.
-    public var commentId: String
+public struct AddAnnotationEntryResult: Codable, Sendable {
+    /// Server-assigned {@link AnnotationEntry.id} of the new entry.
+    public var entryId: String
 
     public init(
-        commentId: String
+        entryId: String
     ) {
-        self.commentId = commentId
+        self.entryId = entryId
     }
 }
 
-public struct EditCommentParams: Codable, Sendable {
+public struct EditAnnotationEntryParams: Codable, Sendable {
     /// Channel URI this command targets.
     public var channel: String
-    /// Enclosing thread.
-    public var threadId: String
-    /// {@link Comment.id} to edit.
-    public var commentId: String
-    /// New comment body. See {@link Comment.text}.
+    /// Enclosing annotation.
+    public var annotationId: String
+    /// {@link AnnotationEntry.id} to edit.
+    public var entryId: String
+    /// New entry body. See {@link AnnotationEntry.text}.
     public var text: StringOrMarkdown
 
     public init(
         channel: String,
-        threadId: String,
-        commentId: String,
+        annotationId: String,
+        entryId: String,
         text: StringOrMarkdown
     ) {
         self.channel = channel
-        self.threadId = threadId
-        self.commentId = commentId
+        self.annotationId = annotationId
+        self.entryId = entryId
         self.text = text
     }
 }
 
-public struct DeleteCommentParams: Codable, Sendable {
+public struct DeleteAnnotationEntryParams: Codable, Sendable {
     /// Channel URI this command targets.
     public var channel: String
-    /// Enclosing thread.
-    public var threadId: String
-    /// {@link Comment.id} to remove.
-    public var commentId: String
+    /// Enclosing annotation.
+    public var annotationId: String
+    /// {@link AnnotationEntry.id} to remove.
+    public var entryId: String
 
     public init(
         channel: String,
-        threadId: String,
-        commentId: String
+        annotationId: String,
+        entryId: String
     ) {
         self.channel = channel
-        self.threadId = threadId
-        self.commentId = commentId
+        self.annotationId = annotationId
+        self.entryId = entryId
     }
 }
 

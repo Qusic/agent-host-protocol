@@ -67,15 +67,15 @@ import type {
   InvokeChangesetOperationResult,
 } from '../channels-changeset/commands.js';
 import type {
-  CreateCommentThreadParams,
-  CreateCommentThreadResult,
-  UpdateCommentThreadParams,
-  DeleteCommentThreadParams,
-  AddCommentParams,
-  AddCommentResult,
-  EditCommentParams,
-  DeleteCommentParams,
-} from '../channels-comments/commands.js';
+  CreateAnnotationParams,
+  CreateAnnotationResult,
+  UpdateAnnotationParams,
+  DeleteAnnotationParams,
+  AddAnnotationEntryParams,
+  AddAnnotationEntryResult,
+  EditAnnotationEntryParams,
+  DeleteAnnotationEntryParams,
+} from '../channels-annotations/commands.js';
 
 import type { ActionEnvelope } from './actions.js';
 import type {
@@ -177,12 +177,12 @@ export interface CommandMap {
   'sessionConfigCompletions': { params: SessionConfigCompletionsParams; result: SessionConfigCompletionsResult };
   'completions': { params: CompletionsParams; result: CompletionsResult };
   'invokeChangesetOperation': { params: InvokeChangesetOperationParams; result: InvokeChangesetOperationResult };
-  'createCommentThread': { params: CreateCommentThreadParams; result: CreateCommentThreadResult };
-  'updateCommentThread': { params: UpdateCommentThreadParams; result: null };
-  'deleteCommentThread': { params: DeleteCommentThreadParams; result: null };
-  'addComment': { params: AddCommentParams; result: AddCommentResult };
-  'editComment': { params: EditCommentParams; result: null };
-  'deleteComment': { params: DeleteCommentParams; result: null };
+  'createAnnotation': { params: CreateAnnotationParams; result: CreateAnnotationResult };
+  'updateAnnotation': { params: UpdateAnnotationParams; result: null };
+  'deleteAnnotation': { params: DeleteAnnotationParams; result: null };
+  'addAnnotationEntry': { params: AddAnnotationEntryParams; result: AddAnnotationEntryResult };
+  'editAnnotationEntry': { params: EditAnnotationEntryParams; result: null };
+  'deleteAnnotationEntry': { params: DeleteAnnotationEntryParams; result: null };
 }
 
 /**

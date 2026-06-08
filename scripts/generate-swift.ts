@@ -107,7 +107,7 @@ function mapType(tsType: string, propName?: string, containerName?: string): str
   if (tsType === 'RootState | SessionState'
     || tsType === 'RootState | SessionState | TerminalState'
     || tsType === 'RootState | SessionState | TerminalState | ChangesetState'
-    || tsType === 'RootState | SessionState | TerminalState | ChangesetState | CommentsState') return 'SnapshotState';
+    || tsType === 'RootState | SessionState | TerminalState | ChangesetState | AnnotationsState') return 'SnapshotState';
 
   // T | null → T?
   const nullMatch = tsType.match(/^(.+?)\s*\|\s*null$/);
@@ -532,7 +532,7 @@ const STATE_STRUCTS = [
   'SessionInputRequest',
   'TextPosition', 'TextRange', 'TextSelection',
   'SimpleMessageAttachment', 'MessageEmbeddedResourceAttachment', 'MessageResourceAttachment',
-  'MessageCommentsAttachment',
+  'MessageAnnotationsAttachment',
   'MarkdownResponsePart', 'ContentRef',
   'ResourceReponsePart', 'ToolCallResponsePart', 'ReasoningResponsePart',
   'SystemNotificationResponsePart',
@@ -557,7 +557,7 @@ const STATE_STRUCTS = [
   'TerminalUnclassifiedPart', 'TerminalCommandPart',
   'UsageInfo', 'ErrorInfo', 'Snapshot',
   'Changeset', 'ChangesetState', 'ChangesetFile', 'ChangesetOperation',
-  'CommentsSummary', 'CommentsState', 'CommentThread', 'Comment', 'NewComment',
+  'AnnotationsSummary', 'AnnotationsState', 'Annotation', 'AnnotationEntry', 'NewAnnotationEntry',
   'TelemetryCapabilities',
   'ResourceWatchState', 'ResourceChange',
 ];
@@ -647,7 +647,7 @@ const MESSAGE_ATTACHMENT_UNION: UnionConfig = {
     { caseName: 'simple', structName: 'SimpleMessageAttachment', discriminantValue: 'simple' },
     { caseName: 'embeddedResource', structName: 'MessageEmbeddedResourceAttachment', discriminantValue: 'embeddedResource' },
     { caseName: 'resource', structName: 'MessageResourceAttachment', discriminantValue: 'resource' },
-    { caseName: 'comments', structName: 'MessageCommentsAttachment', discriminantValue: 'comments' },
+    { caseName: 'annotations', structName: 'MessageAnnotationsAttachment', discriminantValue: 'annotations' },
   ],
 };
 
@@ -795,13 +795,13 @@ public enum StringOrMarkdown: Codable, Sendable, Equatable {
 }
 
 function generateSnapshotState(): string {
-  return `/// The state payload of a snapshot — root, session, terminal, changeset, or comments state.
+  return `/// The state payload of a snapshot — root, session, terminal, changeset, or annotations state.
 public enum SnapshotState: Codable, Sendable {
     case root(RootState)
     case session(SessionState)
     case terminal(TerminalState)
     case changeset(ChangesetState)
-    case comments(CommentsState)
+    case annotations(AnnotationsState)
 
     public init(from decoder: Decoder) throws {
         // SessionState has required \`summary\` field, try it first
@@ -811,8 +811,8 @@ public enum SnapshotState: Codable, Sendable {
             self = .terminal(terminal)
         } else if let changeset = try? ChangesetState(from: decoder) {
             self = .changeset(changeset)
-        } else if let comments = try? CommentsState(from: decoder) {
-            self = .comments(comments)
+        } else if let annotations = try? AnnotationsState(from: decoder) {
+            self = .annotations(annotations)
         } else {
             self = .root(try RootState(from: decoder))
         }
@@ -824,7 +824,7 @@ public enum SnapshotState: Codable, Sendable {
         case .session(let state): try state.encode(to: encoder)
         case .terminal(let state): try state.encode(to: encoder)
         case .changeset(let state): try state.encode(to: encoder)
-        case .comments(let state): try state.encode(to: encoder)
+        case .annotations(let state): try state.encode(to: encoder)
         }
     }
 }`;
@@ -948,11 +948,10 @@ const ACTION_VARIANTS: { type: string; caseName: string; tsInterface: string }[]
   { type: 'changeset/operationsChanged', caseName: 'changesetOperationsChanged', tsInterface: 'ChangesetOperationsChangedAction' },
   { type: 'changeset/operationStatusChanged', caseName: 'changesetOperationStatusChanged', tsInterface: 'ChangesetOperationStatusChangedAction' },
   { type: 'changeset/cleared', caseName: 'changesetCleared', tsInterface: 'ChangesetClearedAction' },
-  { type: 'comments/threadSet', caseName: 'commentsThreadSet', tsInterface: 'CommentsThreadSetAction' },
-  { type: 'comments/threadRemoved', caseName: 'commentsThreadRemoved', tsInterface: 'CommentsThreadRemovedAction' },
-  { type: 'comments/commentSet', caseName: 'commentsCommentSet', tsInterface: 'CommentsCommentSetAction' },
-  { type: 'comments/commentRemoved', caseName: 'commentsCommentRemoved', tsInterface: 'CommentsCommentRemovedAction' },
-  { type: 'comments/cleared', caseName: 'commentsCleared', tsInterface: 'CommentsClearedAction' },
+  { type: 'annotations/set', caseName: 'annotationsSet', tsInterface: 'AnnotationsSetAction' },
+  { type: 'annotations/removed', caseName: 'annotationsRemoved', tsInterface: 'AnnotationsRemovedAction' },
+  { type: 'annotations/entrySet', caseName: 'annotationsEntrySet', tsInterface: 'AnnotationsEntrySetAction' },
+  { type: 'annotations/entryRemoved', caseName: 'annotationsEntryRemoved', tsInterface: 'AnnotationsEntryRemovedAction' },
   { type: 'root/terminalsChanged', caseName: 'rootTerminalsChanged', tsInterface: 'RootTerminalsChangedAction' },
   { type: 'root/configChanged', caseName: 'rootConfigChanged', tsInterface: 'RootConfigChangedAction' },
   { type: 'terminal/data', caseName: 'terminalData', tsInterface: 'TerminalDataAction' },
@@ -1136,12 +1135,12 @@ const COMMAND_STRUCTS = [
   'SessionConfigValueItem',
   'CompletionsParams', 'CompletionItem', 'CompletionsResult',
   'InvokeChangesetOperationParams', 'InvokeChangesetOperationResult',
-  'CreateCommentThreadParams', 'CreateCommentThreadResult',
-  'UpdateCommentThreadParams',
-  'DeleteCommentThreadParams',
-  'AddCommentParams', 'AddCommentResult',
-  'EditCommentParams',
-  'DeleteCommentParams',
+  'CreateAnnotationParams', 'CreateAnnotationResult',
+  'UpdateAnnotationParams',
+  'DeleteAnnotationParams',
+  'AddAnnotationEntryParams', 'AddAnnotationEntryResult',
+  'EditAnnotationEntryParams',
+  'DeleteAnnotationEntryParams',
   'ChangesetOperationFollowUp',
 ];
 

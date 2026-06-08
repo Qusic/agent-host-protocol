@@ -6,7 +6,7 @@
  */
 
 import type { Changeset } from '../channels-changeset/state.js';
-import type { CommentsSummary } from '../channels-comments/state.js';
+import type { AnnotationsSummary } from '../channels-annotations/state.js';
 import type { ModelSelection } from '../channels-root/state.js';
 import type {
   ConfigPropertySchema,
@@ -234,12 +234,12 @@ export interface SessionSummary {
   */
   changes?: ChangesSummary;
   /**
-   * Lightweight summary of this session's inline comments channel
-   * (`ahp-session:/<uuid>/comments`). Surfaced so badge UI can render
-   * thread / comment counts without subscribing. Absent when the session
-   * does not expose a comments channel.
+   * Lightweight summary of this session's inline annotations channel
+   * (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
+   * annotation / entry counts without subscribing. Absent when the session
+   * does not expose an annotations channel.
    */
-  comments?: CommentsSummary;
+  annotations?: AnnotationsSummary;
 }
 
 /**
@@ -593,8 +593,8 @@ export const enum MessageAttachmentKind {
   EmbeddedResource = 'embeddedResource',
   /** An attachment that references a resource by URI. */
   Resource = 'resource',
-  /** An attachment that references comment threads on a comments channel. */
-  Comments = 'comments',
+  /** An attachment that references annotations on an annotations channel. */
+  Annotations = 'annotations',
 }
 
 /**
@@ -785,28 +785,28 @@ export interface MessageResourceAttachment extends MessageAttachmentBase, Conten
 }
 
 /**
- * An attachment that references comment threads on a session's comments
- * channel (see {@link CommentsState}).
+ * An attachment that references annotations on a session's annotations
+ * channel (see {@link AnnotationsState}).
  *
- * When {@link threadIds} is omitted the attachment references every thread
- * on the channel; when present it references only the listed
- * {@link CommentThread.id | thread ids}.
+ * When {@link annotationIds} is omitted the attachment references every
+ * annotation on the channel; when present it references only the listed
+ * {@link Annotation.id | annotation ids}.
  *
  * @category Turn Types
  */
-export interface MessageCommentsAttachment extends MessageAttachmentBase {
+export interface MessageAnnotationsAttachment extends MessageAttachmentBase {
   /** Discriminant */
-  type: MessageAttachmentKind.Comments;
+  type: MessageAttachmentKind.Annotations;
   /**
-   * The comments channel URI (typically `ahp-session:/<uuid>/comments`).
-   * Matches {@link CommentsSummary.resource}.
+   * The annotations channel URI (typically `ahp-session:/<uuid>/annotations`).
+   * Matches {@link AnnotationsSummary.resource}.
    */
   resource: URI;
   /**
-   * Specific {@link CommentThread.id | thread ids} to reference. When
-   * omitted, the attachment references all threads on the channel.
+   * Specific {@link Annotation.id | annotation ids} to reference. When
+   * omitted, the attachment references all annotations on the channel.
    */
-  threadIds?: string[];
+  annotationIds?: string[];
 }
 
 /**
@@ -818,7 +818,7 @@ export type MessageAttachment =
   | SimpleMessageAttachment
   | MessageEmbeddedResourceAttachment
   | MessageResourceAttachment
-  | MessageCommentsAttachment;
+  | MessageAnnotationsAttachment;
 
 // ─── Response Parts ──────────────────────────────────────────────────────────
 

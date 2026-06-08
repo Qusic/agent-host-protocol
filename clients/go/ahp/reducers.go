@@ -1167,20 +1167,19 @@ func ApplyActionToChangeset(state *ahptypes.ChangesetState, action ahptypes.Stat
 	return ReduceOutcomeOutOfScope
 }
 
-// ─── Comments Reducer ─────────────────────────────────────────
+// ─── Annotations Reducer ─────────────────────────────────────────
 
-// ApplyActionToComments is the entry point for comments actions.
-// Mirrors the Rust client's stub: every recognized comments action
-// short-circuits as [ReduceOutcomeNoOp] until the full comments
+// ApplyActionToAnnotations is the entry point for annotations actions.
+// Mirrors the Rust client's stub: every recognized annotations action
+// short-circuits as [ReduceOutcomeNoOp] until the full annotations
 // reducer is ported. Unrelated actions return [ReduceOutcomeOutOfScope].
-func ApplyActionToComments(state *ahptypes.CommentsState, action ahptypes.StateAction) ReduceOutcome {
+func ApplyActionToAnnotations(state *ahptypes.AnnotationsState, action ahptypes.StateAction) ReduceOutcome {
 	_ = state
 	switch action.Value.(type) {
-	case *ahptypes.CommentsThreadSetAction,
-		*ahptypes.CommentsThreadRemovedAction,
-		*ahptypes.CommentsCommentSetAction,
-		*ahptypes.CommentsCommentRemovedAction,
-		*ahptypes.CommentsClearedAction:
+	case *ahptypes.AnnotationsSetAction,
+		*ahptypes.AnnotationsRemovedAction,
+		*ahptypes.AnnotationsEntrySetAction,
+		*ahptypes.AnnotationsEntryRemovedAction:
 		return ReduceOutcomeNoOp
 	}
 	return ReduceOutcomeOutOfScope
