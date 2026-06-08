@@ -19,7 +19,7 @@ var _ = json.RawMessage(nil)
 type ReconnectResultType string
 
 const (
-	ReconnectResultTypeReplay   ReconnectResultType = "replay"
+	ReconnectResultTypeReplay ReconnectResultType = "replay"
 	ReconnectResultTypeSnapshot ReconnectResultType = "snapshot"
 )
 
@@ -28,7 +28,7 @@ type ContentEncoding string
 
 const (
 	ContentEncodingBase64 ContentEncoding = "base64"
-	ContentEncodingUtf8   ContentEncoding = "utf-8"
+	ContentEncodingUtf8 ContentEncoding = "utf-8"
 )
 
 // The kind of completion items being requested.
@@ -45,36 +45,36 @@ const (
 type ResourceType string
 
 const (
-	ResourceTypeFile      ResourceType = "file"
+	ResourceTypeFile ResourceType = "file"
 	ResourceTypeDirectory ResourceType = "directory"
-	ResourceTypeSymlink   ResourceType = "symlink"
+	ResourceTypeSymlink ResourceType = "symlink"
 )
 
 // How {@link ResourceWriteParams.data} is placed within the target file.
 //
 // Each mode interprets {@link ResourceWriteParams.position} differently:
 //
-//   - `truncate` (default): rooted at the **start** of the file. The file is
-//     truncated at `position` (0 by default) and `data` is written from that
-//     offset, so the resulting file is `existing[0..position] + data`. With
-//     `position` omitted this is a full overwrite.
-//   - `append`: rooted at the **end** of the file. `position` counts bytes
-//     backwards from EOF, so `position: 0` (the default) writes at EOF —
-//     POSIX append — and `position: 5` inserts `data` 5 bytes before the
-//     current EOF, shifting those trailing 5 bytes after the inserted region.
-//     The server MUST evaluate the effective EOF and write atomically with
-//     respect to other appenders so concurrent `append` writes do not
-//     clobber each other.
-//   - `insert`: rooted at the **start** of the file. `position` (0 by default)
-//     is the byte offset at which `data` is spliced in; bytes at or after
-//     `position` are shifted right by `data.length`. `insert` always grows
-//     the file — use `truncate` to overwrite bytes in place.
+// - `truncate` (default): rooted at the **start** of the file. The file is
+//   truncated at `position` (0 by default) and `data` is written from that
+//   offset, so the resulting file is `existing[0..position] + data`. With
+//   `position` omitted this is a full overwrite.
+// - `append`: rooted at the **end** of the file. `position` counts bytes
+//   backwards from EOF, so `position: 0` (the default) writes at EOF —
+//   POSIX append — and `position: 5` inserts `data` 5 bytes before the
+//   current EOF, shifting those trailing 5 bytes after the inserted region.
+//   The server MUST evaluate the effective EOF and write atomically with
+//   respect to other appenders so concurrent `append` writes do not
+//   clobber each other.
+// - `insert`: rooted at the **start** of the file. `position` (0 by default)
+//   is the byte offset at which `data` is spliced in; bytes at or after
+//   `position` are shifted right by `data.length`. `insert` always grows
+//   the file — use `truncate` to overwrite bytes in place.
 type ResourceWriteMode string
 
 const (
 	ResourceWriteModeTruncate ResourceWriteMode = "truncate"
-	ResourceWriteModeAppend   ResourceWriteMode = "append"
-	ResourceWriteModeInsert   ResourceWriteMode = "insert"
+	ResourceWriteModeAppend ResourceWriteMode = "append"
+	ResourceWriteModeInsert ResourceWriteMode = "insert"
 )
 
 // ─── Command Payloads ─────────────────────────────────────────────────
@@ -801,9 +801,9 @@ type CompletionsParams struct {
 // A single completion item returned by the `completions` command.
 //
 // When the user accepts an item, the client SHOULD:
-//  1. Replace the range `[rangeStart, rangeEnd)` in the input with `insertText`
-//     (or insert `insertText` at the cursor when the range is omitted).
-//  2. Associate the item's `attachment` with the resulting {@link Message}.
+// 1. Replace the range `[rangeStart, rangeEnd)` in the input with `insertText`
+//    (or insert `insertText` at the cursor when the range is omitted).
+// 2. Associate the item's `attachment` with the resulting {@link Message}.
 type CompletionItem struct {
 	// The text inserted into the input when this item is accepted.
 	InsertText string `json:"insertText"`
@@ -881,13 +881,15 @@ type ChangesetOperationFollowUp struct {
 	External *bool `json:"external,omitempty"`
 }
 
-// Create a new {@link CommentThread} anchored to a file range from a
-// specific turn.
+// Create a new {@link CommentThread} anchored to a file from a specific
+// turn, optionally narrowed to a range within that file.
 //
 // The initial comment is required — the protocol forbids empty threads,
 // so thread creation and first-comment creation are fused into one
-// command. The server assigns both {@link CreateCommentThreadResult.threadId}
-// and {@link CreateCommentThreadResult.commentId}, then broadcasts a
+// command. The created thread always starts unresolved
+// ({@link CommentThread.resolved} is `false`). The server assigns both
+// {@link CreateCommentThreadResult.threadId} and
+// {@link CreateCommentThreadResult.commentId}, then broadcasts a
 // {@link CommentsThreadSetAction} on the channel.
 type CreateCommentThreadParams struct {
 	// Channel URI this command targets.
@@ -896,8 +898,9 @@ type CreateCommentThreadParams struct {
 	TurnId string `json:"turnId"`
 	// Anchored file URI.
 	Resource URI `json:"resource"`
-	// Anchored range within {@link resource}.
-	Range TextRange `json:"range"`
+	// Anchored range within {@link resource}. When omitted the thread is
+	// anchored to the entire file.
+	Range *TextRange `json:"range,omitempty"`
 	// First comment in the thread. The server assigns its {@link Comment.id}.
 	Comment NewComment `json:"comment"`
 }
@@ -910,9 +913,10 @@ type CreateCommentThreadResult struct {
 	CommentId string `json:"commentId"`
 }
 
-// Re-anchor an existing {@link CommentThread} — typically used to re-pin
-// a thread to a different range or a newer turn after an edit. Comments
-// themselves are not modified by this command; use
+// Re-anchor or resolve an existing {@link CommentThread} — typically used
+// to re-pin a thread to a different range or a newer turn after an edit,
+// or to mark the thread {@link CommentThread.resolved | resolved} (or
+// re-open it). Comments themselves are not modified by this command; use
 // {@link AddCommentParams | `addComment`},
 // {@link EditCommentParams | `editComment`}, or
 // {@link DeleteCommentParams | `deleteComment`} for that.
@@ -930,6 +934,8 @@ type UpdateCommentThreadParams struct {
 	Resource *URI `json:"resource,omitempty"`
 	// New anchored range, if changing.
 	Range *TextRange `json:"range,omitempty"`
+	// New {@link CommentThread.resolved} state, if changing.
+	Resolved *bool `json:"resolved,omitempty"`
 }
 
 // Delete an entire comment thread (and every comment it contains). The
@@ -1003,7 +1009,7 @@ type ReconnectResult struct {
 // concrete variant of ReconnectResult.
 type isReconnectResult interface{ isReconnectResult() }
 
-func (*ReconnectReplayResult) isReconnectResult()   {}
+func (*ReconnectReplayResult) isReconnectResult() {}
 func (*ReconnectSnapshotResult) isReconnectResult() {}
 
 // UnmarshalJSON decodes the variant indicated by the "type" discriminator.
@@ -1061,10 +1067,10 @@ func (*ChangesetOperationResourceTarget) isChangesetOperationTarget() {}
 
 // ChangesetOperationRangeTarget targets a range within a resource.
 type ChangesetOperationRangeTarget struct {
-	Kind     string                        `json:"kind"`
-	Resource URI                           `json:"resource"`
-	Side     *string                       `json:"side,omitempty"`
-	Range    ChangesetOperationTargetRange `json:"range"`
+	Kind     string                          `json:"kind"`
+	Resource URI                             `json:"resource"`
+	Side     *string                         `json:"side,omitempty"`
+	Range    ChangesetOperationTargetRange   `json:"range"`
 }
 
 func (*ChangesetOperationRangeTarget) isChangesetOperationTarget() {}

@@ -1042,9 +1042,10 @@ data class CreateCommentThreadParams(
      */
     val resource: String,
     /**
-     * Anchored range within {@link resource}.
+     * Anchored range within {@link resource}. When omitted the thread is
+     * anchored to the entire file.
      */
-    val range: TextRange,
+    val range: TextRange? = null,
     /**
      * First comment in the thread. The server assigns its {@link Comment.id}.
      */
@@ -1084,7 +1085,11 @@ data class UpdateCommentThreadParams(
     /**
      * New anchored range, if changing.
      */
-    val range: TextRange? = null
+    val range: TextRange? = null,
+    /**
+     * New {@link CommentThread.resolved} state, if changing.
+     */
+    val resolved: Boolean? = null
 )
 
 @Serializable

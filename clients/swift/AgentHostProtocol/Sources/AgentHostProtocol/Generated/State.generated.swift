@@ -3637,8 +3637,13 @@ public struct CommentThread: Codable, Sendable {
     public var turnId: String
     /// The file the thread is anchored to.
     public var resource: String
-    /// Range within {@link resource} the thread is anchored to.
-    public var range: TextRange
+    /// Range within {@link resource} the thread is anchored to. When omitted
+    /// the thread is anchored to the entire file.
+    public var range: TextRange?
+    /// Whether the thread has been resolved. Newly created threads are always
+    /// unresolved (`false`); a client marks a thread resolved (or re-opens it)
+    /// through {@link UpdateCommentThreadParams | `updateCommentThread`}.
+    public var resolved: Bool
     /// Comments in this thread, in dispatch order (oldest first). MUST
     /// contain at least one entry.
     public var comments: [Comment]
@@ -3651,6 +3656,7 @@ public struct CommentThread: Codable, Sendable {
         case turnId
         case resource
         case range
+        case resolved
         case comments
         case meta = "_meta"
     }
@@ -3659,7 +3665,8 @@ public struct CommentThread: Codable, Sendable {
         id: String,
         turnId: String,
         resource: String,
-        range: TextRange,
+        range: TextRange? = nil,
+        resolved: Bool,
         comments: [Comment],
         meta: [String: AnyCodable]? = nil
     ) {
@@ -3667,6 +3674,7 @@ public struct CommentThread: Codable, Sendable {
         self.turnId = turnId
         self.resource = resource
         self.range = range
+        self.resolved = resolved
         self.comments = comments
         self.meta = meta
     }

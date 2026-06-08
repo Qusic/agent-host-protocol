@@ -19,13 +19,15 @@ import type { NewComment } from './state.js';
 // ─── createCommentThread ─────────────────────────────────────────────────────
 
 /**
- * Create a new {@link CommentThread} anchored to a file range from a
- * specific turn.
+ * Create a new {@link CommentThread} anchored to a file from a specific
+ * turn, optionally narrowed to a range within that file.
  *
  * The initial comment is required — the protocol forbids empty threads,
  * so thread creation and first-comment creation are fused into one
- * command. The server assigns both {@link CreateCommentThreadResult.threadId}
- * and {@link CreateCommentThreadResult.commentId}, then broadcasts a
+ * command. The created thread always starts unresolved
+ * ({@link CommentThread.resolved} is `false`). The server assigns both
+ * {@link CreateCommentThreadResult.threadId} and
+ * {@link CreateCommentThreadResult.commentId}, then broadcasts a
  * {@link CommentsThreadSetAction} on the channel.
  *
  * @category Commands
@@ -41,8 +43,11 @@ export interface CreateCommentThreadParams extends BaseParams {
   turnId: string;
   /** Anchored file URI. */
   resource: URI;
-  /** Anchored range within {@link resource}. */
-  range: TextRange;
+  /**
+   * Anchored range within {@link resource}. When omitted the thread is
+   * anchored to the entire file.
+   */
+  range?: TextRange;
   /** First comment in the thread. The server assigns its {@link Comment.id}. */
   comment: NewComment;
 }
@@ -62,9 +67,10 @@ export interface CreateCommentThreadResult {
 // ─── updateCommentThread ─────────────────────────────────────────────────────
 
 /**
- * Re-anchor an existing {@link CommentThread} — typically used to re-pin
- * a thread to a different range or a newer turn after an edit. Comments
- * themselves are not modified by this command; use
+ * Re-anchor or resolve an existing {@link CommentThread} — typically used
+ * to re-pin a thread to a different range or a newer turn after an edit,
+ * or to mark the thread {@link CommentThread.resolved | resolved} (or
+ * re-open it). Comments themselves are not modified by this command; use
  * {@link AddCommentParams | `addComment`},
  * {@link EditCommentParams | `editComment`}, or
  * {@link DeleteCommentParams | `deleteComment`} for that.
@@ -89,6 +95,8 @@ export interface UpdateCommentThreadParams extends BaseParams {
   resource?: URI;
   /** New anchored range, if changing. */
   range?: TextRange;
+  /** New {@link CommentThread.resolved} state, if changing. */
+  resolved?: boolean;
 }
 
 // ─── deleteCommentThread ─────────────────────────────────────────────────────

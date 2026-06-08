@@ -3945,7 +3945,7 @@
     },
     "CommentThread": {
       "type": "object",
-      "description": "A conversation anchored to a specific range in a specific file produced\nby a specific turn.\n\n{@link turnId} anchors the thread to the file versions that turn\nproduced, so a later turn that rewrites the same file does not silently\ninvalidate the comment's anchor — clients can resolve {@link resource}\nand {@link range} against the turn's changeset.\n\nEvery thread MUST contain at least one {@link Comment}. The server\nenforces this invariant: {@link CreateCommentThreadParams |\n`createCommentThread`} requires an initial comment, and deleting the\nlast remaining comment collapses the thread into a\n{@link CommentsThreadRemovedAction} rather than leaving an empty thread\nbehind.",
+      "description": "A conversation anchored to a specific file produced by a specific turn,\noptionally narrowed to a range within that file.\n\n{@link turnId} anchors the thread to the file versions that turn\nproduced, so a later turn that rewrites the same file does not silently\ninvalidate the comment's anchor — clients can resolve {@link resource}\nand {@link range} against the turn's changeset. When {@link range} is\nomitted the thread is anchored to the entire file.\n\nEvery thread MUST contain at least one {@link Comment}. The server\nenforces this invariant: {@link CreateCommentThreadParams |\n`createCommentThread`} requires an initial comment, and deleting the\nlast remaining comment collapses the thread into a\n{@link CommentsThreadRemovedAction} rather than leaving an empty thread\nbehind.",
       "properties": {
         "id": {
           "type": "string",
@@ -3961,7 +3961,11 @@
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "Range within {@link resource} the thread is anchored to."
+          "description": "Range within {@link resource} the thread is anchored to. When omitted\nthe thread is anchored to the entire file."
+        },
+        "resolved": {
+          "type": "boolean",
+          "description": "Whether the thread has been resolved. Newly created threads are always\nunresolved (`false`); a client marks a thread resolved (or re-opens it)\nthrough {@link UpdateCommentThreadParams | `updateCommentThread`}."
         },
         "comments": {
           "type": "array",
@@ -3980,7 +3984,7 @@
         "id",
         "turnId",
         "resource",
-        "range",
+        "resolved",
         "comments"
       ]
     },

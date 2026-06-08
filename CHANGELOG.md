@@ -76,8 +76,11 @@ Spec version: `0.3.0`
   carrying optional `additions`, `deletions`, and `files` counts so servers
   can advertise an at-a-glance view of a session's file-change footprint.
 - Added a new comments channel exposed on `ahp-session:/<uuid>/comments`.
-  Threads anchor to a `(turnId, resource, range)` triple and always carry
-  at least one comment; new `createCommentThread`, `updateCommentThread`,
+  Threads anchor to a `(turnId, resource)` pair with an optional `range`
+  (omitted to anchor to the entire file), carry a `resolved` flag (newly
+  created threads start unresolved; clients flip it via
+  `updateCommentThread`), and always carry at least one comment; new
+  `createCommentThread`, `updateCommentThread`,
   `deleteCommentThread`, `addComment`, `editComment`, `deleteComment`
   commands drive mutations and echo as `comments/threadSet`,
   `comments/threadRemoved`, `comments/commentSet`, `comments/commentRemoved`,

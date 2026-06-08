@@ -1050,13 +1050,15 @@ pub struct ChangesetOperationFollowUp {
     pub external: Option<bool>,
 }
 
-/// Create a new {@link CommentThread} anchored to a file range from a
-/// specific turn.
+/// Create a new {@link CommentThread} anchored to a file from a specific
+/// turn, optionally narrowed to a range within that file.
 ///
 /// The initial comment is required — the protocol forbids empty threads,
 /// so thread creation and first-comment creation are fused into one
-/// command. The server assigns both {@link CreateCommentThreadResult.threadId}
-/// and {@link CreateCommentThreadResult.commentId}, then broadcasts a
+/// command. The created thread always starts unresolved
+/// ({@link CommentThread.resolved} is `false`). The server assigns both
+/// {@link CreateCommentThreadResult.threadId} and
+/// {@link CreateCommentThreadResult.commentId}, then broadcasts a
 /// {@link CommentsThreadSetAction} on the channel.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -1067,8 +1069,10 @@ pub struct CreateCommentThreadParams {
     pub turn_id: String,
     /// Anchored file URI.
     pub resource: Uri,
-    /// Anchored range within {@link resource}.
-    pub range: TextRange,
+    /// Anchored range within {@link resource}. When omitted the thread is
+    /// anchored to the entire file.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub range: Option<TextRange>,
     /// First comment in the thread. The server assigns its {@link Comment.id}.
     pub comment: NewComment,
 }
@@ -1083,9 +1087,10 @@ pub struct CreateCommentThreadResult {
     pub comment_id: String,
 }
 
-/// Re-anchor an existing {@link CommentThread} — typically used to re-pin
-/// a thread to a different range or a newer turn after an edit. Comments
-/// themselves are not modified by this command; use
+/// Re-anchor or resolve an existing {@link CommentThread} — typically used
+/// to re-pin a thread to a different range or a newer turn after an edit,
+/// or to mark the thread {@link CommentThread.resolved | resolved} (or
+/// re-open it). Comments themselves are not modified by this command; use
 /// {@link AddCommentParams | `addComment`},
 /// {@link EditCommentParams | `editComment`}, or
 /// {@link DeleteCommentParams | `deleteComment`} for that.
@@ -1108,6 +1113,9 @@ pub struct UpdateCommentThreadParams {
     /// New anchored range, if changing.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// New {@link CommentThread.resolved} state, if changing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved: Option<bool>,
 }
 
 /// Delete an entire comment thread (and every comment it contains). The

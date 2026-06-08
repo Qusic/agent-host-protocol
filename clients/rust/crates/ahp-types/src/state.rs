@@ -2858,13 +2858,14 @@ pub struct CommentsState {
     pub threads: Vec<CommentThread>,
 }
 
-/// A conversation anchored to a specific range in a specific file produced
-/// by a specific turn.
+/// A conversation anchored to a specific file produced by a specific turn,
+/// optionally narrowed to a range within that file.
 ///
 /// {@link turnId} anchors the thread to the file versions that turn
 /// produced, so a later turn that rewrites the same file does not silently
 /// invalidate the comment's anchor — clients can resolve {@link resource}
-/// and {@link range} against the turn's changeset.
+/// and {@link range} against the turn's changeset. When {@link range} is
+/// omitted the thread is anchored to the entire file.
 ///
 /// Every thread MUST contain at least one {@link Comment}. The server
 /// enforces this invariant: {@link CreateCommentThreadParams |
@@ -2882,8 +2883,14 @@ pub struct CommentThread {
     pub turn_id: String,
     /// The file the thread is anchored to.
     pub resource: Uri,
-    /// Range within {@link resource} the thread is anchored to.
-    pub range: TextRange,
+    /// Range within {@link resource} the thread is anchored to. When omitted
+    /// the thread is anchored to the entire file.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub range: Option<TextRange>,
+    /// Whether the thread has been resolved. Newly created threads are always
+    /// unresolved (`false`); a client marks a thread resolved (or re-opens it)
+    /// through {@link UpdateCommentThreadParams | `updateCommentThread`}.
+    pub resolved: bool,
     /// Comments in this thread, in dispatch order (oldest first). MUST
     /// contain at least one entry.
     pub comments: Vec<Comment>,

@@ -1118,7 +1118,7 @@
     },
     "CreateCommentThreadParams": {
       "type": "object",
-      "description": "Create a new {@link CommentThread} anchored to a file range from a\nspecific turn.\n\nThe initial comment is required — the protocol forbids empty threads,\nso thread creation and first-comment creation are fused into one\ncommand. The server assigns both {@link CreateCommentThreadResult.threadId}\nand {@link CreateCommentThreadResult.commentId}, then broadcasts a\n{@link CommentsThreadSetAction} on the channel.",
+      "description": "Create a new {@link CommentThread} anchored to a file from a specific\nturn, optionally narrowed to a range within that file.\n\nThe initial comment is required — the protocol forbids empty threads,\nso thread creation and first-comment creation are fused into one\ncommand. The created thread always starts unresolved\n({@link CommentThread.resolved} is `false`). The server assigns both\n{@link CreateCommentThreadResult.threadId} and\n{@link CreateCommentThreadResult.commentId}, then broadcasts a\n{@link CommentsThreadSetAction} on the channel.",
       "properties": {
         "channel": {
           "$ref": "#/$defs/URI",
@@ -1134,7 +1134,7 @@
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "Anchored range within {@link resource}."
+          "description": "Anchored range within {@link resource}. When omitted the thread is\nanchored to the entire file."
         },
         "comment": {
           "$ref": "#/$defs/NewComment",
@@ -1145,7 +1145,6 @@
         "channel",
         "turnId",
         "resource",
-        "range",
         "comment"
       ]
     },
@@ -1169,7 +1168,7 @@
     },
     "UpdateCommentThreadParams": {
       "type": "object",
-      "description": "Re-anchor an existing {@link CommentThread} — typically used to re-pin\na thread to a different range or a newer turn after an edit. Comments\nthemselves are not modified by this command; use\n{@link AddCommentParams | `addComment`},\n{@link EditCommentParams | `editComment`}, or\n{@link DeleteCommentParams | `deleteComment`} for that.\n\nOmitted optional fields preserve their current value. The server\nechoes the resulting thread state as a {@link CommentsThreadSetAction}.",
+      "description": "Re-anchor or resolve an existing {@link CommentThread} — typically used\nto re-pin a thread to a different range or a newer turn after an edit,\nor to mark the thread {@link CommentThread.resolved | resolved} (or\nre-open it). Comments themselves are not modified by this command; use\n{@link AddCommentParams | `addComment`},\n{@link EditCommentParams | `editComment`}, or\n{@link DeleteCommentParams | `deleteComment`} for that.\n\nOmitted optional fields preserve their current value. The server\nechoes the resulting thread state as a {@link CommentsThreadSetAction}.",
       "properties": {
         "channel": {
           "$ref": "#/$defs/URI",
@@ -1190,6 +1189,10 @@
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "New anchored range, if changing."
+        },
+        "resolved": {
+          "type": "boolean",
+          "description": "New {@link CommentThread.resolved} state, if changing."
         }
       },
       "required": [
@@ -5085,7 +5088,7 @@
     },
     "CommentThread": {
       "type": "object",
-      "description": "A conversation anchored to a specific range in a specific file produced\nby a specific turn.\n\n{@link turnId} anchors the thread to the file versions that turn\nproduced, so a later turn that rewrites the same file does not silently\ninvalidate the comment's anchor — clients can resolve {@link resource}\nand {@link range} against the turn's changeset.\n\nEvery thread MUST contain at least one {@link Comment}. The server\nenforces this invariant: {@link CreateCommentThreadParams |\n`createCommentThread`} requires an initial comment, and deleting the\nlast remaining comment collapses the thread into a\n{@link CommentsThreadRemovedAction} rather than leaving an empty thread\nbehind.",
+      "description": "A conversation anchored to a specific file produced by a specific turn,\noptionally narrowed to a range within that file.\n\n{@link turnId} anchors the thread to the file versions that turn\nproduced, so a later turn that rewrites the same file does not silently\ninvalidate the comment's anchor — clients can resolve {@link resource}\nand {@link range} against the turn's changeset. When {@link range} is\nomitted the thread is anchored to the entire file.\n\nEvery thread MUST contain at least one {@link Comment}. The server\nenforces this invariant: {@link CreateCommentThreadParams |\n`createCommentThread`} requires an initial comment, and deleting the\nlast remaining comment collapses the thread into a\n{@link CommentsThreadRemovedAction} rather than leaving an empty thread\nbehind.",
       "properties": {
         "id": {
           "type": "string",
@@ -5101,7 +5104,11 @@
         },
         "range": {
           "$ref": "#/$defs/TextRange",
-          "description": "Range within {@link resource} the thread is anchored to."
+          "description": "Range within {@link resource} the thread is anchored to. When omitted\nthe thread is anchored to the entire file."
+        },
+        "resolved": {
+          "type": "boolean",
+          "description": "Whether the thread has been resolved. Newly created threads are always\nunresolved (`false`); a client marks a thread resolved (or re-opens it)\nthrough {@link UpdateCommentThreadParams | `updateCommentThread`}."
         },
         "comments": {
           "type": "array",
@@ -5120,7 +5127,7 @@
         "id",
         "turnId",
         "resource",
-        "range",
+        "resolved",
         "comments"
       ]
     },

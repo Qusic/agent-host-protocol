@@ -11,6 +11,7 @@
           "start": { "line": 0, "character": 0 },
           "end": { "line": 0, "character": 5 }
         },
+        "resolved": false,
         "comments": [
           { "id": "c-1", "text": "keep" }
         ]
@@ -23,6 +24,7 @@
           "start": { "line": 2, "character": 0 },
           "end": { "line": 2, "character": 4 }
         },
+        "resolved": false,
         "comments": [
           { "id": "c-2", "text": "drop me" }
         ]
@@ -43,6 +45,7 @@
           "start": { "line": 0, "character": 0 },
           "end": { "line": 0, "character": 5 }
         },
+        "resolved": false,
         "comments": [
           { "id": "c-1", "text": "keep" }
         ]

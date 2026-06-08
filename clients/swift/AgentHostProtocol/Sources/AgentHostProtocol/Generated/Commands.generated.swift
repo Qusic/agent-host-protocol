@@ -1181,8 +1181,9 @@ public struct CreateCommentThreadParams: Codable, Sendable {
     public var turnId: String
     /// Anchored file URI.
     public var resource: String
-    /// Anchored range within {@link resource}.
-    public var range: TextRange
+    /// Anchored range within {@link resource}. When omitted the thread is
+    /// anchored to the entire file.
+    public var range: TextRange?
     /// First comment in the thread. The server assigns its {@link Comment.id}.
     public var comment: NewComment
 
@@ -1190,7 +1191,7 @@ public struct CreateCommentThreadParams: Codable, Sendable {
         channel: String,
         turnId: String,
         resource: String,
-        range: TextRange,
+        range: TextRange? = nil,
         comment: NewComment
     ) {
         self.channel = channel
@@ -1227,19 +1228,23 @@ public struct UpdateCommentThreadParams: Codable, Sendable {
     public var resource: String?
     /// New anchored range, if changing.
     public var range: TextRange?
+    /// New {@link CommentThread.resolved} state, if changing.
+    public var resolved: Bool?
 
     public init(
         channel: String,
         threadId: String,
         turnId: String? = nil,
         resource: String? = nil,
-        range: TextRange? = nil
+        range: TextRange? = nil,
+        resolved: Bool? = nil
     ) {
         self.channel = channel
         self.threadId = threadId
         self.turnId = turnId
         self.resource = resource
         self.range = range
+        self.resolved = resolved
     }
 }
 

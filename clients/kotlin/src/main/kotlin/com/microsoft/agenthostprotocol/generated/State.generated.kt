@@ -3333,9 +3333,16 @@ data class CommentThread(
      */
     val resource: String,
     /**
-     * Range within {@link resource} the thread is anchored to.
+     * Range within {@link resource} the thread is anchored to. When omitted
+     * the thread is anchored to the entire file.
      */
-    val range: TextRange,
+    val range: TextRange? = null,
+    /**
+     * Whether the thread has been resolved. Newly created threads are always
+     * unresolved (`false`); a client marks a thread resolved (or re-opens it)
+     * through {@link UpdateCommentThreadParams | `updateCommentThread`}.
+     */
+    val resolved: Boolean,
     /**
      * Comments in this thread, in dispatch order (oldest first). MUST
      * contain at least one entry.
