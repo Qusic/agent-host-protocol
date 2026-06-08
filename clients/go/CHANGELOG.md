@@ -16,6 +16,17 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 
 ### Added
 
+- `RootState` now exposes an optional `_meta` property bag (`Meta
+  map[string]json.RawMessage`) for implementation-defined agent-host metadata,
+  such as a well-known `hostBuild` key carrying the host's build
+  version/commit/date.
+
+## [0.3.0] — 2026-06-05
+
+Implements AHP 0.3.0.
+
+### Added
+
 - `McpServerCustomization` now exposes the full MCP lifecycle: `Enabled`,
   the discriminated `McpServerState` union
   (`Starting`/`Ready`/`AuthRequired`/`Error`/`Stopped`), optional

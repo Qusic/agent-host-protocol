@@ -19,6 +19,16 @@ the tag matches the version pinned in [`VERSION`](VERSION).
 
 ### Added
 
+- `RootState` now exposes an optional `_meta` property bag (`meta: [String:
+  AnyCodable]?`) for implementation-defined agent-host metadata, such as a
+  well-known `hostBuild` key carrying the host's build version/commit/date.
+
+## [0.3.0] — 2026-06-05
+
+Implements AHP 0.3.0.
+
+### Added
+
 - `McpServerCustomization` now exposes the full MCP lifecycle: `enabled`,
   the discriminated `McpServerState` enum
   (`.starting`/`.ready`/`.authRequired`/`.error`/`.stopped`), optional

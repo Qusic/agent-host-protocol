@@ -23,7 +23,18 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 `NOTIFICATION_INTRODUCED_IN` maps in
 [`types/version/registry.ts`](types/version/registry.ts).
 
-## [0.3.0] — Unreleased
+## [0.4.0] — Unreleased
+
+Spec version: `0.4.0`
+
+### Added
+
+- `RootState` now carries an optional `_meta` property bag for
+  implementation-defined metadata about the agent host itself, mirroring the
+  MCP `_meta` convention. A well-known `hostBuild` key may carry build
+  information (version, commit, date) about the program hosting the agent host.
+
+## [0.3.0] — 2026-06-05
 
 Spec version: `0.3.0`
 
