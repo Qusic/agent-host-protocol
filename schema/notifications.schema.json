@@ -3993,11 +3993,11 @@
     },
     "Annotation": {
       "type": "object",
-      "description": "A conversation anchored to a specific file produced by a specific turn,\noptionally narrowed to a range within that file.\n\n{@link turnId} anchors the annotation to the file versions that turn\nproduced, so a later turn that rewrites the same file does not silently\ninvalidate the annotation's anchor — clients can resolve {@link resource}\nand {@link range} against the turn's changeset. When {@link range} is\nomitted the annotation is anchored to the entire file.\n\nEvery annotation MUST contain at least one {@link AnnotationEntry}. The\nserver enforces this invariant: {@link CreateAnnotationParams |\n`createAnnotation`} requires an initial entry, and deleting the\nlast remaining entry collapses the annotation into a\n{@link AnnotationsRemovedAction} rather than leaving an empty annotation\nbehind.",
+      "description": "A conversation anchored to a specific file produced by a specific turn,\noptionally narrowed to a range within that file.\n\n{@link turnId} anchors the annotation to the file versions that turn\nproduced, so a later turn that rewrites the same file does not silently\ninvalidate the annotation's anchor — clients can resolve {@link resource}\nand {@link range} against the turn's changeset. When {@link range} is\nomitted the annotation is anchored to the entire file.\n\nEvery annotation MUST contain at least one {@link AnnotationEntry}. An\n{@link AnnotationsSetAction} that creates an annotation therefore carries\nits mandatory first entry, and removing the last remaining entry collapses\nthe annotation via {@link AnnotationsRemovedAction} rather than leaving an\nempty annotation behind.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Stable identifier within the annotations channel. Server-assigned."
+          "description": "Stable identifier within the annotations channel. Assigned by the client\nthat dispatches the creating {@link AnnotationsSetAction}."
         },
         "turnId": {
           "type": "string",
@@ -4013,7 +4013,7 @@
         },
         "resolved": {
           "type": "boolean",
-          "description": "Whether the annotation has been resolved. Newly created annotations are\nalways unresolved (`false`); a client marks an annotation resolved (or\nre-opens it) through {@link UpdateAnnotationParams | `updateAnnotation`}."
+          "description": "Whether the annotation has been resolved. Newly created annotations are\nalways unresolved (`false`); a client marks an annotation resolved (or\nre-opens it) by dispatching an {@link AnnotationsSetAction} carrying the\nupdated flag."
         },
         "entries": {
           "type": "array",
@@ -4025,7 +4025,7 @@
         "_meta": {
           "type": "object",
           "additionalProperties": {},
-          "description": "Server-defined opaque metadata, surfaced to tooling but not\ninterpreted by the protocol."
+          "description": "Producer-defined opaque metadata, surfaced to tooling but not\ninterpreted by the protocol."
         }
       },
       "required": [
@@ -4042,7 +4042,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Stable identifier within the enclosing annotation. Server-assigned."
+          "description": "Stable identifier within the enclosing annotation. Assigned by the client\nthat dispatches the {@link AnnotationsEntrySetAction} (or the enclosing\n{@link AnnotationsSetAction}) introducing the entry."
         },
         "text": {
           "$ref": "#/$defs/StringOrMarkdown",
@@ -4051,29 +4051,11 @@
         "_meta": {
           "type": "object",
           "additionalProperties": {},
-          "description": "Server-defined opaque metadata, surfaced to tooling but not\ninterpreted by the protocol."
+          "description": "Producer-defined opaque metadata, surfaced to tooling but not\ninterpreted by the protocol."
         }
       },
       "required": [
         "id",
-        "text"
-      ]
-    },
-    "NewAnnotationEntry": {
-      "type": "object",
-      "description": "Input shape passed to {@link CreateAnnotationParams | `createAnnotation`}\nand {@link AddAnnotationEntryParams | `addAnnotationEntry`}. The server\nassigns the resulting {@link AnnotationEntry.id}.",
-      "properties": {
-        "text": {
-          "$ref": "#/$defs/StringOrMarkdown",
-          "description": "Entry body. See {@link AnnotationEntry.text}."
-        },
-        "_meta": {
-          "type": "object",
-          "additionalProperties": {},
-          "description": "Server-defined opaque metadata, forwarded onto the resulting\n{@link AnnotationEntry._meta}."
-        }
-      },
-      "required": [
         "text"
       ]
     },

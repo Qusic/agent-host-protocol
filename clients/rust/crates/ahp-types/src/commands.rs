@@ -15,9 +15,9 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 use crate::actions::{ActionEnvelope, StateAction};
 #[allow(unused_imports)]
 use crate::state::{
-    AgentSelection, ContentRef, MessageAttachment, ModelSelection, NewAnnotationEntry,
-    SessionActiveClient, SessionConfigSchema, SessionSummary, Snapshot, SnapshotState,
-    TelemetryCapabilities, TerminalClaim, TextRange, Turn,
+    AgentSelection, ContentRef, MessageAttachment, ModelSelection, SessionActiveClient,
+    SessionConfigSchema, SessionSummary, Snapshot, SnapshotState, TelemetryCapabilities,
+    TerminalClaim, TextRange, Turn,
 };
 
 // ─── Enums ────────────────────────────────────────────────────────────
@@ -1048,143 +1048,6 @@ pub struct ChangesetOperationFollowUp {
     /// When `true`, open in an external handler rather than inline.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub external: Option<bool>,
-}
-
-/// Create a new {@link Annotation} anchored to a file from a specific
-/// turn, optionally narrowed to a range within that file.
-///
-/// The initial entry is required — the protocol forbids empty annotations,
-/// so annotation creation and first-entry creation are fused into one
-/// command. The created annotation always starts unresolved
-/// ({@link Annotation.resolved} is `false`). The server assigns both
-/// {@link CreateAnnotationResult.annotationId} and
-/// {@link CreateAnnotationResult.entryId}, then broadcasts an
-/// {@link AnnotationsSetAction} on the channel.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateAnnotationParams {
-    /// Channel URI this command targets.
-    pub channel: Uri,
-    /// Turn whose file versions {@link resource} + {@link range} address.
-    pub turn_id: String,
-    /// Anchored file URI.
-    pub resource: Uri,
-    /// Anchored range within {@link resource}. When omitted the annotation is
-    /// anchored to the entire file.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub range: Option<TextRange>,
-    /// First entry in the annotation. The server assigns its {@link AnnotationEntry.id}.
-    pub entry: NewAnnotationEntry,
-}
-
-/// Result of {@link CreateAnnotationParams | `createAnnotation`}.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateAnnotationResult {
-    /// Server-assigned {@link Annotation.id}.
-    pub annotation_id: String,
-    /// Server-assigned {@link AnnotationEntry.id} of the initial entry.
-    pub entry_id: String,
-}
-
-/// Re-anchor or resolve an existing {@link Annotation} — typically used
-/// to re-pin an annotation to a different range or a newer turn after an
-/// edit, or to mark the annotation {@link Annotation.resolved | resolved}
-/// (or re-open it). Entries themselves are not modified by this command;
-/// use {@link AddAnnotationEntryParams | `addAnnotationEntry`},
-/// {@link EditAnnotationEntryParams | `editAnnotationEntry`}, or
-/// {@link DeleteAnnotationEntryParams | `deleteAnnotationEntry`} for that.
-///
-/// Omitted optional fields preserve their current value. The server
-/// echoes the resulting annotation state as an {@link AnnotationsSetAction}.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateAnnotationParams {
-    /// Channel URI this command targets.
-    pub channel: Uri,
-    /// The {@link Annotation.id} to update.
-    pub annotation_id: String,
-    /// New {@link Annotation.turnId}, if changing.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub turn_id: Option<String>,
-    /// New anchored file URI, if changing.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub resource: Option<Uri>,
-    /// New anchored range, if changing.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub range: Option<TextRange>,
-    /// New {@link Annotation.resolved} state, if changing.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub resolved: Option<bool>,
-}
-
-/// Delete an entire annotation (and every entry it contains). The
-/// server echoes an {@link AnnotationsRemovedAction} on the channel.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DeleteAnnotationParams {
-    /// Channel URI this command targets.
-    pub channel: Uri,
-    /// The {@link Annotation.id} to delete.
-    pub annotation_id: String,
-}
-
-/// Append a new {@link AnnotationEntry} to an existing annotation. The
-/// server assigns the resulting {@link AnnotationEntry.id} and echoes an
-/// {@link AnnotationsEntrySetAction}.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AddAnnotationEntryParams {
-    /// Channel URI this command targets.
-    pub channel: Uri,
-    /// Annotation that receives the new entry.
-    pub annotation_id: String,
-    /// Entry payload — the server assigns the id.
-    pub entry: NewAnnotationEntry,
-}
-
-/// Result of {@link AddAnnotationEntryParams | `addAnnotationEntry`}.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AddAnnotationEntryResult {
-    /// Server-assigned {@link AnnotationEntry.id} of the new entry.
-    pub entry_id: String,
-}
-
-/// Edit the body of an existing entry in place. The server echoes an
-/// {@link AnnotationsEntrySetAction} carrying the updated entry.
-///
-/// Only the body is mutable through this command; to change
-/// {@link AnnotationEntry._meta} delete and re-create the entry.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EditAnnotationEntryParams {
-    /// Channel URI this command targets.
-    pub channel: Uri,
-    /// Enclosing annotation.
-    pub annotation_id: String,
-    /// {@link AnnotationEntry.id} to edit.
-    pub entry_id: String,
-    /// New entry body. See {@link AnnotationEntry.text}.
-    pub text: StringOrMarkdown,
-}
-
-/// Remove a single entry from an annotation.
-///
-/// If the removal would leave the annotation empty (i.e. the targeted entry
-/// is the only one remaining), the server collapses the annotation instead
-/// — it dispatches an {@link AnnotationsRemovedAction} and the annotation
-/// disappears from {@link AnnotationsState.annotations}. Otherwise the server
-/// echoes an {@link AnnotationsEntryRemovedAction}.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DeleteAnnotationEntryParams {
-    /// Channel URI this command targets.
-    pub channel: Uri,
-    /// Enclosing annotation.
-    pub annotation_id: String,
-    /// {@link AnnotationEntry.id} to remove.
-    pub entry_id: String,
 }
 
 // ─── ReconnectResult Union ────────────────────────────────────────────

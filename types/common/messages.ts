@@ -66,16 +66,6 @@ import type {
   InvokeChangesetOperationParams,
   InvokeChangesetOperationResult,
 } from '../channels-changeset/commands.js';
-import type {
-  CreateAnnotationParams,
-  CreateAnnotationResult,
-  UpdateAnnotationParams,
-  DeleteAnnotationParams,
-  AddAnnotationEntryParams,
-  AddAnnotationEntryResult,
-  EditAnnotationEntryParams,
-  DeleteAnnotationEntryParams,
-} from '../channels-annotations/commands.js';
 
 import type { ActionEnvelope } from './actions.js';
 import type {
@@ -177,12 +167,6 @@ export interface CommandMap {
   'sessionConfigCompletions': { params: SessionConfigCompletionsParams; result: SessionConfigCompletionsResult };
   'completions': { params: CompletionsParams; result: CompletionsResult };
   'invokeChangesetOperation': { params: InvokeChangesetOperationParams; result: InvokeChangesetOperationResult };
-  'createAnnotation': { params: CreateAnnotationParams; result: CreateAnnotationResult };
-  'updateAnnotation': { params: UpdateAnnotationParams; result: null };
-  'deleteAnnotation': { params: DeleteAnnotationParams; result: null };
-  'addAnnotationEntry': { params: AddAnnotationEntryParams; result: AddAnnotationEntryResult };
-  'editAnnotationEntry': { params: EditAnnotationEntryParams; result: null };
-  'deleteAnnotationEntry': { params: DeleteAnnotationEntryParams; result: null };
 }
 
 /**

@@ -74,13 +74,7 @@ type _ExpectedCommands =
   | 'resolveSessionConfig'
   | 'sessionConfigCompletions'
   | 'completions'
-  | 'invokeChangesetOperation'
-  | 'createAnnotation'
-  | 'updateAnnotation'
-  | 'deleteAnnotation'
-  | 'addAnnotationEntry'
-  | 'editAnnotationEntry'
-  | 'deleteAnnotationEntry';
+  | 'invokeChangesetOperation';
 
 /** All methods annotated `@messageType Notification` (client → server). */
 type _ExpectedClientNotifications =

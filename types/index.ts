@@ -98,7 +98,6 @@ export type {
   AnnotationsState,
   Annotation,
   AnnotationEntry,
-  NewAnnotationEntry,
   TelemetryCapabilities,
   ResourceWatchState,
   ResourceChange,
@@ -294,14 +293,6 @@ export type {
   InvokeChangesetOperationResult,
   ChangesetOperationTarget,
   ChangesetOperationFollowUp,
-  CreateAnnotationParams,
-  CreateAnnotationResult,
-  UpdateAnnotationParams,
-  DeleteAnnotationParams,
-  AddAnnotationEntryParams,
-  AddAnnotationEntryResult,
-  EditAnnotationEntryParams,
-  DeleteAnnotationEntryParams,
 } from './commands.js';
 
 export { ReconnectResultType, ContentEncoding, CompletionItemKind, ResourceType, ResourceWriteMode } from './commands.js';

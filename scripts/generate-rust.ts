@@ -643,7 +643,6 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: str
   { name: 'AnnotationsState' },
   { name: 'Annotation' },
   { name: 'AnnotationEntry' },
-  { name: 'NewAnnotationEntry' },
   { name: 'TelemetryCapabilities' },
   { name: 'ResourceWatchState' },
   { name: 'ResourceChange' },
@@ -1142,12 +1141,6 @@ const COMMAND_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: s
   { name: 'CompletionsParams' }, { name: 'CompletionItem' }, { name: 'CompletionsResult' },
   { name: 'InvokeChangesetOperationParams' }, { name: 'InvokeChangesetOperationResult' },
   { name: 'ChangesetOperationFollowUp' },
-  { name: 'CreateAnnotationParams' }, { name: 'CreateAnnotationResult' },
-  { name: 'UpdateAnnotationParams' },
-  { name: 'DeleteAnnotationParams' },
-  { name: 'AddAnnotationEntryParams' }, { name: 'AddAnnotationEntryResult' },
-  { name: 'EditAnnotationEntryParams' },
-  { name: 'DeleteAnnotationEntryParams' },
 ];
 
 const RECONNECT_RESULT_UNION: UnionConfig = {
@@ -1165,7 +1158,7 @@ function generateCommandsFile(project: Project): string {
   lines.push('#[allow(unused_imports)]');
   lines.push('use crate::actions::{ActionEnvelope, StateAction};');
   lines.push('#[allow(unused_imports)]');
-  lines.push('use crate::state::{AgentSelection, ContentRef, MessageAttachment, ModelSelection, NewAnnotationEntry, SessionActiveClient, SessionConfigSchema, SessionSummary, Snapshot, SnapshotState, TelemetryCapabilities, TerminalClaim, TextRange, Turn};');
+  lines.push('use crate::state::{AgentSelection, ContentRef, MessageAttachment, ModelSelection, SessionActiveClient, SessionConfigSchema, SessionSummary, Snapshot, SnapshotState, TelemetryCapabilities, TerminalClaim, TextRange, Turn};');
   lines.push('');
 
   lines.push('// ─── Enums ────────────────────────────────────────────────────────────\n');

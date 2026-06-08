@@ -1502,7 +1502,7 @@
     },
     "AnnotationsSetAction": {
       "type": "object",
-      "description": "Upsert an {@link Annotation} in the annotations channel — adds a new\nannotation, or replaces an existing one identified by\n{@link Annotation.id}. When replacing, the full annotation payload\n(including its {@link Annotation.entries | entries} list) is\nsubstituted; producers SHOULD prefer {@link AnnotationsEntrySetAction}\nfor per-entry edits to keep wire updates small.",
+      "description": "Upsert an {@link Annotation} in the annotations channel — adds a new\nannotation, or replaces an existing one identified by\n{@link Annotation.id}.\n\nDispatched by a client to create an annotation (together with its\nmandatory first entry) or to re-anchor / resolve an existing one; the\ndispatching client assigns the {@link Annotation.id} and the id of any\nnew entry. When replacing, the full annotation payload (including its\n{@link Annotation.entries | entries} list) is substituted; producers\nSHOULD prefer {@link AnnotationsEntrySetAction} for per-entry edits to\nkeep wire updates small.",
       "properties": {
         "type": {
           "$ref": "#/$defs/ActionType.AnnotationsSet"
@@ -1519,7 +1519,7 @@
     },
     "AnnotationsRemovedAction": {
       "type": "object",
-      "description": "Remove an {@link Annotation} from the channel by its id.\n\nThe server emits this in two cases:\n1. The client explicitly invoked\n   {@link DeleteAnnotationParams | `deleteAnnotation`}.\n2. The client invoked {@link DeleteAnnotationEntryParams |\n   `deleteAnnotationEntry`} on the last remaining entry in the\n   annotation — the protocol collapses the annotation rather than\n   leaving an empty one behind.",
+      "description": "Remove an {@link Annotation} from the channel by its id.\n\nDispatched to delete an entire annotation and every entry it contains.\nBecause the protocol forbids empty annotations, a client that wants to\nremove the last remaining entry dispatches this action — collapsing the\nannotation — rather than {@link AnnotationsEntryRemovedAction}.",
       "properties": {
         "type": {
           "$ref": "#/$defs/ActionType.AnnotationsRemoved"
@@ -1536,7 +1536,7 @@
     },
     "AnnotationsEntrySetAction": {
       "type": "object",
-      "description": "Upsert an {@link AnnotationEntry} within an existing annotation — adds a\nnew entry, or replaces one identified by {@link AnnotationEntry.id}. If\n{@link annotationId} does not match any current annotation the action is\na no-op.",
+      "description": "Upsert an {@link AnnotationEntry} within an existing annotation — adds a\nnew entry, or replaces one identified by {@link AnnotationEntry.id}. The\ndispatching client assigns the {@link AnnotationEntry.id} of a new entry.\nIf {@link annotationId} does not match any current annotation the action\nis a no-op.",
       "properties": {
         "type": {
           "$ref": "#/$defs/ActionType.AnnotationsEntrySet"
@@ -1558,7 +1558,7 @@
     },
     "AnnotationsEntryRemovedAction": {
       "type": "object",
-      "description": "Remove a single {@link AnnotationEntry} from an annotation without\ncollapsing the annotation itself. Used when more than one entry remains\n— the server MUST dispatch {@link AnnotationsRemovedAction} instead when\nremoving the last entry would otherwise leave the annotation empty.\n\nIf either {@link annotationId} or {@link entryId} does not match the\ncurrent state the action is a no-op.",
+      "description": "Remove a single {@link AnnotationEntry} from an annotation without\ncollapsing the annotation itself. Used when more than one entry remains —\nto remove the last entry a client dispatches {@link AnnotationsRemovedAction}\ninstead, since the protocol forbids empty annotations.\n\nIf either {@link annotationId} or {@link entryId} does not match the\ncurrent state the action is a no-op.",
       "properties": {
         "type": {
           "$ref": "#/$defs/ActionType.AnnotationsEntryRemoved"
@@ -5385,11 +5385,11 @@
     },
     "Annotation": {
       "type": "object",
-      "description": "A conversation anchored to a specific file produced by a specific turn,\noptionally narrowed to a range within that file.\n\n{@link turnId} anchors the annotation to the file versions that turn\nproduced, so a later turn that rewrites the same file does not silently\ninvalidate the annotation's anchor — clients can resolve {@link resource}\nand {@link range} against the turn's changeset. When {@link range} is\nomitted the annotation is anchored to the entire file.\n\nEvery annotation MUST contain at least one {@link AnnotationEntry}. The\nserver enforces this invariant: {@link CreateAnnotationParams |\n`createAnnotation`} requires an initial entry, and deleting the\nlast remaining entry collapses the annotation into a\n{@link AnnotationsRemovedAction} rather than leaving an empty annotation\nbehind.",
+      "description": "A conversation anchored to a specific file produced by a specific turn,\noptionally narrowed to a range within that file.\n\n{@link turnId} anchors the annotation to the file versions that turn\nproduced, so a later turn that rewrites the same file does not silently\ninvalidate the annotation's anchor — clients can resolve {@link resource}\nand {@link range} against the turn's changeset. When {@link range} is\nomitted the annotation is anchored to the entire file.\n\nEvery annotation MUST contain at least one {@link AnnotationEntry}. An\n{@link AnnotationsSetAction} that creates an annotation therefore carries\nits mandatory first entry, and removing the last remaining entry collapses\nthe annotation via {@link AnnotationsRemovedAction} rather than leaving an\nempty annotation behind.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Stable identifier within the annotations channel. Server-assigned."
+          "description": "Stable identifier within the annotations channel. Assigned by the client\nthat dispatches the creating {@link AnnotationsSetAction}."
         },
         "turnId": {
           "type": "string",
@@ -5405,7 +5405,7 @@
         },
         "resolved": {
           "type": "boolean",
-          "description": "Whether the annotation has been resolved. Newly created annotations are\nalways unresolved (`false`); a client marks an annotation resolved (or\nre-opens it) through {@link UpdateAnnotationParams | `updateAnnotation`}."
+          "description": "Whether the annotation has been resolved. Newly created annotations are\nalways unresolved (`false`); a client marks an annotation resolved (or\nre-opens it) by dispatching an {@link AnnotationsSetAction} carrying the\nupdated flag."
         },
         "entries": {
           "type": "array",
@@ -5417,7 +5417,7 @@
         "_meta": {
           "type": "object",
           "additionalProperties": {},
-          "description": "Server-defined opaque metadata, surfaced to tooling but not\ninterpreted by the protocol."
+          "description": "Producer-defined opaque metadata, surfaced to tooling but not\ninterpreted by the protocol."
         }
       },
       "required": [
@@ -5434,7 +5434,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Stable identifier within the enclosing annotation. Server-assigned."
+          "description": "Stable identifier within the enclosing annotation. Assigned by the client\nthat dispatches the {@link AnnotationsEntrySetAction} (or the enclosing\n{@link AnnotationsSetAction}) introducing the entry."
         },
         "text": {
           "$ref": "#/$defs/StringOrMarkdown",
@@ -5443,29 +5443,11 @@
         "_meta": {
           "type": "object",
           "additionalProperties": {},
-          "description": "Server-defined opaque metadata, surfaced to tooling but not\ninterpreted by the protocol."
+          "description": "Producer-defined opaque metadata, surfaced to tooling but not\ninterpreted by the protocol."
         }
       },
       "required": [
         "id",
-        "text"
-      ]
-    },
-    "NewAnnotationEntry": {
-      "type": "object",
-      "description": "Input shape passed to {@link CreateAnnotationParams | `createAnnotation`}\nand {@link AddAnnotationEntryParams | `addAnnotationEntry`}. The server\nassigns the resulting {@link AnnotationEntry.id}.",
-      "properties": {
-        "text": {
-          "$ref": "#/$defs/StringOrMarkdown",
-          "description": "Entry body. See {@link AnnotationEntry.text}."
-        },
-        "_meta": {
-          "type": "object",
-          "additionalProperties": {},
-          "description": "Server-defined opaque metadata, forwarded onto the resulting\n{@link AnnotationEntry._meta}."
-        }
-      },
-      "required": [
         "text"
       ]
     },

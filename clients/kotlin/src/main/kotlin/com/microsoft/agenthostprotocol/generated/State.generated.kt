@@ -3383,7 +3383,8 @@ data class AnnotationsState(
 @Serializable
 data class Annotation(
     /**
-     * Stable identifier within the annotations channel. Server-assigned.
+     * Stable identifier within the annotations channel. Assigned by the client
+     * that dispatches the creating {@link AnnotationsSetAction}.
      */
     val id: String,
     /**
@@ -3403,7 +3404,8 @@ data class Annotation(
     /**
      * Whether the annotation has been resolved. Newly created annotations are
      * always unresolved (`false`); a client marks an annotation resolved (or
-     * re-opens it) through {@link UpdateAnnotationParams | `updateAnnotation`}.
+     * re-opens it) by dispatching an {@link AnnotationsSetAction} carrying the
+     * updated flag.
      */
     val resolved: Boolean,
     /**
@@ -3412,7 +3414,7 @@ data class Annotation(
      */
     val entries: List<AnnotationEntry>,
     /**
-     * Server-defined opaque metadata, surfaced to tooling but not
+     * Producer-defined opaque metadata, surfaced to tooling but not
      * interpreted by the protocol.
      */
     @SerialName("_meta")
@@ -3422,7 +3424,9 @@ data class Annotation(
 @Serializable
 data class AnnotationEntry(
     /**
-     * Stable identifier within the enclosing annotation. Server-assigned.
+     * Stable identifier within the enclosing annotation. Assigned by the client
+     * that dispatches the {@link AnnotationsEntrySetAction} (or the enclosing
+     * {@link AnnotationsSetAction}) introducing the entry.
      */
     val id: String,
     /**
@@ -3432,22 +3436,8 @@ data class AnnotationEntry(
      */
     val text: StringOrMarkdown,
     /**
-     * Server-defined opaque metadata, surfaced to tooling but not
+     * Producer-defined opaque metadata, surfaced to tooling but not
      * interpreted by the protocol.
-     */
-    @SerialName("_meta")
-    val meta: Map<String, JsonElement>? = null
-)
-
-@Serializable
-data class NewAnnotationEntry(
-    /**
-     * Entry body. See {@link AnnotationEntry.text}.
-     */
-    val text: StringOrMarkdown,
-    /**
-     * Server-defined opaque metadata, forwarded onto the resulting
-     * {@link AnnotationEntry._meta}.
      */
     @SerialName("_meta")
     val meta: Map<String, JsonElement>? = null

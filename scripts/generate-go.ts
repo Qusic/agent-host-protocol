@@ -743,7 +743,6 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; goName?: strin
   { name: 'AnnotationsState' },
   { name: 'Annotation' },
   { name: 'AnnotationEntry' },
-  { name: 'NewAnnotationEntry' },
   { name: 'TelemetryCapabilities' },
   { name: 'ResourceWatchState' },
   { name: 'ResourceChange' },
@@ -1286,10 +1285,6 @@ const COMMAND_STRUCTS: { name: string; omitDiscriminants?: boolean; goName?: str
   { name: 'CompletionsParams' }, { name: 'CompletionItem' }, { name: 'CompletionsResult' },
   { name: 'InvokeChangesetOperationParams' }, { name: 'InvokeChangesetOperationResult' },
   { name: 'ChangesetOperationFollowUp' },
-  { name: 'CreateAnnotationParams' }, { name: 'CreateAnnotationResult' },
-  { name: 'UpdateAnnotationParams' }, { name: 'DeleteAnnotationParams' },
-  { name: 'AddAnnotationEntryParams' }, { name: 'AddAnnotationEntryResult' },
-  { name: 'EditAnnotationEntryParams' }, { name: 'DeleteAnnotationEntryParams' },
 ];
 
 const RECONNECT_RESULT_UNION: UnionConfig = {

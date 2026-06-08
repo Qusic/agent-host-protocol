@@ -259,15 +259,15 @@ export type AnnotationsAction =
 
 /** Union of annotations actions that clients may dispatch. */
 export type ClientAnnotationsAction =
-  never
-;
-
-/** Union of annotations actions that only the server may produce. */
-export type ServerAnnotationsAction =
   | AnnotationsSetAction
   | AnnotationsRemovedAction
   | AnnotationsEntrySetAction
   | AnnotationsEntryRemovedAction
+;
+
+/** Union of annotations actions that only the server may produce. */
+export type ServerAnnotationsAction =
+  never
 ;
 
 /** Union of all resource-watch-scoped actions. */
@@ -343,10 +343,10 @@ export const IS_CLIENT_DISPATCHABLE: { readonly [K in StateAction['type']]: bool
   [ActionType.ChangesetOperationsChanged]: false,
   [ActionType.ChangesetOperationStatusChanged]: false,
   [ActionType.ChangesetCleared]: false,
-  [ActionType.AnnotationsSet]: false,
-  [ActionType.AnnotationsRemoved]: false,
-  [ActionType.AnnotationsEntrySet]: false,
-  [ActionType.AnnotationsEntryRemoved]: false,
+  [ActionType.AnnotationsSet]: true,
+  [ActionType.AnnotationsRemoved]: true,
+  [ActionType.AnnotationsEntrySet]: true,
+  [ActionType.AnnotationsEntryRemoved]: true,
   [ActionType.TerminalData]: false,
   [ActionType.TerminalInput]: true,
   [ActionType.TerminalResized]: true,

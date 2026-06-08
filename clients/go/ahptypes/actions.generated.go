@@ -802,10 +802,15 @@ type ChangesetClearedAction struct {
 
 // Upsert an {@link Annotation} in the annotations channel — adds a new
 // annotation, or replaces an existing one identified by
-// {@link Annotation.id}. When replacing, the full annotation payload
-// (including its {@link Annotation.entries | entries} list) is
-// substituted; producers SHOULD prefer {@link AnnotationsEntrySetAction}
-// for per-entry edits to keep wire updates small.
+// {@link Annotation.id}.
+//
+// Dispatched by a client to create an annotation (together with its
+// mandatory first entry) or to re-anchor / resolve an existing one; the
+// dispatching client assigns the {@link Annotation.id} and the id of any
+// new entry. When replacing, the full annotation payload (including its
+// {@link Annotation.entries | entries} list) is substituted; producers
+// SHOULD prefer {@link AnnotationsEntrySetAction} for per-entry edits to
+// keep wire updates small.
 type AnnotationsSetAction struct {
 	Type ActionType `json:"type"`
 	// The new or replacement annotation. MUST contain at least one entry.
@@ -814,13 +819,10 @@ type AnnotationsSetAction struct {
 
 // Remove an {@link Annotation} from the channel by its id.
 //
-// The server emits this in two cases:
-//  1. The client explicitly invoked
-//     {@link DeleteAnnotationParams | `deleteAnnotation`}.
-//  2. The client invoked {@link DeleteAnnotationEntryParams |
-//     `deleteAnnotationEntry`} on the last remaining entry in the
-//     annotation — the protocol collapses the annotation rather than
-//     leaving an empty one behind.
+// Dispatched to delete an entire annotation and every entry it contains.
+// Because the protocol forbids empty annotations, a client that wants to
+// remove the last remaining entry dispatches this action — collapsing the
+// annotation — rather than {@link AnnotationsEntryRemovedAction}.
 type AnnotationsRemovedAction struct {
 	Type ActionType `json:"type"`
 	// The {@link Annotation.id} of the annotation to remove.
@@ -828,9 +830,10 @@ type AnnotationsRemovedAction struct {
 }
 
 // Upsert an {@link AnnotationEntry} within an existing annotation — adds a
-// new entry, or replaces one identified by {@link AnnotationEntry.id}. If
-// {@link annotationId} does not match any current annotation the action is
-// a no-op.
+// new entry, or replaces one identified by {@link AnnotationEntry.id}. The
+// dispatching client assigns the {@link AnnotationEntry.id} of a new entry.
+// If {@link annotationId} does not match any current annotation the action
+// is a no-op.
 type AnnotationsEntrySetAction struct {
 	Type ActionType `json:"type"`
 	// The {@link Annotation.id} the entry belongs to.
@@ -840,9 +843,9 @@ type AnnotationsEntrySetAction struct {
 }
 
 // Remove a single {@link AnnotationEntry} from an annotation without
-// collapsing the annotation itself. Used when more than one entry remains
-// — the server MUST dispatch {@link AnnotationsRemovedAction} instead when
-// removing the last entry would otherwise leave the annotation empty.
+// collapsing the annotation itself. Used when more than one entry remains —
+// to remove the last entry a client dispatches {@link AnnotationsRemovedAction}
+// instead, since the protocol forbids empty annotations.
 //
 // If either {@link annotationId} or {@link entryId} does not match the
 // current state the action is a no-op.

@@ -145,24 +145,6 @@ object AhpCommands {
 
     fun invokeChangesetOperation(id: Long, params: InvokeChangesetOperationParams): JsonRpcRequest<InvokeChangesetOperationParams> =
         JsonRpcRequest(id = id, method = "invokeChangesetOperation", params = params)
-
-    fun createAnnotation(id: Long, params: CreateAnnotationParams): JsonRpcRequest<CreateAnnotationParams> =
-        JsonRpcRequest(id = id, method = "createAnnotation", params = params)
-
-    fun updateAnnotation(id: Long, params: UpdateAnnotationParams): JsonRpcRequest<UpdateAnnotationParams> =
-        JsonRpcRequest(id = id, method = "updateAnnotation", params = params)
-
-    fun deleteAnnotation(id: Long, params: DeleteAnnotationParams): JsonRpcRequest<DeleteAnnotationParams> =
-        JsonRpcRequest(id = id, method = "deleteAnnotation", params = params)
-
-    fun addAnnotationEntry(id: Long, params: AddAnnotationEntryParams): JsonRpcRequest<AddAnnotationEntryParams> =
-        JsonRpcRequest(id = id, method = "addAnnotationEntry", params = params)
-
-    fun editAnnotationEntry(id: Long, params: EditAnnotationEntryParams): JsonRpcRequest<EditAnnotationEntryParams> =
-        JsonRpcRequest(id = id, method = "editAnnotationEntry", params = params)
-
-    fun deleteAnnotationEntry(id: Long, params: DeleteAnnotationEntryParams): JsonRpcRequest<DeleteAnnotationEntryParams> =
-        JsonRpcRequest(id = id, method = "deleteAnnotationEntry", params = params)
 }
 
 /**

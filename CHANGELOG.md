@@ -89,15 +89,14 @@ Spec version: `0.3.0`
 - Added a new annotations channel exposed on `ahp-session:/<uuid>/annotations`.
   Annotations anchor to a `(turnId, resource)` pair with an optional `range`
   (omitted to anchor to the entire file), carry a `resolved` flag (newly
-  created annotations start unresolved; clients flip it via
-  `updateAnnotation`), and always carry at least one entry; new
-  `createAnnotation`, `updateAnnotation`,
-  `deleteAnnotation`, `addAnnotationEntry`, `editAnnotationEntry`, `deleteAnnotationEntry`
-  commands drive mutations and echo as `annotations/set`,
-  `annotations/removed`, `annotations/entrySet`, and `annotations/entryRemoved`
-  actions. `SessionSummary.annotations` advertises the
-  per-session `AnnotationsSummary` (`{ resource, annotationCount, entryCount }`)
-  for badge UI.
+  created annotations start unresolved), and always carry at least one entry.
+  Clients drive every mutation by dispatching the client-dispatchable
+  `annotations/set`, `annotations/removed`, `annotations/entrySet`, and
+  `annotations/entryRemoved` state actions directly — assigning the
+  `Annotation.id` / `AnnotationEntry.id` themselves — rather than through RPC
+  commands, so annotations inherit write-ahead replay and conflict resolution.
+  `SessionSummary.annotations` advertises the per-session `AnnotationsSummary`
+  (`{ resource, annotationCount, entryCount }`) for badge UI.
 - Added an `annotations` `MessageAttachment` variant
   (`MessageAnnotationsAttachment`) that references annotations on a
   session's annotations channel by its `resource` URI, optionally narrowed to

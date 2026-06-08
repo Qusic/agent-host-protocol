@@ -557,7 +557,7 @@ const STATE_STRUCTS = [
   'TerminalUnclassifiedPart', 'TerminalCommandPart',
   'UsageInfo', 'ErrorInfo', 'Snapshot',
   'Changeset', 'ChangesetState', 'ChangesetFile', 'ChangesetOperation',
-  'AnnotationsSummary', 'AnnotationsState', 'Annotation', 'AnnotationEntry', 'NewAnnotationEntry',
+  'AnnotationsSummary', 'AnnotationsState', 'Annotation', 'AnnotationEntry',
   'TelemetryCapabilities',
   'ResourceWatchState', 'ResourceChange',
 ];
@@ -1135,12 +1135,6 @@ const COMMAND_STRUCTS = [
   'SessionConfigValueItem',
   'CompletionsParams', 'CompletionItem', 'CompletionsResult',
   'InvokeChangesetOperationParams', 'InvokeChangesetOperationResult',
-  'CreateAnnotationParams', 'CreateAnnotationResult',
-  'UpdateAnnotationParams',
-  'DeleteAnnotationParams',
-  'AddAnnotationEntryParams', 'AddAnnotationEntryResult',
-  'EditAnnotationEntryParams',
-  'DeleteAnnotationEntryParams',
   'ChangesetOperationFollowUp',
 ];
 

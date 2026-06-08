@@ -3864,11 +3864,11 @@
     },
     "Annotation": {
       "type": "object",
-      "description": "A conversation anchored to a specific file produced by a specific turn,\noptionally narrowed to a range within that file.\n\n{@link turnId} anchors the annotation to the file versions that turn\nproduced, so a later turn that rewrites the same file does not silently\ninvalidate the annotation's anchor — clients can resolve {@link resource}\nand {@link range} against the turn's changeset. When {@link range} is\nomitted the annotation is anchored to the entire file.\n\nEvery annotation MUST contain at least one {@link AnnotationEntry}. The\nserver enforces this invariant: {@link CreateAnnotationParams |\n`createAnnotation`} requires an initial entry, and deleting the\nlast remaining entry collapses the annotation into a\n{@link AnnotationsRemovedAction} rather than leaving an empty annotation\nbehind.",
+      "description": "A conversation anchored to a specific file produced by a specific turn,\noptionally narrowed to a range within that file.\n\n{@link turnId} anchors the annotation to the file versions that turn\nproduced, so a later turn that rewrites the same file does not silently\ninvalidate the annotation's anchor — clients can resolve {@link resource}\nand {@link range} against the turn's changeset. When {@link range} is\nomitted the annotation is anchored to the entire file.\n\nEvery annotation MUST contain at least one {@link AnnotationEntry}. An\n{@link AnnotationsSetAction} that creates an annotation therefore carries\nits mandatory first entry, and removing the last remaining entry collapses\nthe annotation via {@link AnnotationsRemovedAction} rather than leaving an\nempty annotation behind.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Stable identifier within the annotations channel. Server-assigned."
+          "description": "Stable identifier within the annotations channel. Assigned by the client\nthat dispatches the creating {@link AnnotationsSetAction}."
         },
         "turnId": {
           "type": "string",
@@ -3884,7 +3884,7 @@
         },
         "resolved": {
           "type": "boolean",
-          "description": "Whether the annotation has been resolved. Newly created annotations are\nalways unresolved (`false`); a client marks an annotation resolved (or\nre-opens it) through {@link UpdateAnnotationParams | `updateAnnotation`}."
+          "description": "Whether the annotation has been resolved. Newly created annotations are\nalways unresolved (`false`); a client marks an annotation resolved (or\nre-opens it) by dispatching an {@link AnnotationsSetAction} carrying the\nupdated flag."
         },
         "entries": {
           "type": "array",
@@ -3896,7 +3896,7 @@
         "_meta": {
           "type": "object",
           "additionalProperties": {},
-          "description": "Server-defined opaque metadata, surfaced to tooling but not\ninterpreted by the protocol."
+          "description": "Producer-defined opaque metadata, surfaced to tooling but not\ninterpreted by the protocol."
         }
       },
       "required": [
@@ -3913,7 +3913,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Stable identifier within the enclosing annotation. Server-assigned."
+          "description": "Stable identifier within the enclosing annotation. Assigned by the client\nthat dispatches the {@link AnnotationsEntrySetAction} (or the enclosing\n{@link AnnotationsSetAction}) introducing the entry."
         },
         "text": {
           "$ref": "#/$defs/StringOrMarkdown",
@@ -3922,29 +3922,11 @@
         "_meta": {
           "type": "object",
           "additionalProperties": {},
-          "description": "Server-defined opaque metadata, surfaced to tooling but not\ninterpreted by the protocol."
+          "description": "Producer-defined opaque metadata, surfaced to tooling but not\ninterpreted by the protocol."
         }
       },
       "required": [
         "id",
-        "text"
-      ]
-    },
-    "NewAnnotationEntry": {
-      "type": "object",
-      "description": "Input shape passed to {@link CreateAnnotationParams | `createAnnotation`}\nand {@link AddAnnotationEntryParams | `addAnnotationEntry`}. The server\nassigns the resulting {@link AnnotationEntry.id}.",
-      "properties": {
-        "text": {
-          "$ref": "#/$defs/StringOrMarkdown",
-          "description": "Entry body. See {@link AnnotationEntry.text}."
-        },
-        "_meta": {
-          "type": "object",
-          "additionalProperties": {},
-          "description": "Server-defined opaque metadata, forwarded onto the resulting\n{@link AnnotationEntry._meta}."
-        }
-      },
-      "required": [
         "text"
       ]
     },
@@ -5136,195 +5118,6 @@
           "description": "Optional follow-up: a URI to open (e.g. a PR), a content ref, etc."
         }
       }
-    },
-    "CreateAnnotationParams": {
-      "type": "object",
-      "description": "Create a new {@link Annotation} anchored to a file from a specific\nturn, optionally narrowed to a range within that file.\n\nThe initial entry is required — the protocol forbids empty annotations,\nso annotation creation and first-entry creation are fused into one\ncommand. The created annotation always starts unresolved\n({@link Annotation.resolved} is `false`). The server assigns both\n{@link CreateAnnotationResult.annotationId} and\n{@link CreateAnnotationResult.entryId}, then broadcasts an\n{@link AnnotationsSetAction} on the channel.",
-      "properties": {
-        "channel": {
-          "$ref": "#/$defs/URI",
-          "description": "The annotations channel URI, e.g. `ahp-session:/<uuid>/annotations`."
-        },
-        "turnId": {
-          "type": "string",
-          "description": "Turn whose file versions {@link resource} + {@link range} address."
-        },
-        "resource": {
-          "$ref": "#/$defs/URI",
-          "description": "Anchored file URI."
-        },
-        "range": {
-          "$ref": "#/$defs/TextRange",
-          "description": "Anchored range within {@link resource}. When omitted the annotation is\nanchored to the entire file."
-        },
-        "entry": {
-          "$ref": "#/$defs/NewAnnotationEntry",
-          "description": "First entry in the annotation. The server assigns its {@link AnnotationEntry.id}."
-        }
-      },
-      "required": [
-        "channel",
-        "turnId",
-        "resource",
-        "entry"
-      ]
-    },
-    "CreateAnnotationResult": {
-      "type": "object",
-      "description": "Result of {@link CreateAnnotationParams | `createAnnotation`}.",
-      "properties": {
-        "annotationId": {
-          "type": "string",
-          "description": "Server-assigned {@link Annotation.id}."
-        },
-        "entryId": {
-          "type": "string",
-          "description": "Server-assigned {@link AnnotationEntry.id} of the initial entry."
-        }
-      },
-      "required": [
-        "annotationId",
-        "entryId"
-      ]
-    },
-    "UpdateAnnotationParams": {
-      "type": "object",
-      "description": "Re-anchor or resolve an existing {@link Annotation} — typically used\nto re-pin an annotation to a different range or a newer turn after an\nedit, or to mark the annotation {@link Annotation.resolved | resolved}\n(or re-open it). Entries themselves are not modified by this command;\nuse {@link AddAnnotationEntryParams | `addAnnotationEntry`},\n{@link EditAnnotationEntryParams | `editAnnotationEntry`}, or\n{@link DeleteAnnotationEntryParams | `deleteAnnotationEntry`} for that.\n\nOmitted optional fields preserve their current value. The server\nechoes the resulting annotation state as an {@link AnnotationsSetAction}.",
-      "properties": {
-        "channel": {
-          "$ref": "#/$defs/URI",
-          "description": "The annotations channel URI."
-        },
-        "annotationId": {
-          "type": "string",
-          "description": "The {@link Annotation.id} to update."
-        },
-        "turnId": {
-          "type": "string",
-          "description": "New {@link Annotation.turnId}, if changing."
-        },
-        "resource": {
-          "$ref": "#/$defs/URI",
-          "description": "New anchored file URI, if changing."
-        },
-        "range": {
-          "$ref": "#/$defs/TextRange",
-          "description": "New anchored range, if changing."
-        },
-        "resolved": {
-          "type": "boolean",
-          "description": "New {@link Annotation.resolved} state, if changing."
-        }
-      },
-      "required": [
-        "channel",
-        "annotationId"
-      ]
-    },
-    "DeleteAnnotationParams": {
-      "type": "object",
-      "description": "Delete an entire annotation (and every entry it contains). The\nserver echoes an {@link AnnotationsRemovedAction} on the channel.",
-      "properties": {
-        "channel": {
-          "$ref": "#/$defs/URI",
-          "description": "The annotations channel URI."
-        },
-        "annotationId": {
-          "type": "string",
-          "description": "The {@link Annotation.id} to delete."
-        }
-      },
-      "required": [
-        "channel",
-        "annotationId"
-      ]
-    },
-    "AddAnnotationEntryParams": {
-      "type": "object",
-      "description": "Append a new {@link AnnotationEntry} to an existing annotation. The\nserver assigns the resulting {@link AnnotationEntry.id} and echoes an\n{@link AnnotationsEntrySetAction}.",
-      "properties": {
-        "channel": {
-          "$ref": "#/$defs/URI",
-          "description": "The annotations channel URI."
-        },
-        "annotationId": {
-          "type": "string",
-          "description": "Annotation that receives the new entry."
-        },
-        "entry": {
-          "$ref": "#/$defs/NewAnnotationEntry",
-          "description": "Entry payload — the server assigns the id."
-        }
-      },
-      "required": [
-        "channel",
-        "annotationId",
-        "entry"
-      ]
-    },
-    "AddAnnotationEntryResult": {
-      "type": "object",
-      "description": "Result of {@link AddAnnotationEntryParams | `addAnnotationEntry`}.",
-      "properties": {
-        "entryId": {
-          "type": "string",
-          "description": "Server-assigned {@link AnnotationEntry.id} of the new entry."
-        }
-      },
-      "required": [
-        "entryId"
-      ]
-    },
-    "EditAnnotationEntryParams": {
-      "type": "object",
-      "description": "Edit the body of an existing entry in place. The server echoes an\n{@link AnnotationsEntrySetAction} carrying the updated entry.\n\nOnly the body is mutable through this command; to change\n{@link AnnotationEntry._meta} delete and re-create the entry.",
-      "properties": {
-        "channel": {
-          "$ref": "#/$defs/URI",
-          "description": "The annotations channel URI."
-        },
-        "annotationId": {
-          "type": "string",
-          "description": "Enclosing annotation."
-        },
-        "entryId": {
-          "type": "string",
-          "description": "{@link AnnotationEntry.id} to edit."
-        },
-        "text": {
-          "$ref": "#/$defs/StringOrMarkdown",
-          "description": "New entry body. See {@link AnnotationEntry.text}."
-        }
-      },
-      "required": [
-        "channel",
-        "annotationId",
-        "entryId",
-        "text"
-      ]
-    },
-    "DeleteAnnotationEntryParams": {
-      "type": "object",
-      "description": "Remove a single entry from an annotation.\n\nIf the removal would leave the annotation empty (i.e. the targeted entry\nis the only one remaining), the server collapses the annotation instead\n— it dispatches an {@link AnnotationsRemovedAction} and the annotation\ndisappears from {@link AnnotationsState.annotations}. Otherwise the server\nechoes an {@link AnnotationsEntryRemovedAction}.",
-      "properties": {
-        "channel": {
-          "$ref": "#/$defs/URI",
-          "description": "The annotations channel URI."
-        },
-        "annotationId": {
-          "type": "string",
-          "description": "Enclosing annotation."
-        },
-        "entryId": {
-          "type": "string",
-          "description": "{@link AnnotationEntry.id} to remove."
-        }
-      },
-      "required": [
-        "channel",
-        "annotationId",
-        "entryId"
-      ]
     },
     "CreateResourceWatchParams": {
       "type": "object",

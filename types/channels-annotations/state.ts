@@ -59,17 +59,19 @@ export interface AnnotationsState {
  * and {@link range} against the turn's changeset. When {@link range} is
  * omitted the annotation is anchored to the entire file.
  *
- * Every annotation MUST contain at least one {@link AnnotationEntry}. The
- * server enforces this invariant: {@link CreateAnnotationParams |
- * `createAnnotation`} requires an initial entry, and deleting the
- * last remaining entry collapses the annotation into a
- * {@link AnnotationsRemovedAction} rather than leaving an empty annotation
- * behind.
+ * Every annotation MUST contain at least one {@link AnnotationEntry}. An
+ * {@link AnnotationsSetAction} that creates an annotation therefore carries
+ * its mandatory first entry, and removing the last remaining entry collapses
+ * the annotation via {@link AnnotationsRemovedAction} rather than leaving an
+ * empty annotation behind.
  *
  * @category Annotations
  */
 export interface Annotation {
-  /** Stable identifier within the annotations channel. Server-assigned. */
+  /**
+   * Stable identifier within the annotations channel. Assigned by the client
+   * that dispatches the creating {@link AnnotationsSetAction}.
+   */
   id: string;
   /**
    * Turn that produced the file versions this annotation is anchored to.
@@ -86,7 +88,8 @@ export interface Annotation {
   /**
    * Whether the annotation has been resolved. Newly created annotations are
    * always unresolved (`false`); a client marks an annotation resolved (or
-   * re-opens it) through {@link UpdateAnnotationParams | `updateAnnotation`}.
+   * re-opens it) by dispatching an {@link AnnotationsSetAction} carrying the
+   * updated flag.
    */
   resolved: boolean;
   /**
@@ -95,7 +98,7 @@ export interface Annotation {
    */
   entries: AnnotationEntry[];
   /**
-   * Server-defined opaque metadata, surfaced to tooling but not
+   * Producer-defined opaque metadata, surfaced to tooling but not
    * interpreted by the protocol.
    */
   _meta?: Record<string, unknown>;
@@ -109,7 +112,11 @@ export interface Annotation {
  * @category Annotations
  */
 export interface AnnotationEntry {
-  /** Stable identifier within the enclosing annotation. Server-assigned. */
+  /**
+   * Stable identifier within the enclosing annotation. Assigned by the client
+   * that dispatches the {@link AnnotationsEntrySetAction} (or the enclosing
+   * {@link AnnotationsSetAction}) introducing the entry.
+   */
   id: string;
   /**
    * Entry body. A bare `string` is rendered as plain text; pass
@@ -118,27 +125,8 @@ export interface AnnotationEntry {
    */
   text: StringOrMarkdown;
   /**
-   * Server-defined opaque metadata, surfaced to tooling but not
+   * Producer-defined opaque metadata, surfaced to tooling but not
    * interpreted by the protocol.
-   */
-  _meta?: Record<string, unknown>;
-}
-
-// ─── New Annotation Entry ────────────────────────────────────────────────────
-
-/**
- * Input shape passed to {@link CreateAnnotationParams | `createAnnotation`}
- * and {@link AddAnnotationEntryParams | `addAnnotationEntry`}. The server
- * assigns the resulting {@link AnnotationEntry.id}.
- *
- * @category Annotations
- */
-export interface NewAnnotationEntry {
-  /** Entry body. See {@link AnnotationEntry.text}. */
-  text: StringOrMarkdown;
-  /**
-   * Server-defined opaque metadata, forwarded onto the resulting
-   * {@link AnnotationEntry._meta}.
    */
   _meta?: Record<string, unknown>;
 }

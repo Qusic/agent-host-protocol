@@ -2920,16 +2920,16 @@ pub struct AnnotationsState {
 /// and {@link range} against the turn's changeset. When {@link range} is
 /// omitted the annotation is anchored to the entire file.
 ///
-/// Every annotation MUST contain at least one {@link AnnotationEntry}. The
-/// server enforces this invariant: {@link CreateAnnotationParams |
-/// `createAnnotation`} requires an initial entry, and deleting the
-/// last remaining entry collapses the annotation into a
-/// {@link AnnotationsRemovedAction} rather than leaving an empty annotation
-/// behind.
+/// Every annotation MUST contain at least one {@link AnnotationEntry}. An
+/// {@link AnnotationsSetAction} that creates an annotation therefore carries
+/// its mandatory first entry, and removing the last remaining entry collapses
+/// the annotation via {@link AnnotationsRemovedAction} rather than leaving an
+/// empty annotation behind.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Annotation {
-    /// Stable identifier within the annotations channel. Server-assigned.
+    /// Stable identifier within the annotations channel. Assigned by the client
+    /// that dispatches the creating {@link AnnotationsSetAction}.
     pub id: String,
     /// Turn that produced the file versions this annotation is anchored to.
     /// Matches a {@link Turn.id} on the owning session.
@@ -2942,12 +2942,13 @@ pub struct Annotation {
     pub range: Option<TextRange>,
     /// Whether the annotation has been resolved. Newly created annotations are
     /// always unresolved (`false`); a client marks an annotation resolved (or
-    /// re-opens it) through {@link UpdateAnnotationParams | `updateAnnotation`}.
+    /// re-opens it) by dispatching an {@link AnnotationsSetAction} carrying the
+    /// updated flag.
     pub resolved: bool,
     /// Entries in this annotation, in dispatch order (oldest first). MUST
     /// contain at least one entry.
     pub entries: Vec<AnnotationEntry>,
-    /// Server-defined opaque metadata, surfaced to tooling but not
+    /// Producer-defined opaque metadata, surfaced to tooling but not
     /// interpreted by the protocol.
     #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
     pub meta: Option<JsonObject>,
@@ -2957,28 +2958,16 @@ pub struct Annotation {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnnotationEntry {
-    /// Stable identifier within the enclosing annotation. Server-assigned.
+    /// Stable identifier within the enclosing annotation. Assigned by the client
+    /// that dispatches the {@link AnnotationsEntrySetAction} (or the enclosing
+    /// {@link AnnotationsSetAction}) introducing the entry.
     pub id: String,
     /// Entry body. A bare `string` is rendered as plain text; pass
     /// `{ markdown: "…" }` to opt into Markdown rendering. See
     /// {@link StringOrMarkdown}.
     pub text: StringOrMarkdown,
-    /// Server-defined opaque metadata, surfaced to tooling but not
+    /// Producer-defined opaque metadata, surfaced to tooling but not
     /// interpreted by the protocol.
-    #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
-    pub meta: Option<JsonObject>,
-}
-
-/// Input shape passed to {@link CreateAnnotationParams | `createAnnotation`}
-/// and {@link AddAnnotationEntryParams | `addAnnotationEntry`}. The server
-/// assigns the resulting {@link AnnotationEntry.id}.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NewAnnotationEntry {
-    /// Entry body. See {@link AnnotationEntry.text}.
-    pub text: StringOrMarkdown,
-    /// Server-defined opaque metadata, forwarded onto the resulting
-    /// {@link AnnotationEntry._meta}.
     #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
     pub meta: Option<JsonObject>,
 }

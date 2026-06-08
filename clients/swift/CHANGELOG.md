@@ -53,13 +53,13 @@ Implements AHP 0.3.0.
 - `AgentCustomization._meta` provider metadata field.
 - Optional `changes` field on `SessionSummary` (`ChangesSummary` with optional `additions`, `deletions`, and `files` counts) summarising a session's file-change footprint.
 - New annotations channel wire types (`ahp-session:/<uuid>/annotations`):
-  `AnnotationsState`, `Annotation`, `AnnotationEntry`, `NewAnnotationEntry`,
-  `AnnotationsSummary`; the
+  `AnnotationsState`, `Annotation`, `AnnotationEntry`,
+  `AnnotationsSummary`; and the client-dispatchable
   `annotations/set` / `annotations/removed` / `annotations/entrySet`
-  / `annotations/entryRemoved` cases on `StateAction`;
-  `CreateAnnotationParams/Result`, `UpdateAnnotationParams`,
-  `DeleteAnnotationParams`, `AddAnnotationEntryParams/Result`,
-  `EditAnnotationEntryParams`, `DeleteAnnotationEntryParams`; and `SnapshotState.annotations`.
+  / `annotations/entryRemoved` cases on `StateAction` — clients drive every
+  annotation mutation by dispatching these directly, assigning the
+  `Annotation.id` / `AnnotationEntry.id` themselves; and
+  `SnapshotState.annotations`.
   Reducer logic is deferred (matches the changeset/resource-watch parity).
 - `MessageAnnotationsAttachment` (`annotations` `MessageAttachment` variant)
   referencing annotations on a session's annotations channel by `resource`

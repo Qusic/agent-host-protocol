@@ -3709,7 +3709,8 @@ public struct AnnotationsState: Codable, Sendable {
 }
 
 public struct Annotation: Codable, Sendable {
-    /// Stable identifier within the annotations channel. Server-assigned.
+    /// Stable identifier within the annotations channel. Assigned by the client
+    /// that dispatches the creating {@link AnnotationsSetAction}.
     public var id: String
     /// Turn that produced the file versions this annotation is anchored to.
     /// Matches a {@link Turn.id} on the owning session.
@@ -3721,12 +3722,13 @@ public struct Annotation: Codable, Sendable {
     public var range: TextRange?
     /// Whether the annotation has been resolved. Newly created annotations are
     /// always unresolved (`false`); a client marks an annotation resolved (or
-    /// re-opens it) through {@link UpdateAnnotationParams | `updateAnnotation`}.
+    /// re-opens it) by dispatching an {@link AnnotationsSetAction} carrying the
+    /// updated flag.
     public var resolved: Bool
     /// Entries in this annotation, in dispatch order (oldest first). MUST
     /// contain at least one entry.
     public var entries: [AnnotationEntry]
-    /// Server-defined opaque metadata, surfaced to tooling but not
+    /// Producer-defined opaque metadata, surfaced to tooling but not
     /// interpreted by the protocol.
     public var meta: [String: AnyCodable]?
 
@@ -3760,13 +3762,15 @@ public struct Annotation: Codable, Sendable {
 }
 
 public struct AnnotationEntry: Codable, Sendable {
-    /// Stable identifier within the enclosing annotation. Server-assigned.
+    /// Stable identifier within the enclosing annotation. Assigned by the client
+    /// that dispatches the {@link AnnotationsEntrySetAction} (or the enclosing
+    /// {@link AnnotationsSetAction}) introducing the entry.
     public var id: String
     /// Entry body. A bare `string` is rendered as plain text; pass
     /// `{ markdown: "…" }` to opt into Markdown rendering. See
     /// {@link StringOrMarkdown}.
     public var text: StringOrMarkdown
-    /// Server-defined opaque metadata, surfaced to tooling but not
+    /// Producer-defined opaque metadata, surfaced to tooling but not
     /// interpreted by the protocol.
     public var meta: [String: AnyCodable]?
 
@@ -3782,27 +3786,6 @@ public struct AnnotationEntry: Codable, Sendable {
         meta: [String: AnyCodable]? = nil
     ) {
         self.id = id
-        self.text = text
-        self.meta = meta
-    }
-}
-
-public struct NewAnnotationEntry: Codable, Sendable {
-    /// Entry body. See {@link AnnotationEntry.text}.
-    public var text: StringOrMarkdown
-    /// Server-defined opaque metadata, forwarded onto the resulting
-    /// {@link AnnotationEntry._meta}.
-    public var meta: [String: AnyCodable]?
-
-    enum CodingKeys: String, CodingKey {
-        case text
-        case meta = "_meta"
-    }
-
-    public init(
-        text: StringOrMarkdown,
-        meta: [String: AnyCodable]? = nil
-    ) {
         self.text = text
         self.meta = meta
     }

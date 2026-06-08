@@ -13,14 +13,15 @@ import { softAssertNever } from '../common/reducer-helpers.js';
  * Pure reducer for annotations state. Handles every {@link AnnotationsAction}
  * variant.
  *
- * Per the spec, every annotations action is server-only. The reducer
+ * Per the spec, every annotations action is client-dispatchable; the reducer
+ * runs identically on the client (optimistic, write-ahead) and the server. It
  * preserves the dispatch order of annotations (and of entries within an
  * annotation): new entries are appended; `*Set` actions with a matching id
  * replace in place, while actions whose target id is unknown are no-ops
  * (mirroring `changeset/fileRemoved` semantics). The single-entry
- * minimum invariant is enforced by the server, not the reducer — a
- * malformed server that removes an annotation's last entry via
- * {@link AnnotationsEntryRemovedAction} would leave an empty annotation,
+ * minimum invariant is enforced by producers, not the reducer — removing an
+ * annotation's last entry via {@link AnnotationsEntryRemovedAction} (instead
+ * of {@link AnnotationsRemovedAction}) would leave an empty annotation,
  * which is observable but not catastrophic.
  */
 export function annotationsReducer(state: AnnotationsState, action: AnnotationsAction, log?: (msg: string) => void): AnnotationsState {
