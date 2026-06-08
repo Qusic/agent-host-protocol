@@ -17,7 +17,7 @@ use crate::actions::{ActionEnvelope, StateAction};
 use crate::state::{
     AgentSelection, ContentRef, MessageAttachment, ModelSelection, SessionActiveClient,
     SessionConfigSchema, SessionSummary, Snapshot, SnapshotState, TelemetryCapabilities,
-    TerminalClaim, Turn,
+    TerminalClaim, TextRange, Turn,
 };
 
 // ─── Enums ────────────────────────────────────────────────────────────

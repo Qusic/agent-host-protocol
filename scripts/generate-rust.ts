@@ -146,7 +146,8 @@ function mapType(tsType: string, propName?: string, containerName?: string): str
 
   if (tsType === 'IRootState | ISessionState' || tsType === 'IRootState | ISessionState | ITerminalState'
     || tsType === 'RootState | SessionState' || tsType === 'RootState | SessionState | TerminalState'
-    || tsType === 'RootState | SessionState | TerminalState | ChangesetState') {
+    || tsType === 'RootState | SessionState | TerminalState | ChangesetState'
+    || tsType === 'RootState | SessionState | TerminalState | ChangesetState | AnnotationsState') {
     return 'SnapshotState';
   }
 
@@ -579,6 +580,7 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: str
   { name: 'SimpleMessageAttachment', omitDiscriminants: true },
   { name: 'MessageEmbeddedResourceAttachment', omitDiscriminants: true },
   { name: 'MessageResourceAttachment', omitDiscriminants: true },
+  { name: 'MessageAnnotationsAttachment', omitDiscriminants: true },
   { name: 'MarkdownResponsePart', omitDiscriminants: true },
   { name: 'ContentRef' },
   { name: 'ResourceReponsePart', omitDiscriminants: true, rustName: 'ResourceResponsePart' },
@@ -637,6 +639,10 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: str
   { name: 'ChangesetState' },
   { name: 'ChangesetFile' },
   { name: 'ChangesetOperation' },
+  { name: 'AnnotationsSummary' },
+  { name: 'AnnotationsState' },
+  { name: 'Annotation' },
+  { name: 'AnnotationEntry' },
   { name: 'TelemetryCapabilities' },
   { name: 'ResourceWatchState' },
   { name: 'ResourceChange' },
@@ -757,6 +763,7 @@ const MESSAGE_ATTACHMENT_UNION: UnionConfig = {
     { variantName: 'Simple', innerType: 'SimpleMessageAttachment', wireValue: 'simple' },
     { variantName: 'EmbeddedResource', innerType: 'MessageEmbeddedResourceAttachment', wireValue: 'embeddedResource' },
     { variantName: 'Resource', innerType: 'MessageResourceAttachment', wireValue: 'resource' },
+    { variantName: 'Annotations', innerType: 'MessageAnnotationsAttachment', wireValue: 'annotations' },
   ],
   unknown: true,
 };
@@ -832,18 +839,20 @@ const TOOL_CALL_CONTRIBUTOR_UNION: UnionConfig = {
 };
 
 function generateSnapshotState(): string {
-  return `/// The state payload of a snapshot — root, session, terminal, or
-/// changeset state.
+  return `/// The state payload of a snapshot — root, session, terminal,
+/// changeset, or annotations state.
 ///
 /// Deserialized by trying session first (has required \`summary\`), then
 /// terminal (has required \`content\`), then changeset (has required
-/// \`status\` and \`files\`), then root.
+/// \`status\` and \`files\`), then annotations (has required \`annotations\`),
+/// then root.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum SnapshotState {
     Session(Box<SessionState>),
     Terminal(Box<TerminalState>),
     Changeset(Box<ChangesetState>),
+    Annotations(Box<AnnotationsState>),
     Root(Box<RootState>),
 }`;
 }
@@ -968,6 +977,10 @@ const ACTION_VARIANTS: {
   { type: 'changeset/operationsChanged', variantName: 'ChangesetOperationsChanged', tsInterface: 'ChangesetOperationsChangedAction' },
   { type: 'changeset/operationStatusChanged', variantName: 'ChangesetOperationStatusChanged', tsInterface: 'ChangesetOperationStatusChangedAction' },
   { type: 'changeset/cleared', variantName: 'ChangesetCleared', tsInterface: 'ChangesetClearedAction' },
+  { type: 'annotations/set', variantName: 'AnnotationsSet', tsInterface: 'AnnotationsSetAction' },
+  { type: 'annotations/removed', variantName: 'AnnotationsRemoved', tsInterface: 'AnnotationsRemovedAction' },
+  { type: 'annotations/entrySet', variantName: 'AnnotationsEntrySet', tsInterface: 'AnnotationsEntrySetAction' },
+  { type: 'annotations/entryRemoved', variantName: 'AnnotationsEntryRemoved', tsInterface: 'AnnotationsEntryRemovedAction' },
   { type: 'root/terminalsChanged', variantName: 'RootTerminalsChanged', tsInterface: 'RootTerminalsChangedAction' },
   { type: 'terminal/data', variantName: 'TerminalData', tsInterface: 'TerminalDataAction' },
   { type: 'terminal/input', variantName: 'TerminalInput', tsInterface: 'TerminalInputAction' },
@@ -1018,7 +1031,7 @@ pub struct SessionToolCallConfirmedAction {
 
 function generateActionsFile(project: Project): string {
   const lines: string[] = [GENERATED_HEADER];
-  lines.push('use crate::state::{AgentInfo, AgentSelection, ConfirmationOption, Customization, ErrorInfo, McpServerState, ModelSelection, ResponsePart, SessionActiveClient, SessionInputAnswer, SessionInputRequest, SessionInputResponseKind, TerminalClaim, TerminalInfo, ToolCallContributor, ToolCallResult, ToolCallConfirmationReason, ToolCallCancellationReason, ToolDefinition, ToolResultContent, UsageInfo, Message, PendingMessageKind, ChangesetStatus, ChangesetFile, ChangesetOperation, ChangesetOperationStatus, Changeset};');
+  lines.push('use crate::state::{AgentInfo, AgentSelection, Annotation, AnnotationEntry, ConfirmationOption, Customization, ErrorInfo, McpServerState, ModelSelection, ResponsePart, SessionActiveClient, SessionInputAnswer, SessionInputRequest, SessionInputResponseKind, TerminalClaim, TerminalInfo, ToolCallContributor, ToolCallResult, ToolCallConfirmationReason, ToolCallCancellationReason, ToolDefinition, ToolResultContent, UsageInfo, Message, PendingMessageKind, ChangesetStatus, ChangesetFile, ChangesetOperation, ChangesetOperationStatus, Changeset};');
   lines.push('');
 
   // ActionType enum
@@ -1145,7 +1158,7 @@ function generateCommandsFile(project: Project): string {
   lines.push('#[allow(unused_imports)]');
   lines.push('use crate::actions::{ActionEnvelope, StateAction};');
   lines.push('#[allow(unused_imports)]');
-  lines.push('use crate::state::{AgentSelection, ContentRef, MessageAttachment, ModelSelection, SessionActiveClient, SessionConfigSchema, SessionSummary, Snapshot, SnapshotState, TelemetryCapabilities, TerminalClaim, Turn};');
+  lines.push('use crate::state::{AgentSelection, ContentRef, MessageAttachment, ModelSelection, SessionActiveClient, SessionConfigSchema, SessionSummary, Snapshot, SnapshotState, TelemetryCapabilities, TerminalClaim, TextRange, Turn};');
   lines.push('');
 
   lines.push('// ─── Enums ────────────────────────────────────────────────────────────\n');
@@ -1228,7 +1241,7 @@ const NOTIFICATION_STRUCTS = [
 function generateNotificationsFile(project: Project): string {
   const lines: string[] = [GENERATED_HEADER];
   lines.push('#[allow(unused_imports)]');
-  lines.push('use crate::state::{AgentSelection, ChangesSummary, Changeset, FileEdit, ModelSelection, ProjectInfo, SessionStatus, SessionSummary};');
+  lines.push('use crate::state::{AgentSelection, AnnotationsSummary, ChangesSummary, Changeset, FileEdit, ModelSelection, ProjectInfo, SessionStatus, SessionSummary};');
   lines.push('');
 
   lines.push('// ─── Enums ────────────────────────────────────────────────────────────\n');

@@ -6,6 +6,7 @@
  */
 
 import type { Changeset } from '../channels-changeset/state.js';
+import type { AnnotationsSummary } from '../channels-annotations/state.js';
 import type { ModelSelection } from '../channels-root/state.js';
 import type {
   ConfigPropertySchema,
@@ -232,6 +233,13 @@ export interface SessionSummary {
   * client to subscribe to a changeset.
   */
   changes?: ChangesSummary;
+  /**
+   * Lightweight summary of this session's inline annotations channel
+   * (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
+   * annotation / entry counts without subscribing. Absent when the session
+   * does not expose an annotations channel.
+   */
+  annotations?: AnnotationsSummary;
 }
 
 /**
@@ -585,6 +593,8 @@ export const enum MessageAttachmentKind {
   EmbeddedResource = 'embeddedResource',
   /** An attachment that references a resource by URI. */
   Resource = 'resource',
+  /** An attachment that references annotations on an annotations channel. */
+  Annotations = 'annotations',
 }
 
 /**
@@ -775,6 +785,31 @@ export interface MessageResourceAttachment extends MessageAttachmentBase, Conten
 }
 
 /**
+ * An attachment that references annotations on a session's annotations
+ * channel (see {@link AnnotationsState}).
+ *
+ * When {@link annotationIds} is omitted the attachment references every
+ * annotation on the channel; when present it references only the listed
+ * {@link Annotation.id | annotation ids}.
+ *
+ * @category Turn Types
+ */
+export interface MessageAnnotationsAttachment extends MessageAttachmentBase {
+  /** Discriminant */
+  type: MessageAttachmentKind.Annotations;
+  /**
+   * The annotations channel URI (typically `ahp-session:/<uuid>/annotations`).
+   * Matches {@link AnnotationsSummary.resource}.
+   */
+  resource: URI;
+  /**
+   * Specific {@link Annotation.id | annotation ids} to reference. When
+   * omitted, the attachment references all annotations on the channel.
+   */
+  annotationIds?: string[];
+}
+
+/**
  * An attachment associated with a {@link Message}.
  *
  * @category Turn Types
@@ -782,7 +817,8 @@ export interface MessageResourceAttachment extends MessageAttachmentBase, Conten
 export type MessageAttachment =
   | SimpleMessageAttachment
   | MessageEmbeddedResourceAttachment
-  | MessageResourceAttachment;
+  | MessageResourceAttachment
+  | MessageAnnotationsAttachment;
 
 // ─── Response Parts ──────────────────────────────────────────────────────────
 

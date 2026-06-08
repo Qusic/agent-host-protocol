@@ -189,4 +189,9 @@ type PartialSessionSummary struct {
 	// session's footprint (e.g., for list rendering) without requiring the
 	// client to subscribe to a changeset.
 	Changes *ChangesSummary `json:"changes,omitempty"`
+	// Lightweight summary of this session's inline annotations channel
+	// (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
+	// annotation / entry counts without subscribing. Absent when the session
+	// does not expose an annotations channel.
+	Annotations *AnnotationsSummary `json:"annotations,omitempty"`
 }

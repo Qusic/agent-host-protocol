@@ -76,7 +76,7 @@ data class SessionSummaryChangedParams(
     val session: String,
     /**
      * Mutable summary fields that changed; omitted fields are unchanged.
-     * 
+     *
      * Identity fields (`resource`, `provider`, `createdAt`) never change and
      * MUST be omitted by senders; receivers SHOULD ignore them if present.
      */
@@ -183,7 +183,7 @@ data class PartialSessionSummary(
     val model: ModelSelection? = null,
     /**
      * Currently selected custom agent.
-     * 
+     *
      * Absent (`undefined`) means no custom agent is selected for this session
      * — the session uses the provider's default behavior.
      */
@@ -198,5 +198,12 @@ data class PartialSessionSummary(
      * session's footprint (e.g., for list rendering) without requiring the
      * client to subscribe to a changeset.
      */
-    val changes: ChangesSummary? = null
+    val changes: ChangesSummary? = null,
+    /**
+     * Lightweight summary of this session's inline annotations channel
+     * (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
+     * annotation / entry counts without subscribing. Absent when the session
+     * does not expose an annotations channel.
+     */
+    val annotations: AnnotationsSummary? = null
 )

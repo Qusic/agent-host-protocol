@@ -12,12 +12,13 @@ use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
 use crate::state::{
-    AgentInfo, AgentSelection, Changeset, ChangesetFile, ChangesetOperation,
-    ChangesetOperationStatus, ChangesetStatus, ConfirmationOption, Customization, ErrorInfo,
-    McpServerState, Message, ModelSelection, PendingMessageKind, ResponsePart, SessionActiveClient,
-    SessionInputAnswer, SessionInputRequest, SessionInputResponseKind, TerminalClaim, TerminalInfo,
-    ToolCallCancellationReason, ToolCallConfirmationReason, ToolCallContributor, ToolCallResult,
-    ToolDefinition, ToolResultContent, UsageInfo,
+    AgentInfo, AgentSelection, Annotation, AnnotationEntry, Changeset, ChangesetFile,
+    ChangesetOperation, ChangesetOperationStatus, ChangesetStatus, ConfirmationOption,
+    Customization, ErrorInfo, McpServerState, Message, ModelSelection, PendingMessageKind,
+    ResponsePart, SessionActiveClient, SessionInputAnswer, SessionInputRequest,
+    SessionInputResponseKind, TerminalClaim, TerminalInfo, ToolCallCancellationReason,
+    ToolCallConfirmationReason, ToolCallContributor, ToolCallResult, ToolDefinition,
+    ToolResultContent, UsageInfo,
 };
 
 // ─── ActionType ──────────────────────────────────────────────────────
@@ -123,6 +124,14 @@ pub enum ActionType {
     ChangesetOperationStatusChanged,
     #[serde(rename = "changeset/cleared")]
     ChangesetCleared,
+    #[serde(rename = "annotations/set")]
+    AnnotationsSet,
+    #[serde(rename = "annotations/removed")]
+    AnnotationsRemoved,
+    #[serde(rename = "annotations/entrySet")]
+    AnnotationsEntrySet,
+    #[serde(rename = "annotations/entryRemoved")]
+    AnnotationsEntryRemoved,
     #[serde(rename = "root/terminalsChanged")]
     RootTerminalsChanged,
     #[serde(rename = "root/configChanged")]
@@ -967,6 +976,67 @@ pub struct ChangesetOperationStatusChangedAction {
 #[serde(rename_all = "camelCase")]
 pub struct ChangesetClearedAction {}
 
+/// Upsert an {@link Annotation} in the annotations channel — adds a new
+/// annotation, or replaces an existing one identified by
+/// {@link Annotation.id}.
+///
+/// Dispatched by a client to create an annotation (together with its
+/// mandatory first entry) or to re-anchor / resolve an existing one; the
+/// dispatching client assigns the {@link Annotation.id} and the id of any
+/// new entry. When replacing, the full annotation payload (including its
+/// {@link Annotation.entries | entries} list) is substituted; producers
+/// SHOULD prefer {@link AnnotationsEntrySetAction} for per-entry edits to
+/// keep wire updates small.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AnnotationsSetAction {
+    /// The new or replacement annotation. MUST contain at least one entry.
+    pub annotation: Annotation,
+}
+
+/// Remove an {@link Annotation} from the channel by its id.
+///
+/// Dispatched to delete an entire annotation and every entry it contains.
+/// Because the protocol forbids empty annotations, a client that wants to
+/// remove the last remaining entry dispatches this action — collapsing the
+/// annotation — rather than {@link AnnotationsEntryRemovedAction}.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AnnotationsRemovedAction {
+    /// The {@link Annotation.id} of the annotation to remove.
+    pub annotation_id: String,
+}
+
+/// Upsert an {@link AnnotationEntry} within an existing annotation — adds a
+/// new entry, or replaces one identified by {@link AnnotationEntry.id}. The
+/// dispatching client assigns the {@link AnnotationEntry.id} of a new entry.
+/// If {@link annotationId} does not match any current annotation the action
+/// is a no-op.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AnnotationsEntrySetAction {
+    /// The {@link Annotation.id} the entry belongs to.
+    pub annotation_id: String,
+    /// The new or replacement entry.
+    pub entry: AnnotationEntry,
+}
+
+/// Remove a single {@link AnnotationEntry} from an annotation without
+/// collapsing the annotation itself. Used when more than one entry remains —
+/// to remove the last entry a client dispatches {@link AnnotationsRemovedAction}
+/// instead, since the protocol forbids empty annotations.
+///
+/// If either {@link annotationId} or {@link entryId} does not match the
+/// current state the action is a no-op.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AnnotationsEntryRemovedAction {
+    /// The {@link Annotation.id} the entry belongs to.
+    pub annotation_id: String,
+    /// The {@link AnnotationEntry.id} to remove.
+    pub entry_id: String,
+}
+
 /// Fired when the list of known terminals changes.
 ///
 /// Full-replacement semantics: the `terminals` array replaces the previous
@@ -1231,6 +1301,14 @@ pub enum StateAction {
     ChangesetOperationStatusChanged(ChangesetOperationStatusChangedAction),
     #[serde(rename = "changeset/cleared")]
     ChangesetCleared(ChangesetClearedAction),
+    #[serde(rename = "annotations/set")]
+    AnnotationsSet(AnnotationsSetAction),
+    #[serde(rename = "annotations/removed")]
+    AnnotationsRemoved(AnnotationsRemovedAction),
+    #[serde(rename = "annotations/entrySet")]
+    AnnotationsEntrySet(AnnotationsEntrySetAction),
+    #[serde(rename = "annotations/entryRemoved")]
+    AnnotationsEntryRemoved(AnnotationsEntryRemovedAction),
     #[serde(rename = "root/terminalsChanged")]
     RootTerminalsChanged(RootTerminalsChangedAction),
     #[serde(rename = "terminal/data")]

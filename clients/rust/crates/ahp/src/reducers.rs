@@ -1259,6 +1259,7 @@ mod tests {
                 agent: None,
                 working_directory: None,
                 changes: None,
+                annotations: None,
             },
             lifecycle: SessionLifecycle::Creating,
             creation_error: None,
@@ -1556,6 +1557,11 @@ mod tests {
                 ),
                 "changeset" => {
                     // changeset reducer not yet implemented in Rust; skip.
+                    skipped += 1;
+                    continue;
+                }
+                "annotations" => {
+                    // annotations reducer not yet implemented in Rust; skip.
                     skipped += 1;
                     continue;
                 }

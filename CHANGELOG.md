@@ -86,6 +86,21 @@ Spec version: `0.3.0`
 - Added optional `changes` field of type `ChangesSummary` to `SessionSummary`,
   carrying optional `additions`, `deletions`, and `files` counts so servers
   can advertise an at-a-glance view of a session's file-change footprint.
+- Added a new annotations channel exposed on `ahp-session:/<uuid>/annotations`.
+  Annotations anchor to a `(turnId, resource)` pair with an optional `range`
+  (omitted to anchor to the entire file), carry a `resolved` flag (newly
+  created annotations start unresolved), and always carry at least one entry.
+  Clients drive every mutation by dispatching the client-dispatchable
+  `annotations/set`, `annotations/removed`, `annotations/entrySet`, and
+  `annotations/entryRemoved` state actions directly — assigning the
+  `Annotation.id` / `AnnotationEntry.id` themselves — rather than through RPC
+  commands, so annotations inherit write-ahead replay and conflict resolution.
+  `SessionSummary.annotations` advertises the per-session `AnnotationsSummary`
+  (`{ resource, annotationCount, entryCount }`) for badge UI.
+- Added an `annotations` `MessageAttachment` variant
+  (`MessageAnnotationsAttachment`) that references annotations on a
+  session's annotations channel by its `resource` URI, optionally narrowed to
+  an `annotationIds` array (omitted to reference every annotation).
 - Removed the `additions`, `deletions`, and `files` fields from
   `ChangesetSummary`. Aggregate counts now live on `SessionSummary.changes`;
   per-changeset views derive their own totals from `ChangesetState.files`.

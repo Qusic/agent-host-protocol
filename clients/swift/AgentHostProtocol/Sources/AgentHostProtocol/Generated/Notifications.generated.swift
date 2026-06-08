@@ -50,7 +50,7 @@ public struct SessionSummaryChangedParams: Codable, Sendable {
     /// URI of the session whose summary changed
     public var session: String
     /// Mutable summary fields that changed; omitted fields are unchanged.
-    /// 
+    ///
     /// Identity fields (`resource`, `provider`, `createdAt`) never change and
     /// MUST be omitted by senders; receivers SHOULD ignore them if present.
     public var changes: PartialSessionSummary
@@ -158,7 +158,7 @@ public struct PartialSessionSummary: Codable, Sendable {
     /// Currently selected model
     public var model: ModelSelection?
     /// Currently selected custom agent.
-    /// 
+    ///
     /// Absent (`undefined`) means no custom agent is selected for this session
     /// — the session uses the provider's default behavior.
     public var agent: AgentSelection?
@@ -169,6 +169,11 @@ public struct PartialSessionSummary: Codable, Sendable {
     /// session's footprint (e.g., for list rendering) without requiring the
     /// client to subscribe to a changeset.
     public var changes: ChangesSummary?
+    /// Lightweight summary of this session's inline annotations channel
+    /// (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
+    /// annotation / entry counts without subscribing. Absent when the session
+    /// does not expose an annotations channel.
+    public var annotations: AnnotationsSummary?
 
     public init(
         resource: String? = nil,
@@ -182,7 +187,8 @@ public struct PartialSessionSummary: Codable, Sendable {
         model: ModelSelection? = nil,
         agent: AgentSelection? = nil,
         workingDirectory: String? = nil,
-        changes: ChangesSummary? = nil
+        changes: ChangesSummary? = nil,
+        annotations: AnnotationsSummary? = nil
     ) {
         self.resource = resource
         self.provider = provider
@@ -196,5 +202,6 @@ public struct PartialSessionSummary: Codable, Sendable {
         self.agent = agent
         self.workingDirectory = workingDirectory
         self.changes = changes
+        self.annotations = annotations
     }
 }

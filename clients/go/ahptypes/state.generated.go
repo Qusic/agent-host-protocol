@@ -131,6 +131,8 @@ const (
 	MessageAttachmentKindEmbeddedResource MessageAttachmentKind = "embeddedResource"
 	// An attachment that references a resource by URI.
 	MessageAttachmentKindResource MessageAttachmentKind = "resource"
+	// An attachment that references annotations on an annotations channel.
+	MessageAttachmentKindAnnotations MessageAttachmentKind = "annotations"
 )
 
 // Discriminant for response part types.
@@ -692,6 +694,11 @@ type SessionSummary struct {
 	// session's footprint (e.g., for list rendering) without requiring the
 	// client to subscribe to a changeset.
 	Changes *ChangesSummary `json:"changes,omitempty"`
+	// Lightweight summary of this session's inline annotations channel
+	// (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
+	// annotation / entry counts without subscribing. Absent when the session
+	// does not expose an annotations channel.
+	Annotations *AnnotationsSummary `json:"annotations,omitempty"`
 }
 
 // Aggregate counts describing the file changes associated with a session.
@@ -1138,6 +1145,47 @@ type MessageResourceAttachment struct {
 	//
 	// Only meaningful for textual resources.
 	Selection *TextSelection `json:"selection,omitempty"`
+}
+
+// An attachment that references annotations on a session's annotations
+// channel (see {@link AnnotationsState}).
+//
+// When {@link annotationIds} is omitted the attachment references every
+// annotation on the channel; when present it references only the listed
+// {@link Annotation.id | annotation ids}.
+type MessageAnnotationsAttachment struct {
+	// A human-readable label for the attachment (e.g. the filename of a file
+	// attachment). Used for display in UI.
+	Label string `json:"label"`
+	// If defined, the range in {@link Message.text} that references this
+	// attachment. This is a text range, not a byte range.
+	Range *TextRange `json:"range,omitempty"`
+	// Advisory display hint for clients rendering this attachment. Recognized
+	// values include:
+	//
+	// - `'image'`: the attachment is an image
+	// - `'document'`: the attachment is a textual document
+	// - `'symbol'`: the attachment is a code symbol (e.g. a function or class)
+	// - `'directory'`: the attachment is a folder
+	// - `'selection'`: the attachment is a selection within a document
+	//
+	// Implementations MAY provide additional values; clients SHOULD fall back
+	// to a reasonable default when an unknown value is encountered.
+	DisplayKind *string `json:"displayKind,omitempty"`
+	// Additional implementation-defined metadata for the attachment.
+	//
+	// If the attachment was produced by the `completions` command, the client
+	// MUST preserve every property of `_meta` originally returned by the agent
+	// host when sending the user message containing the accepted completion.
+	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
+	// Discriminant
+	Type MessageAttachmentKind `json:"type"`
+	// The annotations channel URI (typically `ahp-session:/<uuid>/annotations`).
+	// Matches {@link AnnotationsSummary.resource}.
+	Resource URI `json:"resource"`
+	// Specific {@link Annotation.id | annotation ids} to reference. When
+	// omitted, the attachment references all annotations on the channel.
+	AnnotationIds []string `json:"annotationIds,omitempty"`
 }
 
 type MarkdownResponsePart struct {
@@ -2351,6 +2399,82 @@ type ChangesetOperation struct {
 	Error *ErrorInfo `json:"error,omitempty"`
 }
 
+// Lightweight per-session summary of the annotations channel, surfaced on
+// {@link SessionSummary.annotations} so badge UI can render annotation /
+// entry counts without subscribing to the channel itself.
+type AnnotationsSummary struct {
+	// The subscribable annotations channel URI for the owning session
+	// (typically `ahp-session:/<uuid>/annotations`). Surfaced explicitly even
+	// though it is derivable from the session URI so badge UI does not need
+	// to know the derivation rule.
+	Resource URI `json:"resource"`
+	// Total number of {@link Annotation} entries in the channel.
+	AnnotationCount int64 `json:"annotationCount"`
+	// Total number of {@link AnnotationEntry} entries across every annotation.
+	EntryCount int64 `json:"entryCount"`
+}
+
+// Full state for a session's annotations channel, returned when a client
+// subscribes to an `ahp-session:/<uuid>/annotations` URI.
+type AnnotationsState struct {
+	// Annotations in this channel, keyed by {@link Annotation.id}.
+	Annotations []Annotation `json:"annotations"`
+}
+
+// A conversation anchored to a specific file produced by a specific turn,
+// optionally narrowed to a range within that file.
+//
+// {@link turnId} anchors the annotation to the file versions that turn
+// produced, so a later turn that rewrites the same file does not silently
+// invalidate the annotation's anchor — clients can resolve {@link resource}
+// and {@link range} against the turn's changeset. When {@link range} is
+// omitted the annotation is anchored to the entire file.
+//
+// Every annotation MUST contain at least one {@link AnnotationEntry}. An
+// {@link AnnotationsSetAction} that creates an annotation therefore carries
+// its mandatory first entry, and removing the last remaining entry collapses
+// the annotation via {@link AnnotationsRemovedAction} rather than leaving an
+// empty annotation behind.
+type Annotation struct {
+	// Stable identifier within the annotations channel. Assigned by the client
+	// that dispatches the creating {@link AnnotationsSetAction}.
+	Id string `json:"id"`
+	// Turn that produced the file versions this annotation is anchored to.
+	// Matches a {@link Turn.id} on the owning session.
+	TurnId string `json:"turnId"`
+	// The file the annotation is anchored to.
+	Resource URI `json:"resource"`
+	// Range within {@link resource} the annotation is anchored to. When
+	// omitted the annotation is anchored to the entire file.
+	Range *TextRange `json:"range,omitempty"`
+	// Whether the annotation has been resolved. Newly created annotations are
+	// always unresolved (`false`); a client marks an annotation resolved (or
+	// re-opens it) by dispatching an {@link AnnotationsSetAction} carrying the
+	// updated flag.
+	Resolved bool `json:"resolved"`
+	// Entries in this annotation, in dispatch order (oldest first). MUST
+	// contain at least one entry.
+	Entries []AnnotationEntry `json:"entries"`
+	// Producer-defined opaque metadata, surfaced to tooling but not
+	// interpreted by the protocol.
+	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
+}
+
+// A single entry within an {@link Annotation}.
+type AnnotationEntry struct {
+	// Stable identifier within the enclosing annotation. Assigned by the client
+	// that dispatches the {@link AnnotationsEntrySetAction} (or the enclosing
+	// {@link AnnotationsSetAction}) introducing the entry.
+	Id string `json:"id"`
+	// Entry body. A bare `string` is rendered as plain text; pass
+	// `{ markdown: "…" }` to opt into Markdown rendering. See
+	// {@link StringOrMarkdown}.
+	Text StringOrMarkdown `json:"text"`
+	// Producer-defined opaque metadata, surfaced to tooling but not
+	// interpreted by the protocol.
+	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
+}
+
 // OTLP telemetry channels the agent host emits.
 //
 // Each field, when present, is either a literal channel URI or an
@@ -3056,6 +3180,7 @@ type isMessageAttachment interface{ isMessageAttachment() }
 func (*SimpleMessageAttachment) isMessageAttachment()           {}
 func (*MessageEmbeddedResourceAttachment) isMessageAttachment() {}
 func (*MessageResourceAttachment) isMessageAttachment()         {}
+func (*MessageAnnotationsAttachment) isMessageAttachment()      {}
 
 // MessageAttachmentUnknown carries an unrecognized MessageAttachment variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
 type MessageAttachmentUnknown struct {
@@ -3085,6 +3210,12 @@ func (u *MessageAttachment) UnmarshalJSON(data []byte) error {
 		u.Value = &value
 	case "resource":
 		var value MessageResourceAttachment
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	case "annotations":
+		var value MessageAnnotationsAttachment
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err
 		}
@@ -3482,14 +3613,15 @@ func (u ToolCallContributor) MarshalJSON() ([]byte, error) {
 }
 
 // SnapshotState is the state payload of a snapshot — root, session,
-// terminal, or changeset state. The active variant is chosen by which
+// terminal, changeset, or annotations state. The active variant is chosen by which
 // pointer field is non-nil; UnmarshalJSON probes for required fields in
-// the canonical order (session → terminal → changeset → root).
+// the canonical order (session → terminal → changeset → annotations → root).
 type SnapshotState struct {
-	Root      *RootState      `json:"-"`
-	Session   *SessionState   `json:"-"`
-	Terminal  *TerminalState  `json:"-"`
-	Changeset *ChangesetState `json:"-"`
+	Root        *RootState        `json:"-"`
+	Session     *SessionState     `json:"-"`
+	Terminal    *TerminalState    `json:"-"`
+	Changeset   *ChangesetState   `json:"-"`
+	Annotations *AnnotationsState `json:"-"`
 }
 
 // MarshalJSON encodes whichever variant is currently populated.
@@ -3501,6 +3633,8 @@ func (s SnapshotState) MarshalJSON() ([]byte, error) {
 		return json.Marshal(s.Terminal)
 	case s.Changeset != nil:
 		return json.Marshal(s.Changeset)
+	case s.Annotations != nil:
+		return json.Marshal(s.Annotations)
 	case s.Root != nil:
 		return json.Marshal(s.Root)
 	default:
@@ -3535,6 +3669,12 @@ func (s *SnapshotState) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		s.Changeset = &v
+	case containsAll(probe, "annotations"):
+		var v AnnotationsState
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		s.Annotations = &v
 	default:
 		var v RootState
 		if err := json.Unmarshal(data, &v); err != nil {

@@ -21,6 +21,9 @@ import com.microsoft.agenthostprotocol.generated.ChildCustomizationPrompt
 import com.microsoft.agenthostprotocol.generated.ChildCustomizationRule
 import com.microsoft.agenthostprotocol.generated.ChildCustomizationSkill
 import com.microsoft.agenthostprotocol.generated.ChildCustomizationUnknown
+import com.microsoft.agenthostprotocol.generated.AnnotationEntry
+import com.microsoft.agenthostprotocol.generated.Annotation
+import com.microsoft.agenthostprotocol.generated.AnnotationsState
 import com.microsoft.agenthostprotocol.generated.ConfirmationOption
 import com.microsoft.agenthostprotocol.generated.Customization
 import com.microsoft.agenthostprotocol.generated.CustomizationDirectory
@@ -52,6 +55,10 @@ import com.microsoft.agenthostprotocol.generated.StateActionChangesetFileSet
 import com.microsoft.agenthostprotocol.generated.StateActionChangesetOperationsChanged
 import com.microsoft.agenthostprotocol.generated.StateActionChangesetOperationStatusChanged
 import com.microsoft.agenthostprotocol.generated.StateActionChangesetStatusChanged
+import com.microsoft.agenthostprotocol.generated.StateActionAnnotationsEntryRemoved
+import com.microsoft.agenthostprotocol.generated.StateActionAnnotationsEntrySet
+import com.microsoft.agenthostprotocol.generated.StateActionAnnotationsRemoved
+import com.microsoft.agenthostprotocol.generated.StateActionAnnotationsSet
 import com.microsoft.agenthostprotocol.generated.StateActionRootActiveSessionsChanged
 import com.microsoft.agenthostprotocol.generated.StateActionRootAgentsChanged
 import com.microsoft.agenthostprotocol.generated.StateActionRootConfigChanged
@@ -145,9 +152,9 @@ import kotlinx.serialization.json.JsonElement
  * no mutation of [state] and no side effects.
  *
  * The companion top-level functions ([rootReducer], [sessionReducer],
- * [terminalReducer], [changesetReducer], [resourceWatchReducer]) are the canonical implementations.
+ * [terminalReducer], [changesetReducer], [annotationsReducer], [resourceWatchReducer]) are the canonical implementations.
  * The object instances on this interface ([RootReducer], [SessionReducer],
- * [TerminalReducer], [ChangesetReducer]) wrap them for use as values where
+ * [TerminalReducer], [ChangesetReducer], [AnnotationsReducer]) wrap them for use as values where
  * an instance is needed.
  */
 public fun interface Reducer<S, A> {
@@ -176,6 +183,12 @@ public object TerminalReducer : Reducer<TerminalState, StateAction> {
 public object ChangesetReducer : Reducer<ChangesetState, StateAction> {
     override fun reduce(state: ChangesetState, action: StateAction): ChangesetState =
         changesetReducer(state, action)
+}
+
+/** Pure annotations reducer as a [Reducer] instance. Delegates to [annotationsReducer]. */
+public object AnnotationsReducer : Reducer<AnnotationsState, StateAction> {
+    override fun reduce(state: AnnotationsState, action: StateAction): AnnotationsState =
+        annotationsReducer(state, action)
 }
 
 /** Pure resource-watch reducer as a [Reducer] instance. Delegates to [resourceWatchReducer]. */
@@ -1333,6 +1346,81 @@ public fun changesetReducer(state: ChangesetState, action: StateAction): Changes
 
     is StateActionChangesetCleared ->
         if (state.files.isEmpty()) state else state.copy(files = emptyList())
+
+    else -> state
+}
+
+// ─── Annotations Reducer ──────────────────────────────────────────
+
+/**
+ * Pure reducer for [AnnotationsState]. Handles all annotations-channel action
+ * variants; actions belonging to other channels (or unknown variants) are
+ * no-ops that return [state] unchanged.
+ *
+ * The single-entry-minimum invariant is enforced by the server, not the
+ * reducer — a malformed server that removes an annotation's last entry via
+ * `annotations/entryRemoved` would leave an empty annotation, which is
+ * observable but not catastrophic.
+ */
+public fun annotationsReducer(state: AnnotationsState, action: StateAction): AnnotationsState = when (action) {
+    is StateActionAnnotationsSet -> {
+        val annotation = action.value.annotation
+        val idx = state.annotations.indexOfFirst { it.id == annotation.id }
+        if (idx < 0) {
+            state.copy(annotations = state.annotations + annotation)
+        } else {
+            val next = state.annotations.toMutableList().also { it[idx] = annotation }
+            state.copy(annotations = next)
+        }
+    }
+
+    is StateActionAnnotationsRemoved -> {
+        val idx = state.annotations.indexOfFirst { it.id == action.value.annotationId }
+        if (idx < 0) {
+            state
+        } else {
+            val next: List<Annotation> = state.annotations.toMutableList().also { it.removeAt(idx) }
+            state.copy(annotations = next)
+        }
+    }
+
+    is StateActionAnnotationsEntrySet -> {
+        val tIdx = state.annotations.indexOfFirst { it.id == action.value.annotationId }
+        if (tIdx < 0) {
+            state
+        } else {
+            val annotation = state.annotations[tIdx]
+            val entry = action.value.entry
+            val cIdx = annotation.entries.indexOfFirst { it.id == entry.id }
+            val nextEntries = if (cIdx < 0) {
+                annotation.entries + entry
+            } else {
+                annotation.entries.toMutableList().also { it[cIdx] = entry }
+            }
+            val nextAnnotations = state.annotations.toMutableList()
+                .also { it[tIdx] = annotation.copy(entries = nextEntries) }
+            state.copy(annotations = nextAnnotations)
+        }
+    }
+
+    is StateActionAnnotationsEntryRemoved -> {
+        val tIdx = state.annotations.indexOfFirst { it.id == action.value.annotationId }
+        if (tIdx < 0) {
+            state
+        } else {
+            val annotation = state.annotations[tIdx]
+            val cIdx = annotation.entries.indexOfFirst { it.id == action.value.entryId }
+            if (cIdx < 0) {
+                state
+            } else {
+                val nextEntries: List<AnnotationEntry> = annotation.entries.toMutableList()
+                    .also { it.removeAt(cIdx) }
+                val nextAnnotations = state.annotations.toMutableList()
+                    .also { it[tIdx] = annotation.copy(entries = nextEntries) }
+                state.copy(annotations = nextAnnotations)
+            }
+        }
+    }
 
     else -> state
 }

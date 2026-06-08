@@ -106,7 +106,8 @@ function mapType(tsType: string, propName?: string, containerName?: string): str
   // Known unions
   if (tsType === 'RootState | SessionState'
     || tsType === 'RootState | SessionState | TerminalState'
-    || tsType === 'RootState | SessionState | TerminalState | ChangesetState') return 'SnapshotState';
+    || tsType === 'RootState | SessionState | TerminalState | ChangesetState'
+    || tsType === 'RootState | SessionState | TerminalState | ChangesetState | AnnotationsState') return 'SnapshotState';
 
   // T | null → T?
   const nullMatch = tsType.match(/^(.+?)\s*\|\s*null$/);
@@ -273,6 +274,13 @@ function extractProps(iface: InterfaceDeclaration, project: Project): SwiftProp[
     });
 }
 
+// ─── Swift Doc Emission ──────────────────────────────────────────────────────
+
+function emitSwiftDocLine(docLine: string, indent = ''): string {
+  const trimmed = docLine.trim();
+  return trimmed ? `${indent}/// ${trimmed}` : `${indent}///`;
+}
+
 // ─── Swift Enum Generation ───────────────────────────────────────────────────
 
 function generateSwiftEnum(enumDecl: EnumDeclaration): string {
@@ -290,7 +298,7 @@ function generateSwiftEnum(enumDecl: EnumDeclaration): string {
 
   if (desc) {
     for (const docLine of desc.split('\n')) {
-      lines.push(`/// ${docLine.trim()}`);
+      lines.push(emitSwiftDocLine(docLine));
     }
   }
 
@@ -305,7 +313,7 @@ function generateSwiftEnum(enumDecl: EnumDeclaration): string {
       const memberDoc = member.getJsDocs()[0]?.getDescription().trim();
       if (memberDoc) {
         for (const docLine of memberDoc.split('\n')) {
-          lines.push(`    /// ${docLine.trim()}`);
+          lines.push(emitSwiftDocLine(docLine, '    '));
         }
       }
       lines.push(`    public static let ${memberName} = ${name}(rawValue: ${value})`);
@@ -322,7 +330,7 @@ function generateSwiftEnum(enumDecl: EnumDeclaration): string {
     const memberDoc = member.getJsDocs()[0]?.getDescription().trim();
     if (memberDoc) {
       for (const docLine of memberDoc.split('\n')) {
-        lines.push(`    /// ${docLine.trim()}`);
+        lines.push(emitSwiftDocLine(docLine, '    '));
       }
     }
     lines.push(`    case ${memberName} = ${JSON.stringify(value)}`);
@@ -358,7 +366,7 @@ function generateSwiftStruct(
   for (const p of props) {
     if (p.doc) {
       for (const docLine of p.doc.split('\n')) {
-        lines.push(`    /// ${docLine.trim()}`);
+        lines.push(emitSwiftDocLine(docLine, '    '));
       }
     }
     lines.push(`    public var ${p.name}: ${p.type}`);
@@ -524,6 +532,7 @@ const STATE_STRUCTS = [
   'SessionInputRequest',
   'TextPosition', 'TextRange', 'TextSelection',
   'SimpleMessageAttachment', 'MessageEmbeddedResourceAttachment', 'MessageResourceAttachment',
+  'MessageAnnotationsAttachment',
   'MarkdownResponsePart', 'ContentRef',
   'ResourceReponsePart', 'ToolCallResponsePart', 'ReasoningResponsePart',
   'SystemNotificationResponsePart',
@@ -548,6 +557,7 @@ const STATE_STRUCTS = [
   'TerminalUnclassifiedPart', 'TerminalCommandPart',
   'UsageInfo', 'ErrorInfo', 'Snapshot',
   'Changeset', 'ChangesetState', 'ChangesetFile', 'ChangesetOperation',
+  'AnnotationsSummary', 'AnnotationsState', 'Annotation', 'AnnotationEntry',
   'TelemetryCapabilities',
   'ResourceWatchState', 'ResourceChange',
 ];
@@ -637,6 +647,7 @@ const MESSAGE_ATTACHMENT_UNION: UnionConfig = {
     { caseName: 'simple', structName: 'SimpleMessageAttachment', discriminantValue: 'simple' },
     { caseName: 'embeddedResource', structName: 'MessageEmbeddedResourceAttachment', discriminantValue: 'embeddedResource' },
     { caseName: 'resource', structName: 'MessageResourceAttachment', discriminantValue: 'resource' },
+    { caseName: 'annotations', structName: 'MessageAnnotationsAttachment', discriminantValue: 'annotations' },
   ],
 };
 
@@ -784,12 +795,13 @@ public enum StringOrMarkdown: Codable, Sendable, Equatable {
 }
 
 function generateSnapshotState(): string {
-  return `/// The state payload of a snapshot — root, session, terminal, or changeset state.
+  return `/// The state payload of a snapshot — root, session, terminal, changeset, or annotations state.
 public enum SnapshotState: Codable, Sendable {
     case root(RootState)
     case session(SessionState)
     case terminal(TerminalState)
     case changeset(ChangesetState)
+    case annotations(AnnotationsState)
 
     public init(from decoder: Decoder) throws {
         // SessionState has required \`summary\` field, try it first
@@ -799,6 +811,8 @@ public enum SnapshotState: Codable, Sendable {
             self = .terminal(terminal)
         } else if let changeset = try? ChangesetState(from: decoder) {
             self = .changeset(changeset)
+        } else if let annotations = try? AnnotationsState(from: decoder) {
+            self = .annotations(annotations)
         } else {
             self = .root(try RootState(from: decoder))
         }
@@ -810,6 +824,7 @@ public enum SnapshotState: Codable, Sendable {
         case .session(let state): try state.encode(to: encoder)
         case .terminal(let state): try state.encode(to: encoder)
         case .changeset(let state): try state.encode(to: encoder)
+        case .annotations(let state): try state.encode(to: encoder)
         }
     }
 }`;
@@ -933,6 +948,10 @@ const ACTION_VARIANTS: { type: string; caseName: string; tsInterface: string }[]
   { type: 'changeset/operationsChanged', caseName: 'changesetOperationsChanged', tsInterface: 'ChangesetOperationsChangedAction' },
   { type: 'changeset/operationStatusChanged', caseName: 'changesetOperationStatusChanged', tsInterface: 'ChangesetOperationStatusChangedAction' },
   { type: 'changeset/cleared', caseName: 'changesetCleared', tsInterface: 'ChangesetClearedAction' },
+  { type: 'annotations/set', caseName: 'annotationsSet', tsInterface: 'AnnotationsSetAction' },
+  { type: 'annotations/removed', caseName: 'annotationsRemoved', tsInterface: 'AnnotationsRemovedAction' },
+  { type: 'annotations/entrySet', caseName: 'annotationsEntrySet', tsInterface: 'AnnotationsEntrySetAction' },
+  { type: 'annotations/entryRemoved', caseName: 'annotationsEntryRemoved', tsInterface: 'AnnotationsEntryRemovedAction' },
   { type: 'root/terminalsChanged', caseName: 'rootTerminalsChanged', tsInterface: 'RootTerminalsChangedAction' },
   { type: 'root/configChanged', caseName: 'rootConfigChanged', tsInterface: 'RootConfigChangedAction' },
   { type: 'terminal/data', caseName: 'terminalData', tsInterface: 'TerminalDataAction' },

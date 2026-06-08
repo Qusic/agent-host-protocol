@@ -1166,3 +1166,21 @@ func ApplyActionToChangeset(state *ahptypes.ChangesetState, action ahptypes.Stat
 	}
 	return ReduceOutcomeOutOfScope
 }
+
+// ─── Annotations Reducer ─────────────────────────────────────────
+
+// ApplyActionToAnnotations is the entry point for annotations actions.
+// Mirrors the Rust client's stub: every recognized annotations action
+// short-circuits as [ReduceOutcomeNoOp] until the full annotations
+// reducer is ported. Unrelated actions return [ReduceOutcomeOutOfScope].
+func ApplyActionToAnnotations(state *ahptypes.AnnotationsState, action ahptypes.StateAction) ReduceOutcome {
+	_ = state
+	switch action.Value.(type) {
+	case *ahptypes.AnnotationsSetAction,
+		*ahptypes.AnnotationsRemovedAction,
+		*ahptypes.AnnotationsEntrySetAction,
+		*ahptypes.AnnotationsEntryRemovedAction:
+		return ReduceOutcomeNoOp
+	}
+	return ReduceOutcomeOutOfScope
+}
