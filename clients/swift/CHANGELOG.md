@@ -38,6 +38,15 @@ the tag matches the version pinned in [`VERSION`](VERSION).
 - `RootState` now exposes an optional `_meta` property bag (`meta: [String:
   AnyCodable]?`) for implementation-defined agent-host metadata, such as a
   well-known `hostBuild` key carrying the host's build version/commit/date.
+- `changesetReducer` and `resourceWatchReducer` — the two state reducers
+  that were missing from the Swift client are now implemented, mirroring the
+  canonical TypeScript reducers (and the Kotlin/.NET clients). `changesetReducer`
+  folds `changeset/*` actions into `ChangesetState`; `resourceWatchReducer`
+  treats `resourceWatch/changed` as a documented event pass-through. The
+  fixture-driven reducer test no longer silently skips the terminal, changeset,
+  and resourceWatch fixture families — they now decode and assert, with the
+  remaining gaps (unknown-discriminant response part; the not-yet-implemented
+  annotations channel) pinned by an explicit drift tripwire.
 
 ## [0.3.0] — 2026-06-05
 

@@ -84,39 +84,115 @@ final class FixtureDrivenReducerTests: XCTestCase {
         )
     }
 
+    // MARK: - Known reducer gaps (documented, not silent)
+    //
+    // Mirrors the drift-tripwire discipline in TypesRoundTripFixtureTests:
+    // a fixture may only be skipped if its stem is listed here, and the gap
+    // set must be EXACTLY the set of fixtures that actually fail to run. If a
+    // gap closes, the hit set shrinks → mismatch → this test fails loudly,
+    // forcing the list to be updated. An UNLISTED fixture that fails to run
+    // lands in `failures` → loud. There is no bare `continue` skip.
+    //
+    // Five of the six reducer arms are implemented (root / session / terminal /
+    // changeset / resourceWatch). Two kinds of gap remain:
+    //
+    // 1. Representational gap — fixture 103 carries a response part with an
+    //    unknown `kind` (`unknownFuturePart`), and the generated `ResponsePart`
+    //    enum on this base throws on an unknown discriminant rather than
+    //    preserving it. When the generated types gain a `case unknown(AnyCodable)`
+    //    forward-compat fallback, this fixture will decode + assert and the
+    //    tripwire above will fire, forcing the entry to be removed.
+    //
+    // 2. Unimplemented-channel gap — the `annotations` channel (fixtures
+    //    210–217) has no Swift reducer yet; `runFixture` hits the `default`
+    //    arm and throws `unsupportedReducer("annotations")`. (The canonical
+    //    fixture-driven test on the base before this rewrite simply skipped the
+    //    `annotations` reducer family with a bare `continue`; here that skip is
+    //    made explicit and tripwired instead.) When `annotationsReducer` lands,
+    //    these stems decode + assert and the drift tripwire forces them out of
+    //    this set.
+    private static let knownReducerGaps: Set<String> = [
+        "103-delta-skips-parts-without-id",
+        "210-annotations-set-appends-new-annotation",
+        "211-annotations-set-replaces-existing-annotation",
+        "212-annotations-removed-drops-matching-annotation",
+        "213-annotations-entryset-appends-and-replaces",
+        "214-annotations-entryset-unknown-annotation-is-no-op",
+        "215-annotations-entryremoved-drops-matching-entry",
+        "217-annotations-unknown-action-type-is-no-op",
+    ]
+
     func testAllFixtures() throws {
         var failures: [(file: String, description: String, message: String)] = []
-        var skipped: [(file: String, description: String, message: String)] = []
+        var gapHits: Set<String> = []
+        var ranRealAssertions = 0
 
         for (file, fixture) in Self.fixtures {
-            // Skip terminal/changeset/annotations/resourceWatch fixtures —
-            // those reducers are not yet implemented in Swift
-            if fixture.reducer == "terminal" || fixture.reducer == "changeset" || fixture.reducer == "annotations" || fixture.reducer == "resourceWatch" {
-                continue
-            }
-
+            let stem = (file as NSString).deletingPathExtension
             do {
                 try runFixture(file: file, fixture: fixture)
-            } catch let error as DecodingError {
-                // Skip fixtures that use types/shapes Swift can't decode yet
-                skipped.append((file, fixture.description, "\(error)"))
+                ranRealAssertions += 1
             } catch {
-                failures.append((file, fixture.description, "\(error)"))
+                if Self.knownReducerGaps.contains(stem) {
+                    gapHits.insert(stem)
+                    print("⊘ \(file): known Swift reducer gap — \(error)")
+                } else {
+                    failures.append((file, fixture.description, "\(error)"))
+                }
             }
         }
 
-        if !skipped.isEmpty {
-            print("Skipped \(skipped.count) fixture(s) due to decoding incompatibilities:")
-            for s in skipped {
-                print("  ⊘ \(s.file): \(s.description)")
-            }
-        }
+        // Every fixture NOT in the gap set must have run a real assertion.
+        let expectedReal = Self.fixtures.count - Self.knownReducerGaps.count
+        XCTAssertEqual(
+            ranRealAssertions, expectedReal,
+            "Expected \(expectedReal) fixtures to decode+assert for real; only \(ranRealAssertions) did."
+        )
+
+        // The gap set must be exactly the fixtures that failed to run. If a gap
+        // closes, gapHits shrinks → mismatch → update the list. If a new fixture
+        // can't run, it lands in `failures` → loud.
+        XCTAssertEqual(
+            gapHits, Self.knownReducerGaps,
+            "Known-gap set drifted. Hit gaps: \(gapHits.sorted()); declared: \(Self.knownReducerGaps.sorted()). A gap that no longer reproduces must be removed from knownReducerGaps (and ideally promoted to a real assertion)."
+        )
 
         if !failures.isEmpty {
             let summary = failures.map { "  ✗ \($0.file): \($0.description)\n    \($0.message)" }
                 .joined(separator: "\n")
             XCTFail("\(failures.count) fixture(s) failed:\n\(summary)")
         }
+    }
+
+    /// Asserts that the previously-skipped reducer families now actually run.
+    /// This is a falsification guard: if a future change re-introduces a blanket
+    /// skip (e.g. by removing a reducer arm), the per-family count drops and this
+    /// test fails — the bug that left ~32 fixtures unverified cannot silently
+    /// return.
+    func testPreviouslySkippedReducersNowRun() throws {
+        // The three reducer families that were skipped via a bare `continue`
+        // before changeset/resourceWatch were ported and terminal was un-skipped.
+        // At least this many fixtures must run for each — pins the coverage jump
+        // so the skip cannot silently return. Asserted as a lower bound so the
+        // corpus can grow without churning this test.
+        let minFamilyCounts = ["terminal": 19, "changeset": 11, "resourceWatch": 2]
+        var totalRan = 0
+        for (family, minCount) in minFamilyCounts {
+            let familyFixtures = Self.fixtures.filter { $0.fixture.reducer == family }
+            XCTAssertGreaterThanOrEqual(
+                familyFixtures.count, minCount,
+                "Expected at least \(minCount) \(family) fixtures; found \(familyFixtures.count) at \(Self.fixtureDir.path)."
+            )
+            for (file, fixture) in familyFixtures {
+                XCTAssertNoThrow(
+                    try runFixture(file: file, fixture: fixture),
+                    "\(family) fixture \(file) (\(fixture.description)) must decode + assert; it was previously skipped."
+                )
+            }
+            totalRan += familyFixtures.count
+        }
+        print("Previously-skipped reducer fixtures now running: \(totalRan) (terminal/changeset/resourceWatch).")
+        XCTAssertGreaterThanOrEqual(totalRan, 32)
     }
 
     private func runFixture(file: String, fixture: Fixture) throws {
@@ -161,6 +237,66 @@ final class FixtureDrivenReducerTests: XCTestCase {
             // Normalize expected through the same Swift type to drop unknown properties
             let expectedData = try JSONEncoder().encode(fixture.expected)
             let expectedState = try decoder.decode(SessionState.self, from: expectedData)
+
+            try assertEqualJSON(
+                actual: state, expected: expectedState,
+                encoder: encoder,
+                context: "\(file): \(fixture.description)"
+            )
+
+        case "terminal":
+            let initialData = try JSONEncoder().encode(fixture.initial)
+            var state = try decoder.decode(TerminalState.self, from: initialData)
+
+            let actionsData = try JSONEncoder().encode(fixture.actions)
+            let actions = try decoder.decode([StateAction].self, from: actionsData)
+
+            for action in actions {
+                state = terminalReducer(state: state, action: action)
+            }
+
+            let expectedData = try JSONEncoder().encode(fixture.expected)
+            let expectedState = try decoder.decode(TerminalState.self, from: expectedData)
+
+            try assertEqualJSON(
+                actual: state, expected: expectedState,
+                encoder: encoder,
+                context: "\(file): \(fixture.description)"
+            )
+
+        case "changeset":
+            let initialData = try JSONEncoder().encode(fixture.initial)
+            var state = try decoder.decode(ChangesetState.self, from: initialData)
+
+            let actionsData = try JSONEncoder().encode(fixture.actions)
+            let actions = try decoder.decode([StateAction].self, from: actionsData)
+
+            for action in actions {
+                state = changesetReducer(state: state, action: action)
+            }
+
+            let expectedData = try JSONEncoder().encode(fixture.expected)
+            let expectedState = try decoder.decode(ChangesetState.self, from: expectedData)
+
+            try assertEqualJSON(
+                actual: state, expected: expectedState,
+                encoder: encoder,
+                context: "\(file): \(fixture.description)"
+            )
+
+        case "resourceWatch":
+            let initialData = try JSONEncoder().encode(fixture.initial)
+            var state = try decoder.decode(ResourceWatchState.self, from: initialData)
+
+            let actionsData = try JSONEncoder().encode(fixture.actions)
+            let actions = try decoder.decode([StateAction].self, from: actionsData)
+
+            for action in actions {
+                state = resourceWatchReducer(state: state, action: action)
+            }
+
+            let expectedData = try JSONEncoder().encode(fixture.expected)
+            let expectedState = try decoder.decode(ResourceWatchState.self, from: expectedData)
 
             try assertEqualJSON(
                 actual: state, expected: expectedState,
