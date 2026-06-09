@@ -17,7 +17,7 @@ import {
   PropertySignature,
   SourceFile,
 } from 'ts-morph';
-import { execFileSync, execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { findProtocolSourceFiles } from './find-protocol-sources.js';
@@ -33,6 +33,10 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 #[allow(unused_imports)]
 use crate::common::{AnyValue, JsonObject, StringOrMarkdown, Uri};
 `;
+
+export interface GenerateRustCrateOptions {
+  readonly allowMissingFormatter?: boolean;
+}
 
 // ─── Name Mapping ────────────────────────────────────────────────────────────
 
@@ -1556,7 +1560,7 @@ function checkExhaustiveness(project: Project): void {
 
 // ─── Main Entry Point ────────────────────────────────────────────────────────
 
-export function generateRustCrate(project: Project, outputDir: string): void {
+export function generateRustCrate(project: Project, outputDir: string, options: GenerateRustCrateOptions = {}): void {
   // Check that cargo is available; skip generation if not so developers
   // without a Rust toolchain aren't forced to install one.
   try {
@@ -1579,5 +1583,28 @@ export function generateRustCrate(project: Project, outputDir: string): void {
   fs.writeFileSync(path.join(srcDir, 'messages.rs'), generateMessagesFile());
   fs.writeFileSync(path.join(srcDir, 'version.rs'), generateVersionFile(project));
 
-  execSync('cargo fmt -p ahp-types', { cwd: outputDir, stdio: 'inherit' });
+  try {
+    execFileSync('cargo', ['fmt', '-p', 'ahp-types'], { cwd: outputDir, stdio: 'inherit' });
+  } catch (e) {
+    if (options.allowMissingFormatter) {
+      console.warn(
+        `  ⚠ cargo fmt failed — generated Rust crate was not formatted: ${String(e)}\n` +
+        `  Generated Rust files must be formatted before they can be merged.\n` +
+        `  Install the Rust toolchain to restore formatting, or run the\n` +
+        `  "Format Generated Sources" GitHub Actions workflow (Actions tab →\n` +
+        `  "Format Generated Sources" → "Run workflow" on your branch) to\n` +
+        `  format and commit the generated sources for you.`,
+      );
+      return;
+    }
+
+    throw new Error(
+      `cargo fmt -p ahp-types failed for the generated Rust crate: ${String(e)}\n` +
+      `Generated Rust files must be formatted before they can be merged.\n` +
+      `To generate anyway without formatting, rerun with --allow-missing-formatter,\n` +
+      `then run the "Format Generated Sources" GitHub Actions workflow (Actions tab\n` +
+      `→ "Format Generated Sources" → "Run workflow" on your branch) to format and\n` +
+      `commit the generated sources for you.`,
+    );
+  }
 }
