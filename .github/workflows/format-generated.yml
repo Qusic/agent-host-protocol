@@ -21,6 +21,8 @@ name: Format Generated Sources
 
 on:
   workflow_dispatch:
+  push:
+    branches: [benibenj/noble-alpaca]
 
 permissions:
   # Required so the final step can push the formatting commit back to the
