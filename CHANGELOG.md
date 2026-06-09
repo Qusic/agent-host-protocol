@@ -29,6 +29,12 @@ Spec version: `0.4.0`
 
 ### Added
 
+- `annotations/updated` (`AnnotationsUpdatedAction`) — a client-dispatchable
+  action that partially updates an existing annotation's own properties
+  (`turnId`, `resource`, `range`, `resolved`) without resending its entries.
+  Resolving or re-anchoring an annotation no longer requires replacing the
+  whole annotation via `annotations/set`. Omitted fields are left unchanged;
+  the annotation's `entries`, `id`, and `_meta` are never touched.
 - `RootState` now carries an optional `_meta` property bag for
   implementation-defined metadata about the agent host itself, mirroring the
   MCP `_meta` convention. A well-known `hostBuild` key may carry build

@@ -126,6 +126,8 @@ enum class ActionType {
     CHANGESET_CLEARED,
     @SerialName("annotations/set")
     ANNOTATIONS_SET,
+    @SerialName("annotations/updated")
+    ANNOTATIONS_UPDATED,
     @SerialName("annotations/removed")
     ANNOTATIONS_REMOVED,
     @SerialName("annotations/entrySet")
@@ -895,6 +897,38 @@ data class AnnotationsSetAction(
 )
 
 @Serializable
+data class AnnotationsUpdatedAction(
+    val type: ActionType,
+    /**
+     * The {@link Annotation.id} of the annotation to update.
+     */
+    val annotationId: String,
+    /**
+     * Re-anchors the annotation to the file versions this turn produced.
+     * Matches a {@link Turn.id} on the owning session. Omit to leave the
+     * current {@link Annotation.turnId} unchanged.
+     */
+    val turnId: String? = null,
+    /**
+     * Re-anchors the annotation to this file. Omit to leave the current
+     * {@link Annotation.resource} unchanged.
+     */
+    val resource: String? = null,
+    /**
+     * Narrows the annotation to this range within {@link resource}. Omit to
+     * leave the current {@link Annotation.range} unchanged; this action cannot
+     * clear an existing range — dispatch {@link AnnotationsSetAction} to
+     * re-anchor to the whole file.
+     */
+    val range: TextRange? = null,
+    /**
+     * Marks the annotation resolved (`true`) or re-opens it (`false`). Omit to
+     * leave the current {@link Annotation.resolved} state unchanged.
+     */
+    val resolved: Boolean? = null
+)
+
+@Serializable
 data class AnnotationsRemovedAction(
     val type: ActionType,
     /**
@@ -1138,6 +1172,7 @@ sealed interface StateAction
 @JvmInline value class StateActionChangesetOperationStatusChanged(val value: ChangesetOperationStatusChangedAction) : StateAction
 @JvmInline value class StateActionChangesetCleared(val value: ChangesetClearedAction) : StateAction
 @JvmInline value class StateActionAnnotationsSet(val value: AnnotationsSetAction) : StateAction
+@JvmInline value class StateActionAnnotationsUpdated(val value: AnnotationsUpdatedAction) : StateAction
 @JvmInline value class StateActionAnnotationsRemoved(val value: AnnotationsRemovedAction) : StateAction
 @JvmInline value class StateActionAnnotationsEntrySet(val value: AnnotationsEntrySetAction) : StateAction
 @JvmInline value class StateActionAnnotationsEntryRemoved(val value: AnnotationsEntryRemovedAction) : StateAction
@@ -1220,6 +1255,7 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             "changeset/operationStatusChanged" -> StateActionChangesetOperationStatusChanged(input.json.decodeFromJsonElement(ChangesetOperationStatusChangedAction.serializer(), element))
             "changeset/cleared" -> StateActionChangesetCleared(input.json.decodeFromJsonElement(ChangesetClearedAction.serializer(), element))
             "annotations/set" -> StateActionAnnotationsSet(input.json.decodeFromJsonElement(AnnotationsSetAction.serializer(), element))
+            "annotations/updated" -> StateActionAnnotationsUpdated(input.json.decodeFromJsonElement(AnnotationsUpdatedAction.serializer(), element))
             "annotations/removed" -> StateActionAnnotationsRemoved(input.json.decodeFromJsonElement(AnnotationsRemovedAction.serializer(), element))
             "annotations/entrySet" -> StateActionAnnotationsEntrySet(input.json.decodeFromJsonElement(AnnotationsEntrySetAction.serializer(), element))
             "annotations/entryRemoved" -> StateActionAnnotationsEntryRemoved(input.json.decodeFromJsonElement(AnnotationsEntryRemovedAction.serializer(), element))
@@ -1295,6 +1331,7 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             is StateActionChangesetOperationStatusChanged -> output.json.encodeToJsonElement(ChangesetOperationStatusChangedAction.serializer(), value.value)
             is StateActionChangesetCleared -> output.json.encodeToJsonElement(ChangesetClearedAction.serializer(), value.value)
             is StateActionAnnotationsSet -> output.json.encodeToJsonElement(AnnotationsSetAction.serializer(), value.value)
+            is StateActionAnnotationsUpdated -> output.json.encodeToJsonElement(AnnotationsUpdatedAction.serializer(), value.value)
             is StateActionAnnotationsRemoved -> output.json.encodeToJsonElement(AnnotationsRemovedAction.serializer(), value.value)
             is StateActionAnnotationsEntrySet -> output.json.encodeToJsonElement(AnnotationsEntrySetAction.serializer(), value.value)
             is StateActionAnnotationsEntryRemoved -> output.json.encodeToJsonElement(AnnotationsEntryRemovedAction.serializer(), value.value)

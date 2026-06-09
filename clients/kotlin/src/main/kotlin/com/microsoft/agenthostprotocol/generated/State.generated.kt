@@ -3404,8 +3404,9 @@ data class Annotation(
     /**
      * Whether the annotation has been resolved. Newly created annotations are
      * always unresolved (`false`); a client marks an annotation resolved (or
-     * re-opens it) by dispatching an {@link AnnotationsSetAction} carrying the
-     * updated flag.
+     * re-opens it) by dispatching an {@link AnnotationsUpdatedAction} carrying
+     * the updated flag (or an {@link AnnotationsSetAction} when replacing the
+     * whole annotation).
      */
     val resolved: Boolean,
     /**

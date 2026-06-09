@@ -2942,8 +2942,9 @@ pub struct Annotation {
     pub range: Option<TextRange>,
     /// Whether the annotation has been resolved. Newly created annotations are
     /// always unresolved (`false`); a client marks an annotation resolved (or
-    /// re-opens it) by dispatching an {@link AnnotationsSetAction} carrying the
-    /// updated flag.
+    /// re-opens it) by dispatching an {@link AnnotationsUpdatedAction} carrying
+    /// the updated flag (or an {@link AnnotationsSetAction} when replacing the
+    /// whole annotation).
     pub resolved: bool,
     /// Entries in this annotation, in dispatch order (oldest first). MUST
     /// contain at least one entry.

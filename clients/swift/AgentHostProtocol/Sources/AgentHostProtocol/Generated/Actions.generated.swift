@@ -56,6 +56,7 @@ public enum ActionType: String, Codable, Sendable {
     case changesetOperationStatusChanged = "changeset/operationStatusChanged"
     case changesetCleared = "changeset/cleared"
     case annotationsSet = "annotations/set"
+    case annotationsUpdated = "annotations/updated"
     case annotationsRemoved = "annotations/removed"
     case annotationsEntrySet = "annotations/entrySet"
     case annotationsEntryRemoved = "annotations/entryRemoved"
@@ -1154,6 +1155,43 @@ public struct AnnotationsSetAction: Codable, Sendable {
     }
 }
 
+public struct AnnotationsUpdatedAction: Codable, Sendable {
+    public var type: ActionType
+    /// The {@link Annotation.id} of the annotation to update.
+    public var annotationId: String
+    /// Re-anchors the annotation to the file versions this turn produced.
+    /// Matches a {@link Turn.id} on the owning session. Omit to leave the
+    /// current {@link Annotation.turnId} unchanged.
+    public var turnId: String?
+    /// Re-anchors the annotation to this file. Omit to leave the current
+    /// {@link Annotation.resource} unchanged.
+    public var resource: String?
+    /// Narrows the annotation to this range within {@link resource}. Omit to
+    /// leave the current {@link Annotation.range} unchanged; this action cannot
+    /// clear an existing range — dispatch {@link AnnotationsSetAction} to
+    /// re-anchor to the whole file.
+    public var range: TextRange?
+    /// Marks the annotation resolved (`true`) or re-opens it (`false`). Omit to
+    /// leave the current {@link Annotation.resolved} state unchanged.
+    public var resolved: Bool?
+
+    public init(
+        type: ActionType,
+        annotationId: String,
+        turnId: String? = nil,
+        resource: String? = nil,
+        range: TextRange? = nil,
+        resolved: Bool? = nil
+    ) {
+        self.type = type
+        self.annotationId = annotationId
+        self.turnId = turnId
+        self.resource = resource
+        self.range = range
+        self.resolved = resolved
+    }
+}
+
 public struct AnnotationsRemovedAction: Codable, Sendable {
     public var type: ActionType
     /// The {@link Annotation.id} of the annotation to remove.
@@ -1473,6 +1511,7 @@ public enum StateAction: Codable, Sendable {
     case changesetOperationStatusChanged(ChangesetOperationStatusChangedAction)
     case changesetCleared(ChangesetClearedAction)
     case annotationsSet(AnnotationsSetAction)
+    case annotationsUpdated(AnnotationsUpdatedAction)
     case annotationsRemoved(AnnotationsRemovedAction)
     case annotationsEntrySet(AnnotationsEntrySetAction)
     case annotationsEntryRemoved(AnnotationsEntryRemovedAction)
@@ -1599,6 +1638,8 @@ public enum StateAction: Codable, Sendable {
             self = .changesetCleared(try ChangesetClearedAction(from: decoder))
         case "annotations/set":
             self = .annotationsSet(try AnnotationsSetAction(from: decoder))
+        case "annotations/updated":
+            self = .annotationsUpdated(try AnnotationsUpdatedAction(from: decoder))
         case "annotations/removed":
             self = .annotationsRemoved(try AnnotationsRemovedAction(from: decoder))
         case "annotations/entrySet":
@@ -1690,6 +1731,7 @@ public enum StateAction: Codable, Sendable {
         case .changesetOperationStatusChanged(let v): try v.encode(to: encoder)
         case .changesetCleared(let v): try v.encode(to: encoder)
         case .annotationsSet(let v): try v.encode(to: encoder)
+        case .annotationsUpdated(let v): try v.encode(to: encoder)
         case .annotationsRemoved(let v): try v.encode(to: encoder)
         case .annotationsEntrySet(let v): try v.encode(to: encoder)
         case .annotationsEntryRemoved(let v): try v.encode(to: encoder)

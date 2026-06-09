@@ -978,6 +978,7 @@ const ACTION_VARIANTS: {
   { type: 'changeset/operationStatusChanged', variantName: 'ChangesetOperationStatusChanged', tsInterface: 'ChangesetOperationStatusChangedAction' },
   { type: 'changeset/cleared', variantName: 'ChangesetCleared', tsInterface: 'ChangesetClearedAction' },
   { type: 'annotations/set', variantName: 'AnnotationsSet', tsInterface: 'AnnotationsSetAction' },
+  { type: 'annotations/updated', variantName: 'AnnotationsUpdated', tsInterface: 'AnnotationsUpdatedAction' },
   { type: 'annotations/removed', variantName: 'AnnotationsRemoved', tsInterface: 'AnnotationsRemovedAction' },
   { type: 'annotations/entrySet', variantName: 'AnnotationsEntrySet', tsInterface: 'AnnotationsEntrySetAction' },
   { type: 'annotations/entryRemoved', variantName: 'AnnotationsEntryRemoved', tsInterface: 'AnnotationsEntryRemovedAction' },
@@ -1031,7 +1032,7 @@ pub struct SessionToolCallConfirmedAction {
 
 function generateActionsFile(project: Project): string {
   const lines: string[] = [GENERATED_HEADER];
-  lines.push('use crate::state::{AgentInfo, AgentSelection, Annotation, AnnotationEntry, ConfirmationOption, Customization, ErrorInfo, McpServerState, ModelSelection, ResponsePart, SessionActiveClient, SessionInputAnswer, SessionInputRequest, SessionInputResponseKind, TerminalClaim, TerminalInfo, ToolCallContributor, ToolCallResult, ToolCallConfirmationReason, ToolCallCancellationReason, ToolDefinition, ToolResultContent, UsageInfo, Message, PendingMessageKind, ChangesetStatus, ChangesetFile, ChangesetOperation, ChangesetOperationStatus, Changeset};');
+  lines.push('use crate::state::{AgentInfo, AgentSelection, Annotation, AnnotationEntry, ConfirmationOption, Customization, ErrorInfo, McpServerState, ModelSelection, ResponsePart, SessionActiveClient, SessionInputAnswer, SessionInputRequest, SessionInputResponseKind, TerminalClaim, TerminalInfo, TextRange, ToolCallContributor, ToolCallResult, ToolCallConfirmationReason, ToolCallCancellationReason, ToolDefinition, ToolResultContent, UsageInfo, Message, PendingMessageKind, ChangesetStatus, ChangesetFile, ChangesetOperation, ChangesetOperationStatus, Changeset};');
   lines.push('');
 
   // ActionType enum

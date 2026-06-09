@@ -1177,6 +1177,7 @@ func ApplyActionToAnnotations(state *ahptypes.AnnotationsState, action ahptypes.
 	_ = state
 	switch action.Value.(type) {
 	case *ahptypes.AnnotationsSetAction,
+		*ahptypes.AnnotationsUpdatedAction,
 		*ahptypes.AnnotationsRemovedAction,
 		*ahptypes.AnnotationsEntrySetAction,
 		*ahptypes.AnnotationsEntryRemovedAction:

@@ -156,6 +156,7 @@ Annotations actions travel on a session's annotations channel (`ahp-session:/<uu
 | Type | Client-dispatchable? | When |
 |---|---|---|
 | `annotations/set` | **Yes** | Upsert an annotation — create one with its mandatory first entry, or re-anchor / resolve an existing one |
+| `annotations/updated` | **Yes** | Partially update an annotation's own properties (resolve / re-open, re-anchor) without resending its entries |
 | `annotations/removed` | **Yes** | Remove an entire annotation (and every entry it contains) |
 | `annotations/entrySet` | **Yes** | Upsert a single entry within an annotation (add or edit) |
 | `annotations/entryRemoved` | **Yes** | Remove a single entry; dispatch `annotations/removed` instead to drop the last remaining entry |

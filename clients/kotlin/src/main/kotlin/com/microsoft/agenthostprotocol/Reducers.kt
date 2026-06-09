@@ -59,6 +59,7 @@ import com.microsoft.agenthostprotocol.generated.StateActionAnnotationsEntryRemo
 import com.microsoft.agenthostprotocol.generated.StateActionAnnotationsEntrySet
 import com.microsoft.agenthostprotocol.generated.StateActionAnnotationsRemoved
 import com.microsoft.agenthostprotocol.generated.StateActionAnnotationsSet
+import com.microsoft.agenthostprotocol.generated.StateActionAnnotationsUpdated
 import com.microsoft.agenthostprotocol.generated.StateActionRootActiveSessionsChanged
 import com.microsoft.agenthostprotocol.generated.StateActionRootAgentsChanged
 import com.microsoft.agenthostprotocol.generated.StateActionRootConfigChanged
@@ -1425,6 +1426,23 @@ public fun annotationsReducer(state: AnnotationsState, action: StateAction): Ann
             state.copy(annotations = state.annotations + annotation)
         } else {
             val next = state.annotations.toMutableList().also { it[idx] = annotation }
+            state.copy(annotations = next)
+        }
+    }
+
+    is StateActionAnnotationsUpdated -> {
+        val idx = state.annotations.indexOfFirst { it.id == action.value.annotationId }
+        if (idx < 0) {
+            state
+        } else {
+            val annotation = state.annotations[idx]
+            val updated = annotation.copy(
+                turnId = action.value.turnId ?: annotation.turnId,
+                resource = action.value.resource ?: annotation.resource,
+                range = action.value.range ?: annotation.range,
+                resolved = action.value.resolved ?: annotation.resolved
+            )
+            val next = state.annotations.toMutableList().also { it[idx] = updated }
             state.copy(annotations = next)
         }
     }

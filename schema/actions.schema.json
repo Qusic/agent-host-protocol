@@ -1502,7 +1502,7 @@
     },
     "AnnotationsSetAction": {
       "type": "object",
-      "description": "Upsert an {@link Annotation} in the annotations channel — adds a new\nannotation, or replaces an existing one identified by\n{@link Annotation.id}.\n\nDispatched by a client to create an annotation (together with its\nmandatory first entry) or to re-anchor / resolve an existing one; the\ndispatching client assigns the {@link Annotation.id} and the id of any\nnew entry. When replacing, the full annotation payload (including its\n{@link Annotation.entries | entries} list) is substituted; producers\nSHOULD prefer {@link AnnotationsEntrySetAction} for per-entry edits to\nkeep wire updates small.",
+      "description": "Upsert an {@link Annotation} in the annotations channel — adds a new\nannotation, or replaces an existing one identified by\n{@link Annotation.id}.\n\nDispatched by a client to create an annotation (together with its\nmandatory first entry) or to re-anchor / resolve an existing one; the\ndispatching client assigns the {@link Annotation.id} and the id of any\nnew entry. When replacing, the full annotation payload (including its\n{@link Annotation.entries | entries} list) is substituted; producers\nSHOULD prefer {@link AnnotationsEntrySetAction} for per-entry edits, and\n{@link AnnotationsUpdatedAction} to resolve / re-anchor an existing\nannotation, to keep wire updates small.",
       "properties": {
         "type": {
           "$ref": "#/$defs/ActionType.AnnotationsSet"
@@ -1515,6 +1515,39 @@
       "required": [
         "type",
         "annotation"
+      ]
+    },
+    "AnnotationsUpdatedAction": {
+      "type": "object",
+      "description": "Partially update an existing {@link Annotation}'s own properties — a narrow\nalternative to {@link AnnotationsSetAction} for the common case of resolving\n/ re-opening or re-anchoring an annotation without resending its\n{@link Annotation.entries | entries}.\n\nTargets one annotation by its {@link annotationId}. Only the fields present\non the action are written; omitted fields leave the corresponding\n{@link Annotation} property unchanged. The annotation's\n{@link Annotation.entries | entries}, {@link Annotation.id | id}, and\n{@link Annotation._meta | _meta} are never touched — dispatch\n{@link AnnotationsSetAction} to replace those, to clear {@link range}\n(re-anchor to the whole file), or {@link AnnotationsEntrySetAction} /\n{@link AnnotationsEntryRemovedAction} to edit individual entries.\n\nIf {@link annotationId} does not match any current annotation the action is\na no-op.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ActionType.AnnotationsUpdated"
+        },
+        "annotationId": {
+          "type": "string",
+          "description": "The {@link Annotation.id} of the annotation to update."
+        },
+        "turnId": {
+          "type": "string",
+          "description": "Re-anchors the annotation to the file versions this turn produced.\nMatches a {@link Turn.id} on the owning session. Omit to leave the\ncurrent {@link Annotation.turnId} unchanged."
+        },
+        "resource": {
+          "$ref": "#/$defs/URI",
+          "description": "Re-anchors the annotation to this file. Omit to leave the current\n{@link Annotation.resource} unchanged."
+        },
+        "range": {
+          "$ref": "#/$defs/TextRange",
+          "description": "Narrows the annotation to this range within {@link resource}. Omit to\nleave the current {@link Annotation.range} unchanged; this action cannot\nclear an existing range — dispatch {@link AnnotationsSetAction} to\nre-anchor to the whole file."
+        },
+        "resolved": {
+          "type": "boolean",
+          "description": "Marks the annotation resolved (`true`) or re-opens it (`false`). Omit to\nleave the current {@link Annotation.resolved} state unchanged."
+        }
+      },
+      "required": [
+        "type",
+        "annotationId"
       ]
     },
     "AnnotationsRemovedAction": {
@@ -5405,7 +5438,7 @@
         },
         "resolved": {
           "type": "boolean",
-          "description": "Whether the annotation has been resolved. Newly created annotations are\nalways unresolved (`false`); a client marks an annotation resolved (or\nre-opens it) by dispatching an {@link AnnotationsSetAction} carrying the\nupdated flag."
+          "description": "Whether the annotation has been resolved. Newly created annotations are\nalways unresolved (`false`); a client marks an annotation resolved (or\nre-opens it) by dispatching an {@link AnnotationsUpdatedAction} carrying\nthe updated flag (or an {@link AnnotationsSetAction} when replacing the\nwhole annotation)."
         },
         "entries": {
           "type": "array",
@@ -5980,6 +6013,9 @@
         },
         {
           "$ref": "#/$defs/AnnotationsSetAction"
+        },
+        {
+          "$ref": "#/$defs/AnnotationsUpdatedAction"
         },
         {
           "$ref": "#/$defs/AnnotationsRemovedAction"

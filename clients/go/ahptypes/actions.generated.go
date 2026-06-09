@@ -69,6 +69,7 @@ const (
 	ActionTypeChangesetOperationStatusChanged   ActionType = "changeset/operationStatusChanged"
 	ActionTypeChangesetCleared                  ActionType = "changeset/cleared"
 	ActionTypeAnnotationsSet                    ActionType = "annotations/set"
+	ActionTypeAnnotationsUpdated                ActionType = "annotations/updated"
 	ActionTypeAnnotationsRemoved                ActionType = "annotations/removed"
 	ActionTypeAnnotationsEntrySet               ActionType = "annotations/entrySet"
 	ActionTypeAnnotationsEntryRemoved           ActionType = "annotations/entryRemoved"
@@ -809,12 +810,50 @@ type ChangesetClearedAction struct {
 // dispatching client assigns the {@link Annotation.id} and the id of any
 // new entry. When replacing, the full annotation payload (including its
 // {@link Annotation.entries | entries} list) is substituted; producers
-// SHOULD prefer {@link AnnotationsEntrySetAction} for per-entry edits to
-// keep wire updates small.
+// SHOULD prefer {@link AnnotationsEntrySetAction} for per-entry edits, and
+// {@link AnnotationsUpdatedAction} to resolve / re-anchor an existing
+// annotation, to keep wire updates small.
 type AnnotationsSetAction struct {
 	Type ActionType `json:"type"`
 	// The new or replacement annotation. MUST contain at least one entry.
 	Annotation Annotation `json:"annotation"`
+}
+
+// Partially update an existing {@link Annotation}'s own properties — a narrow
+// alternative to {@link AnnotationsSetAction} for the common case of resolving
+// / re-opening or re-anchoring an annotation without resending its
+// {@link Annotation.entries | entries}.
+//
+// Targets one annotation by its {@link annotationId}. Only the fields present
+// on the action are written; omitted fields leave the corresponding
+// {@link Annotation} property unchanged. The annotation's
+// {@link Annotation.entries | entries}, {@link Annotation.id | id}, and
+// {@link Annotation._meta | _meta} are never touched — dispatch
+// {@link AnnotationsSetAction} to replace those, to clear {@link range}
+// (re-anchor to the whole file), or {@link AnnotationsEntrySetAction} /
+// {@link AnnotationsEntryRemovedAction} to edit individual entries.
+//
+// If {@link annotationId} does not match any current annotation the action is
+// a no-op.
+type AnnotationsUpdatedAction struct {
+	Type ActionType `json:"type"`
+	// The {@link Annotation.id} of the annotation to update.
+	AnnotationId string `json:"annotationId"`
+	// Re-anchors the annotation to the file versions this turn produced.
+	// Matches a {@link Turn.id} on the owning session. Omit to leave the
+	// current {@link Annotation.turnId} unchanged.
+	TurnId *string `json:"turnId,omitempty"`
+	// Re-anchors the annotation to this file. Omit to leave the current
+	// {@link Annotation.resource} unchanged.
+	Resource *URI `json:"resource,omitempty"`
+	// Narrows the annotation to this range within {@link resource}. Omit to
+	// leave the current {@link Annotation.range} unchanged; this action cannot
+	// clear an existing range — dispatch {@link AnnotationsSetAction} to
+	// re-anchor to the whole file.
+	Range *TextRange `json:"range,omitempty"`
+	// Marks the annotation resolved (`true`) or re-opens it (`false`). Omit to
+	// leave the current {@link Annotation.resolved} state unchanged.
+	Resolved *bool `json:"resolved,omitempty"`
 }
 
 // Remove an {@link Annotation} from the channel by its id.
@@ -1063,6 +1102,7 @@ func (*ChangesetOperationsChangedAction) isStateAction()        {}
 func (*ChangesetOperationStatusChangedAction) isStateAction()   {}
 func (*ChangesetClearedAction) isStateAction()                  {}
 func (*AnnotationsSetAction) isStateAction()                    {}
+func (*AnnotationsUpdatedAction) isStateAction()                {}
 func (*AnnotationsRemovedAction) isStateAction()                {}
 func (*AnnotationsEntrySetAction) isStateAction()               {}
 func (*AnnotationsEntryRemovedAction) isStateAction()           {}
@@ -1396,6 +1436,12 @@ func (u *StateAction) UnmarshalJSON(data []byte) error {
 		u.Value = &value
 	case "annotations/set":
 		var value AnnotationsSetAction
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	case "annotations/updated":
+		var value AnnotationsUpdatedAction
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err
 		}
