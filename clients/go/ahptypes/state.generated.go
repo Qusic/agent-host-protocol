@@ -2449,8 +2449,9 @@ type Annotation struct {
 	Range *TextRange `json:"range,omitempty"`
 	// Whether the annotation has been resolved. Newly created annotations are
 	// always unresolved (`false`); a client marks an annotation resolved (or
-	// re-opens it) by dispatching an {@link AnnotationsSetAction} carrying the
-	// updated flag.
+	// re-opens it) by dispatching an {@link AnnotationsUpdatedAction} carrying
+	// the updated flag (or an {@link AnnotationsSetAction} when replacing the
+	// whole annotation).
 	Resolved bool `json:"resolved"`
 	// Entries in this annotation, in dispatch order (oldest first). MUST
 	// contain at least one entry.

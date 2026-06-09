@@ -55,6 +55,7 @@ import type {
   ChangesetOperationStatusChangedAction,
   ChangesetClearedAction,
   AnnotationsSetAction,
+  AnnotationsUpdatedAction,
   AnnotationsRemovedAction,
   AnnotationsEntrySetAction,
   AnnotationsEntryRemovedAction,
@@ -252,6 +253,7 @@ export type ServerChangesetAction =
 /** Union of all annotations-scoped actions. */
 export type AnnotationsAction =
   | AnnotationsSetAction
+  | AnnotationsUpdatedAction
   | AnnotationsRemovedAction
   | AnnotationsEntrySetAction
   | AnnotationsEntryRemovedAction
@@ -260,6 +262,7 @@ export type AnnotationsAction =
 /** Union of annotations actions that clients may dispatch. */
 export type ClientAnnotationsAction =
   | AnnotationsSetAction
+  | AnnotationsUpdatedAction
   | AnnotationsRemovedAction
   | AnnotationsEntrySetAction
   | AnnotationsEntryRemovedAction
@@ -344,6 +347,7 @@ export const IS_CLIENT_DISPATCHABLE: { readonly [K in StateAction['type']]: bool
   [ActionType.ChangesetOperationStatusChanged]: false,
   [ActionType.ChangesetCleared]: false,
   [ActionType.AnnotationsSet]: true,
+  [ActionType.AnnotationsUpdated]: true,
   [ActionType.AnnotationsRemoved]: true,
   [ActionType.AnnotationsEntrySet]: true,
   [ActionType.AnnotationsEntryRemoved]: true,

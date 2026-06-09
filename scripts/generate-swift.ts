@@ -949,6 +949,7 @@ const ACTION_VARIANTS: { type: string; caseName: string; tsInterface: string }[]
   { type: 'changeset/operationStatusChanged', caseName: 'changesetOperationStatusChanged', tsInterface: 'ChangesetOperationStatusChangedAction' },
   { type: 'changeset/cleared', caseName: 'changesetCleared', tsInterface: 'ChangesetClearedAction' },
   { type: 'annotations/set', caseName: 'annotationsSet', tsInterface: 'AnnotationsSetAction' },
+  { type: 'annotations/updated', caseName: 'annotationsUpdated', tsInterface: 'AnnotationsUpdatedAction' },
   { type: 'annotations/removed', caseName: 'annotationsRemoved', tsInterface: 'AnnotationsRemovedAction' },
   { type: 'annotations/entrySet', caseName: 'annotationsEntrySet', tsInterface: 'AnnotationsEntrySetAction' },
   { type: 'annotations/entryRemoved', caseName: 'annotationsEntryRemoved', tsInterface: 'AnnotationsEntryRemovedAction' },

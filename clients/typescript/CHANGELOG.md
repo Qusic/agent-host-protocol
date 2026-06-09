@@ -22,6 +22,12 @@ hotfix escape hatch.
 
 ### Added
 
+- `AnnotationsUpdatedAction` (`annotations/updated`) — partially updates an
+  existing annotation's `turnId` / `resource` / `range` / `resolved` without
+  resending its entries. Handled by `annotationsReducer` (no-op on unknown id).
+
+### Added
+
 - `RootState` now exposes an optional `_meta` property bag (`_meta?:
   Record<string, unknown>`) for implementation-defined agent-host metadata, such
   as a well-known `hostBuild` key carrying the host's build version/commit/date.

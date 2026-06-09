@@ -15,6 +15,7 @@
  */
 
 import { ActionType } from '../common/actions.js';
+import type { URI, TextRange } from '../common/state.js';
 import type { AnnotationEntry, Annotation } from './state.js';
 
 // ─── Annotations Actions ─────────────────────────────────────────────────────
@@ -29,8 +30,9 @@ import type { AnnotationEntry, Annotation } from './state.js';
  * dispatching client assigns the {@link Annotation.id} and the id of any
  * new entry. When replacing, the full annotation payload (including its
  * {@link Annotation.entries | entries} list) is substituted; producers
- * SHOULD prefer {@link AnnotationsEntrySetAction} for per-entry edits to
- * keep wire updates small.
+ * SHOULD prefer {@link AnnotationsEntrySetAction} for per-entry edits, and
+ * {@link AnnotationsUpdatedAction} to resolve / re-anchor an existing
+ * annotation, to keep wire updates small.
  *
  * @category Annotations Actions
  * @version 3
@@ -40,6 +42,57 @@ export interface AnnotationsSetAction {
   type: ActionType.AnnotationsSet;
   /** The new or replacement annotation. MUST contain at least one entry. */
   annotation: Annotation;
+}
+
+/**
+ * Partially update an existing {@link Annotation}'s own properties — a narrow
+ * alternative to {@link AnnotationsSetAction} for the common case of resolving
+ * / re-opening or re-anchoring an annotation without resending its
+ * {@link Annotation.entries | entries}.
+ *
+ * Targets one annotation by its {@link annotationId}. Only the fields present
+ * on the action are written; omitted fields leave the corresponding
+ * {@link Annotation} property unchanged. The annotation's
+ * {@link Annotation.entries | entries}, {@link Annotation.id | id}, and
+ * {@link Annotation._meta | _meta} are never touched — dispatch
+ * {@link AnnotationsSetAction} to replace those, to clear {@link range}
+ * (re-anchor to the whole file), or {@link AnnotationsEntrySetAction} /
+ * {@link AnnotationsEntryRemovedAction} to edit individual entries.
+ *
+ * If {@link annotationId} does not match any current annotation the action is
+ * a no-op.
+ *
+ * @category Annotations Actions
+ * @version 4
+ * @clientDispatchable
+ */
+export interface AnnotationsUpdatedAction {
+  type: ActionType.AnnotationsUpdated;
+  /** The {@link Annotation.id} of the annotation to update. */
+  annotationId: string;
+  /**
+   * Re-anchors the annotation to the file versions this turn produced.
+   * Matches a {@link Turn.id} on the owning session. Omit to leave the
+   * current {@link Annotation.turnId} unchanged.
+   */
+  turnId?: string;
+  /**
+   * Re-anchors the annotation to this file. Omit to leave the current
+   * {@link Annotation.resource} unchanged.
+   */
+  resource?: URI;
+  /**
+   * Narrows the annotation to this range within {@link resource}. Omit to
+   * leave the current {@link Annotation.range} unchanged; this action cannot
+   * clear an existing range — dispatch {@link AnnotationsSetAction} to
+   * re-anchor to the whole file.
+   */
+  range?: TextRange;
+  /**
+   * Marks the annotation resolved (`true`) or re-opens it (`false`). Omit to
+   * leave the current {@link Annotation.resolved} state unchanged.
+   */
+  resolved?: boolean;
 }
 
 /**

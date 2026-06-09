@@ -3795,7 +3795,7 @@
         },
         "resolved": {
           "type": "boolean",
-          "description": "Whether the annotation has been resolved. Newly created annotations are\nalways unresolved (`false`); a client marks an annotation resolved (or\nre-opens it) by dispatching an {@link AnnotationsSetAction} carrying the\nupdated flag."
+          "description": "Whether the annotation has been resolved. Newly created annotations are\nalways unresolved (`false`); a client marks an annotation resolved (or\nre-opens it) by dispatching an {@link AnnotationsUpdatedAction} carrying\nthe updated flag (or an {@link AnnotationsSetAction} when replacing the\nwhole annotation)."
         },
         "entries": {
           "type": "array",

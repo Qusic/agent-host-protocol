@@ -19,6 +19,13 @@ the tag matches the version pinned in [`VERSION`](VERSION).
 
 ### Added
 
+- `AnnotationsUpdatedAction` (`annotations/updated`) — partially updates an
+  existing annotation's `turnId` / `resource` / `range` / `resolved` without
+  resending its entries. Handled by the annotations reducer (no-op on unknown
+  id).
+
+### Added
+
 - `RootState` now exposes an optional `_meta` property bag (`meta: [String:
   AnyCodable]?`) for implementation-defined agent-host metadata, such as a
   well-known `hostBuild` key carrying the host's build version/commit/date.

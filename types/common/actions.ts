@@ -70,6 +70,7 @@ import type {
 
 import type {
   AnnotationsSetAction,
+  AnnotationsUpdatedAction,
   AnnotationsRemovedAction,
   AnnotationsEntrySetAction,
   AnnotationsEntryRemovedAction,
@@ -151,6 +152,7 @@ export const enum ActionType {
   ChangesetOperationStatusChanged = 'changeset/operationStatusChanged',
   ChangesetCleared = 'changeset/cleared',
   AnnotationsSet = 'annotations/set',
+  AnnotationsUpdated = 'annotations/updated',
   AnnotationsRemoved = 'annotations/removed',
   AnnotationsEntrySet = 'annotations/entrySet',
   AnnotationsEntryRemoved = 'annotations/entryRemoved',
@@ -256,6 +258,7 @@ export type StateAction =
   | ChangesetOperationStatusChangedAction
   | ChangesetClearedAction
   | AnnotationsSetAction
+  | AnnotationsUpdatedAction
   | AnnotationsRemovedAction
   | AnnotationsEntrySetAction
   | AnnotationsEntryRemovedAction

@@ -36,6 +36,30 @@ export function annotationsReducer(state: AnnotationsState, action: AnnotationsA
       return { ...state, annotations: next };
     }
 
+    case ActionType.AnnotationsUpdated: {
+      const idx = state.annotations.findIndex(t => t.id === action.annotationId);
+      if (idx < 0) {
+        return state;
+      }
+      const annotation = state.annotations[idx];
+      const updated: Annotation = { ...annotation };
+      if (action.turnId !== undefined) {
+        updated.turnId = action.turnId;
+      }
+      if (action.resource !== undefined) {
+        updated.resource = action.resource;
+      }
+      if (action.range !== undefined) {
+        updated.range = action.range;
+      }
+      if (action.resolved !== undefined) {
+        updated.resolved = action.resolved;
+      }
+      const next: Annotation[] = [...state.annotations];
+      next[idx] = updated;
+      return { ...state, annotations: next };
+    }
+
     case ActionType.AnnotationsRemoved: {
       const idx = state.annotations.findIndex(t => t.id === action.annotationId);
       if (idx < 0) {

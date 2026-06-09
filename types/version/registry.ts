@@ -126,6 +126,7 @@ export const ACTION_INTRODUCED_IN: { readonly [K in StateAction['type']]: string
   [ActionType.ChangesetOperationStatusChanged]: '0.3.0',
   [ActionType.ChangesetCleared]: '0.2.0',
   [ActionType.AnnotationsSet]: '0.3.0',
+  [ActionType.AnnotationsUpdated]: '0.4.0',
   [ActionType.AnnotationsRemoved]: '0.3.0',
   [ActionType.AnnotationsEntrySet]: '0.3.0',
   [ActionType.AnnotationsEntryRemoved]: '0.3.0',
