@@ -119,7 +119,10 @@ final class FixtureDrivenReducerTests: XCTestCase {
         "213-annotations-entryset-appends-and-replaces",
         "214-annotations-entryset-unknown-annotation-is-no-op",
         "215-annotations-entryremoved-drops-matching-entry",
+        "216-annotations-updated-resolves-and-preserves-entries",
         "217-annotations-unknown-action-type-is-no-op",
+        "218-annotations-updated-reanchors-turn-and-range",
+        "219-annotations-updated-unknown-annotation-is-no-op",
     ]
 
     func testAllFixtures() throws {
