@@ -1575,7 +1575,11 @@ export function generateRustCrate(project: Project, outputDir: string, options: 
     if (options.allowMissingFormatter) {
       console.warn(
         `  ⚠ cargo fmt failed — generated Rust crate was not formatted: ${String(e)}\n` +
-        `  Generated Rust files must be formatted before they can be merged.`,
+        `  Generated Rust files must be formatted before they can be merged.\n` +
+        `  Install the Rust toolchain to restore formatting, or run the\n` +
+        `  "Format Generated Sources" GitHub Actions workflow (Actions tab →\n` +
+        `  "Format Generated Sources" → "Run workflow" on your branch) to\n` +
+        `  format and commit the generated sources for you.`,
       );
       return;
     }
@@ -1583,7 +1587,10 @@ export function generateRustCrate(project: Project, outputDir: string, options: 
     throw new Error(
       `cargo fmt -p ahp-types failed for the generated Rust crate: ${String(e)}\n` +
       `Generated Rust files must be formatted before they can be merged.\n` +
-      `To generate anyway without formatting, rerun with --allow-missing-formatter.`,
+      `To generate anyway without formatting, rerun with --allow-missing-formatter,\n` +
+      `then run the "Format Generated Sources" GitHub Actions workflow (Actions tab\n` +
+      `→ "Format Generated Sources" → "Run workflow" on your branch) to format and\n` +
+      `commit the generated sources for you.`,
     );
   }
 }

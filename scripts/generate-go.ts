@@ -1797,7 +1797,10 @@ function resolveGoFmt(allowMissingFormatter: boolean): string | undefined {
     console.warn(
       `gofmt was not found, so the generated Go module may not be formatted.\n` +
       `Generated Go files must be formatted before they can be merged.\n` +
-      `Install Go or add gofmt to PATH to restore formatting.\n`
+      `Install Go or add gofmt to PATH to restore formatting,\n` +
+      `or run the "Format Generated Sources" GitHub Actions workflow\n` +
+      `(Actions tab → "Format Generated Sources" → "Run workflow" on your\n` +
+      `branch) to format and commit the generated sources for you.\n`
     );
     return undefined;
   }
@@ -1806,7 +1809,10 @@ function resolveGoFmt(allowMissingFormatter: boolean): string | undefined {
     `gofmt was not found, so the Go generator cannot produce stable output.\n` +
     `Generated Go files must be formatted before they can be merged.\n` +
     `Install Go or add gofmt to PATH, then rerun npm run generate:go.\n` +
-    `To generate anyway without formatting, rerun with --allow-missing-formatter.`
+    `To generate anyway without formatting, rerun with --allow-missing-formatter,\n` +
+    `then run the "Format Generated Sources" GitHub Actions workflow (Actions tab\n` +
+    `→ "Format Generated Sources" → "Run workflow" on your branch) to format and\n` +
+    `commit the generated sources for you.`
   );
 }
 

@@ -1,0 +1,77 @@
+name: Format Generated Sources
+
+# Manually-triggered workflow for maintainers who don't have the Rust
+# (`cargo fmt`) or Go (`gofmt`) toolchains installed locally and therefore
+# generated the clients with `--allow-missing-formatter` (leaving the
+# generated Rust/Go sources unformatted).
+#
+# It checks out the branch it was dispatched against, installs the Rust and
+# Go toolchains, regenerates the Rust crate and Go module (which run their
+# formatters automatically now that the tools are on PATH), and commits the
+# formatted result straight back to that branch.
+#
+# How to run it:
+#   1. Push your branch to the repository.
+#   2. Open the repo on GitHub → Actions tab → "Format Generated Sources".
+#   3. Click "Run workflow", pick your branch, and confirm.
+#   4. When it finishes, run `git pull` to fetch the formatting commit.
+#
+# Note: GITHUB_TOKEN cannot push to branches that live on a fork, so this
+# only works for branches pushed to this repository.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  # Required so the final step can push the formatting commit back to the
+  # branch using the built-in GITHUB_TOKEN.
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Check out the branch the workflow was dispatched against and keep
+          # the token credentials so the commit step can push back to it.
+          ref: ${{ github.ref_name }}
+          persist-credentials: true
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+
+      - run: npm ci
+
+      # Regenerate the formatter-dependent clients. `cargo fmt` / `gofmt`
+      # now run automatically because the toolchains are on PATH, so the
+      # emitted sources land fully formatted.
+      - name: Regenerate and format Rust crate
+        run: npm run generate:rust
+
+      - name: Regenerate and format Go module
+        run: npm run generate:go
+
+      # Commit the formatted output only if regeneration actually changed
+      # something — otherwise the workflow is a no-op and exits cleanly.
+      - name: Commit formatted sources
+        run: |
+          if git diff --quiet -- clients/rust clients/go; then
+            echo "No changes — generated Rust/Go sources are already formatted and up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add clients/rust clients/go
+          git commit -m "chore: format generated Rust and Go sources"
+          git push origin HEAD:${{ github.ref_name }}
