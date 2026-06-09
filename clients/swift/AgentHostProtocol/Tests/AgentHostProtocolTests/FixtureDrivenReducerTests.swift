@@ -86,12 +86,12 @@ final class FixtureDrivenReducerTests: XCTestCase {
 
     // MARK: - Known reducer gaps (documented, not silent)
     //
-    // Mirrors the drift-tripwire discipline in TypesRoundTripFixtureTests:
-    // a fixture may only be skipped if its stem is listed here, and the gap
-    // set must be EXACTLY the set of fixtures that actually fail to run. If a
-    // gap closes, the hit set shrinks → mismatch → this test fails loudly,
-    // forcing the list to be updated. An UNLISTED fixture that fails to run
-    // lands in `failures` → loud. There is no bare `continue` skip.
+    // Uses an explicit known-gap set + exact-match drift tripwire: a fixture may
+    // only be skipped if its stem is listed here, and the gap set must be EXACTLY
+    // the set of fixtures that actually fail to run. If a gap closes, the hit set
+    // shrinks → mismatch → this test fails loudly, forcing the list to be updated.
+    // An UNLISTED fixture that fails to run lands in `failures` → loud. There is
+    // no bare `continue` skip.
     //
     // Five of the six reducer arms are implemented (root / session / terminal /
     // changeset / resourceWatch). Two kinds of gap remain:
@@ -104,7 +104,7 @@ final class FixtureDrivenReducerTests: XCTestCase {
     //    tripwire above will fire, forcing the entry to be removed.
     //
     // 2. Unimplemented-channel gap — the `annotations` channel (fixtures
-    //    210–217) has no Swift reducer yet; `runFixture` hits the `default`
+    //    210–219) has no Swift reducer yet; `runFixture` hits the `default`
     //    arm and throws `unsupportedReducer("annotations")`. (The canonical
     //    fixture-driven test on the base before this rewrite simply skipped the
     //    `annotations` reducer family with a bare `continue`; here that skip is
@@ -199,117 +199,68 @@ final class FixtureDrivenReducerTests: XCTestCase {
     }
 
     private func runFixture(file: String, fixture: Fixture) throws {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-
-        let decoder = JSONDecoder()
+        let actions = try {
+            let actionsData = try JSONEncoder().encode(fixture.actions)
+            return try JSONDecoder().decode([StateAction].self, from: actionsData)
+        }()
 
         switch fixture.reducer {
         case "root":
-            let initialData = try JSONEncoder().encode(fixture.initial)
-            var state = try decoder.decode(RootState.self, from: initialData)
-
-            let actionsData = try JSONEncoder().encode(fixture.actions)
-            let actions = try decoder.decode([StateAction].self, from: actionsData)
-
-            for action in actions {
-                state = rootReducer(state: state, action: action)
+            try compareFixture(file: file, fixture: fixture, stateType: RootState.self) { state in
+                actions.reduce(state) { rootReducer(state: $0, action: $1) }
             }
-
-            // Normalize expected through the same Swift type to drop unknown properties
-            let expectedData = try JSONEncoder().encode(fixture.expected)
-            let expectedState = try decoder.decode(RootState.self, from: expectedData)
-
-            try assertEqualJSON(
-                actual: state, expected: expectedState,
-                encoder: encoder,
-                context: "\(file): \(fixture.description)"
-            )
-
         case "session":
-            let initialData = try JSONEncoder().encode(fixture.initial)
-            var state = try decoder.decode(SessionState.self, from: initialData)
-
-            let actionsData = try JSONEncoder().encode(fixture.actions)
-            let actions = try decoder.decode([StateAction].self, from: actionsData)
-
-            for action in actions {
-                state = sessionReducer(state: state, action: action)
+            try compareFixture(file: file, fixture: fixture, stateType: SessionState.self) { state in
+                actions.reduce(state) { sessionReducer(state: $0, action: $1) }
             }
-
-            // Normalize expected through the same Swift type to drop unknown properties
-            let expectedData = try JSONEncoder().encode(fixture.expected)
-            let expectedState = try decoder.decode(SessionState.self, from: expectedData)
-
-            try assertEqualJSON(
-                actual: state, expected: expectedState,
-                encoder: encoder,
-                context: "\(file): \(fixture.description)"
-            )
-
         case "terminal":
-            let initialData = try JSONEncoder().encode(fixture.initial)
-            var state = try decoder.decode(TerminalState.self, from: initialData)
-
-            let actionsData = try JSONEncoder().encode(fixture.actions)
-            let actions = try decoder.decode([StateAction].self, from: actionsData)
-
-            for action in actions {
-                state = terminalReducer(state: state, action: action)
+            try compareFixture(file: file, fixture: fixture, stateType: TerminalState.self) { state in
+                actions.reduce(state) { terminalReducer(state: $0, action: $1) }
             }
-
-            let expectedData = try JSONEncoder().encode(fixture.expected)
-            let expectedState = try decoder.decode(TerminalState.self, from: expectedData)
-
-            try assertEqualJSON(
-                actual: state, expected: expectedState,
-                encoder: encoder,
-                context: "\(file): \(fixture.description)"
-            )
-
         case "changeset":
-            let initialData = try JSONEncoder().encode(fixture.initial)
-            var state = try decoder.decode(ChangesetState.self, from: initialData)
-
-            let actionsData = try JSONEncoder().encode(fixture.actions)
-            let actions = try decoder.decode([StateAction].self, from: actionsData)
-
-            for action in actions {
-                state = changesetReducer(state: state, action: action)
+            try compareFixture(file: file, fixture: fixture, stateType: ChangesetState.self) { state in
+                actions.reduce(state) { changesetReducer(state: $0, action: $1) }
             }
-
-            let expectedData = try JSONEncoder().encode(fixture.expected)
-            let expectedState = try decoder.decode(ChangesetState.self, from: expectedData)
-
-            try assertEqualJSON(
-                actual: state, expected: expectedState,
-                encoder: encoder,
-                context: "\(file): \(fixture.description)"
-            )
-
         case "resourceWatch":
-            let initialData = try JSONEncoder().encode(fixture.initial)
-            var state = try decoder.decode(ResourceWatchState.self, from: initialData)
-
-            let actionsData = try JSONEncoder().encode(fixture.actions)
-            let actions = try decoder.decode([StateAction].self, from: actionsData)
-
-            for action in actions {
-                state = resourceWatchReducer(state: state, action: action)
+            try compareFixture(file: file, fixture: fixture, stateType: ResourceWatchState.self) { state in
+                actions.reduce(state) { resourceWatchReducer(state: $0, action: $1) }
             }
-
-            let expectedData = try JSONEncoder().encode(fixture.expected)
-            let expectedState = try decoder.decode(ResourceWatchState.self, from: expectedData)
-
-            try assertEqualJSON(
-                actual: state, expected: expectedState,
-                encoder: encoder,
-                context: "\(file): \(fixture.description)"
-            )
-
         default:
             throw FixtureError.unsupportedReducer(fixture.reducer)
         }
+    }
+
+    // MARK: - Generic Fixture Runner
+
+    /// Decodes the fixture's `initial` through `S`, folds all actions via
+    /// `reduce`, decodes `expected` through the same type (normalising the shape
+    /// — drops fields Swift doesn't model), then compares both as sorted-key JSON.
+    ///
+    /// Mirrors the Kotlin `FixtureDrivenReducerTest.compareFixture` pattern so the
+    /// per-variant arms in `runFixture` are one-liners.
+    private func compareFixture<S: Codable>(
+        file: String,
+        fixture: Fixture,
+        stateType: S.Type,
+        reduce: (S) -> S
+    ) throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        let decoder = JSONDecoder()
+
+        let initialData = try JSONEncoder().encode(fixture.initial)
+        let initialState = try decoder.decode(S.self, from: initialData)
+        let finalState = reduce(initialState)
+
+        // Normalize expected through the same Swift type to drop unknown properties
+        let expectedData = try JSONEncoder().encode(fixture.expected)
+        let expectedState = try decoder.decode(S.self, from: expectedData)
+
+        try assertEqualJSON(
+            actual: finalState, expected: expectedState,
+            encoder: encoder,
+            context: "\(file): \(fixture.description)"
+        )
     }
 
     // MARK: - JSON Comparison
