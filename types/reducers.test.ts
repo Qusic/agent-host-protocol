@@ -20,7 +20,6 @@ import { fileURLToPath } from 'node:url';
 import {
   rootReducer,
   sessionReducer,
-  chatReducer,
   terminalReducer,
   changesetReducer,
   annotationsReducer,
@@ -29,8 +28,9 @@ import {
 } from './reducers.js';
 import { IS_CLIENT_DISPATCHABLE } from './action-origin.generated.js';
 import { ActionType } from './actions.js';
-import type { RootState, SessionState, ChatState, TerminalState, ChangesetState, AnnotationsState, ResourceWatchState } from './state.js';
+import type { RootState, SessionState, TerminalState, ChangesetState, AnnotationsState, ResourceWatchState } from './state.js';
 import {
+  SessionLifecycle,
   SessionStatus,
   TurnState,
   MessageKind,
@@ -49,7 +49,6 @@ function readChannelSources(baseName: string): string {
     'common',
     'channels-root',
     'channels-session',
-    'channels-chat',
     'channels-terminal',
     'channels-changeset',
     'channels-annotations',
@@ -69,11 +68,11 @@ function readChannelSources(baseName: string): string {
 
 // ─── Fixture Loading ─────────────────────────────────────────────────────────
 
-type FixtureState = RootState | SessionState | ChatState | TerminalState | ChangesetState | AnnotationsState | ResourceWatchState;
+type FixtureState = RootState | SessionState | TerminalState | ChangesetState | AnnotationsState | ResourceWatchState;
 
 interface Fixture {
   description: string;
-  reducer: 'root' | 'session' | 'chat' | 'terminal' | 'changeset' | 'annotations' | 'resourceWatch';
+  reducer: 'root' | 'session' | 'terminal' | 'changeset' | 'annotations' | 'resourceWatch';
   initial: FixtureState;
   actions: unknown[];
   expected: FixtureState;
@@ -130,8 +129,6 @@ describe('reducer fixtures', () => {
       for (const action of fixture.actions) {
         if (fixture.reducer === 'root') {
           state = rootReducer(state as RootState, action as any);
-        } else if (fixture.reducer === 'chat') {
-          state = chatReducer(state as ChatState, action as any);
         } else if (fixture.reducer === 'terminal') {
           state = terminalReducer(state as TerminalState, action as any);
         } else if (fixture.reducer === 'changeset') {
@@ -211,7 +208,7 @@ describe('IS_CLIENT_DISPATCHABLE', () => {
 
 describe('isClientDispatchable', () => {
   it('returns true for client-dispatchable actions', () => {
-    const action = { type: ActionType.ChatTurnStarted, turnId: 't', message: { text: 'Hello', origin: { kind: MessageKind.User } } } as const;
+    const action = { type: ActionType.SessionTurnStarted, turnId: 't', message: { text: 'Hello', origin: { kind: MessageKind.User } } } as const;
     assert.equal(isClientDispatchable(action), true);
   });
 
@@ -234,16 +231,17 @@ describe('reducer immutability', () => {
     assert.deepStrictEqual(state.agents, []);
   });
 
-  it('chatReducer does not mutate original turns array', () => {
+  it('sessionReducer does not mutate original turns array', () => {
     const turn1 = { id: 't1', message: { text: 'First', origin: { kind: MessageKind.User } }, responseParts: [], usage: undefined, state: TurnState.Complete };
     const turn2 = { id: 't2', message: { text: 'Second', origin: { kind: MessageKind.User } }, responseParts: [], usage: undefined, state: TurnState.Complete };
     const turn3 = { id: 't3', message: { text: 'Third', origin: { kind: MessageKind.User } }, responseParts: [], usage: undefined, state: TurnState.Complete };
-    const state: ChatState = {
-      summary: { resource: 'x', title: 'T', status: SessionStatus.Idle, modifiedAt: 1000 },
+    const state: SessionState = {
+      summary: { resource: 'x', provider: 'copilot', title: 'T', status: SessionStatus.Idle, createdAt: 1000, modifiedAt: 1000, project: { uri: 'file:///test-project', displayName: 'Test Project' } },
+      lifecycle: SessionLifecycle.Ready,
       turns: [turn1, turn2, turn3],
     };
     const original = [...state.turns];
-    chatReducer(state, { type: ActionType.ChatTruncated, turnId: 't1' });
+    sessionReducer(state, { type: ActionType.SessionTruncated, turnId: 't1' });
     assert.deepStrictEqual(state.turns, original);
   });
 });

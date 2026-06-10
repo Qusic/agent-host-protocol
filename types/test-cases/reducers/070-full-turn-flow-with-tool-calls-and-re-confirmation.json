@@ -1,16 +1,21 @@
 {
   "description": "full turn flow with tool calls and re-confirmation",
-  "reducer": "chat",
+  "reducer": "session",
   "initial": {
-    "turns": [],
-    "resource": "copilot:/test-session",
-    "title": "Test Session",
-    "status": 1,
-    "modifiedAt": "1970-01-01T00:00:01.000Z"
+    "summary": {
+      "resource": "copilot:/test-session",
+      "provider": "copilot",
+      "title": "Test Session",
+      "status": 1,
+      "createdAt": 1000,
+      "modifiedAt": 1000
+    },
+    "lifecycle": "ready",
+    "turns": []
   },
   "actions": [
     {
-      "type": "chat/turnStarted",
+      "type": "session/turnStarted",
       "turnId": "t1",
       "message": {
         "text": "Fix the bug",
@@ -20,7 +25,7 @@
       }
     },
     {
-      "type": "chat/responsePart",
+      "type": "session/responsePart",
       "turnId": "t1",
       "part": {
         "kind": "markdown",
@@ -29,33 +34,33 @@
       }
     },
     {
-      "type": "chat/delta",
+      "type": "session/delta",
       "turnId": "t1",
       "partId": "md-1",
       "content": "I will "
     },
     {
-      "type": "chat/delta",
+      "type": "session/delta",
       "turnId": "t1",
       "partId": "md-1",
       "content": "fix it."
     },
     {
-      "type": "chat/toolCallStart",
+      "type": "session/toolCallStart",
       "turnId": "t1",
       "toolCallId": "tc1",
       "toolName": "edit",
       "displayName": "Edit File"
     },
     {
-      "type": "chat/toolCallReady",
+      "type": "session/toolCallReady",
       "turnId": "t1",
       "toolCallId": "tc1",
       "invocationMessage": "Edit main.ts",
       "confirmed": "not-needed"
     },
     {
-      "type": "chat/toolCallComplete",
+      "type": "session/toolCallComplete",
       "turnId": "t1",
       "toolCallId": "tc1",
       "result": {
@@ -64,21 +69,21 @@
       }
     },
     {
-      "type": "chat/toolCallStart",
+      "type": "session/toolCallStart",
       "turnId": "t1",
       "toolCallId": "tc2",
       "toolName": "write",
       "displayName": "Write File"
     },
     {
-      "type": "chat/toolCallReady",
+      "type": "session/toolCallReady",
       "turnId": "t1",
       "toolCallId": "tc2",
       "invocationMessage": "Write /tmp/out",
       "confirmed": "not-needed"
     },
     {
-      "type": "chat/toolCallReady",
+      "type": "session/toolCallReady",
       "turnId": "t1",
       "toolCallId": "tc2",
       "invocationMessage": "Write to /tmp/out",
@@ -88,14 +93,14 @@
       }
     },
     {
-      "type": "chat/toolCallConfirmed",
+      "type": "session/toolCallConfirmed",
       "turnId": "t1",
       "toolCallId": "tc2",
       "approved": true,
       "confirmed": "user-action"
     },
     {
-      "type": "chat/toolCallComplete",
+      "type": "session/toolCallComplete",
       "turnId": "t1",
       "toolCallId": "tc2",
       "result": {
@@ -104,7 +109,7 @@
       }
     },
     {
-      "type": "chat/usage",
+      "type": "session/usage",
       "turnId": "t1",
       "usage": {
         "inputTokens": 200,
@@ -112,7 +117,7 @@
       }
     },
     {
-      "type": "chat/responsePart",
+      "type": "session/responsePart",
       "turnId": "t1",
       "part": {
         "kind": "reasoning",
@@ -121,13 +126,13 @@
       }
     },
     {
-      "type": "chat/reasoning",
+      "type": "session/reasoning",
       "turnId": "t1",
       "partId": "r-1",
       "content": "The bug was in line 42"
     },
     {
-      "type": "chat/responsePart",
+      "type": "session/responsePart",
       "turnId": "t1",
       "part": {
         "kind": "markdown",
@@ -136,11 +141,20 @@
       }
     },
     {
-      "type": "chat/turnComplete",
+      "type": "session/turnComplete",
       "turnId": "t1"
     }
   ],
   "expected": {
+    "summary": {
+      "resource": "copilot:/test-session",
+      "provider": "copilot",
+      "title": "Test Session",
+      "status": 1,
+      "createdAt": 1000,
+      "modifiedAt": 9999
+    },
+    "lifecycle": "ready",
     "turns": [
       {
         "id": "t1",
@@ -210,10 +224,6 @@
         "error": null
       }
     ],
-    "activeTurn": null,
-    "resource": "copilot:/test-session",
-    "title": "Test Session",
-    "status": 1,
-    "modifiedAt": "1970-01-01T00:00:09.999Z"
+    "activeTurn": null
   }
 }

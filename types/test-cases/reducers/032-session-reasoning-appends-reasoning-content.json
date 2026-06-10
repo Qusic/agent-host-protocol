@@ -1,7 +1,16 @@
 {
   "description": "session/reasoning appends reasoning content",
-  "reducer": "chat",
+  "reducer": "session",
   "initial": {
+    "summary": {
+      "resource": "copilot:/test-session",
+      "provider": "copilot",
+      "title": "Test Session",
+      "status": 8,
+      "createdAt": 1000,
+      "modifiedAt": 2000
+    },
+    "lifecycle": "ready",
     "turns": [],
     "activeTurn": {
       "id": "turn-1",
@@ -13,15 +22,11 @@
       },
       "responseParts": [],
       "usage": null
-    },
-    "resource": "copilot:/test-session",
-    "title": "Test Session",
-    "status": 8,
-    "modifiedAt": "1970-01-01T00:00:02.000Z"
+    }
   },
   "actions": [
     {
-      "type": "chat/responsePart",
+      "type": "session/responsePart",
       "turnId": "turn-1",
       "part": {
         "kind": "reasoning",
@@ -30,19 +35,28 @@
       }
     },
     {
-      "type": "chat/reasoning",
+      "type": "session/reasoning",
       "turnId": "turn-1",
       "partId": "r-1",
       "content": "Thinking about "
     },
     {
-      "type": "chat/reasoning",
+      "type": "session/reasoning",
       "turnId": "turn-1",
       "partId": "r-1",
       "content": "the answer"
     }
   ],
   "expected": {
+    "summary": {
+      "resource": "copilot:/test-session",
+      "provider": "copilot",
+      "title": "Test Session",
+      "status": 8,
+      "createdAt": 1000,
+      "modifiedAt": 2000
+    },
+    "lifecycle": "ready",
     "turns": [],
     "activeTurn": {
       "id": "turn-1",
@@ -60,10 +74,6 @@
         }
       ],
       "usage": null
-    },
-    "resource": "copilot:/test-session",
-    "title": "Test Session",
-    "status": 8,
-    "modifiedAt": "1970-01-01T00:00:02.000Z"
+    }
   }
 }

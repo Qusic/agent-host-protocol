@@ -33,7 +33,7 @@ final class AHPStateMirrorTests: XCTestCase {
                 createdAt: 1, modifiedAt: 1
             ),
             lifecycle: .ready,
-            chats: []
+            turns: []
         )
         let snapshot = Snapshot(
             resource: "ahp-session:/s1",
@@ -75,7 +75,7 @@ final class AHPStateMirrorTests: XCTestCase {
                 createdAt: 1, modifiedAt: 1
             ),
             lifecycle: .ready,
-            chats: []
+            turns: []
         )
         await mirror.applySnapshot(Snapshot(
             resource: "ahp-session:/s1",

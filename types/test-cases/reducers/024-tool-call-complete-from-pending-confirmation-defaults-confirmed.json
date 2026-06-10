@@ -1,7 +1,16 @@
 {
   "description": "tool call complete from pending-confirmation defaults confirmed",
-  "reducer": "chat",
+  "reducer": "session",
   "initial": {
+    "summary": {
+      "resource": "copilot:/test-session",
+      "provider": "copilot",
+      "title": "Test Session",
+      "status": 8,
+      "createdAt": 1000,
+      "modifiedAt": 2000
+    },
+    "lifecycle": "ready",
     "turns": [],
     "activeTurn": {
       "id": "turn-1",
@@ -13,28 +22,24 @@
       },
       "responseParts": [],
       "usage": null
-    },
-    "resource": "copilot:/test-session",
-    "title": "Test Session",
-    "status": 8,
-    "modifiedAt": "1970-01-01T00:00:02.000Z"
+    }
   },
   "actions": [
     {
-      "type": "chat/toolCallStart",
+      "type": "session/toolCallStart",
       "turnId": "turn-1",
       "toolCallId": "tc-1",
       "toolName": "bash",
       "displayName": "Run Command"
     },
     {
-      "type": "chat/toolCallReady",
+      "type": "session/toolCallReady",
       "turnId": "turn-1",
       "toolCallId": "tc-1",
       "invocationMessage": "Run"
     },
     {
-      "type": "chat/toolCallComplete",
+      "type": "session/toolCallComplete",
       "turnId": "turn-1",
       "toolCallId": "tc-1",
       "result": {
@@ -44,6 +49,15 @@
     }
   ],
   "expected": {
+    "summary": {
+      "resource": "copilot:/test-session",
+      "provider": "copilot",
+      "title": "Test Session",
+      "status": 8,
+      "createdAt": 1000,
+      "modifiedAt": 2000
+    },
+    "lifecycle": "ready",
     "turns": [],
     "activeTurn": {
       "id": "turn-1",
@@ -72,10 +86,6 @@
         }
       ],
       "usage": null
-    },
-    "resource": "copilot:/test-session",
-    "title": "Test Session",
-    "status": 8,
-    "modifiedAt": "1970-01-01T00:00:02.000Z"
+    }
   }
 }

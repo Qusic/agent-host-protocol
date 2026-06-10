@@ -1,16 +1,21 @@
 {
   "description": "session/turnStarted clears isRead on a previously-read session",
-  "reducer": "chat",
+  "reducer": "session",
   "initial": {
-    "turns": [],
-    "resource": "copilot:/test-session",
-    "title": "Test Session",
-    "status": 33,
-    "modifiedAt": "1970-01-01T00:00:01.000Z"
+    "summary": {
+      "resource": "copilot:/test-session",
+      "provider": "copilot",
+      "title": "Test Session",
+      "status": 33,
+      "createdAt": 1000,
+      "modifiedAt": 1000
+    },
+    "lifecycle": "ready",
+    "turns": []
   },
   "actions": [
     {
-      "type": "chat/turnStarted",
+      "type": "session/turnStarted",
       "turnId": "turn-1",
       "message": {
         "text": "Hello",
@@ -21,6 +26,15 @@
     }
   ],
   "expected": {
+    "summary": {
+      "resource": "copilot:/test-session",
+      "provider": "copilot",
+      "title": "Test Session",
+      "status": 8,
+      "createdAt": 1000,
+      "modifiedAt": 9999
+    },
+    "lifecycle": "ready",
     "turns": [],
     "activeTurn": {
       "id": "turn-1",
@@ -32,10 +46,6 @@
       },
       "responseParts": [],
       "usage": null
-    },
-    "resource": "copilot:/test-session",
-    "title": "Test Session",
-    "status": 8,
-    "modifiedAt": "1970-01-01T00:00:09.999Z"
+    }
   }
 }

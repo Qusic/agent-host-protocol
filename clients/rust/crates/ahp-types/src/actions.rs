@@ -13,12 +13,12 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 
 use crate::state::{
     AgentInfo, AgentSelection, Annotation, AnnotationEntry, Changeset, ChangesetFile,
-    ChangesetOperation, ChangesetOperationStatus, ChangesetStatus, ChatInputAnswer,
-    ChatInputRequest, ChatInputResponseKind, ChatOrigin, ChatSummary, ConfirmationOption,
+    ChangesetOperation, ChangesetOperationStatus, ChangesetStatus, ConfirmationOption,
     Customization, ErrorInfo, McpServerState, Message, ModelSelection, PendingMessageKind,
-    ResponsePart, SessionActiveClient, TerminalClaim, TerminalInfo, TextRange,
-    ToolCallCancellationReason, ToolCallConfirmationReason, ToolCallContributor, ToolCallResult,
-    ToolDefinition, ToolResultContent, UsageInfo,
+    ResponsePart, SessionActiveClient, SessionInputAnswer, SessionInputRequest,
+    SessionInputResponseKind, TerminalClaim, TerminalInfo, TextRange, ToolCallCancellationReason,
+    ToolCallConfirmationReason, ToolCallContributor, ToolCallResult, ToolDefinition,
+    ToolResultContent, UsageInfo,
 };
 
 // ─── ActionType ──────────────────────────────────────────────────────
@@ -34,46 +34,38 @@ pub enum ActionType {
     SessionReady,
     #[serde(rename = "session/creationFailed")]
     SessionCreationFailed,
-    #[serde(rename = "session/chatAdded")]
-    SessionChatAdded,
-    #[serde(rename = "session/chatRemoved")]
-    SessionChatRemoved,
-    #[serde(rename = "session/chatUpdated")]
-    SessionChatUpdated,
-    #[serde(rename = "session/defaultChatChanged")]
-    SessionDefaultChatChanged,
-    #[serde(rename = "chat/turnStarted")]
-    ChatTurnStarted,
-    #[serde(rename = "chat/delta")]
-    ChatDelta,
-    #[serde(rename = "chat/responsePart")]
-    ChatResponsePart,
-    #[serde(rename = "chat/toolCallStart")]
-    ChatToolCallStart,
-    #[serde(rename = "chat/toolCallDelta")]
-    ChatToolCallDelta,
-    #[serde(rename = "chat/toolCallReady")]
-    ChatToolCallReady,
-    #[serde(rename = "chat/toolCallConfirmed")]
-    ChatToolCallConfirmed,
-    #[serde(rename = "chat/toolCallComplete")]
-    ChatToolCallComplete,
-    #[serde(rename = "chat/toolCallResultConfirmed")]
-    ChatToolCallResultConfirmed,
-    #[serde(rename = "chat/toolCallContentChanged")]
-    ChatToolCallContentChanged,
-    #[serde(rename = "chat/turnComplete")]
-    ChatTurnComplete,
-    #[serde(rename = "chat/turnCancelled")]
-    ChatTurnCancelled,
-    #[serde(rename = "chat/error")]
-    ChatError,
+    #[serde(rename = "session/turnStarted")]
+    SessionTurnStarted,
+    #[serde(rename = "session/delta")]
+    SessionDelta,
+    #[serde(rename = "session/responsePart")]
+    SessionResponsePart,
+    #[serde(rename = "session/toolCallStart")]
+    SessionToolCallStart,
+    #[serde(rename = "session/toolCallDelta")]
+    SessionToolCallDelta,
+    #[serde(rename = "session/toolCallReady")]
+    SessionToolCallReady,
+    #[serde(rename = "session/toolCallConfirmed")]
+    SessionToolCallConfirmed,
+    #[serde(rename = "session/toolCallComplete")]
+    SessionToolCallComplete,
+    #[serde(rename = "session/toolCallResultConfirmed")]
+    SessionToolCallResultConfirmed,
+    #[serde(rename = "session/toolCallContentChanged")]
+    SessionToolCallContentChanged,
+    #[serde(rename = "session/turnComplete")]
+    SessionTurnComplete,
+    #[serde(rename = "session/turnCancelled")]
+    SessionTurnCancelled,
+    #[serde(rename = "session/error")]
+    SessionError,
     #[serde(rename = "session/titleChanged")]
     SessionTitleChanged,
-    #[serde(rename = "chat/usage")]
-    ChatUsage,
-    #[serde(rename = "chat/reasoning")]
-    ChatReasoning,
+    #[serde(rename = "session/usage")]
+    SessionUsage,
+    #[serde(rename = "session/reasoning")]
+    SessionReasoning,
     #[serde(rename = "session/modelChanged")]
     SessionModelChanged,
     #[serde(rename = "session/agentChanged")]
@@ -84,18 +76,18 @@ pub enum ActionType {
     SessionActiveClientChanged,
     #[serde(rename = "session/activeClientToolsChanged")]
     SessionActiveClientToolsChanged,
-    #[serde(rename = "chat/pendingMessageSet")]
-    ChatPendingMessageSet,
-    #[serde(rename = "chat/pendingMessageRemoved")]
-    ChatPendingMessageRemoved,
-    #[serde(rename = "chat/queuedMessagesReordered")]
-    ChatQueuedMessagesReordered,
-    #[serde(rename = "chat/inputRequested")]
-    ChatInputRequested,
-    #[serde(rename = "chat/inputAnswerChanged")]
-    ChatInputAnswerChanged,
-    #[serde(rename = "chat/inputCompleted")]
-    ChatInputCompleted,
+    #[serde(rename = "session/pendingMessageSet")]
+    SessionPendingMessageSet,
+    #[serde(rename = "session/pendingMessageRemoved")]
+    SessionPendingMessageRemoved,
+    #[serde(rename = "session/queuedMessagesReordered")]
+    SessionQueuedMessagesReordered,
+    #[serde(rename = "session/inputRequested")]
+    SessionInputRequested,
+    #[serde(rename = "session/inputAnswerChanged")]
+    SessionInputAnswerChanged,
+    #[serde(rename = "session/inputCompleted")]
+    SessionInputCompleted,
     #[serde(rename = "session/customizationsChanged")]
     SessionCustomizationsChanged,
     #[serde(rename = "session/customizationToggled")]
@@ -106,8 +98,8 @@ pub enum ActionType {
     SessionCustomizationRemoved,
     #[serde(rename = "session/mcpServerStateChanged")]
     SessionMcpServerStateChanged,
-    #[serde(rename = "chat/truncated")]
-    ChatTruncated,
+    #[serde(rename = "session/truncated")]
+    SessionTruncated,
     #[serde(rename = "session/isReadChanged")]
     SessionIsReadChanged,
     #[serde(rename = "session/isArchivedChanged")]
@@ -246,63 +238,12 @@ pub struct SessionCreationFailedAction {
     pub error: ErrorInfo,
 }
 
-/// A chat was added to this session's catalog. Upsert semantics: if a chat
-/// with the same `summary.resource` already exists, the existing entry is
-/// replaced.
-///
-/// Mirrors the root-channel `root/sessionAdded` notification.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SessionChatAddedAction {
-    /// The full summary of the newly added (or upserted) chat.
-    pub summary: ChatSummary,
-}
-
-/// A chat was removed from this session's catalog. No-op when no entry matches.
-///
-/// Mirrors the root-channel `root/sessionRemoved` notification.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SessionChatRemovedAction {
-    /// The URI of the chat to remove.
-    pub chat: Uri,
-}
-
-/// One existing chat's summary fields changed.
-///
-/// Partial-update semantics: only fields present in `changes` are written;
-/// omitted fields are preserved. Identity fields (`resource`) MUST NOT be
-/// carried in `changes`. No-op when no entry with `chat` exists — clients
-/// SHOULD then wait for a {@link SessionChatAddedAction | `session/chatAdded`}.
-///
-/// Mirrors the root-channel `root/sessionSummaryChanged` notification.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SessionChatUpdatedAction {
-    /// The URI of the chat whose summary changed.
-    pub chat: Uri,
-    /// Mutable summary fields that changed; omitted fields are unchanged.
-    ///
-    /// Identity fields (`resource`) never change and MUST be omitted by
-    /// senders; receivers SHOULD ignore them if present.
-    pub changes: PartialChatSummary,
-}
-
-/// The default chat input-routing hint for this session changed.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct SessionDefaultChatChangedAction {
-    /// New default chat URI, or `undefined` to clear the hint.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub default_chat: Option<Uri>,
-}
-
 /// A new message has been sent to the agent, and a new turn starts.
 ///
 /// A client is only allowed to send {@link MessageKind.User} messages.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatTurnStartedAction {
+pub struct SessionTurnStartedAction {
     /// Turn identifier
     pub turn_id: String,
     /// The new message
@@ -314,11 +255,11 @@ pub struct ChatTurnStartedAction {
 
 /// Streaming text chunk from the assistant, appended to a specific response part.
 ///
-/// The server MUST first emit a `chat/responsePart` to create the target
+/// The server MUST first emit a `session/responsePart` to create the target
 /// part (markdown or reasoning), then use this action to append text to it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatDeltaAction {
+pub struct SessionDeltaAction {
     /// Turn identifier
     pub turn_id: String,
     /// Identifier of the response part to append to
@@ -330,7 +271,7 @@ pub struct ChatDeltaAction {
 /// Structured content appended to the response.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatResponsePartAction {
+pub struct SessionResponsePartAction {
     /// Turn identifier
     pub turn_id: String,
     /// Response part (markdown or content ref)
@@ -342,11 +283,11 @@ pub struct ChatResponsePartAction {
 /// The server sets {@link ToolCallContributor | `contributor`} to identify
 /// the origin of the tool. For client-provided tools, the named client is
 /// responsible for executing the tool once it reaches the `running` state
-/// and dispatching `chat/toolCallComplete`. For MCP-served tools, the
+/// and dispatching `session/toolCallComplete`. For MCP-served tools, the
 /// server executes the call against the named `McpServerCustomization`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatToolCallStartAction {
+pub struct SessionToolCallStartAction {
     /// Turn identifier
     pub turn_id: String,
     /// Tool call identifier
@@ -372,7 +313,7 @@ pub struct ChatToolCallStartAction {
 /// Streaming partial parameters for a tool call.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatToolCallDeltaAction {
+pub struct SessionToolCallDeltaAction {
     /// Turn identifier
     pub turn_id: String,
     /// Tool call identifier
@@ -400,14 +341,14 @@ pub struct ChatToolCallDeltaAction {
 /// When dispatched for a `running` tool call (e.g. mid-execution permission needed),
 /// transitions back to `pending-confirmation`. The `invocationMessage` and `_meta`
 /// SHOULD be updated to describe the specific confirmation needed. Clients use the
-/// standard `chat/toolCallConfirmed` flow to approve or deny.
+/// standard `session/toolCallConfirmed` flow to approve or deny.
 ///
 /// For client-provided tools, the server typically sets `confirmed` to
 /// `'not-needed'` so the tool transitions directly to `running`, where the
 /// owning client can begin execution immediately.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatToolCallReadyAction {
+pub struct SessionToolCallReadyAction {
     /// Turn identifier
     pub turn_id: String,
     /// Tool call identifier
@@ -448,7 +389,7 @@ pub struct ChatToolCallReadyAction {
 /// Client approves or denies a pending tool call (merged approved + denied variants).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatToolCallConfirmedAction {
+pub struct SessionToolCallConfirmedAction {
     pub turn_id: String,
     pub tool_call_id: String,
     /// Additional provider-specific metadata for this tool call.
@@ -488,7 +429,7 @@ pub struct ChatToolCallConfirmedAction {
 /// this action with `result.success = false` and an appropriate error.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatToolCallCompleteAction {
+pub struct SessionToolCallCompleteAction {
     /// Turn identifier
     pub turn_id: String,
     /// Tool call identifier
@@ -513,7 +454,7 @@ pub struct ChatToolCallCompleteAction {
 /// If `approved` is `false`, the tool transitions to `cancelled` with reason `result-denied`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatToolCallResultConfirmedAction {
+pub struct SessionToolCallResultConfirmedAction {
     /// Turn identifier
     pub turn_id: String,
     /// Tool call identifier
@@ -530,39 +471,10 @@ pub struct ChatToolCallResultConfirmedAction {
     pub approved: bool,
 }
 
-/// Partial content produced while a tool is still executing.
-///
-/// Replaces the `content` array on the running tool call state. Clients can
-/// use this to display live feedback (e.g. a terminal reference) before the
-/// tool completes.
-///
-/// For client-provided tools (where `toolClientId` is set on the tool call state),
-/// the owning client dispatches this action to stream intermediate content while
-/// executing. The server SHOULD reject this action if the dispatching client does
-/// not match `toolClientId`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatToolCallContentChangedAction {
-    /// Turn identifier
-    pub turn_id: String,
-    /// Tool call identifier
-    pub tool_call_id: String,
-    /// Additional provider-specific metadata for this tool call.
-    ///
-    /// Clients MAY look for well-known keys here to provide enhanced UI.
-    /// For example, a `ptyTerminal` key with `{ input: string; output: string }`
-    /// indicates the tool operated on a terminal (both `input` and `output` may
-    /// contain escape sequences).
-    #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
-    pub meta: Option<JsonObject>,
-    /// The current partial content for the running tool call
-    pub content: Vec<ToolResultContent>,
-}
-
 /// Turn finished — the assistant is idle.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatTurnCompleteAction {
+pub struct SessionTurnCompleteAction {
     /// Turn identifier
     pub turn_id: String,
 }
@@ -570,7 +482,7 @@ pub struct ChatTurnCompleteAction {
 /// Turn was aborted; server stops processing.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatTurnCancelledAction {
+pub struct SessionTurnCancelledAction {
     /// Turn identifier
     pub turn_id: String,
 }
@@ -578,7 +490,7 @@ pub struct ChatTurnCancelledAction {
 /// Error during turn processing.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatErrorAction {
+pub struct SessionErrorAction {
     /// Turn identifier
     pub turn_id: String,
     /// Error details
@@ -597,7 +509,7 @@ pub struct SessionTitleChangedAction {
 /// Token usage report for a turn.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatUsageAction {
+pub struct SessionUsageAction {
     /// Turn identifier
     pub turn_id: String,
     /// Token usage data
@@ -606,11 +518,11 @@ pub struct ChatUsageAction {
 
 /// Reasoning/thinking text from the model, appended to a specific reasoning response part.
 ///
-/// The server MUST first emit a `chat/responsePart` to create the target
+/// The server MUST first emit a `session/responsePart` to create the target
 /// reasoning part, then use this action to append text to it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatReasoningAction {
+pub struct SessionReasoningAction {
     /// Turn identifier
     pub turn_id: String,
     /// Identifier of the reasoning response part to append to
@@ -736,14 +648,14 @@ pub struct SessionActiveClientToolsChangedAction {
 ///
 /// For steering messages, this always replaces the single steering message.
 /// For queued messages, if a message with the given `id` already exists it is
-/// updated in place; otherwise it is appended to the queue. If the chat is
+/// updated in place; otherwise it is appended to the queue. If the session is
 /// idle when a queued message is set, the server SHOULD immediately consume it
 /// and start a new turn.
 ///
 /// A client is only allowed to send {@link MessageKind.User} messages.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatPendingMessageSetAction {
+pub struct SessionPendingMessageSetAction {
     /// Whether this is a steering or queued message
     pub kind: PendingMessageKind,
     /// Unique identifier for this pending message
@@ -759,7 +671,7 @@ pub struct ChatPendingMessageSetAction {
 /// injecting a steering message into the current turn).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatPendingMessageRemovedAction {
+pub struct SessionPendingMessageRemovedAction {
     /// Whether this is a steering or queued message
     pub kind: PendingMessageKind,
     /// Identifier of the pending message to remove
@@ -775,7 +687,7 @@ pub struct ChatPendingMessageRemovedAction {
 /// view of the queue never silently drops messages).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatQueuedMessagesReorderedAction {
+pub struct SessionQueuedMessagesReorderedAction {
     /// Queued message IDs in the desired order
     pub order: Vec<String>,
 }
@@ -787,9 +699,9 @@ pub struct ChatQueuedMessagesReorderedAction {
 /// unless `request.answers` is provided.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputRequestedAction {
+pub struct SessionInputRequestedAction {
     /// Input request to create or replace
-    pub request: ChatInputRequest,
+    pub request: SessionInputRequest,
 }
 
 /// A client updated, submitted, skipped, or removed a single in-progress answer.
@@ -797,14 +709,14 @@ pub struct ChatInputRequestedAction {
 /// Dispatching with `answer: undefined` removes that question's answer draft.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputAnswerChangedAction {
+pub struct SessionInputAnswerChangedAction {
     /// Input request identifier
     pub request_id: String,
     /// Question identifier within the input request
     pub question_id: String,
     /// Updated answer, or `undefined` to clear an answer draft
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub answer: Option<ChatInputAnswer>,
+    pub answer: Option<SessionInputAnswer>,
 }
 
 /// A client accepted, declined, or cancelled a session input request.
@@ -813,14 +725,14 @@ pub struct ChatInputAnswerChangedAction {
 /// synced answer state to resume the blocked operation.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputCompletedAction {
+pub struct SessionInputCompletedAction {
     /// Input request identifier
     pub request_id: String,
     /// Completion outcome
-    pub response: ChatInputResponseKind,
+    pub response: SessionInputResponseKind,
     /// Optional final answer replacement, keyed by question ID
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub answers: Option<std::collections::HashMap<String, ChatInputAnswer>>,
+    pub answers: Option<std::collections::HashMap<String, SessionInputAnswer>>,
 }
 
 /// The session's customizations have changed.
@@ -914,14 +826,14 @@ pub struct SessionMcpServerStateChangedAction {
 /// turn are removed and the specified turn is kept. If `turnId` is omitted, all
 /// turns are removed.
 ///
-/// If there is an active turn it is silently dropped and the chat status
+/// If there is an active turn it is silently dropped and the session status
 /// returns to `idle`.
 ///
 /// Common use-case: truncate old data then dispatch a new
-/// `chat/turnStarted` with an edited message.
+/// `session/turnStarted` with an edited message.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatTruncatedAction {
+pub struct SessionTruncatedAction {
     /// Keep turns up to and including this turn. Omit to clear all turns.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub turn_id: Option<String>,
@@ -951,6 +863,35 @@ pub struct SessionMetaChangedAction {
     /// New `_meta` payload, or `undefined` to clear it
     #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
     pub meta: Option<JsonObject>,
+}
+
+/// Partial content produced while a tool is still executing.
+///
+/// Replaces the `content` array on the running tool call state. Clients can
+/// use this to display live feedback (e.g. a terminal reference) before the
+/// tool completes.
+///
+/// For client-provided tools (where `toolClientId` is set on the tool call state),
+/// the owning client dispatches this action to stream intermediate content while
+/// executing. The server SHOULD reject this action if the dispatching client does
+/// not match `toolClientId`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionToolCallContentChangedAction {
+    /// Turn identifier
+    pub turn_id: String,
+    /// Tool call identifier
+    pub tool_call_id: String,
+    /// Additional provider-specific metadata for this tool call.
+    ///
+    /// Clients MAY look for well-known keys here to provide enhanced UI.
+    /// For example, a `ptyTerminal` key with `{ input: string; output: string }`
+    /// indicates the tool operated on a terminal (both `input` and `output` may
+    /// contain escape sequences).
+    #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
+    pub meta: Option<JsonObject>,
+    /// The current partial content for the running tool call
+    pub content: Vec<ToolResultContent>,
 }
 
 /// The {@link ChangesetState.status} for this changeset transitioned (e.g.
@@ -1299,45 +1240,6 @@ pub struct ResourceWatchChangedAction {
     pub changes: AnyValue,
 }
 
-// ─── Partial Summaries ────────────────────────────────────────────────
-
-/// Partial equivalent of ChatSummary — every field is optional for delta updates.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct PartialChatSummary {
-    /// Chat URI
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub resource: Option<Uri>,
-    /// Chat title
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
-    /// Current chat status (reuses SessionStatus shape)
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub status: Option<u32>,
-    /// Human-readable description of what the chat is currently doing
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub activity: Option<String>,
-    /// Last modification timestamp (ISO 8601, e.g. `"2025-03-10T18:42:03.123Z"`)
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub modified_at: Option<String>,
-    /// Optional per-chat model override (defaults to the session's model)
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub model: Option<ModelSelection>,
-    /// Optional per-chat agent override (defaults to the session's agent)
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub agent: Option<AgentSelection>,
-    /// How this chat came into existence
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub origin: Option<ChatOrigin>,
-    /// Optional per-chat working directory.
-    ///
-    /// If absent, the chat inherits
-    /// {@link SessionSummary.workingDirectory | the session's working directory}.
-    /// See {@link ChatState.workingDirectory} for usage notes.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub working_directory: Option<Uri>,
-}
-
 // ─── StateAction Union ───────────────────────────────────────────────
 
 /// Discriminated union of every state action.
@@ -1354,46 +1256,36 @@ pub enum StateAction {
     SessionReady(SessionReadyAction),
     #[serde(rename = "session/creationFailed")]
     SessionCreationFailed(SessionCreationFailedAction),
-    #[serde(rename = "session/chatAdded")]
-    SessionChatAdded(SessionChatAddedAction),
-    #[serde(rename = "session/chatRemoved")]
-    SessionChatRemoved(SessionChatRemovedAction),
-    #[serde(rename = "session/chatUpdated")]
-    SessionChatUpdated(SessionChatUpdatedAction),
-    #[serde(rename = "session/defaultChatChanged")]
-    SessionDefaultChatChanged(SessionDefaultChatChangedAction),
-    #[serde(rename = "chat/turnStarted")]
-    ChatTurnStarted(ChatTurnStartedAction),
-    #[serde(rename = "chat/delta")]
-    ChatDelta(ChatDeltaAction),
-    #[serde(rename = "chat/responsePart")]
-    ChatResponsePart(ChatResponsePartAction),
-    #[serde(rename = "chat/toolCallStart")]
-    ChatToolCallStart(ChatToolCallStartAction),
-    #[serde(rename = "chat/toolCallDelta")]
-    ChatToolCallDelta(ChatToolCallDeltaAction),
-    #[serde(rename = "chat/toolCallReady")]
-    ChatToolCallReady(ChatToolCallReadyAction),
-    #[serde(rename = "chat/toolCallConfirmed")]
-    ChatToolCallConfirmed(ChatToolCallConfirmedAction),
-    #[serde(rename = "chat/toolCallComplete")]
-    ChatToolCallComplete(ChatToolCallCompleteAction),
-    #[serde(rename = "chat/toolCallResultConfirmed")]
-    ChatToolCallResultConfirmed(ChatToolCallResultConfirmedAction),
-    #[serde(rename = "chat/toolCallContentChanged")]
-    ChatToolCallContentChanged(ChatToolCallContentChangedAction),
-    #[serde(rename = "chat/turnComplete")]
-    ChatTurnComplete(ChatTurnCompleteAction),
-    #[serde(rename = "chat/turnCancelled")]
-    ChatTurnCancelled(ChatTurnCancelledAction),
-    #[serde(rename = "chat/error")]
-    ChatError(ChatErrorAction),
+    #[serde(rename = "session/turnStarted")]
+    SessionTurnStarted(SessionTurnStartedAction),
+    #[serde(rename = "session/delta")]
+    SessionDelta(SessionDeltaAction),
+    #[serde(rename = "session/responsePart")]
+    SessionResponsePart(SessionResponsePartAction),
+    #[serde(rename = "session/toolCallStart")]
+    SessionToolCallStart(SessionToolCallStartAction),
+    #[serde(rename = "session/toolCallDelta")]
+    SessionToolCallDelta(SessionToolCallDeltaAction),
+    #[serde(rename = "session/toolCallReady")]
+    SessionToolCallReady(SessionToolCallReadyAction),
+    #[serde(rename = "session/toolCallConfirmed")]
+    SessionToolCallConfirmed(SessionToolCallConfirmedAction),
+    #[serde(rename = "session/toolCallComplete")]
+    SessionToolCallComplete(SessionToolCallCompleteAction),
+    #[serde(rename = "session/toolCallResultConfirmed")]
+    SessionToolCallResultConfirmed(SessionToolCallResultConfirmedAction),
+    #[serde(rename = "session/turnComplete")]
+    SessionTurnComplete(SessionTurnCompleteAction),
+    #[serde(rename = "session/turnCancelled")]
+    SessionTurnCancelled(SessionTurnCancelledAction),
+    #[serde(rename = "session/error")]
+    SessionError(SessionErrorAction),
     #[serde(rename = "session/titleChanged")]
     SessionTitleChanged(SessionTitleChangedAction),
-    #[serde(rename = "chat/usage")]
-    ChatUsage(ChatUsageAction),
-    #[serde(rename = "chat/reasoning")]
-    ChatReasoning(ChatReasoningAction),
+    #[serde(rename = "session/usage")]
+    SessionUsage(SessionUsageAction),
+    #[serde(rename = "session/reasoning")]
+    SessionReasoning(SessionReasoningAction),
     #[serde(rename = "session/modelChanged")]
     SessionModelChanged(SessionModelChangedAction),
     #[serde(rename = "session/agentChanged")]
@@ -1412,18 +1304,18 @@ pub enum StateAction {
     SessionActiveClientChanged(SessionActiveClientChangedAction),
     #[serde(rename = "session/activeClientToolsChanged")]
     SessionActiveClientToolsChanged(SessionActiveClientToolsChangedAction),
-    #[serde(rename = "chat/pendingMessageSet")]
-    ChatPendingMessageSet(ChatPendingMessageSetAction),
-    #[serde(rename = "chat/pendingMessageRemoved")]
-    ChatPendingMessageRemoved(ChatPendingMessageRemovedAction),
-    #[serde(rename = "chat/queuedMessagesReordered")]
-    ChatQueuedMessagesReordered(ChatQueuedMessagesReorderedAction),
-    #[serde(rename = "chat/inputRequested")]
-    ChatInputRequested(ChatInputRequestedAction),
-    #[serde(rename = "chat/inputAnswerChanged")]
-    ChatInputAnswerChanged(ChatInputAnswerChangedAction),
-    #[serde(rename = "chat/inputCompleted")]
-    ChatInputCompleted(ChatInputCompletedAction),
+    #[serde(rename = "session/pendingMessageSet")]
+    SessionPendingMessageSet(SessionPendingMessageSetAction),
+    #[serde(rename = "session/pendingMessageRemoved")]
+    SessionPendingMessageRemoved(SessionPendingMessageRemovedAction),
+    #[serde(rename = "session/queuedMessagesReordered")]
+    SessionQueuedMessagesReordered(SessionQueuedMessagesReorderedAction),
+    #[serde(rename = "session/inputRequested")]
+    SessionInputRequested(SessionInputRequestedAction),
+    #[serde(rename = "session/inputAnswerChanged")]
+    SessionInputAnswerChanged(SessionInputAnswerChangedAction),
+    #[serde(rename = "session/inputCompleted")]
+    SessionInputCompleted(SessionInputCompletedAction),
     #[serde(rename = "session/customizationsChanged")]
     SessionCustomizationsChanged(SessionCustomizationsChangedAction),
     #[serde(rename = "session/customizationToggled")]
@@ -1434,12 +1326,14 @@ pub enum StateAction {
     SessionCustomizationRemoved(SessionCustomizationRemovedAction),
     #[serde(rename = "session/mcpServerStateChanged")]
     SessionMcpServerStateChanged(Box<SessionMcpServerStateChangedAction>),
-    #[serde(rename = "chat/truncated")]
-    ChatTruncated(ChatTruncatedAction),
+    #[serde(rename = "session/truncated")]
+    SessionTruncated(SessionTruncatedAction),
     #[serde(rename = "session/configChanged")]
     SessionConfigChanged(SessionConfigChangedAction),
     #[serde(rename = "session/metaChanged")]
     SessionMetaChanged(SessionMetaChangedAction),
+    #[serde(rename = "session/toolCallContentChanged")]
+    SessionToolCallContentChanged(SessionToolCallContentChangedAction),
     #[serde(rename = "changeset/statusChanged")]
     ChangesetStatusChanged(ChangesetStatusChangedAction),
     #[serde(rename = "changeset/fileSet")]

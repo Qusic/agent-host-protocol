@@ -11,7 +11,18 @@
       "modifiedAt": 1000
     },
     "lifecycle": "creating",
-    "chats": []
+    "turns": [],
+    "activeTurn": {
+      "id": "turn-1",
+      "message": {
+        "text": "Hello",
+        "origin": {
+          "kind": "user"
+        }
+      },
+      "responseParts": [],
+      "usage": null
+    }
   },
   "actions": [
     {
@@ -28,6 +39,17 @@
       "modifiedAt": 1000
     },
     "lifecycle": "ready",
-    "chats": []
+    "turns": [],
+    "activeTurn": {
+      "id": "turn-1",
+      "message": {
+        "text": "Hello",
+        "origin": {
+          "kind": "user"
+        }
+      },
+      "responseParts": [],
+      "usage": null
+    }
   }
 }

@@ -33,10 +33,9 @@ var (
 	nowProvider func() int64 = func() int64 { return time.Now().UnixMilli() }
 )
 
-// SetNowProvider overrides the clock reducers use to stamp modifiedAt fields.
-// Chat modifiedAt values are formatted as ISO 8601 strings from this clock;
-// session summary modifiedAt keeps the numeric millisecond timestamp. Pass nil
-// to restore the default ([time.Now].UnixMilli).
+// SetNowProvider overrides the function reducers call to stamp
+// `summary.modifiedAt`. Useful for tests that need deterministic
+// output. Pass nil to restore the default ([time.Now].UnixMilli).
 func SetNowProvider(fn func() int64) {
 	nowMu.Lock()
 	defer nowMu.Unlock()
@@ -51,10 +50,6 @@ func nowMs() int64 {
 	nowMu.RLock()
 	defer nowMu.RUnlock()
 	return nowProvider()
-}
-
-func nowISOString() string {
-	return time.UnixMilli(nowMs()).UTC().Format("2006-01-02T15:04:05.000Z")
 }
 
 // ─── Status helpers ────────────────────────────────────────────────────
@@ -125,7 +120,7 @@ func toolCallID(tc ahptypes.ToolCallState) string {
 	return toolCallMeta(tc).id
 }
 
-func hasPendingToolCallConfirmation(state *ahptypes.ChatState) bool {
+func hasPendingToolCallConfirmation(state *ahptypes.SessionState) bool {
 	if state.ActiveTurn == nil {
 		return false
 	}
@@ -143,7 +138,7 @@ func hasPendingToolCallConfirmation(state *ahptypes.ChatState) bool {
 	return false
 }
 
-func summaryStatus(state *ahptypes.ChatState, terminal *ahptypes.SessionStatus) ahptypes.SessionStatus {
+func summaryStatus(state *ahptypes.SessionState, terminal *ahptypes.SessionStatus) ahptypes.SessionStatus {
 	var activity ahptypes.SessionStatus
 	switch {
 	case terminal != nil:
@@ -155,24 +150,20 @@ func summaryStatus(state *ahptypes.ChatState, terminal *ahptypes.SessionStatus) 
 	default:
 		activity = ahptypes.SessionStatusIdle
 	}
-	return (state.Status &^ statusActivityMask) | activity
+	return (state.Summary.Status &^ statusActivityMask) | activity
 }
 
-func refreshSummaryStatus(state *ahptypes.ChatState) {
-	state.Status = summaryStatus(state, nil)
+func refreshSummaryStatus(state *ahptypes.SessionState) {
+	state.Summary.Status = summaryStatus(state, nil)
 }
 
-func touchSessionModified(state *ahptypes.SessionState) {
+func touchModified(state *ahptypes.SessionState) {
 	state.Summary.ModifiedAt = nowMs()
-}
-
-func touchChatModified(state *ahptypes.ChatState) {
-	state.ModifiedAt = nowISOString()
 }
 
 // ─── Active-turn helpers ───────────────────────────────────────────────
 
-func endTurn(state *ahptypes.ChatState, turnID string, turnState ahptypes.TurnState, terminalStatus *ahptypes.SessionStatus, errInfo *ahptypes.ErrorInfo) ReduceOutcome {
+func endTurn(state *ahptypes.SessionState, turnID string, turnState ahptypes.TurnState, terminalStatus *ahptypes.SessionStatus, errInfo *ahptypes.ErrorInfo) ReduceOutcome {
 	if state.ActiveTurn == nil || state.ActiveTurn.Id != turnID {
 		return ReduceOutcomeNoOp
 	}
@@ -221,12 +212,12 @@ func endTurn(state *ahptypes.ChatState, turnID string, turnState ahptypes.TurnSt
 
 	state.Turns = append(state.Turns, turn)
 	state.InputRequests = nil
-	touchChatModified(state)
-	state.Status = summaryStatus(state, terminalStatus)
+	touchModified(state)
+	state.Summary.Status = summaryStatus(state, terminalStatus)
 	return ReduceOutcomeApplied
 }
 
-func upsertInputRequest(state *ahptypes.ChatState, req ahptypes.ChatInputRequest) {
+func upsertInputRequest(state *ahptypes.SessionState, req ahptypes.SessionInputRequest) {
 	existing := state.InputRequests
 	found := -1
 	for i := range existing {
@@ -244,9 +235,9 @@ func upsertInputRequest(state *ahptypes.ChatState, req ahptypes.ChatInputRequest
 		existing = append(existing, req)
 	}
 	state.InputRequests = existing
-	state.Status = summaryStatus(state, nil)
-	touchChatModified(state)
-	state.Status = withStatusFlag(state.Status, ahptypes.SessionStatusIsRead, false)
+	state.Summary.Status = summaryStatus(state, nil)
+	touchModified(state)
+	state.Summary.Status = withStatusFlag(state.Summary.Status, ahptypes.SessionStatusIsRead, false)
 }
 
 // ─── Customization helpers ─────────────────────────────────────────────
@@ -315,7 +306,7 @@ func applyToggle(list []ahptypes.Customization, id string, enabled bool) bool {
 
 // ─── Active-turn mutation helpers ──────────────────────────────────────
 
-func updateToolCall(state *ahptypes.ChatState, turnID, targetToolCallID string, updater func(ahptypes.ToolCallState) ahptypes.ToolCallState) ReduceOutcome {
+func updateToolCall(state *ahptypes.SessionState, turnID, targetToolCallID string, updater func(ahptypes.ToolCallState) ahptypes.ToolCallState) ReduceOutcome {
 	if state.ActiveTurn == nil || state.ActiveTurn.Id != turnID {
 		return ReduceOutcomeNoOp
 	}
@@ -332,7 +323,7 @@ func updateToolCall(state *ahptypes.ChatState, turnID, targetToolCallID string, 
 	return ReduceOutcomeNoOp
 }
 
-func updateResponsePart(state *ahptypes.ChatState, turnID, partID string, updater func(*ahptypes.ResponsePart)) ReduceOutcome {
+func updateResponsePart(state *ahptypes.SessionState, turnID, partID string, updater func(*ahptypes.ResponsePart)) ReduceOutcome {
 	if state.ActiveTurn == nil || state.ActiveTurn.Id != turnID {
 		return ReduceOutcomeNoOp
 	}
@@ -390,246 +381,6 @@ func ApplyActionToRoot(state *ahptypes.RootState, action ahptypes.StateAction) R
 	return ReduceOutcomeOutOfScope
 }
 
-// ─── Chat Reducer ──────────────────────────────────────────────────────
-
-// ApplyActionToChat applies action to the [ahptypes.ChatState] in
-// place. Returns [ReduceOutcomeOutOfScope] for actions that target a
-// different state tree.
-func ApplyActionToChat(state *ahptypes.ChatState, action ahptypes.StateAction) ReduceOutcome {
-	switch a := action.Value.(type) {
-	case *ahptypes.ChatTurnStartedAction:
-		return applyTurnStarted(state, a)
-	case *ahptypes.ChatDeltaAction:
-		return updateResponsePart(state, a.TurnId, a.PartId, func(p *ahptypes.ResponsePart) {
-			if m, ok := p.Value.(*ahptypes.MarkdownResponsePart); ok {
-				m.Content += a.Content
-			}
-		})
-	case *ahptypes.ChatResponsePartAction:
-		if state.ActiveTurn == nil || state.ActiveTurn.Id != a.TurnId {
-			return ReduceOutcomeNoOp
-		}
-		state.ActiveTurn.ResponseParts = append(state.ActiveTurn.ResponseParts, a.Part)
-		return ReduceOutcomeApplied
-	case *ahptypes.ChatTurnCompleteAction:
-		return endTurn(state, a.TurnId, ahptypes.TurnStateComplete, nil, nil)
-	case *ahptypes.ChatTurnCancelledAction:
-		return endTurn(state, a.TurnId, ahptypes.TurnStateCancelled, nil, nil)
-	case *ahptypes.ChatErrorAction:
-		errCopy := a.Error
-		errStatus := ahptypes.SessionStatusError
-		return endTurn(state, a.TurnId, ahptypes.TurnStateError, &errStatus, &errCopy)
-	case *ahptypes.ChatToolCallStartAction:
-		if state.ActiveTurn == nil || state.ActiveTurn.Id != a.TurnId {
-			return ReduceOutcomeNoOp
-		}
-		state.ActiveTurn.ResponseParts = append(state.ActiveTurn.ResponseParts, ahptypes.ResponsePart{Value: &ahptypes.ToolCallResponsePart{
-			Kind: ahptypes.ResponsePartKindToolCall,
-			ToolCall: ahptypes.ToolCallState{Value: &ahptypes.ToolCallStreamingState{
-				Status:      ahptypes.ToolCallStatusStreaming,
-				ToolCallId:  a.ToolCallId,
-				ToolName:    a.ToolName,
-				DisplayName: a.DisplayName,
-				Contributor: a.Contributor,
-				Meta:        a.Meta,
-			}},
-		}})
-		return ReduceOutcomeApplied
-	case *ahptypes.ChatToolCallDeltaAction:
-		return applyToolCallDelta(state, a)
-	case *ahptypes.ChatToolCallReadyAction:
-		res := applyToolCallReady(state, a)
-		if res == ReduceOutcomeApplied {
-			refreshSummaryStatus(state)
-		}
-		return res
-	case *ahptypes.ChatToolCallConfirmedAction:
-		res := applyToolCallConfirmed(state, a)
-		if res == ReduceOutcomeApplied {
-			refreshSummaryStatus(state)
-		}
-		return res
-	case *ahptypes.ChatToolCallCompleteAction:
-		res := applyToolCallComplete(state, a)
-		if res == ReduceOutcomeApplied {
-			refreshSummaryStatus(state)
-		}
-		return res
-	case *ahptypes.ChatToolCallResultConfirmedAction:
-		res := applyToolCallResultConfirmed(state, a)
-		if res == ReduceOutcomeApplied {
-			refreshSummaryStatus(state)
-		}
-		return res
-	case *ahptypes.ChatToolCallContentChangedAction:
-		return updateToolCall(state, a.TurnId, a.ToolCallId, func(tc ahptypes.ToolCallState) ahptypes.ToolCallState {
-			if r, ok := tc.Value.(*ahptypes.ToolCallRunningState); ok {
-				if a.Meta != nil {
-					r.Meta = a.Meta
-				}
-				r.Content = append([]ahptypes.ToolResultContent(nil), a.Content...)
-			}
-			return tc
-		})
-	case *ahptypes.ChatUsageAction:
-		if state.ActiveTurn == nil || state.ActiveTurn.Id != a.TurnId {
-			return ReduceOutcomeNoOp
-		}
-		usage := a.Usage
-		state.ActiveTurn.Usage = &usage
-		return ReduceOutcomeApplied
-	case *ahptypes.ChatReasoningAction:
-		return updateResponsePart(state, a.TurnId, a.PartId, func(p *ahptypes.ResponsePart) {
-			if r, ok := p.Value.(*ahptypes.ReasoningResponsePart); ok {
-				r.Content += a.Content
-			}
-		})
-	case *ahptypes.ChatTruncatedAction:
-		return applyTruncated(state, a.TurnId)
-	case *ahptypes.ChatInputRequestedAction:
-		upsertInputRequest(state, a.Request)
-		return ReduceOutcomeApplied
-	case *ahptypes.ChatInputAnswerChangedAction:
-		return applyInputAnswerChanged(state, a)
-	case *ahptypes.ChatInputCompletedAction:
-		list := state.InputRequests
-		if list == nil {
-			return ReduceOutcomeNoOp
-		}
-		had := false
-		next := list[:0]
-		for _, r := range list {
-			if r.Id == a.RequestId {
-				had = true
-				continue
-			}
-			next = append(next, r)
-		}
-		if !had {
-			return ReduceOutcomeNoOp
-		}
-		if len(next) == 0 {
-			state.InputRequests = nil
-		} else {
-			state.InputRequests = next
-		}
-		refreshSummaryStatus(state)
-		touchChatModified(state)
-		return ReduceOutcomeApplied
-	case *ahptypes.ChatPendingMessageSetAction:
-		entry := ahptypes.PendingMessage{Id: a.Id, Message: a.Message}
-		switch a.Kind {
-		case ahptypes.PendingMessageKindSteering:
-			state.SteeringMessage = &entry
-		case ahptypes.PendingMessageKindQueued:
-			list := state.QueuedMessages
-			idx := -1
-			for i := range list {
-				if list[i].Id == entry.Id {
-					idx = i
-					break
-				}
-			}
-			if idx >= 0 {
-				list[idx] = entry
-			} else {
-				list = append(list, entry)
-			}
-			state.QueuedMessages = list
-		}
-		return ReduceOutcomeApplied
-	case *ahptypes.ChatPendingMessageRemovedAction:
-		switch a.Kind {
-		case ahptypes.PendingMessageKindSteering:
-			if state.SteeringMessage != nil && state.SteeringMessage.Id == a.Id {
-				state.SteeringMessage = nil
-				return ReduceOutcomeApplied
-			}
-			return ReduceOutcomeNoOp
-		case ahptypes.PendingMessageKindQueued:
-			list := state.QueuedMessages
-			if list == nil {
-				return ReduceOutcomeNoOp
-			}
-			next := list[:0]
-			removed := false
-			for _, m := range list {
-				if m.Id == a.Id {
-					removed = true
-					continue
-				}
-				next = append(next, m)
-			}
-			if !removed {
-				return ReduceOutcomeNoOp
-			}
-			if len(next) == 0 {
-				state.QueuedMessages = nil
-			} else {
-				state.QueuedMessages = next
-			}
-			return ReduceOutcomeApplied
-		}
-		return ReduceOutcomeNoOp
-	case *ahptypes.ChatQueuedMessagesReorderedAction:
-		if state.QueuedMessages == nil {
-			return ReduceOutcomeNoOp
-		}
-		byID := make(map[string]ahptypes.PendingMessage, len(state.QueuedMessages))
-		for _, m := range state.QueuedMessages {
-			byID[m.Id] = m
-		}
-		reordered := make([]ahptypes.PendingMessage, 0, len(byID))
-		seen := make(map[string]struct{}, len(byID))
-		for _, id := range a.Order {
-			if msg, ok := byID[id]; ok {
-				if _, dup := seen[id]; !dup {
-					seen[id] = struct{}{}
-					reordered = append(reordered, msg)
-				}
-			}
-		}
-		// Append messages absent from `order`, preserving their original
-		// relative order in state.QueuedMessages (mirrors the canonical
-		// TypeScript reducer in types/channels-session/reducer.ts).
-		for _, m := range state.QueuedMessages {
-			if _, in := seen[m.Id]; !in {
-				reordered = append(reordered, m)
-			}
-		}
-		state.QueuedMessages = reordered
-		return ReduceOutcomeApplied
-	}
-	return ReduceOutcomeOutOfScope
-}
-
-func mergeChatSummaryPartial(summary *ahptypes.ChatSummary, changes ahptypes.PartialChatSummary) {
-	if changes.Title != nil {
-		summary.Title = *changes.Title
-	}
-	if changes.Status != nil {
-		summary.Status = *changes.Status
-	}
-	if changes.Activity != nil {
-		summary.Activity = changes.Activity
-	}
-	if changes.ModifiedAt != nil {
-		summary.ModifiedAt = *changes.ModifiedAt
-	}
-	if changes.Model != nil {
-		summary.Model = changes.Model
-	}
-	if changes.Agent != nil {
-		summary.Agent = changes.Agent
-	}
-	if changes.Origin != nil {
-		summary.Origin = changes.Origin
-	}
-	if changes.WorkingDirectory != nil {
-		summary.WorkingDirectory = changes.WorkingDirectory
-	}
-}
-
 // ─── Session Reducer ───────────────────────────────────────────────────
 
 // ApplyActionToSession applies action to the [ahptypes.SessionState]
@@ -645,49 +396,105 @@ func ApplyActionToSession(state *ahptypes.SessionState, action ahptypes.StateAct
 		errCopy := a.Error
 		state.CreationError = &errCopy
 		return ReduceOutcomeApplied
-	case *ahptypes.SessionChatAddedAction:
-		for i := range state.Chats {
-			if state.Chats[i].Resource == a.Summary.Resource {
-				state.Chats[i] = a.Summary
-				return ReduceOutcomeApplied
+	case *ahptypes.SessionTurnStartedAction:
+		return applyTurnStarted(state, a)
+	case *ahptypes.SessionDeltaAction:
+		return updateResponsePart(state, a.TurnId, a.PartId, func(p *ahptypes.ResponsePart) {
+			if m, ok := p.Value.(*ahptypes.MarkdownResponsePart); ok {
+				m.Content += a.Content
 			}
+		})
+	case *ahptypes.SessionResponsePartAction:
+		if state.ActiveTurn == nil || state.ActiveTurn.Id != a.TurnId {
+			return ReduceOutcomeNoOp
 		}
-		state.Chats = append(state.Chats, a.Summary)
+		state.ActiveTurn.ResponseParts = append(state.ActiveTurn.ResponseParts, a.Part)
 		return ReduceOutcomeApplied
-	case *ahptypes.SessionChatRemovedAction:
-		for i := range state.Chats {
-			if state.Chats[i].Resource == a.Chat {
-				state.Chats = append(state.Chats[:i], state.Chats[i+1:]...)
-				if state.DefaultChat != nil && *state.DefaultChat == a.Chat {
-					state.DefaultChat = nil
+	case *ahptypes.SessionTurnCompleteAction:
+		return endTurn(state, a.TurnId, ahptypes.TurnStateComplete, nil, nil)
+	case *ahptypes.SessionTurnCancelledAction:
+		return endTurn(state, a.TurnId, ahptypes.TurnStateCancelled, nil, nil)
+	case *ahptypes.SessionErrorAction:
+		errCopy := a.Error
+		errStatus := ahptypes.SessionStatusError
+		return endTurn(state, a.TurnId, ahptypes.TurnStateError, &errStatus, &errCopy)
+	case *ahptypes.SessionToolCallStartAction:
+		if state.ActiveTurn == nil || state.ActiveTurn.Id != a.TurnId {
+			return ReduceOutcomeNoOp
+		}
+		state.ActiveTurn.ResponseParts = append(state.ActiveTurn.ResponseParts, ahptypes.ResponsePart{Value: &ahptypes.ToolCallResponsePart{
+			Kind: ahptypes.ResponsePartKindToolCall,
+			ToolCall: ahptypes.ToolCallState{Value: &ahptypes.ToolCallStreamingState{
+				Status:      ahptypes.ToolCallStatusStreaming,
+				ToolCallId:  a.ToolCallId,
+				ToolName:    a.ToolName,
+				DisplayName: a.DisplayName,
+				Contributor: a.Contributor,
+				Meta:        a.Meta,
+			}},
+		}})
+		return ReduceOutcomeApplied
+	case *ahptypes.SessionToolCallDeltaAction:
+		return applyToolCallDelta(state, a)
+	case *ahptypes.SessionToolCallReadyAction:
+		res := applyToolCallReady(state, a)
+		if res == ReduceOutcomeApplied {
+			refreshSummaryStatus(state)
+		}
+		return res
+	case *ahptypes.SessionToolCallConfirmedAction:
+		res := applyToolCallConfirmed(state, a)
+		if res == ReduceOutcomeApplied {
+			refreshSummaryStatus(state)
+		}
+		return res
+	case *ahptypes.SessionToolCallCompleteAction:
+		res := applyToolCallComplete(state, a)
+		if res == ReduceOutcomeApplied {
+			refreshSummaryStatus(state)
+		}
+		return res
+	case *ahptypes.SessionToolCallResultConfirmedAction:
+		res := applyToolCallResultConfirmed(state, a)
+		if res == ReduceOutcomeApplied {
+			refreshSummaryStatus(state)
+		}
+		return res
+	case *ahptypes.SessionToolCallContentChangedAction:
+		return updateToolCall(state, a.TurnId, a.ToolCallId, func(tc ahptypes.ToolCallState) ahptypes.ToolCallState {
+			if r, ok := tc.Value.(*ahptypes.ToolCallRunningState); ok {
+				if a.Meta != nil {
+					r.Meta = a.Meta
 				}
-				return ReduceOutcomeApplied
+				r.Content = append([]ahptypes.ToolResultContent(nil), a.Content...)
 			}
-		}
-		return ReduceOutcomeNoOp
-	case *ahptypes.SessionChatUpdatedAction:
-		for i := range state.Chats {
-			if state.Chats[i].Resource == a.Chat {
-				mergeChatSummaryPartial(&state.Chats[i], a.Changes)
-				return ReduceOutcomeApplied
-			}
-		}
-		return ReduceOutcomeNoOp
-	case *ahptypes.SessionDefaultChatChangedAction:
-		state.DefaultChat = a.DefaultChat
-		return ReduceOutcomeApplied
+			return tc
+		})
 	case *ahptypes.SessionTitleChangedAction:
 		state.Summary.Title = a.Title
-		touchSessionModified(state)
+		touchModified(state)
 		return ReduceOutcomeApplied
+	case *ahptypes.SessionUsageAction:
+		if state.ActiveTurn == nil || state.ActiveTurn.Id != a.TurnId {
+			return ReduceOutcomeNoOp
+		}
+		usage := a.Usage
+		state.ActiveTurn.Usage = &usage
+		return ReduceOutcomeApplied
+	case *ahptypes.SessionReasoningAction:
+		return updateResponsePart(state, a.TurnId, a.PartId, func(p *ahptypes.ResponsePart) {
+			if r, ok := p.Value.(*ahptypes.ReasoningResponsePart); ok {
+				r.Content += a.Content
+			}
+		})
 	case *ahptypes.SessionModelChangedAction:
 		model := a.Model
 		state.Summary.Model = &model
-		touchSessionModified(state)
+		touchModified(state)
 		return ReduceOutcomeApplied
 	case *ahptypes.SessionAgentChangedAction:
 		state.Summary.Agent = a.Agent
-		touchSessionModified(state)
+		touchModified(state)
 		return ReduceOutcomeApplied
 	case *ahptypes.SessionIsReadChangedAction:
 		state.Summary.Status = withStatusFlag(state.Summary.Status, ahptypes.SessionStatusIsRead, a.IsRead)
@@ -718,7 +525,7 @@ func ApplyActionToSession(state *ahptypes.SessionState, action ahptypes.StateAct
 		for k, v := range a.Config {
 			state.Config.Values[k] = v
 		}
-		touchSessionModified(state)
+		touchModified(state)
 		return ReduceOutcomeApplied
 	case *ahptypes.SessionMetaChangedAction:
 		state.Meta = a.Meta
@@ -792,19 +599,134 @@ func ApplyActionToSession(state *ahptypes.SessionState, action ahptypes.StateAct
 		return ReduceOutcomeNoOp
 	case *ahptypes.SessionMcpServerStateChangedAction:
 		return applyMcpServerStatusChanged(state, a)
+	case *ahptypes.SessionTruncatedAction:
+		return applyTruncated(state, a.TurnId)
+	case *ahptypes.SessionInputRequestedAction:
+		upsertInputRequest(state, a.Request)
+		return ReduceOutcomeApplied
+	case *ahptypes.SessionInputAnswerChangedAction:
+		return applyInputAnswerChanged(state, a)
+	case *ahptypes.SessionInputCompletedAction:
+		list := state.InputRequests
+		if list == nil {
+			return ReduceOutcomeNoOp
+		}
+		had := false
+		next := list[:0]
+		for _, r := range list {
+			if r.Id == a.RequestId {
+				had = true
+				continue
+			}
+			next = append(next, r)
+		}
+		if !had {
+			return ReduceOutcomeNoOp
+		}
+		if len(next) == 0 {
+			state.InputRequests = nil
+		} else {
+			state.InputRequests = next
+		}
+		refreshSummaryStatus(state)
+		touchModified(state)
+		return ReduceOutcomeApplied
+	case *ahptypes.SessionPendingMessageSetAction:
+		entry := ahptypes.PendingMessage{Id: a.Id, Message: a.Message}
+		switch a.Kind {
+		case ahptypes.PendingMessageKindSteering:
+			state.SteeringMessage = &entry
+		case ahptypes.PendingMessageKindQueued:
+			list := state.QueuedMessages
+			idx := -1
+			for i := range list {
+				if list[i].Id == entry.Id {
+					idx = i
+					break
+				}
+			}
+			if idx >= 0 {
+				list[idx] = entry
+			} else {
+				list = append(list, entry)
+			}
+			state.QueuedMessages = list
+		}
+		return ReduceOutcomeApplied
+	case *ahptypes.SessionPendingMessageRemovedAction:
+		switch a.Kind {
+		case ahptypes.PendingMessageKindSteering:
+			if state.SteeringMessage != nil && state.SteeringMessage.Id == a.Id {
+				state.SteeringMessage = nil
+				return ReduceOutcomeApplied
+			}
+			return ReduceOutcomeNoOp
+		case ahptypes.PendingMessageKindQueued:
+			list := state.QueuedMessages
+			if list == nil {
+				return ReduceOutcomeNoOp
+			}
+			next := list[:0]
+			removed := false
+			for _, m := range list {
+				if m.Id == a.Id {
+					removed = true
+					continue
+				}
+				next = append(next, m)
+			}
+			if !removed {
+				return ReduceOutcomeNoOp
+			}
+			if len(next) == 0 {
+				state.QueuedMessages = nil
+			} else {
+				state.QueuedMessages = next
+			}
+			return ReduceOutcomeApplied
+		}
+		return ReduceOutcomeNoOp
+	case *ahptypes.SessionQueuedMessagesReorderedAction:
+		if state.QueuedMessages == nil {
+			return ReduceOutcomeNoOp
+		}
+		byID := make(map[string]ahptypes.PendingMessage, len(state.QueuedMessages))
+		for _, m := range state.QueuedMessages {
+			byID[m.Id] = m
+		}
+		reordered := make([]ahptypes.PendingMessage, 0, len(byID))
+		seen := make(map[string]struct{}, len(byID))
+		for _, id := range a.Order {
+			if msg, ok := byID[id]; ok {
+				if _, dup := seen[id]; !dup {
+					seen[id] = struct{}{}
+					reordered = append(reordered, msg)
+				}
+			}
+		}
+		// Append messages absent from `order`, preserving their original
+		// relative order in state.QueuedMessages (mirrors the canonical
+		// TypeScript reducer in types/channels-session/reducer.ts).
+		for _, m := range state.QueuedMessages {
+			if _, in := seen[m.Id]; !in {
+				reordered = append(reordered, m)
+			}
+		}
+		state.QueuedMessages = reordered
+		return ReduceOutcomeApplied
 	}
 	return ReduceOutcomeOutOfScope
 }
 
-func applyTurnStarted(state *ahptypes.ChatState, a *ahptypes.ChatTurnStartedAction) ReduceOutcome {
+func applyTurnStarted(state *ahptypes.SessionState, a *ahptypes.SessionTurnStartedAction) ReduceOutcome {
 	state.ActiveTurn = &ahptypes.ActiveTurn{
 		Id:            a.TurnId,
 		Message:       a.Message,
 		ResponseParts: []ahptypes.ResponsePart{},
 	}
-	state.Status = summaryStatus(state, nil)
-	touchChatModified(state)
-	state.Status = withStatusFlag(state.Status, ahptypes.SessionStatusIsRead, false)
+	state.Summary.Status = summaryStatus(state, nil)
+	touchModified(state)
+	state.Summary.Status = withStatusFlag(state.Summary.Status, ahptypes.SessionStatusIsRead, false)
 
 	if a.QueuedMessageId != nil {
 		qmid := *a.QueuedMessageId
@@ -829,7 +751,7 @@ func applyTurnStarted(state *ahptypes.ChatState, a *ahptypes.ChatTurnStartedActi
 	return ReduceOutcomeApplied
 }
 
-func applyToolCallDelta(state *ahptypes.ChatState, a *ahptypes.ChatToolCallDeltaAction) ReduceOutcome {
+func applyToolCallDelta(state *ahptypes.SessionState, a *ahptypes.SessionToolCallDeltaAction) ReduceOutcome {
 	return updateToolCall(state, a.TurnId, a.ToolCallId, func(tc ahptypes.ToolCallState) ahptypes.ToolCallState {
 		s, ok := tc.Value.(*ahptypes.ToolCallStreamingState)
 		if !ok {
@@ -852,7 +774,7 @@ func applyToolCallDelta(state *ahptypes.ChatState, a *ahptypes.ChatToolCallDelta
 	})
 }
 
-func applyToolCallReady(state *ahptypes.ChatState, a *ahptypes.ChatToolCallReadyAction) ReduceOutcome {
+func applyToolCallReady(state *ahptypes.SessionState, a *ahptypes.SessionToolCallReadyAction) ReduceOutcome {
 	return updateToolCall(state, a.TurnId, a.ToolCallId, func(tc ahptypes.ToolCallState) ahptypes.ToolCallState {
 		common := toolCallMeta(tc)
 		if a.Meta != nil {
@@ -905,7 +827,7 @@ func resolveSelectedOption(options []ahptypes.ConfirmationOption, id *string) *a
 	return nil
 }
 
-func applyToolCallConfirmed(state *ahptypes.ChatState, a *ahptypes.ChatToolCallConfirmedAction) ReduceOutcome {
+func applyToolCallConfirmed(state *ahptypes.SessionState, a *ahptypes.SessionToolCallConfirmedAction) ReduceOutcome {
 	return updateToolCall(state, a.TurnId, a.ToolCallId, func(tc ahptypes.ToolCallState) ahptypes.ToolCallState {
 		s, ok := tc.Value.(*ahptypes.ToolCallPendingConfirmationState)
 		if !ok {
@@ -963,7 +885,7 @@ func applyToolCallConfirmed(state *ahptypes.ChatState, a *ahptypes.ChatToolCallC
 	})
 }
 
-func applyToolCallComplete(state *ahptypes.ChatState, a *ahptypes.ChatToolCallCompleteAction) ReduceOutcome {
+func applyToolCallComplete(state *ahptypes.SessionState, a *ahptypes.SessionToolCallCompleteAction) ReduceOutcome {
 	return updateToolCall(state, a.TurnId, a.ToolCallId, func(tc ahptypes.ToolCallState) ahptypes.ToolCallState {
 		common := toolCallMeta(tc)
 		if a.Meta != nil {
@@ -1027,7 +949,7 @@ func applyToolCallComplete(state *ahptypes.ChatState, a *ahptypes.ChatToolCallCo
 	})
 }
 
-func applyToolCallResultConfirmed(state *ahptypes.ChatState, a *ahptypes.ChatToolCallResultConfirmedAction) ReduceOutcome {
+func applyToolCallResultConfirmed(state *ahptypes.SessionState, a *ahptypes.SessionToolCallResultConfirmedAction) ReduceOutcome {
 	return updateToolCall(state, a.TurnId, a.ToolCallId, func(tc ahptypes.ToolCallState) ahptypes.ToolCallState {
 		s, ok := tc.Value.(*ahptypes.ToolCallPendingResultConfirmationState)
 		if !ok {
@@ -1115,7 +1037,7 @@ func applyMcpServerStatusChanged(state *ahptypes.SessionState, a *ahptypes.Sessi
 	return ReduceOutcomeNoOp
 }
 
-func applyTruncated(state *ahptypes.ChatState, turnID *string) ReduceOutcome {
+func applyTruncated(state *ahptypes.SessionState, turnID *string) ReduceOutcome {
 	if turnID == nil {
 		state.Turns = []ahptypes.Turn{}
 	} else {
@@ -1133,12 +1055,12 @@ func applyTruncated(state *ahptypes.ChatState, turnID *string) ReduceOutcome {
 	}
 	state.ActiveTurn = nil
 	state.InputRequests = nil
-	touchChatModified(state)
-	state.Status = summaryStatus(state, nil)
+	touchModified(state)
+	state.Summary.Status = summaryStatus(state, nil)
 	return ReduceOutcomeApplied
 }
 
-func applyInputAnswerChanged(state *ahptypes.ChatState, a *ahptypes.ChatInputAnswerChangedAction) ReduceOutcome {
+func applyInputAnswerChanged(state *ahptypes.SessionState, a *ahptypes.SessionInputAnswerChangedAction) ReduceOutcome {
 	list := state.InputRequests
 	idx := -1
 	for i := range list {
@@ -1152,7 +1074,7 @@ func applyInputAnswerChanged(state *ahptypes.ChatState, a *ahptypes.ChatInputAns
 	}
 	req := &list[idx]
 	if req.Answers == nil {
-		req.Answers = make(map[string]ahptypes.ChatInputAnswer)
+		req.Answers = make(map[string]ahptypes.SessionInputAnswer)
 	}
 	if a.Answer == nil {
 		delete(req.Answers, a.QuestionId)
@@ -1162,7 +1084,7 @@ func applyInputAnswerChanged(state *ahptypes.ChatState, a *ahptypes.ChatInputAns
 	if len(req.Answers) == 0 {
 		req.Answers = nil
 	}
-	touchChatModified(state)
+	touchModified(state)
 	return ReduceOutcomeApplied
 }
 

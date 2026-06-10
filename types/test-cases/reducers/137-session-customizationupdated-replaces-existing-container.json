@@ -11,6 +11,7 @@
       "modifiedAt": 1000
     },
     "lifecycle": "creating",
+    "turns": [],
     "customizations": [
       {
         "type": "plugin",
@@ -18,9 +19,7 @@
         "uri": "https://plugins.example/a",
         "name": "Plugin A",
         "enabled": true,
-        "load": {
-          "kind": "loading"
-        }
+        "load": { "kind": "loading" }
       },
       {
         "type": "plugin",
@@ -28,12 +27,9 @@
         "uri": "https://plugins.example/b",
         "name": "Plugin B",
         "enabled": true,
-        "load": {
-          "kind": "loaded"
-        }
+        "load": { "kind": "loaded" }
       }
-    ],
-    "chats": []
+    ]
   },
   "actions": [
     {
@@ -44,10 +40,7 @@
         "uri": "https://plugins.example/a",
         "name": "Plugin A",
         "enabled": true,
-        "load": {
-          "kind": "error",
-          "message": "Failed to load"
-        }
+        "load": { "kind": "error", "message": "Failed to load" }
       }
     }
   ],
@@ -61,6 +54,7 @@
       "modifiedAt": 1000
     },
     "lifecycle": "creating",
+    "turns": [],
     "customizations": [
       {
         "type": "plugin",
@@ -68,10 +62,7 @@
         "uri": "https://plugins.example/a",
         "name": "Plugin A",
         "enabled": true,
-        "load": {
-          "kind": "error",
-          "message": "Failed to load"
-        }
+        "load": { "kind": "error", "message": "Failed to load" }
       },
       {
         "type": "plugin",
@@ -79,11 +70,8 @@
         "uri": "https://plugins.example/b",
         "name": "Plugin B",
         "enabled": true,
-        "load": {
-          "kind": "loaded"
-        }
+        "load": { "kind": "loaded" }
       }
-    ],
-    "chats": []
+    ]
   }
 }

@@ -85,21 +85,15 @@ public struct SessionStatus: OptionSet, Codable, Sendable, Hashable {
     public static let isArchived = SessionStatus(rawValue: 64)
 }
 
-public enum ChatOriginKind: String, Codable, Sendable {
-    case user = "user"
-    case fork = "fork"
-    case tool = "tool"
-}
-
 /// Answer lifecycle state.
-public enum ChatInputAnswerState: String, Codable, Sendable {
+public enum SessionInputAnswerState: String, Codable, Sendable {
     case draft = "draft"
     case submitted = "submitted"
     case skipped = "skipped"
 }
 
 /// Answer value kind.
-public enum ChatInputAnswerValueKind: String, Codable, Sendable {
+public enum SessionInputAnswerValueKind: String, Codable, Sendable {
     case text = "text"
     case number = "number"
     case boolean = "boolean"
@@ -108,7 +102,7 @@ public enum ChatInputAnswerValueKind: String, Codable, Sendable {
 }
 
 /// Question/input control kind.
-public enum ChatInputQuestionKind: String, Codable, Sendable {
+public enum SessionInputQuestionKind: String, Codable, Sendable {
     case text = "text"
     case number = "number"
     case integer = "integer"
@@ -118,7 +112,7 @@ public enum ChatInputQuestionKind: String, Codable, Sendable {
 }
 
 /// How a client completed an input request.
-public enum ChatInputResponseKind: String, Codable, Sendable {
+public enum SessionInputResponseKind: String, Codable, Sendable {
     case accept = "accept"
     case decline = "decline"
     case cancel = "cancel"
@@ -728,144 +722,6 @@ public struct PendingMessage: Codable, Sendable {
     }
 }
 
-public struct ChatState: Codable, Sendable {
-    /// Chat URI
-    public var resource: String
-    /// Chat title
-    public var title: String
-    /// Current chat status (reuses SessionStatus shape)
-    public var status: SessionStatus
-    /// Human-readable description of what the chat is currently doing
-    public var activity: String?
-    /// Last modification timestamp (ISO 8601, e.g. `"2025-03-10T18:42:03.123Z"`)
-    public var modifiedAt: String
-    /// Optional per-chat model override (defaults to the session's model)
-    public var model: ModelSelection?
-    /// Optional per-chat agent override (defaults to the session's agent)
-    public var agent: AgentSelection?
-    /// How this chat came into existence
-    public var origin: ChatOrigin?
-    /// Optional per-chat working directory.
-    ///
-    /// If absent, the chat inherits
-    /// {@link SessionSummary.workingDirectory | the session's working directory}.
-    /// Hosts MAY override this for individual chats — for example, to give a
-    /// subordinate chat its own git worktree so multiple chats in a session can
-    /// make independent edits that the orchestrator later merges back.
-    public var workingDirectory: String?
-    /// Completed turns
-    public var turns: [Turn]
-    /// Currently in-progress turn
-    public var activeTurn: ActiveTurn?
-    /// Message to inject into the current turn at a convenient point
-    public var steeringMessage: PendingMessage?
-    /// Messages to send automatically as new turns after the current turn finishes
-    public var queuedMessages: [PendingMessage]?
-    /// Requests for user input that are currently blocking or informing chat progress
-    public var inputRequests: [ChatInputRequest]?
-    /// Additional provider-specific metadata for this chat.
-    public var meta: [String: AnyCodable]?
-
-    enum CodingKeys: String, CodingKey {
-        case resource
-        case title
-        case status
-        case activity
-        case modifiedAt
-        case model
-        case agent
-        case origin
-        case workingDirectory
-        case turns
-        case activeTurn
-        case steeringMessage
-        case queuedMessages
-        case inputRequests
-        case meta = "_meta"
-    }
-
-    public init(
-        resource: String,
-        title: String,
-        status: SessionStatus,
-        activity: String? = nil,
-        modifiedAt: String,
-        model: ModelSelection? = nil,
-        agent: AgentSelection? = nil,
-        origin: ChatOrigin? = nil,
-        workingDirectory: String? = nil,
-        turns: [Turn],
-        activeTurn: ActiveTurn? = nil,
-        steeringMessage: PendingMessage? = nil,
-        queuedMessages: [PendingMessage]? = nil,
-        inputRequests: [ChatInputRequest]? = nil,
-        meta: [String: AnyCodable]? = nil
-    ) {
-        self.resource = resource
-        self.title = title
-        self.status = status
-        self.activity = activity
-        self.modifiedAt = modifiedAt
-        self.model = model
-        self.agent = agent
-        self.origin = origin
-        self.workingDirectory = workingDirectory
-        self.turns = turns
-        self.activeTurn = activeTurn
-        self.steeringMessage = steeringMessage
-        self.queuedMessages = queuedMessages
-        self.inputRequests = inputRequests
-        self.meta = meta
-    }
-}
-
-public struct ChatSummary: Codable, Sendable {
-    /// Chat URI
-    public var resource: String
-    /// Chat title
-    public var title: String
-    /// Current chat status (reuses SessionStatus shape)
-    public var status: SessionStatus
-    /// Human-readable description of what the chat is currently doing
-    public var activity: String?
-    /// Last modification timestamp (ISO 8601, e.g. `"2025-03-10T18:42:03.123Z"`)
-    public var modifiedAt: String
-    /// Optional per-chat model override (defaults to the session's model)
-    public var model: ModelSelection?
-    /// Optional per-chat agent override (defaults to the session's agent)
-    public var agent: AgentSelection?
-    /// How this chat came into existence
-    public var origin: ChatOrigin?
-    /// Optional per-chat working directory.
-    ///
-    /// If absent, the chat inherits
-    /// {@link SessionSummary.workingDirectory | the session's working directory}.
-    /// See {@link ChatState.workingDirectory} for usage notes.
-    public var workingDirectory: String?
-
-    public init(
-        resource: String,
-        title: String,
-        status: SessionStatus,
-        activity: String? = nil,
-        modifiedAt: String,
-        model: ModelSelection? = nil,
-        agent: AgentSelection? = nil,
-        origin: ChatOrigin? = nil,
-        workingDirectory: String? = nil
-    ) {
-        self.resource = resource
-        self.title = title
-        self.status = status
-        self.activity = activity
-        self.modifiedAt = modifiedAt
-        self.model = model
-        self.agent = agent
-        self.origin = origin
-        self.workingDirectory = workingDirectory
-    }
-}
-
 public struct SessionState: Codable, Sendable {
     /// Lightweight session metadata
     public var summary: SessionSummary
@@ -877,13 +733,16 @@ public struct SessionState: Codable, Sendable {
     public var serverTools: [ToolDefinition]?
     /// The client currently providing tools and interactive capabilities to this session
     public var activeClient: SessionActiveClient?
-    /// Catalog of chats in this session.
-    public var chats: [ChatSummary]
-    /// The chat that receives input when the user addresses the session without
-    /// selecting a specific chat. This is a UI routing hint, not a hierarchy
-    /// marker — chats remain equal peers at the protocol level. Hosts MAY change
-    /// this over the session's lifetime.
-    public var defaultChat: String?
+    /// Completed turns
+    public var turns: [Turn]
+    /// Currently in-progress turn
+    public var activeTurn: ActiveTurn?
+    /// Message to inject into the current turn at a convenient point
+    public var steeringMessage: PendingMessage?
+    /// Messages to send automatically as new turns after the current turn finishes
+    public var queuedMessages: [PendingMessage]?
+    /// Requests for user input that are currently blocking or informing session progress
+    public var inputRequests: [SessionInputRequest]?
     /// Session configuration schema and current values
     public var config: SessionConfigState?
     /// Top-level customizations active in this session.
@@ -925,8 +784,11 @@ public struct SessionState: Codable, Sendable {
         case creationError
         case serverTools
         case activeClient
-        case chats
-        case defaultChat
+        case turns
+        case activeTurn
+        case steeringMessage
+        case queuedMessages
+        case inputRequests
         case config
         case customizations
         case changesets
@@ -939,8 +801,11 @@ public struct SessionState: Codable, Sendable {
         creationError: ErrorInfo? = nil,
         serverTools: [ToolDefinition]? = nil,
         activeClient: SessionActiveClient? = nil,
-        chats: [ChatSummary],
-        defaultChat: String? = nil,
+        turns: [Turn],
+        activeTurn: ActiveTurn? = nil,
+        steeringMessage: PendingMessage? = nil,
+        queuedMessages: [PendingMessage]? = nil,
+        inputRequests: [SessionInputRequest]? = nil,
         config: SessionConfigState? = nil,
         customizations: [Customization]? = nil,
         changesets: [Changeset]? = nil,
@@ -951,8 +816,11 @@ public struct SessionState: Codable, Sendable {
         self.creationError = creationError
         self.serverTools = serverTools
         self.activeClient = activeClient
-        self.chats = chats
-        self.defaultChat = defaultChat
+        self.turns = turns
+        self.activeTurn = activeTurn
+        self.steeringMessage = steeringMessage
+        self.queuedMessages = queuedMessages
+        self.inputRequests = inputRequests
         self.config = config
         self.customizations = customizations
         self.changesets = changesets
@@ -1012,10 +880,7 @@ public struct SessionSummary: Codable, Sendable {
     /// Absent (`undefined`) means no custom agent is selected for this session
     /// — the session uses the provider's default behavior.
     public var agent: AgentSelection?
-    /// The default working directory URI for this session. Individual chats
-    /// MAY override via {@link ChatSummary.workingDirectory | their own
-    /// `workingDirectory`}; this field acts as the fallback for any chat that
-    /// does not.
+    /// The working directory URI for this session
     public var workingDirectory: String?
     /// Aggregate summary of file changes associated with this session. Servers
     /// may populate this to give clients a quick at-a-glance view of the
@@ -1201,7 +1066,7 @@ public struct Message: Codable, Sendable {
     }
 }
 
-public struct ChatInputOption: Codable, Sendable {
+public struct SessionInputOption: Codable, Sendable {
     /// Stable option identifier; for MCP enum values this is the enum string
     public var id: String
     /// Display label
@@ -1224,12 +1089,12 @@ public struct ChatInputOption: Codable, Sendable {
     }
 }
 
-public struct ChatInputTextAnswerValue: Codable, Sendable {
-    public var kind: ChatInputAnswerValueKind
+public struct SessionInputTextAnswerValue: Codable, Sendable {
+    public var kind: SessionInputAnswerValueKind
     public var value: String
 
     public init(
-        kind: ChatInputAnswerValueKind,
+        kind: SessionInputAnswerValueKind,
         value: String
     ) {
         self.kind = kind
@@ -1237,12 +1102,12 @@ public struct ChatInputTextAnswerValue: Codable, Sendable {
     }
 }
 
-public struct ChatInputNumberAnswerValue: Codable, Sendable {
-    public var kind: ChatInputAnswerValueKind
+public struct SessionInputNumberAnswerValue: Codable, Sendable {
+    public var kind: SessionInputAnswerValueKind
     public var value: Double
 
     public init(
-        kind: ChatInputAnswerValueKind,
+        kind: SessionInputAnswerValueKind,
         value: Double
     ) {
         self.kind = kind
@@ -1250,12 +1115,12 @@ public struct ChatInputNumberAnswerValue: Codable, Sendable {
     }
 }
 
-public struct ChatInputBooleanAnswerValue: Codable, Sendable {
-    public var kind: ChatInputAnswerValueKind
+public struct SessionInputBooleanAnswerValue: Codable, Sendable {
+    public var kind: SessionInputAnswerValueKind
     public var value: Bool
 
     public init(
-        kind: ChatInputAnswerValueKind,
+        kind: SessionInputAnswerValueKind,
         value: Bool
     ) {
         self.kind = kind
@@ -1263,14 +1128,14 @@ public struct ChatInputBooleanAnswerValue: Codable, Sendable {
     }
 }
 
-public struct ChatInputSelectedAnswerValue: Codable, Sendable {
-    public var kind: ChatInputAnswerValueKind
+public struct SessionInputSelectedAnswerValue: Codable, Sendable {
+    public var kind: SessionInputAnswerValueKind
     public var value: String
     /// Free-form text entered instead of selecting an option
     public var freeformValues: [String]?
 
     public init(
-        kind: ChatInputAnswerValueKind,
+        kind: SessionInputAnswerValueKind,
         value: String,
         freeformValues: [String]? = nil
     ) {
@@ -1280,14 +1145,14 @@ public struct ChatInputSelectedAnswerValue: Codable, Sendable {
     }
 }
 
-public struct ChatInputSelectedManyAnswerValue: Codable, Sendable {
-    public var kind: ChatInputAnswerValueKind
+public struct SessionInputSelectedManyAnswerValue: Codable, Sendable {
+    public var kind: SessionInputAnswerValueKind
     public var value: [String]
     /// Free-form text entered in addition to selected options
     public var freeformValues: [String]?
 
     public init(
-        kind: ChatInputAnswerValueKind,
+        kind: SessionInputAnswerValueKind,
         value: [String],
         freeformValues: [String]? = nil
     ) {
@@ -1297,29 +1162,29 @@ public struct ChatInputSelectedManyAnswerValue: Codable, Sendable {
     }
 }
 
-public struct ChatInputAnswered: Codable, Sendable {
+public struct SessionInputAnswered: Codable, Sendable {
     /// Answer state
-    public var state: ChatInputAnswerState
+    public var state: SessionInputAnswerState
     /// Answer value
-    public var value: ChatInputAnswerValue
+    public var value: SessionInputAnswerValue
 
     public init(
-        state: ChatInputAnswerState,
-        value: ChatInputAnswerValue
+        state: SessionInputAnswerState,
+        value: SessionInputAnswerValue
     ) {
         self.state = state
         self.value = value
     }
 }
 
-public struct ChatInputSkipped: Codable, Sendable {
+public struct SessionInputSkipped: Codable, Sendable {
     /// Answer state
-    public var state: ChatInputAnswerState
+    public var state: SessionInputAnswerState
     /// Free-form reason or value captured while skipping, if any
     public var freeformValues: [String]?
 
     public init(
-        state: ChatInputAnswerState,
+        state: SessionInputAnswerState,
         freeformValues: [String]? = nil
     ) {
         self.state = state
@@ -1327,7 +1192,7 @@ public struct ChatInputSkipped: Codable, Sendable {
     }
 }
 
-public struct ChatInputTextQuestion: Codable, Sendable {
+public struct SessionInputTextQuestion: Codable, Sendable {
     /// Stable question identifier used as the key in `answers`
     public var id: String
     /// Short display title
@@ -1336,7 +1201,7 @@ public struct ChatInputTextQuestion: Codable, Sendable {
     public var message: String
     /// Whether the user must answer this question to accept the request
     public var required: Bool?
-    public var kind: ChatInputQuestionKind
+    public var kind: SessionInputQuestionKind
     /// Format hint for text questions, such as `email`, `uri`, `date`, or `date-time`
     public var format: String?
     /// Minimum string length
@@ -1351,7 +1216,7 @@ public struct ChatInputTextQuestion: Codable, Sendable {
         title: String? = nil,
         message: String,
         required: Bool? = nil,
-        kind: ChatInputQuestionKind,
+        kind: SessionInputQuestionKind,
         format: String? = nil,
         min: Int? = nil,
         max: Int? = nil,
@@ -1369,7 +1234,7 @@ public struct ChatInputTextQuestion: Codable, Sendable {
     }
 }
 
-public struct ChatInputNumberQuestion: Codable, Sendable {
+public struct SessionInputNumberQuestion: Codable, Sendable {
     /// Stable question identifier used as the key in `answers`
     public var id: String
     /// Short display title
@@ -1378,7 +1243,7 @@ public struct ChatInputNumberQuestion: Codable, Sendable {
     public var message: String
     /// Whether the user must answer this question to accept the request
     public var required: Bool?
-    public var kind: ChatInputQuestionKind
+    public var kind: SessionInputQuestionKind
     /// Minimum value
     public var min: Double?
     /// Maximum value
@@ -1391,7 +1256,7 @@ public struct ChatInputNumberQuestion: Codable, Sendable {
         title: String? = nil,
         message: String,
         required: Bool? = nil,
-        kind: ChatInputQuestionKind,
+        kind: SessionInputQuestionKind,
         min: Double? = nil,
         max: Double? = nil,
         defaultValue: Double? = nil
@@ -1407,7 +1272,7 @@ public struct ChatInputNumberQuestion: Codable, Sendable {
     }
 }
 
-public struct ChatInputBooleanQuestion: Codable, Sendable {
+public struct SessionInputBooleanQuestion: Codable, Sendable {
     /// Stable question identifier used as the key in `answers`
     public var id: String
     /// Short display title
@@ -1416,7 +1281,7 @@ public struct ChatInputBooleanQuestion: Codable, Sendable {
     public var message: String
     /// Whether the user must answer this question to accept the request
     public var required: Bool?
-    public var kind: ChatInputQuestionKind
+    public var kind: SessionInputQuestionKind
     /// Default boolean value
     public var defaultValue: Bool?
 
@@ -1425,7 +1290,7 @@ public struct ChatInputBooleanQuestion: Codable, Sendable {
         title: String? = nil,
         message: String,
         required: Bool? = nil,
-        kind: ChatInputQuestionKind,
+        kind: SessionInputQuestionKind,
         defaultValue: Bool? = nil
     ) {
         self.id = id
@@ -1437,7 +1302,7 @@ public struct ChatInputBooleanQuestion: Codable, Sendable {
     }
 }
 
-public struct ChatInputSingleSelectQuestion: Codable, Sendable {
+public struct SessionInputSingleSelectQuestion: Codable, Sendable {
     /// Stable question identifier used as the key in `answers`
     public var id: String
     /// Short display title
@@ -1446,9 +1311,9 @@ public struct ChatInputSingleSelectQuestion: Codable, Sendable {
     public var message: String
     /// Whether the user must answer this question to accept the request
     public var required: Bool?
-    public var kind: ChatInputQuestionKind
+    public var kind: SessionInputQuestionKind
     /// Options the user may select from
-    public var options: [ChatInputOption]
+    public var options: [SessionInputOption]
     /// Whether the user may enter text instead of selecting an option
     public var allowFreeformInput: Bool?
 
@@ -1457,8 +1322,8 @@ public struct ChatInputSingleSelectQuestion: Codable, Sendable {
         title: String? = nil,
         message: String,
         required: Bool? = nil,
-        kind: ChatInputQuestionKind,
-        options: [ChatInputOption],
+        kind: SessionInputQuestionKind,
+        options: [SessionInputOption],
         allowFreeformInput: Bool? = nil
     ) {
         self.id = id
@@ -1471,7 +1336,7 @@ public struct ChatInputSingleSelectQuestion: Codable, Sendable {
     }
 }
 
-public struct ChatInputMultiSelectQuestion: Codable, Sendable {
+public struct SessionInputMultiSelectQuestion: Codable, Sendable {
     /// Stable question identifier used as the key in `answers`
     public var id: String
     /// Short display title
@@ -1480,9 +1345,9 @@ public struct ChatInputMultiSelectQuestion: Codable, Sendable {
     public var message: String
     /// Whether the user must answer this question to accept the request
     public var required: Bool?
-    public var kind: ChatInputQuestionKind
+    public var kind: SessionInputQuestionKind
     /// Options the user may select from
-    public var options: [ChatInputOption]
+    public var options: [SessionInputOption]
     /// Whether the user may enter text in addition to selecting options
     public var allowFreeformInput: Bool?
     /// Minimum selected item count
@@ -1495,8 +1360,8 @@ public struct ChatInputMultiSelectQuestion: Codable, Sendable {
         title: String? = nil,
         message: String,
         required: Bool? = nil,
-        kind: ChatInputQuestionKind,
-        options: [ChatInputOption],
+        kind: SessionInputQuestionKind,
+        options: [SessionInputOption],
         allowFreeformInput: Bool? = nil,
         min: Int? = nil,
         max: Int? = nil
@@ -1513,7 +1378,7 @@ public struct ChatInputMultiSelectQuestion: Codable, Sendable {
     }
 }
 
-public struct ChatInputRequest: Codable, Sendable {
+public struct SessionInputRequest: Codable, Sendable {
     /// Stable request identifier
     public var id: String
     /// Display message for the request as a whole
@@ -1521,16 +1386,16 @@ public struct ChatInputRequest: Codable, Sendable {
     /// URL the user should review or open, for URL-style elicitations
     public var url: String?
     /// Ordered questions to ask the user
-    public var questions: [ChatInputQuestion]?
+    public var questions: [SessionInputQuestion]?
     /// Current draft or submitted answers, keyed by question ID
-    public var answers: [String: ChatInputAnswer]?
+    public var answers: [String: SessionInputAnswer]?
 
     public init(
         id: String,
         message: String? = nil,
         url: String? = nil,
-        questions: [ChatInputQuestion]? = nil,
-        answers: [String: ChatInputAnswer]? = nil
+        questions: [SessionInputQuestion]? = nil,
+        answers: [String: SessionInputAnswer]? = nil
     ) {
         self.id = id
         self.message = message
@@ -1849,7 +1714,7 @@ public struct MessageAnnotationsAttachment: Codable, Sendable {
 public struct MarkdownResponsePart: Codable, Sendable {
     /// Discriminant
     public var kind: ResponsePartKind
-    /// Part identifier, used by `chat/delta` to target this part for content appends
+    /// Part identifier, used by `session/delta` to target this part for content appends
     public var id: String
     /// Markdown content
     public var content: String
@@ -1925,7 +1790,7 @@ public struct ToolCallResponsePart: Codable, Sendable {
 public struct ReasoningResponsePart: Codable, Sendable {
     /// Discriminant
     public var kind: ResponsePartKind
-    /// Part identifier, used by `chat/reasoning` to target this part for content appends
+    /// Part identifier, used by `session/reasoning` to target this part for content appends
     public var id: String
     /// Accumulated reasoning text
     public var content: String
@@ -3369,7 +3234,7 @@ public struct ToolCallClientContributor: Codable, Sendable {
     /// Absent for server-side tools.
     ///
     /// When set, the identified client is responsible for executing the tool and
-    /// dispatching `chat/toolCallComplete` with the result.
+    /// dispatching `session/toolCallComplete` with the result.
     public var clientId: String
 
     public init(
@@ -3634,7 +3499,7 @@ public struct ErrorInfo: Codable, Sendable {
 }
 
 public struct Snapshot: Codable, Sendable {
-    /// The subscribed channel URI (e.g. `ahp-root://`, `ahp-session:/<uuid>`, or `ahp-chat:/<uuid>`)
+    /// The subscribed channel URI (e.g. `ahp-root://` or `ahp-session:/<uuid>`)
     public var resource: String
     /// The current state of the resource
     public var state: SnapshotState
@@ -4013,66 +3878,6 @@ public struct ResourceChange: Codable, Sendable {
 
 // MARK: - Discriminated Unions
 
-public struct ChatOriginUser: Codable, Sendable {
-    public var kind: ChatOriginKind
-
-    public init(kind: ChatOriginKind = .user) {
-        self.kind = kind
-    }
-}
-
-public struct ChatOriginFork: Codable, Sendable {
-    public var kind: ChatOriginKind
-    public var chat: String
-    public var turnId: String
-
-    public init(kind: ChatOriginKind = .fork, chat: String, turnId: String) {
-        self.kind = kind
-        self.chat = chat
-        self.turnId = turnId
-    }
-}
-
-public struct ChatOriginTool: Codable, Sendable {
-    public var kind: ChatOriginKind
-    public var chat: String
-    public var toolCallId: String
-
-    public init(kind: ChatOriginKind = .tool, chat: String, toolCallId: String) {
-        self.kind = kind
-        self.chat = chat
-        self.toolCallId = toolCallId
-    }
-}
-
-public enum ChatOrigin: Codable, Sendable {
-    case user(ChatOriginUser)
-    case fork(ChatOriginFork)
-    case tool(ChatOriginTool)
-
-    private enum DiscriminatorCodingKeys: String, CodingKey { case kind }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: DiscriminatorCodingKeys.self)
-        let discriminant = try container.decode(String.self, forKey: .kind)
-        switch discriminant {
-        case "user": self = .user(try ChatOriginUser(from: decoder))
-        case "fork": self = .fork(try ChatOriginFork(from: decoder))
-        case "tool": self = .tool(try ChatOriginTool(from: decoder))
-        default:
-            throw DecodingError.dataCorruptedError(forKey: .kind, in: container, debugDescription: "Unknown ChatOrigin kind: \(discriminant)")
-        }
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        switch self {
-        case .user(let value): try value.encode(to: encoder)
-        case .fork(let value): try value.encode(to: encoder)
-        case .tool(let value): try value.encode(to: encoder)
-        }
-    }
-}
-
 public enum ResponsePart: Codable, Sendable {
     case markdown(MarkdownResponsePart)
     case contentRef(ResourceReponsePart)
@@ -4217,13 +4022,13 @@ public enum TerminalContentPart: Codable, Sendable {
     }
 }
 
-public enum ChatInputQuestion: Codable, Sendable {
-    case text(ChatInputTextQuestion)
-    case number(ChatInputNumberQuestion)
-    case integer(ChatInputNumberQuestion)
-    case boolean(ChatInputBooleanQuestion)
-    case singleSelect(ChatInputSingleSelectQuestion)
-    case multiSelect(ChatInputMultiSelectQuestion)
+public enum SessionInputQuestion: Codable, Sendable {
+    case text(SessionInputTextQuestion)
+    case number(SessionInputNumberQuestion)
+    case integer(SessionInputNumberQuestion)
+    case boolean(SessionInputBooleanQuestion)
+    case singleSelect(SessionInputSingleSelectQuestion)
+    case multiSelect(SessionInputMultiSelectQuestion)
 
     private enum DiscriminantKey: String, CodingKey {
         case discriminant = "kind"
@@ -4234,19 +4039,19 @@ public enum ChatInputQuestion: Codable, Sendable {
         let discriminant = try container.decode(String.self, forKey: .discriminant)
         switch discriminant {
         case "text":
-            self = .text(try ChatInputTextQuestion(from: decoder))
+            self = .text(try SessionInputTextQuestion(from: decoder))
         case "number":
-            self = .number(try ChatInputNumberQuestion(from: decoder))
+            self = .number(try SessionInputNumberQuestion(from: decoder))
         case "integer":
-            self = .integer(try ChatInputNumberQuestion(from: decoder))
+            self = .integer(try SessionInputNumberQuestion(from: decoder))
         case "boolean":
-            self = .boolean(try ChatInputBooleanQuestion(from: decoder))
+            self = .boolean(try SessionInputBooleanQuestion(from: decoder))
         case "single-select":
-            self = .singleSelect(try ChatInputSingleSelectQuestion(from: decoder))
+            self = .singleSelect(try SessionInputSingleSelectQuestion(from: decoder))
         case "multi-select":
-            self = .multiSelect(try ChatInputMultiSelectQuestion(from: decoder))
+            self = .multiSelect(try SessionInputMultiSelectQuestion(from: decoder))
         default:
-            throw DecodingError.dataCorruptedError(forKey: .discriminant, in: container, debugDescription: "Unknown ChatInputQuestion discriminant: \(discriminant)")
+            throw DecodingError.dataCorruptedError(forKey: .discriminant, in: container, debugDescription: "Unknown SessionInputQuestion discriminant: \(discriminant)")
         }
     }
 
@@ -4262,12 +4067,12 @@ public enum ChatInputQuestion: Codable, Sendable {
     }
 }
 
-public enum ChatInputAnswerValue: Codable, Sendable {
-    case text(ChatInputTextAnswerValue)
-    case number(ChatInputNumberAnswerValue)
-    case boolean(ChatInputBooleanAnswerValue)
-    case selected(ChatInputSelectedAnswerValue)
-    case selectedMany(ChatInputSelectedManyAnswerValue)
+public enum SessionInputAnswerValue: Codable, Sendable {
+    case text(SessionInputTextAnswerValue)
+    case number(SessionInputNumberAnswerValue)
+    case boolean(SessionInputBooleanAnswerValue)
+    case selected(SessionInputSelectedAnswerValue)
+    case selectedMany(SessionInputSelectedManyAnswerValue)
 
     private enum DiscriminantKey: String, CodingKey {
         case discriminant = "kind"
@@ -4278,17 +4083,17 @@ public enum ChatInputAnswerValue: Codable, Sendable {
         let discriminant = try container.decode(String.self, forKey: .discriminant)
         switch discriminant {
         case "text":
-            self = .text(try ChatInputTextAnswerValue(from: decoder))
+            self = .text(try SessionInputTextAnswerValue(from: decoder))
         case "number":
-            self = .number(try ChatInputNumberAnswerValue(from: decoder))
+            self = .number(try SessionInputNumberAnswerValue(from: decoder))
         case "boolean":
-            self = .boolean(try ChatInputBooleanAnswerValue(from: decoder))
+            self = .boolean(try SessionInputBooleanAnswerValue(from: decoder))
         case "selected":
-            self = .selected(try ChatInputSelectedAnswerValue(from: decoder))
+            self = .selected(try SessionInputSelectedAnswerValue(from: decoder))
         case "selected-many":
-            self = .selectedMany(try ChatInputSelectedManyAnswerValue(from: decoder))
+            self = .selectedMany(try SessionInputSelectedManyAnswerValue(from: decoder))
         default:
-            throw DecodingError.dataCorruptedError(forKey: .discriminant, in: container, debugDescription: "Unknown ChatInputAnswerValue discriminant: \(discriminant)")
+            throw DecodingError.dataCorruptedError(forKey: .discriminant, in: container, debugDescription: "Unknown SessionInputAnswerValue discriminant: \(discriminant)")
         }
     }
 
@@ -4303,10 +4108,10 @@ public enum ChatInputAnswerValue: Codable, Sendable {
     }
 }
 
-public enum ChatInputAnswer: Codable, Sendable {
-    case draft(ChatInputAnswered)
-    case submitted(ChatInputAnswered)
-    case skipped(ChatInputSkipped)
+public enum SessionInputAnswer: Codable, Sendable {
+    case draft(SessionInputAnswered)
+    case submitted(SessionInputAnswered)
+    case skipped(SessionInputSkipped)
 
     private enum DiscriminantKey: String, CodingKey {
         case discriminant = "state"
@@ -4317,13 +4122,13 @@ public enum ChatInputAnswer: Codable, Sendable {
         let discriminant = try container.decode(String.self, forKey: .discriminant)
         switch discriminant {
         case "draft":
-            self = .draft(try ChatInputAnswered(from: decoder))
+            self = .draft(try SessionInputAnswered(from: decoder))
         case "submitted":
-            self = .submitted(try ChatInputAnswered(from: decoder))
+            self = .submitted(try SessionInputAnswered(from: decoder))
         case "skipped":
-            self = .skipped(try ChatInputSkipped(from: decoder))
+            self = .skipped(try SessionInputSkipped(from: decoder))
         default:
-            throw DecodingError.dataCorruptedError(forKey: .discriminant, in: container, debugDescription: "Unknown ChatInputAnswer discriminant: \(discriminant)")
+            throw DecodingError.dataCorruptedError(forKey: .discriminant, in: container, debugDescription: "Unknown SessionInputAnswer discriminant: \(discriminant)")
         }
     }
 
@@ -4612,11 +4417,10 @@ public enum ToolResultContent: Codable, Sendable {
     }
 }
 
-/// The state payload of a snapshot — root, session, chat, terminal, changeset, resource-watch, or annotations state.
+/// The state payload of a snapshot — root, session, terminal, changeset, resource-watch, or annotations state.
 public enum SnapshotState: Codable, Sendable {
     case root(RootState)
     case session(SessionState)
-    case chat(ChatState)
     case terminal(TerminalState)
     case changeset(ChangesetState)
     case resourceWatch(ResourceWatchState)
@@ -4643,7 +4447,6 @@ public enum SnapshotState: Codable, Sendable {
         switch self {
         case .root(let state): try state.encode(to: encoder)
         case .session(let state): try state.encode(to: encoder)
-        case .chat(let state): try state.encode(to: encoder)
         case .terminal(let state): try state.encode(to: encoder)
         case .changeset(let state): try state.encode(to: encoder)
         case .resourceWatch(let state): try state.encode(to: encoder)

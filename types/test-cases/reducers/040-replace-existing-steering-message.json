@@ -1,7 +1,16 @@
 {
   "description": "replace existing steering message",
-  "reducer": "chat",
+  "reducer": "session",
   "initial": {
+    "summary": {
+      "resource": "copilot:/test-session",
+      "provider": "copilot",
+      "title": "Test Session",
+      "status": 1,
+      "createdAt": 1000,
+      "modifiedAt": 1000
+    },
+    "lifecycle": "creating",
     "turns": [],
     "steeringMessage": {
       "id": "sm-1",
@@ -11,15 +20,11 @@
           "kind": "user"
         }
       }
-    },
-    "resource": "copilot:/test-session",
-    "title": "Test Session",
-    "status": 1,
-    "modifiedAt": "1970-01-01T00:00:01.000Z"
+    }
   },
   "actions": [
     {
-      "type": "chat/pendingMessageSet",
+      "type": "session/pendingMessageSet",
       "kind": "steering",
       "id": "sm-2",
       "message": {
@@ -31,6 +36,15 @@
     }
   ],
   "expected": {
+    "summary": {
+      "resource": "copilot:/test-session",
+      "provider": "copilot",
+      "title": "Test Session",
+      "status": 1,
+      "createdAt": 1000,
+      "modifiedAt": 1000
+    },
+    "lifecycle": "creating",
     "turns": [],
     "steeringMessage": {
       "id": "sm-2",
@@ -40,10 +54,6 @@
           "kind": "user"
         }
       }
-    },
-    "resource": "copilot:/test-session",
-    "title": "Test Session",
-    "status": 1,
-    "modifiedAt": "1970-01-01T00:00:01.000Z"
+    }
   }
 }

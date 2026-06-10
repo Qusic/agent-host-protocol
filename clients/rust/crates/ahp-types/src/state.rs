@@ -68,19 +68,9 @@ pub enum SessionStatus {
     IsArchived = 64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum ChatOriginKind {
-    #[serde(rename = "user")]
-    User,
-    #[serde(rename = "fork")]
-    Fork,
-    #[serde(rename = "tool")]
-    Tool,
-}
-
 /// Answer lifecycle state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum ChatInputAnswerState {
+pub enum SessionInputAnswerState {
     #[serde(rename = "draft")]
     Draft,
     #[serde(rename = "submitted")]
@@ -91,7 +81,7 @@ pub enum ChatInputAnswerState {
 
 /// Answer value kind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum ChatInputAnswerValueKind {
+pub enum SessionInputAnswerValueKind {
     #[serde(rename = "text")]
     Text,
     #[serde(rename = "number")]
@@ -106,7 +96,7 @@ pub enum ChatInputAnswerValueKind {
 
 /// Question/input control kind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum ChatInputQuestionKind {
+pub enum SessionInputQuestionKind {
     #[serde(rename = "text")]
     Text,
     #[serde(rename = "number")]
@@ -123,7 +113,7 @@ pub enum ChatInputQuestionKind {
 
 /// How a client completed an input request.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum ChatInputResponseKind {
+pub enum SessionInputResponseKind {
     #[serde(rename = "accept")]
     Accept,
     #[serde(rename = "decline")]
@@ -754,103 +744,6 @@ pub struct PendingMessage {
     pub message: Message,
 }
 
-/// Full state for a single chat, loaded when a client subscribes to the chat's
-/// URI.
-///
-/// The lightweight catalog representation of a chat is {@link ChatSummary},
-/// carried in {@link SessionState.chats | `SessionState.chats`}. `ChatState`
-/// **denormalizes** every {@link ChatSummary} field directly onto itself so
-/// subscribers receive one flat object instead of having to merge a nested
-/// `summary` sub-object. Producers MUST keep the two representations
-/// consistent: any change to the inlined fields below SHOULD also be
-/// announced on the parent session via the matching
-/// {@link SessionChatUpdatedAction | `session/chatUpdated`} action.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatState {
-    /// Chat URI
-    pub resource: Uri,
-    /// Chat title
-    pub title: String,
-    /// Current chat status (reuses SessionStatus shape)
-    pub status: u32,
-    /// Human-readable description of what the chat is currently doing
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub activity: Option<String>,
-    /// Last modification timestamp (ISO 8601, e.g. `"2025-03-10T18:42:03.123Z"`)
-    pub modified_at: String,
-    /// Optional per-chat model override (defaults to the session's model)
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub model: Option<ModelSelection>,
-    /// Optional per-chat agent override (defaults to the session's agent)
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub agent: Option<AgentSelection>,
-    /// How this chat came into existence
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub origin: Option<ChatOrigin>,
-    /// Optional per-chat working directory.
-    ///
-    /// If absent, the chat inherits
-    /// {@link SessionSummary.workingDirectory | the session's working directory}.
-    /// Hosts MAY override this for individual chats — for example, to give a
-    /// subordinate chat its own git worktree so multiple chats in a session can
-    /// make independent edits that the orchestrator later merges back.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub working_directory: Option<Uri>,
-    /// Completed turns
-    pub turns: Vec<Turn>,
-    /// Currently in-progress turn
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub active_turn: Option<ActiveTurn>,
-    /// Message to inject into the current turn at a convenient point
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub steering_message: Option<PendingMessage>,
-    /// Messages to send automatically as new turns after the current turn finishes
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub queued_messages: Option<Vec<PendingMessage>>,
-    /// Requests for user input that are currently blocking or informing chat progress
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub input_requests: Option<Vec<ChatInputRequest>>,
-    /// Additional provider-specific metadata for this chat.
-    #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
-    pub meta: Option<JsonObject>,
-}
-
-/// Lightweight catalog entry for a chat, carried in
-/// {@link SessionState.chats | `SessionState.chats`}. The full conversation
-/// lives in {@link ChatState}, which inlines (denormalizes) every field below.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatSummary {
-    /// Chat URI
-    pub resource: Uri,
-    /// Chat title
-    pub title: String,
-    /// Current chat status (reuses SessionStatus shape)
-    pub status: u32,
-    /// Human-readable description of what the chat is currently doing
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub activity: Option<String>,
-    /// Last modification timestamp (ISO 8601, e.g. `"2025-03-10T18:42:03.123Z"`)
-    pub modified_at: String,
-    /// Optional per-chat model override (defaults to the session's model)
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub model: Option<ModelSelection>,
-    /// Optional per-chat agent override (defaults to the session's agent)
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub agent: Option<AgentSelection>,
-    /// How this chat came into existence
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub origin: Option<ChatOrigin>,
-    /// Optional per-chat working directory.
-    ///
-    /// If absent, the chat inherits
-    /// {@link SessionSummary.workingDirectory | the session's working directory}.
-    /// See {@link ChatState.workingDirectory} for usage notes.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub working_directory: Option<Uri>,
-}
-
 /// Full state for a single session, loaded when a client subscribes to the session's URI.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -868,14 +761,20 @@ pub struct SessionState {
     /// The client currently providing tools and interactive capabilities to this session
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub active_client: Option<SessionActiveClient>,
-    /// Catalog of chats in this session.
-    pub chats: Vec<ChatSummary>,
-    /// The chat that receives input when the user addresses the session without
-    /// selecting a specific chat. This is a UI routing hint, not a hierarchy
-    /// marker — chats remain equal peers at the protocol level. Hosts MAY change
-    /// this over the session's lifetime.
+    /// Completed turns
+    pub turns: Vec<Turn>,
+    /// Currently in-progress turn
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub default_chat: Option<Uri>,
+    pub active_turn: Option<ActiveTurn>,
+    /// Message to inject into the current turn at a convenient point
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub steering_message: Option<PendingMessage>,
+    /// Messages to send automatically as new turns after the current turn finishes
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub queued_messages: Option<Vec<PendingMessage>>,
+    /// Requests for user input that are currently blocking or informing session progress
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input_requests: Option<Vec<SessionInputRequest>>,
     /// Session configuration schema and current values
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub config: Option<SessionConfigState>,
@@ -940,39 +839,6 @@ pub struct SessionActiveClient {
     pub customizations: Option<Vec<ClientPluginCustomization>>,
 }
 
-/// Lightweight catalog entry summarizing one session. Surfaced via
-/// {@link RootChannelCommands.listSessions | `root/listSessions`} and
-/// `root/sessionAdded`/`root/sessionSummaryChanged` notifications.
-///
-/// **Aggregation across chats.** Once a session contains more than one chat,
-/// several `SessionSummary` fields are derived from the underlying
-/// {@link SessionState.chats | chat catalog}. Producers SHOULD follow these
-/// rules so clients that only consume the session summary (e.g. a session
-/// list) still see meaningful state:
-///
-/// - `status`: take the activity bits (`Idle` / `InProgress` / `InputNeeded` /
-///   `Error` — bits 0–4) from the
-///   {@link SessionState.defaultChat | default chat} when present, else from
-///   the most recently modified chat. **Promote** `InputNeeded` whenever any
-///   chat in the session needs input, and **promote** `Error` whenever any
-///   chat is in an error state — both override the default-chat bits. The
-///   orthogonal flag bits (`IsRead`, `IsArchived`) remain session-scoped.
-/// - `activity`: mirror the activity string of the default chat, or of the
-///   chat currently driving the promoted status bits when a non-default chat
-///   wins (e.g. the chat that raised `InputNeeded`).
-/// - `modifiedAt`: the max of all chats' `modifiedAt`.
-/// - `model` / `agent`: the session-level selection. Per-chat overrides are
-///   surfaced on individual {@link ChatSummary} entries, not aggregated up.
-/// - `workingDirectory`: the session-level **default**. Individual chats MAY
-///   override via {@link ChatSummary.workingDirectory}; aggregating these up
-///   is meaningless and SHOULD NOT be attempted.
-/// - `changes`: optional roll-up across all chats. Producers MAY sum the
-///   per-chat changeset stats or report the most expensive chat's stats —
-///   whichever is cheaper for the host to compute.
-///
-/// Sessions with a single chat trivially satisfy all of the above (the chat's
-/// values pass through unchanged). The rules only matter once a session
-/// carries multiple chats.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionSummary {
@@ -1003,10 +869,7 @@ pub struct SessionSummary {
     /// — the session uses the provider's default behavior.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent: Option<AgentSelection>,
-    /// The default working directory URI for this session. Individual chats
-    /// MAY override via {@link ChatSummary.workingDirectory | their own
-    /// `workingDirectory`}; this field acts as the fallback for any chat that
-    /// does not.
+    /// The working directory URI for this session
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub working_directory: Option<Uri>,
     /// Aggregate summary of file changes associated with this session. Servers
@@ -1195,7 +1058,7 @@ pub struct Message {
 /// A choice in a select-style question.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputOption {
+pub struct SessionInputOption {
     /// Stable option identifier; for MCP enum values this is the enum string
     pub id: String,
     /// Display label
@@ -1211,25 +1074,25 @@ pub struct ChatInputOption {
 /// Value captured for one answer.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputTextAnswerValue {
+pub struct SessionInputTextAnswerValue {
     pub value: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputNumberAnswerValue {
+pub struct SessionInputNumberAnswerValue {
     pub value: f64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputBooleanAnswerValue {
+pub struct SessionInputBooleanAnswerValue {
     pub value: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputSelectedAnswerValue {
+pub struct SessionInputSelectedAnswerValue {
     pub value: String,
     /// Free-form text entered instead of selecting an option
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1238,7 +1101,7 @@ pub struct ChatInputSelectedAnswerValue {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputSelectedManyAnswerValue {
+pub struct SessionInputSelectedManyAnswerValue {
     pub value: Vec<String>,
     /// Free-form text entered in addition to selected options
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1247,23 +1110,23 @@ pub struct ChatInputSelectedManyAnswerValue {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputAnswered {
+pub struct SessionInputAnswered {
     /// Answer value
-    pub value: ChatInputAnswerValue,
+    pub value: SessionInputAnswerValue,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputSkipped {
+pub struct SessionInputSkipped {
     /// Free-form reason or value captured while skipping, if any
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub freeform_values: Option<Vec<String>>,
 }
 
-/// Text question within a chat input request.
+/// Text question within a session input request.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputTextQuestion {
+pub struct SessionInputTextQuestion {
     /// Stable question identifier used as the key in `answers`
     pub id: String,
     /// Short display title
@@ -1288,10 +1151,10 @@ pub struct ChatInputTextQuestion {
     pub default_value: Option<String>,
 }
 
-/// Numeric question within a chat input request.
+/// Numeric question within a session input request.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputNumberQuestion {
+pub struct SessionInputNumberQuestion {
     /// Stable question identifier used as the key in `answers`
     pub id: String,
     /// Short display title
@@ -1313,10 +1176,10 @@ pub struct ChatInputNumberQuestion {
     pub default_value: Option<f64>,
 }
 
-/// Boolean question within a chat input request.
+/// Boolean question within a session input request.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputBooleanQuestion {
+pub struct SessionInputBooleanQuestion {
     /// Stable question identifier used as the key in `answers`
     pub id: String,
     /// Short display title
@@ -1332,10 +1195,10 @@ pub struct ChatInputBooleanQuestion {
     pub default_value: Option<bool>,
 }
 
-/// Single-select question within a chat input request.
+/// Single-select question within a session input request.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputSingleSelectQuestion {
+pub struct SessionInputSingleSelectQuestion {
     /// Stable question identifier used as the key in `answers`
     pub id: String,
     /// Short display title
@@ -1347,16 +1210,16 @@ pub struct ChatInputSingleSelectQuestion {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub required: Option<bool>,
     /// Options the user may select from
-    pub options: Vec<ChatInputOption>,
+    pub options: Vec<SessionInputOption>,
     /// Whether the user may enter text instead of selecting an option
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub allow_freeform_input: Option<bool>,
 }
 
-/// Multi-select question within a chat input request.
+/// Multi-select question within a session input request.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputMultiSelectQuestion {
+pub struct SessionInputMultiSelectQuestion {
     /// Stable question identifier used as the key in `answers`
     pub id: String,
     /// Short display title
@@ -1368,7 +1231,7 @@ pub struct ChatInputMultiSelectQuestion {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub required: Option<bool>,
     /// Options the user may select from
-    pub options: Vec<ChatInputOption>,
+    pub options: Vec<SessionInputOption>,
     /// Whether the user may enter text in addition to selecting options
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub allow_freeform_input: Option<bool>,
@@ -1382,12 +1245,12 @@ pub struct ChatInputMultiSelectQuestion {
 
 /// A live request for user input.
 ///
-/// The server creates or replaces requests with `chat/inputRequested`.
-/// Clients sync drafts with `chat/inputAnswerChanged` and complete requests
-/// with `chat/inputCompleted`.
+/// The server creates or replaces requests with `session/inputRequested`.
+/// Clients sync drafts with `session/inputAnswerChanged` and complete requests
+/// with `session/inputCompleted`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatInputRequest {
+pub struct SessionInputRequest {
     /// Stable request identifier
     pub id: String,
     /// Display message for the request as a whole
@@ -1398,10 +1261,10 @@ pub struct ChatInputRequest {
     pub url: Option<Uri>,
     /// Ordered questions to ask the user
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub questions: Option<Vec<ChatInputQuestion>>,
+    pub questions: Option<Vec<SessionInputQuestion>>,
     /// Current draft or submitted answers, keyed by question ID
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub answers: Option<std::collections::HashMap<String, ChatInputAnswer>>,
+    pub answers: Option<std::collections::HashMap<String, SessionInputAnswer>>,
 }
 
 /// A zero-based position within a textual document.
@@ -1618,7 +1481,7 @@ pub struct MessageAnnotationsAttachment {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MarkdownResponsePart {
-    /// Part identifier, used by `chat/delta` to target this part for content appends
+    /// Part identifier, used by `session/delta` to target this part for content appends
     pub id: String,
     /// Markdown content
     pub content: String,
@@ -1668,7 +1531,7 @@ pub struct ToolCallResponsePart {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReasoningResponsePart {
-    /// Part identifier, used by `chat/reasoning` to target this part for content appends
+    /// Part identifier, used by `session/reasoning` to target this part for content appends
     pub id: String,
     /// Accumulated reasoning text
     pub content: String,
@@ -2701,7 +2564,7 @@ pub struct ToolCallClientContributor {
     /// Absent for server-side tools.
     ///
     /// When set, the identified client is responsible for executing the tool and
-    /// dispatching `chat/toolCallComplete` with the result.
+    /// dispatching `session/toolCallComplete` with the result.
     pub client_id: String,
 }
 
@@ -2879,7 +2742,7 @@ pub struct ErrorInfo {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Snapshot {
-    /// The subscribed channel URI (e.g. `ahp-root://`, `ahp-session:/<uuid>`, or `ahp-chat:/<uuid>`)
+    /// The subscribed channel URI (e.g. `ahp-root://` or `ahp-session:/<uuid>`)
     pub resource: Uri,
     /// The current state of the resource
     pub state: SnapshotState,
@@ -3203,37 +3066,6 @@ pub struct ResourceChange {
 
 // ─── Discriminated Unions ─────────────────────────────────────────────
 
-/// How a chat came into existence.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "kind")]
-pub enum ChatOrigin {
-    /// Created directly by a user.
-    #[serde(rename = "user")]
-    User,
-    /// Forked from a specific turn of another chat.
-    #[serde(rename = "fork")]
-    Fork {
-        /// URI of the chat this one was forked from.
-        chat: Uri,
-        /// Turn the fork was taken from.
-        #[serde(rename = "turnId")]
-        turn_id: String,
-    },
-    /// Spawned by a tool call in another chat.
-    #[serde(rename = "tool")]
-    Tool {
-        /// URI of the chat whose tool call spawned this one.
-        chat: Uri,
-        /// Tool call that spawned this chat.
-        #[serde(rename = "toolCallId")]
-        tool_call_id: String,
-    },
-    /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.
-    /// Reducers treat this as a no-op.
-    #[serde(untagged)]
-    Unknown(serde_json::Value),
-}
-
 /// A single part of a response stream (text, tool call, reasoning, content reference).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
@@ -3304,22 +3136,22 @@ pub enum TerminalContentPart {
     Unknown(serde_json::Value),
 }
 
-/// One question within a chat input request.
+/// One question within a session input request.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
-pub enum ChatInputQuestion {
+pub enum SessionInputQuestion {
     #[serde(rename = "text")]
-    Text(ChatInputTextQuestion),
+    Text(SessionInputTextQuestion),
     #[serde(rename = "number")]
-    Number(ChatInputNumberQuestion),
+    Number(SessionInputNumberQuestion),
     #[serde(rename = "integer")]
-    Integer(ChatInputNumberQuestion),
+    Integer(SessionInputNumberQuestion),
     #[serde(rename = "boolean")]
-    Boolean(ChatInputBooleanQuestion),
+    Boolean(SessionInputBooleanQuestion),
     #[serde(rename = "single-select")]
-    SingleSelect(ChatInputSingleSelectQuestion),
+    SingleSelect(SessionInputSingleSelectQuestion),
     #[serde(rename = "multi-select")]
-    MultiSelect(ChatInputMultiSelectQuestion),
+    MultiSelect(SessionInputMultiSelectQuestion),
     /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.
     /// Reducers treat this as a no-op.
     #[serde(untagged)]
@@ -3329,17 +3161,17 @@ pub enum ChatInputQuestion {
 /// Value captured for one answer.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
-pub enum ChatInputAnswerValue {
+pub enum SessionInputAnswerValue {
     #[serde(rename = "text")]
-    Text(ChatInputTextAnswerValue),
+    Text(SessionInputTextAnswerValue),
     #[serde(rename = "number")]
-    Number(ChatInputNumberAnswerValue),
+    Number(SessionInputNumberAnswerValue),
     #[serde(rename = "boolean")]
-    Boolean(ChatInputBooleanAnswerValue),
+    Boolean(SessionInputBooleanAnswerValue),
     #[serde(rename = "selected")]
-    Selected(ChatInputSelectedAnswerValue),
+    Selected(SessionInputSelectedAnswerValue),
     #[serde(rename = "selected-many")]
-    SelectedMany(ChatInputSelectedManyAnswerValue),
+    SelectedMany(SessionInputSelectedManyAnswerValue),
     /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.
     /// Reducers treat this as a no-op.
     #[serde(untagged)]
@@ -3349,13 +3181,13 @@ pub enum ChatInputAnswerValue {
 /// Draft, submitted, or skipped answer for one question.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "state")]
-pub enum ChatInputAnswer {
+pub enum SessionInputAnswer {
     #[serde(rename = "draft")]
-    Draft(ChatInputAnswered),
+    Draft(SessionInputAnswered),
     #[serde(rename = "submitted")]
-    Submitted(ChatInputAnswered),
+    Submitted(SessionInputAnswered),
     #[serde(rename = "skipped")]
-    Skipped(ChatInputSkipped),
+    Skipped(SessionInputSkipped),
     /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.
     /// Reducers treat this as a no-op.
     #[serde(untagged)]
@@ -3492,19 +3324,17 @@ pub enum ToolCallContributor {
     Unknown(serde_json::Value),
 }
 
-/// The state payload of a snapshot — root, session, chat, terminal,
+/// The state payload of a snapshot — root, session, terminal,
 /// changeset, resource-watch, or annotations state.
 ///
 /// Deserialized by trying session first (has required `summary`), then
-/// chat (has required `turns`), then terminal (has required `content`),
-/// then changeset (has required `status` and `files`), then resource-watch
-/// (has required `root` and `recursive`), then annotations (has required
-/// `annotations`), then root.
+/// terminal (has required `content`), then changeset (has required
+/// `status` and `files`), then resource-watch (has required `root` and
+/// `recursive`), then annotations (has required `annotations`), then root.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum SnapshotState {
     Session(Box<SessionState>),
-    Chat(Box<ChatState>),
     Terminal(Box<TerminalState>),
     Changeset(Box<ChangesetState>),
     ResourceWatch(Box<ResourceWatchState>),

@@ -1,16 +1,21 @@
 {
   "description": "session input requests sync drafts and restore in-progress status after completion",
-  "reducer": "chat",
+  "reducer": "session",
   "initial": {
-    "turns": [],
-    "resource": "copilot:/test-session",
-    "title": "Test Session",
-    "status": 1,
-    "modifiedAt": "1970-01-01T00:00:01.000Z"
+    "summary": {
+      "resource": "copilot:/test-session",
+      "provider": "copilot",
+      "title": "Test Session",
+      "status": 1,
+      "createdAt": 1000,
+      "modifiedAt": 1000
+    },
+    "lifecycle": "ready",
+    "turns": []
   },
   "actions": [
     {
-      "type": "chat/turnStarted",
+      "type": "session/turnStarted",
       "turnId": "turn-1",
       "message": {
         "text": "Hello",
@@ -20,7 +25,7 @@
       }
     },
     {
-      "type": "chat/inputRequested",
+      "type": "session/inputRequested",
       "request": {
         "id": "input-1",
         "message": "Clarify requirements",
@@ -49,7 +54,7 @@
       }
     },
     {
-      "type": "chat/inputAnswerChanged",
+      "type": "session/inputAnswerChanged",
       "requestId": "input-1",
       "questionId": "q1",
       "answer": {
@@ -61,7 +66,7 @@
       }
     },
     {
-      "type": "chat/inputAnswerChanged",
+      "type": "session/inputAnswerChanged",
       "requestId": "input-1",
       "questionId": "q2",
       "answer": {
@@ -73,12 +78,21 @@
       }
     },
     {
-      "type": "chat/inputCompleted",
+      "type": "session/inputCompleted",
       "requestId": "input-1",
       "response": "accept"
     }
   ],
   "expected": {
+    "summary": {
+      "resource": "copilot:/test-session",
+      "provider": "copilot",
+      "title": "Test Session",
+      "status": 8,
+      "createdAt": 1000,
+      "modifiedAt": 9999
+    },
+    "lifecycle": "ready",
     "turns": [],
     "activeTurn": {
       "id": "turn-1",
@@ -90,10 +104,6 @@
       },
       "responseParts": [],
       "usage": null
-    },
-    "resource": "copilot:/test-session",
-    "title": "Test Session",
-    "status": 8,
-    "modifiedAt": "1970-01-01T00:00:09.999Z"
+    }
   }
 }
