@@ -21,7 +21,7 @@
  *   { "name": ..., "description": ..., "type": ...,
  *     "input": <wire JSON value>,
  *     "acceptableOutputs": [ <exactly one canonical re-encoded value> ],
- *     "typescriptOutput": <group-B only: the unknown-keys-preserved form TS asserts>,
+ *     "preservedOutput": <group-B only: the unknown-keys-preserved form TS asserts>,
  *     "notApplicable": [ <legacy optional list of client names to skip> ] }
  *
  * The harness decodes `input` with `JSON.parse`, re-encodes with
@@ -29,7 +29,7 @@
  * acceptableOutputs[0] (key-order-independent, value- and key-presence-sensitive;
  * `null` is NOT normalized to absent). acceptableOutputs MUST have exactly one
  * entry — the single intended wire form. For group-"B" fixtures TS asserts
- * `typescriptOutput` (unknown keys preserved) instead — see the group-B branch.
+ * `preservedOutput` (unknown keys preserved) instead — see the group-B branch.
  *
  * Real-execution: no mocks. Every fixture round-trips through real
  * `JSON.parse` / `JSON.stringify` — TypeScript's actual runtime wire path.
@@ -88,8 +88,8 @@ interface FixtureRoot {
    * preserves unknown wire keys verbatim). Harnesses running as TypeScript assert this
    * instead of acceptableOutputs[0].
    */
-  readonly typescriptOutput?: unknown;
-  /** @deprecated Use group:"B" + typescriptOutput instead. */
+  readonly preservedOutput?: unknown;
+  /** @deprecated Use group:"B" + preservedOutput instead. */
   readonly notApplicable?: string[];
 }
 
@@ -169,29 +169,29 @@ function runFixture(file: string, root: FixtureRoot): void | 'skipped' {
   }
 
   // Group B: TypeScript has no runtime decoder (JSON.parse/stringify preserves unknown keys).
-  // TS asserts against typescriptOutput (the input preserved verbatim), NOT acceptableOutputs[0].
+  // TS asserts against preservedOutput (the input preserved verbatim), NOT acceptableOutputs[0].
   // This is a documented structural exception — TypeScript DOES assert, never skips.
   if (root.group === 'B') {
-    if (root.typescriptOutput === undefined) {
+    if (root.preservedOutput === undefined) {
       throw new Error(
-        `${file}: group B fixture must include a typescriptOutput field for TypeScript's expected form`,
+        `${file}: group B fixture must include a preservedOutput field for TypeScript's expected form`,
       );
     }
     const inputJson = JSON.stringify(root.input);
     const parsed = JSON.parse(inputJson) as unknown;
     bindToType(file, type, parsed);
     const reencoded = JSON.stringify(parsed);
-    if (canonicalJson(reencoded) === canonicalJson(JSON.stringify(root.typescriptOutput))) {
+    if (canonicalJson(reencoded) === canonicalJson(JSON.stringify(root.preservedOutput))) {
       return; // PASS — TypeScript preserves unknown keys as expected
     }
     throw new Error(
-      `${file}: TypeScript re-encoded output does not match typescriptOutput.\n` +
+      `${file}: TypeScript re-encoded output does not match preservedOutput.\n` +
       `  got:      ${reencoded}\n` +
-      `  expected: ${JSON.stringify(root.typescriptOutput)}`,
+      `  expected: ${JSON.stringify(root.preservedOutput)}`,
     );
   }
 
-  // Legacy notApplicable: skip this client if listed. Prefer group B + typescriptOutput for new fixtures.
+  // Legacy notApplicable: skip this client if listed. Prefer group B + preservedOutput for new fixtures.
   if (Array.isArray(root.notApplicable) && root.notApplicable.includes('typescript')) {
     console.log(`⊘ ${file}: not applicable to typescript (legacy notApplicable) — TypeScript has no runtime decoder; it cannot drop unknown wire keys`);
     return 'skipped';

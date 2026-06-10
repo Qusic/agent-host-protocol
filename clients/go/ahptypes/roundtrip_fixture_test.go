@@ -63,17 +63,17 @@ type roundTripFixture struct {
 	Description string `json:"description"`
 	// Group "A" = all clients agree (assert acceptableOutputs[0]).
 	// Group "B" = runtime-decoders drop unknown keys (assert acceptableOutputs[0]);
-	//             TypeScript preserves them (asserts typescriptOutput instead).
+	//             TypeScript preserves them (asserts preservedOutput instead).
 	// Absent group is treated as "A" for backward compatibility.
 	Group             string            `json:"group"`
 	Type              string            `json:"type"`
 	Input             json.RawMessage   `json:"input"`
 	AcceptableOutputs []json.RawMessage `json:"acceptableOutputs"`
-	// TypescriptOutput is the expected output for the TypeScript client (Group B only).
+	// PreservedOutput is the expected output for the TypeScript client (Group B only).
 	// Go always asserts acceptableOutputs[0] for both groups.
-	TypescriptOutput json.RawMessage `json:"typescriptOutput"`
+	PreservedOutput json.RawMessage `json:"preservedOutput"`
 	// NotApplicable lists client names for which this fixture does not apply.
-	// Legacy field — new fixtures use group:"B" + typescriptOutput instead.
+	// Legacy field — new fixtures use group:"B" + preservedOutput instead.
 	NotApplicable []string `json:"notApplicable"`
 }
 
@@ -145,7 +145,7 @@ func runRoundTripFixture(t *testing.T, name string, raw []byte) {
 	}
 
 	// Honor notApplicable: skip clients listed there with a note.
-	// Legacy field — new fixtures use group:"B" + typescriptOutput instead.
+	// Legacy field — new fixtures use group:"B" + preservedOutput instead.
 	for _, skip := range fx.NotApplicable {
 		if skip == "go" {
 			t.Logf("⊘ %s: not applicable to go — %s", name, fx.Description)

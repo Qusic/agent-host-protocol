@@ -13,11 +13,11 @@ package com.microsoft.agenthostprotocol
 //   { "name": ..., "description": ..., "group": ..., "type": ...,
 //     "input": <wire JSON value>,
 //     "acceptableOutputs": [ <exactly one canonical re-encoded value> ],
-//     "typescriptOutput": <TypeScript-preserved form (group B only, unused here)> }
+//     "preservedOutput": <TypeScript-preserved form (group B only, unused here)> }
 //
 // Group A: all clients agree — assert acceptableOutputs[0].
 // Group B: runtime-decoder clients drop unknown keys — assert acceptableOutputs[0].
-//          (TypeScript asserts typescriptOutput instead; irrelevant to Kotlin.)
+//          (TypeScript asserts preservedOutput instead; irrelevant to Kotlin.)
 // Kotlin is always a runtime decoder → always asserts acceptableOutputs[0].
 //
 // Run:

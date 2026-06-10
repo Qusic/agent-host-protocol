@@ -122,7 +122,7 @@ final class TypesRoundTripFixtureTests: XCTestCase {
         }
 
         // Honor notApplicable: skip this client if listed.
-        // Legacy field — new fixtures use group:"B" + typescriptOutput instead.
+        // Legacy field — new fixtures use group:"B" + preservedOutput instead.
         if let notApplicable = root["notApplicable"] as? [String], notApplicable.contains("swift") {
             print("⊘ \(file): not applicable to swift (legacy notApplicable) — \(root["description"] as? String ?? "")")
             return false // SKIP — not counted as a real assertion

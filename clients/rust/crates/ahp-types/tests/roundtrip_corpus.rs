@@ -12,11 +12,11 @@
 //   { "name": ..., "description": ..., "group": ..., "type": ...,
 //     "input": <wire JSON value>,
 //     "acceptableOutputs": [ <exactly one canonical re-encoded value> ],
-//     "typescriptOutput": <TypeScript-preserved form (group B only, unused here)> }
+//     "preservedOutput": <TypeScript-preserved form (group B only, unused here)> }
 //
 // Group A: all clients agree — assert acceptableOutputs[0].
 // Group B: runtime-decoder clients drop unknown keys — assert acceptableOutputs[0].
-//          (TypeScript asserts typescriptOutput instead; irrelevant to Rust.)
+//          (TypeScript asserts preservedOutput instead; irrelevant to Rust.)
 // Rust is always a runtime decoder → always asserts acceptableOutputs[0].
 //
 // Run: cargo test roundtrip (from clients/rust)
@@ -71,10 +71,10 @@ struct RoundTripFixture {
     input: Value,
     #[serde(rename = "acceptableOutputs")]
     acceptable_outputs: Vec<Value>,
-    /// TypeScript-specific expected output for group B (unused by Rust).
-    #[serde(rename = "typescriptOutput")]
+    /// Unknown-keys-preserved expected output for group B (unused by Rust).
+    #[serde(rename = "preservedOutput")]
     #[allow(dead_code)]
-    typescript_output: Option<Value>,
+    preserved_output: Option<Value>,
     /// Legacy skip list. Rust never appears here; parsed for completeness.
     #[serde(rename = "notApplicable")]
     not_applicable: Option<Vec<String>>,

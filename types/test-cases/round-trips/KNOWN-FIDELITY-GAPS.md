@@ -18,13 +18,13 @@ entries would cement observed-but-wrong divergence as "acceptable".
   which drops the unknown keys, and assert the dropped form in
   `acceptableOutputs[0]`. TypeScript has no runtime decoder, so `JSON.parse` /
   `JSON.stringify` preserve every key; it asserts the preserved form in
-  `typescriptOutput`. TypeScript still asserts — it is never skipped. Fixtures
+  `preservedOutput`. TypeScript still asserts — it is never skipped. Fixtures
   017 and 019 are the Group B cases.
 
 This is a real type-system capability difference, not a blessed divergence: a
 runtime client that wrongly *preserved* unknown keys would fail its
 `acceptableOutputs[0]` assertion, and a TypeScript path that wrongly *dropped*
-them would fail its `typescriptOutput` assertion.
+them would fail its `preservedOutput` assertion.
 
 ## Known coverage gaps (what the corpus does NOT verify)
 
