@@ -11,7 +11,7 @@
       "modifiedAt": 1000
     },
     "lifecycle": "creating",
-    "chats": []
+    "turns": []
   },
   "actions": [
     {
@@ -45,6 +45,7 @@
       "modifiedAt": 1000
     },
     "lifecycle": "creating",
+    "turns": [],
     "customizations": [
       {
         "type": "plugin",
@@ -61,7 +62,6 @@
         "enabled": false,
         "clientId": "client-1"
       }
-    ],
-    "chats": []
+    ]
   }
 }

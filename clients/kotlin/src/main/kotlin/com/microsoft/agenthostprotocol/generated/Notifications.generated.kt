@@ -189,10 +189,7 @@ data class PartialSessionSummary(
      */
     val agent: AgentSelection? = null,
     /**
-     * The default working directory URI for this session. Individual chats
-     * MAY override via {@link ChatSummary.workingDirectory | their own
-     * `workingDirectory`}; this field acts as the fallback for any chat that
-     * does not.
+     * The working directory URI for this session
      */
     val workingDirectory: String? = null,
     /**

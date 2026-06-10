@@ -56,8 +56,6 @@ type _ExpectedCommands =
   | 'subscribe'
   | 'createSession'
   | 'disposeSession'
-  | 'createChat'
-  | 'disposeChat'
   | 'createTerminal'
   | 'disposeTerminal'
   | 'createResourceWatch'

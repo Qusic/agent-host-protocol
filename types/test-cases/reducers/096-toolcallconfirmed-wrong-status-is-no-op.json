@@ -1,7 +1,16 @@
 {
   "description": "toolCallConfirmed on non-pending tool call is no-op",
-  "reducer": "chat",
+  "reducer": "session",
   "initial": {
+    "summary": {
+      "resource": "copilot:/test-session",
+      "provider": "copilot",
+      "title": "Test Session",
+      "status": 8,
+      "createdAt": 1000,
+      "modifiedAt": 2000
+    },
+    "lifecycle": "ready",
     "turns": [],
     "activeTurn": {
       "id": "turn-1",
@@ -26,15 +35,11 @@
         }
       ],
       "usage": null
-    },
-    "resource": "copilot:/test-session",
-    "title": "Test Session",
-    "status": 8,
-    "modifiedAt": "1970-01-01T00:00:02.000Z"
+    }
   },
   "actions": [
     {
-      "type": "chat/toolCallConfirmed",
+      "type": "session/toolCallConfirmed",
       "turnId": "turn-1",
       "toolCallId": "tc-1",
       "approved": true,
@@ -42,6 +47,15 @@
     }
   ],
   "expected": {
+    "summary": {
+      "resource": "copilot:/test-session",
+      "provider": "copilot",
+      "title": "Test Session",
+      "status": 8,
+      "createdAt": 1000,
+      "modifiedAt": 2000
+    },
+    "lifecycle": "ready",
     "turns": [],
     "activeTurn": {
       "id": "turn-1",
@@ -66,10 +80,6 @@
         }
       ],
       "usage": null
-    },
-    "resource": "copilot:/test-session",
-    "title": "Test Session",
-    "status": 8,
-    "modifiedAt": "1970-01-01T00:00:02.000Z"
+    }
   }
 }

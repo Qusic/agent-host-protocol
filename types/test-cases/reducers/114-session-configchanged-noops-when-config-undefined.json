@@ -11,7 +11,7 @@
       "modifiedAt": 2000
     },
     "lifecycle": "ready",
-    "chats": []
+    "turns": []
   },
   "actions": [
     {
@@ -31,6 +31,6 @@
       "modifiedAt": 2000
     },
     "lifecycle": "ready",
-    "chats": []
+    "turns": []
   }
 }

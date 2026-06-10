@@ -10,13 +10,6 @@ public var currentTimestampProvider: () -> Int = {
     Int(Date().timeIntervalSince1970 * 1000)
 }
 
-private let iso8601TimestampFormatter: ISO8601DateFormatter = {
-    let formatter = ISO8601DateFormatter()
-    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    formatter.timeZone = TimeZone(secondsFromGMT: 0)
-    return formatter
-}()
-
 // MARK: - Status Bitset Helpers
 
 /// Bitmask covering the mutually-exclusive activity bits (bits 0–4).
@@ -69,24 +62,39 @@ public func rootReducer(state: RootState, action: StateAction) -> RootState {
     }
 }
 
+// MARK: - Session Reducer
 
-// MARK: - Chat Reducer
-
-/// Pure reducer for chat state.
-public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
+/// Pure reducer for session state.
+public func sessionReducer(state: SessionState, action: StateAction) -> SessionState {
     switch action {
+
+    // ── Lifecycle ──────────────────────────────────────────────────────────
+
+    case .sessionReady:
+        // Lifecycle-only transition. Must not touch `summary.status`: see
+        // the equivalent TypeScript reducer for the rationale.
+        var next = state
+        next.lifecycle = .ready
+        return next
+
+    case .sessionCreationFailed(let a):
+        var next = state
+        next.lifecycle = .creationFailed
+        next.creationError = a.error
+        return next
 
     // ── Turn Lifecycle ────────────────────────────────────────────────────
 
-    case .chatTurnStarted(let a):
+    case .sessionTurnStarted(let a):
         var next = state
-        next.modifiedAt = currentTimestamp()
+        next.summary.modifiedAt = currentTimestamp()
         next.activeTurn = ActiveTurn(
             id: a.turnId,
             message: a.message,
             responseParts: [],
             usage: nil
         )
+        // If auto-started from a pending message, remove it
         if let queuedId = a.queuedMessageId {
             if next.steeringMessage?.id == queuedId {
                 next.steeringMessage = nil
@@ -96,17 +104,17 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
                 next.queuedMessages = queued.isEmpty ? nil : queued
             }
         }
-        next.status = withStatusFlag(chatSummaryStatus(next), .isRead, false)
+        next.summary.status = withStatusFlag(sessionSummaryStatus(next), .isRead, false)
         return next
 
-    case .chatDelta(let a):
+    case .sessionDelta(let a):
         return updateResponsePart(state: state, turnId: a.turnId, partId: a.partId) { part in
             guard case .markdown(var md) = part else { return part }
             md.content += a.content
             return .markdown(md)
         }
 
-    case .chatResponsePart(let a):
+    case .sessionResponsePart(let a):
         guard var activeTurn = state.activeTurn, activeTurn.id == a.turnId else {
             return state
         }
@@ -115,18 +123,18 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
         next.activeTurn = activeTurn
         return next
 
-    case .chatTurnComplete(let a):
+    case .sessionTurnComplete(let a):
         return endTurn(state: state, turnId: a.turnId, turnState: .complete)
 
-    case .chatTurnCancelled(let a):
+    case .sessionTurnCancelled(let a):
         return endTurn(state: state, turnId: a.turnId, turnState: .cancelled)
 
-    case .chatError(let a):
+    case .sessionError(let a):
         return endTurn(state: state, turnId: a.turnId, turnState: .error, terminalStatus: .error, error: a.error)
 
     // ── Tool Call State Machine ───────────────────────────────────────────
 
-    case .chatToolCallStart(let a):
+    case .sessionToolCallStart(let a):
         guard var activeTurn = state.activeTurn, activeTurn.id == a.turnId else {
             return state
         }
@@ -146,19 +154,20 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
         next.activeTurn = activeTurn
         return next
 
-    case .chatToolCallDelta(let a):
+    case .sessionToolCallDelta(let a):
         return updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
             guard case .streaming(var s) = tc else { return tc }
+            s.meta = a.meta ?? s.meta
             s.partialInput = (s.partialInput ?? "") + a.content
             if let msg = a.invocationMessage {
                 s.invocationMessage = msg
             }
-            s.meta = a.meta ?? s.meta
             return .streaming(s)
         }
 
-    case .chatToolCallReady(let a):
-        return refreshChatSummaryStatus(updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
+    case .sessionToolCallReady(let a):
+        return refreshSummaryStatus(updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
+            // Only process if currently streaming or running (matches TS behavior)
             switch tc {
             case .streaming, .running: break
             default: return tc
@@ -194,8 +203,8 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
             ))
         })
 
-    case .chatToolCallConfirmed(let a):
-        return refreshChatSummaryStatus(updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
+    case .sessionToolCallConfirmed(let a):
+        return refreshSummaryStatus(updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
             guard case .pendingConfirmation(let pending) = tc else { return tc }
             let base = tc.baseFields
             let meta = a.meta ?? base.meta
@@ -230,8 +239,8 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
             ))
         })
 
-    case .chatToolCallComplete(let a):
-        return refreshChatSummaryStatus(updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
+    case .sessionToolCallComplete(let a):
+        return refreshSummaryStatus(updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
             let base = tc.baseFields
             let meta = a.meta ?? base.meta
             let confirmed: ToolCallConfirmationReason
@@ -291,8 +300,8 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
             ))
         })
 
-    case .chatToolCallResultConfirmed(let a):
-        return refreshChatSummaryStatus(updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
+    case .sessionToolCallResultConfirmed(let a):
+        return refreshSummaryStatus(updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
             guard case .pendingResultConfirmation(let prc) = tc else { return tc }
             let base = tc.baseFields
             let meta = a.meta ?? base.meta
@@ -329,15 +338,15 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
             ))
         })
 
-    case .chatToolCallContentChanged(let a):
-        return updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
-            guard case .running(var r) = tc else { return tc }
-            r.meta = a.meta ?? r.meta
-            r.content = a.content
-            return .running(r)
-        }
+    // ── Metadata ──────────────────────────────────────────────────────────
 
-    case .chatUsage(let a):
+    case .sessionTitleChanged(let a):
+        var next = state
+        next.summary.title = a.title
+        next.summary.modifiedAt = currentTimestamp()
+        return next
+
+    case .sessionUsage(let a):
         guard var activeTurn = state.activeTurn, activeTurn.id == a.turnId else {
             return state
         }
@@ -346,202 +355,23 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
         next.activeTurn = activeTurn
         return next
 
-    case .chatReasoning(let a):
+    case .sessionReasoning(let a):
         return updateResponsePart(state: state, turnId: a.turnId, partId: a.partId) { part in
             guard case .reasoning(var r) = part else { return part }
             r.content += a.content
             return .reasoning(r)
         }
 
-    // ── Truncation ────────────────────────────────────────────────────────
-
-    case .chatTruncated(let a):
-        let turns: [Turn]
-        if let turnId = a.turnId {
-            guard let idx = state.turns.firstIndex(where: { $0.id == turnId }) else {
-                return state
-            }
-            turns = Array(state.turns.prefix(idx + 1))
-        } else {
-            turns = []
-        }
-        var next = state
-        next.turns = turns
-        next.activeTurn = nil
-        next.inputRequests = nil
-        next.status = chatSummaryStatus(next)
-        next.modifiedAt = currentTimestamp()
-        return next
-
-    // ── Session Input Requests ─────────────────────────────────────────────
-
-    case .chatInputRequested(let a):
-        return upsertInputRequest(state: state, request: a.request)
-
-    case .chatInputAnswerChanged(let a):
-        guard var existing = state.inputRequests,
-              let idx = existing.firstIndex(where: { $0.id == a.requestId }) else {
-            return state
-        }
-        var request = existing[idx]
-        var answers = request.answers ?? [:]
-        if let answer = a.answer {
-            answers[a.questionId] = answer
-        } else {
-            answers.removeValue(forKey: a.questionId)
-        }
-        request.answers = answers.isEmpty ? nil : answers
-        existing[idx] = request
-        var next = state
-        next.inputRequests = existing
-        next.modifiedAt = currentTimestamp()
-        return next
-
-    case .chatInputCompleted(let a):
-        guard var existing = state.inputRequests,
-              existing.contains(where: { $0.id == a.requestId }) else {
-            return state
-        }
-        existing.removeAll { $0.id == a.requestId }
-        var next = state
-        next.inputRequests = existing.isEmpty ? nil : existing
-        next.status = chatSummaryStatus(next)
-        next.modifiedAt = currentTimestamp()
-        return next
-
-    // ── Pending Messages ──────────────────────────────────────────────────
-
-    case .chatPendingMessageSet(let a):
-        let entry = PendingMessage(id: a.id, message: a.message)
-        var next = state
-        if a.kind == .steering {
-            next.steeringMessage = entry
-            return next
-        }
-        var existing = next.queuedMessages ?? []
-        if let idx = existing.firstIndex(where: { $0.id == a.id }) {
-            existing[idx] = entry
-        } else {
-            existing.append(entry)
-        }
-        next.queuedMessages = existing
-        return next
-
-    case .chatPendingMessageRemoved(let a):
-        var next = state
-        if a.kind == .steering {
-            guard next.steeringMessage?.id == a.id else { return state }
-            next.steeringMessage = nil
-            return next
-        }
-        guard var existing = next.queuedMessages else { return state }
-        let before = existing.count
-        existing.removeAll { $0.id == a.id }
-        guard existing.count != before else { return state }
-        next.queuedMessages = existing.isEmpty ? nil : existing
-        return next
-
-    case .chatQueuedMessagesReordered(let a):
-        guard let existing = state.queuedMessages else { return state }
-        let byId = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
-        var ordered = Set<String>()
-        var reordered: [PendingMessage] = a.order.compactMap { id in
-            guard let msg = byId[id], !ordered.contains(id) else { return nil }
-            ordered.insert(id)
-            return msg
-        }
-        for m in existing where !ordered.contains(m.id) {
-            reordered.append(m)
-        }
-        var next = state
-        next.queuedMessages = reordered
-        return next
-
-    default:
-        return state
-    }
-}
-
-// MARK: - Session Reducer
-
-/// Pure reducer for session state.
-public func sessionReducer(state: SessionState, action: StateAction) -> SessionState {
-    switch action {
-
-    // ── Lifecycle ──────────────────────────────────────────────────────────
-
-    case .sessionReady:
-        var next = state
-        next.lifecycle = .ready
-        return next
-
-    case .sessionCreationFailed(let a):
-        var next = state
-        next.lifecycle = .creationFailed
-        next.creationError = a.error
-        return next
-
-    case .sessionChatAdded(let a):
-        var next = state
-        if let idx = next.chats.firstIndex(where: { $0.resource == a.summary.resource }) {
-            next.chats[idx] = a.summary
-        } else {
-            next.chats.append(a.summary)
-        }
-        return next
-
-    case .sessionChatRemoved(let a):
-        guard let idx = state.chats.firstIndex(where: { $0.resource == a.chat }) else {
-            return state
-        }
-        var next = state
-        next.chats.remove(at: idx)
-        if next.defaultChat == a.chat {
-            next.defaultChat = nil
-        }
-        return next
-
-    case .sessionChatUpdated(let a):
-        guard let idx = state.chats.firstIndex(where: { $0.resource == a.chat }) else {
-            return state
-        }
-        var next = state
-        mergeChatSummaryChanges(&next.chats[idx], changes: a.changes)
-        return next
-
-    case .sessionDefaultChatChanged(let a):
-        var next = state
-        next.defaultChat = a.defaultChat
-        return next
-
-    // ── Metadata ──────────────────────────────────────────────────────────
-
-    case .sessionTitleChanged(let a):
-        var next = state
-        next.summary.title = a.title
-        next.summary.modifiedAt = currentTimestampMillis()
-        return next
-
     case .sessionModelChanged(let a):
         var next = state
         next.summary.model = a.model
-        next.summary.modifiedAt = currentTimestampMillis()
+        next.summary.modifiedAt = currentTimestamp()
         return next
 
     case .sessionAgentChanged(let a):
         var next = state
         next.summary.agent = a.agent
-        next.summary.modifiedAt = currentTimestampMillis()
-        return next
-
-    case .sessionIsReadChanged(let a):
-        var next = state
-        next.summary.status = withStatusFlag(next.summary.status, .isRead, a.isRead)
-        return next
-
-    case .sessionIsArchivedChanged(let a):
-        var next = state
-        next.summary.status = withStatusFlag(next.summary.status, .isArchived, a.isArchived)
+        next.summary.modifiedAt = currentTimestamp()
         return next
 
     case .sessionActivityChanged(let a):
@@ -559,7 +389,7 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
         config.values = a.replace == true ? a.config : config.values.merging(a.config) { _, new in new }
         var next = state
         next.config = config
-        next.summary.modifiedAt = currentTimestampMillis()
+        next.summary.modifiedAt = currentTimestamp()
         return next
 
     case .sessionMetaChanged(let a):
@@ -631,7 +461,7 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
         }
         return state
 
-    case .sessionMcpServerStateChanged(let a):
+    case .sessionMcpServerStatusChanged(let a):
         guard var list = state.customizations else { return state }
         if let topIdx = list.firstIndex(where: { customizationId($0) == a.id }) {
             guard case .mcpServer(var entry) = list[topIdx] else { return state }
@@ -642,6 +472,7 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
             next.customizations = list
             return next
         }
+        var changed = false
         for containerIdx in list.indices {
             var container = list[containerIdx]
             guard var children = customizationChildren(container) else { continue }
@@ -652,11 +483,141 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
             children[childIdx] = .mcpServer(child)
             setCustomizationChildren(&container, children)
             list[containerIdx] = container
-            var next = state
-            next.customizations = list
+            changed = true
+            break
+        }
+        guard changed else { return state }
+        var next = state
+        next.customizations = list
+        return next
+
+    // ── Truncation ────────────────────────────────────────────────────────
+
+    case .sessionTruncated(let a):
+        let turns: [Turn]
+        if let turnId = a.turnId {
+            guard let idx = state.turns.firstIndex(where: { $0.id == turnId }) else {
+                return state
+            }
+            turns = Array(state.turns.prefix(idx + 1))
+        } else {
+            turns = []
+        }
+        var next = state
+        next.turns = turns
+        next.activeTurn = nil
+        next.inputRequests = nil
+        next.summary.status = sessionSummaryStatus(next)
+        next.summary.modifiedAt = currentTimestamp()
+        return next
+
+    // ── Read / Archived ─────────────────────────────────────────────────
+
+    case .sessionIsReadChanged(let a):
+        var next = state
+        next.summary.status = withStatusFlag(next.summary.status, .isRead, a.isRead)
+        return next
+
+    case .sessionIsArchivedChanged(let a):
+        var next = state
+        next.summary.status = withStatusFlag(next.summary.status, .isArchived, a.isArchived)
+        return next
+
+
+    // ── Tool Call Content ────────────────────────────────────────────────
+
+    case .sessionToolCallContentChanged(let a):
+        return updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
+            guard case .running(var r) = tc else { return tc }
+            r.meta = a.meta ?? r.meta
+            r.content = a.content
+            return .running(r)
+        }
+
+    // ── Pending Messages ──────────────────────────────────────────────────
+
+    case .sessionPendingMessageSet(let a):
+        let entry = PendingMessage(id: a.id, message: a.message)
+        var next = state
+        if a.kind == .steering {
+            next.steeringMessage = entry
             return next
         }
-        return state
+        var existing = next.queuedMessages ?? []
+        if let idx = existing.firstIndex(where: { $0.id == a.id }) {
+            existing[idx] = entry
+        } else {
+            existing.append(entry)
+        }
+        next.queuedMessages = existing
+        return next
+
+    case .sessionPendingMessageRemoved(let a):
+        var next = state
+        if a.kind == .steering {
+            guard next.steeringMessage?.id == a.id else { return state }
+            next.steeringMessage = nil
+            return next
+        }
+        guard var existing = next.queuedMessages else { return state }
+        let before = existing.count
+        existing.removeAll { $0.id == a.id }
+        guard existing.count != before else { return state }
+        next.queuedMessages = existing.isEmpty ? nil : existing
+        return next
+
+    case .sessionQueuedMessagesReordered(let a):
+        guard let existing = state.queuedMessages else { return state }
+        let byId = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        var ordered = Set<String>()
+        var reordered: [PendingMessage] = a.order.compactMap { id in
+            guard let msg = byId[id], !ordered.contains(id) else { return nil }
+            ordered.insert(id)
+            return msg
+        }
+        // Append any messages not in the new order
+        for m in existing where !ordered.contains(m.id) {
+            reordered.append(m)
+        }
+        var next = state
+        next.queuedMessages = reordered
+        return next
+
+    // ── Session Input Requests ─────────────────────────────────────────────
+
+    case .sessionInputRequested(let a):
+        return upsertInputRequest(state: state, request: a.request)
+
+    case .sessionInputAnswerChanged(let a):
+        guard var existing = state.inputRequests,
+              let idx = existing.firstIndex(where: { $0.id == a.requestId }) else {
+            return state
+        }
+        var request = existing[idx]
+        var answers = request.answers ?? [:]
+        if let answer = a.answer {
+            answers[a.questionId] = answer
+        } else {
+            answers.removeValue(forKey: a.questionId)
+        }
+        request.answers = answers.isEmpty ? nil : answers
+        existing[idx] = request
+        var next = state
+        next.inputRequests = existing
+        next.summary.modifiedAt = currentTimestamp()
+        return next
+
+    case .sessionInputCompleted(let a):
+        guard var existing = state.inputRequests,
+              existing.contains(where: { $0.id == a.requestId }) else {
+            return state
+        }
+        existing.removeAll { $0.id == a.requestId }
+        var next = state
+        next.inputRequests = existing.isEmpty ? nil : existing
+        next.summary.status = sessionSummaryStatus(next)
+        next.summary.modifiedAt = currentTimestamp()
+        return next
 
     default:
         return state
@@ -667,20 +628,19 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
 
 /// Set of action types that clients are allowed to dispatch.
 public let clientDispatchableActions: Set<String> = [
-    "chat/turnStarted",
-    "chat/toolCallConfirmed",
-    "chat/toolCallComplete",
-    "chat/toolCallResultConfirmed",
-    "chat/turnCancelled",
+    "session/turnStarted",
+    "session/toolCallConfirmed",
+    "session/toolCallComplete",
+    "session/toolCallResultConfirmed",
+    "session/turnCancelled",
     "session/modelChanged",
-    "session/agentChanged",
     "session/activeClientChanged",
     "session/activeClientToolsChanged",
-    "chat/pendingMessageSet",
-    "chat/pendingMessageRemoved",
-    "chat/queuedMessagesReordered",
-    "chat/inputAnswerChanged",
-    "chat/inputCompleted",
+    "session/pendingMessageSet",
+    "session/pendingMessageRemoved",
+    "session/queuedMessagesReordered",
+    "session/inputAnswerChanged",
+    "session/inputCompleted",
     "session/customizationToggled",
     "session/isReadChanged",
     "session/isArchivedChanged",
@@ -689,12 +649,12 @@ public let clientDispatchableActions: Set<String> = [
 /// Checks whether an action may be dispatched by a client.
 public func isClientDispatchable(_ action: StateAction) -> Bool {
     switch action {
-    case .chatTurnStarted, .chatToolCallConfirmed, .chatToolCallComplete,
-         .chatToolCallResultConfirmed, .chatTurnCancelled,
-         .sessionModelChanged, .sessionAgentChanged, .sessionActiveClientChanged,
-         .sessionActiveClientToolsChanged, .chatPendingMessageSet,
-         .chatPendingMessageRemoved, .chatQueuedMessagesReordered,
-         .chatInputAnswerChanged, .chatInputCompleted,
+    case .sessionTurnStarted, .sessionToolCallConfirmed, .sessionToolCallComplete,
+         .sessionToolCallResultConfirmed, .sessionTurnCancelled,
+         .sessionModelChanged, .sessionActiveClientChanged,
+         .sessionActiveClientToolsChanged, .sessionPendingMessageSet,
+         .sessionPendingMessageRemoved, .sessionQueuedMessagesReordered,
+         .sessionInputAnswerChanged, .sessionInputCompleted,
          .sessionCustomizationToggled, .sessionIsReadChanged,
          .sessionIsArchivedChanged:
         return true
@@ -705,27 +665,11 @@ public func isClientDispatchable(_ action: StateAction) -> Bool {
 
 // MARK: - Helpers
 
-private func currentTimestampMillis() -> Int {
+private func currentTimestamp() -> Int {
     currentTimestampProvider()
 }
 
-private func currentTimestamp() -> String {
-    let date = Date(timeIntervalSince1970: Double(currentTimestampProvider()) / 1000)
-    return iso8601TimestampFormatter.string(from: date)
-}
-
-private func mergeChatSummaryChanges(_ summary: inout ChatSummary, changes: PartialChatSummary) {
-    if let title = changes.title { summary.title = title }
-    if let status = changes.status { summary.status = status }
-    if let activity = changes.activity { summary.activity = activity }
-    if let modifiedAt = changes.modifiedAt { summary.modifiedAt = modifiedAt }
-    if let model = changes.model { summary.model = model }
-    if let agent = changes.agent { summary.agent = agent }
-    if let origin = changes.origin { summary.origin = origin }
-    if let workingDirectory = changes.workingDirectory { summary.workingDirectory = workingDirectory }
-}
-
-private func chatSummaryStatus(_ state: ChatState, terminalStatus: SessionStatus? = nil) -> SessionStatus {
+private func sessionSummaryStatus(_ state: SessionState, terminalStatus: SessionStatus? = nil) -> SessionStatus {
     let activity: SessionStatus
     if let terminalStatus {
         activity = terminalStatus
@@ -736,11 +680,11 @@ private func chatSummaryStatus(_ state: ChatState, terminalStatus: SessionStatus
     } else {
         activity = .idle
     }
-    return state.status.subtracting(statusActivityMask).union(activity)
+    return state.summary.status.subtracting(statusActivityMask).union(activity)
 }
 
 /// Returns `true` if the active turn has any tool call awaiting user confirmation.
-private func hasPendingToolCallConfirmation(_ state: ChatState) -> Bool {
+private func hasPendingToolCallConfirmation(_ state: SessionState) -> Bool {
     guard let activeTurn = state.activeTurn else { return false }
     for part in activeTurn.responseParts {
         guard case .toolCall(let tcPart) = part else { continue }
@@ -754,15 +698,18 @@ private func hasPendingToolCallConfirmation(_ state: ChatState) -> Bool {
     return false
 }
 
-private func refreshChatSummaryStatus(_ state: ChatState) -> ChatState {
-    let status = chatSummaryStatus(state)
-    guard status != state.status else { return state }
+/// Returns a state with `summary.status` recomputed. Use this after reducers
+/// that change data feeding into `sessionSummaryStatus` (e.g. tool call
+/// lifecycle transitions that may enter or leave a pending-confirmation state).
+private func refreshSummaryStatus(_ state: SessionState) -> SessionState {
+    let status = sessionSummaryStatus(state)
+    guard status != state.summary.status else { return state }
     var next = state
-    next.status = status
+    next.summary.status = status
     return next
 }
 
-private func upsertInputRequest(state: ChatState, request: ChatInputRequest) -> ChatState {
+private func upsertInputRequest(state: SessionState, request: SessionInputRequest) -> SessionState {
     var next = state
     var existing = next.inputRequests ?? []
     if let idx = existing.firstIndex(where: { $0.id == request.id }) {
@@ -773,20 +720,23 @@ private func upsertInputRequest(state: ChatState, request: ChatInputRequest) -> 
         existing.append(request)
     }
     next.inputRequests = existing
-    next.status = withStatusFlag(chatSummaryStatus(next), .isRead, false)
-    next.modifiedAt = currentTimestamp()
+    next.summary.status = withStatusFlag(sessionSummaryStatus(next), .isRead, false)
+    next.summary.modifiedAt = currentTimestamp()
     return next
 }
+
+// ToolCallBaseFields and toolCallBase() are now shared via
+// ToolCallState.baseFields in ToolCallStateExtensions.swift.
 
 /// Ends the active turn, producing a completed Turn record.
 /// Non-terminal tool calls are forced to cancelled.
 private func endTurn(
-    state: ChatState,
+    state: SessionState,
     turnId: String,
     turnState: TurnState,
     terminalStatus: SessionStatus? = nil,
     error: ErrorInfo? = nil
-) -> ChatState {
+) -> SessionState {
     guard let activeTurn = state.activeTurn, activeTurn.id == turnId else {
         return state
     }
@@ -848,18 +798,18 @@ private func endTurn(
     next.turns.append(turn)
     next.activeTurn = nil
     next.inputRequests = nil
-    next.status = chatSummaryStatus(next, terminalStatus: terminalStatus)
-    next.modifiedAt = currentTimestamp()
+    next.summary.status = sessionSummaryStatus(next, terminalStatus: terminalStatus)
+    next.summary.modifiedAt = currentTimestamp()
     return next
 }
 
 /// Updates a tool call inside the active turn's response parts.
 private func updateToolCall(
-    state: ChatState,
+    state: SessionState,
     turnId: String,
     toolCallId: String,
     updater: (ToolCallState) -> ToolCallState
-) -> ChatState {
+) -> SessionState {
     guard var activeTurn = state.activeTurn, activeTurn.id == turnId else {
         return state
     }
@@ -882,11 +832,11 @@ private func updateToolCall(
 
 /// Updates a response part identified by partId in the active turn.
 private func updateResponsePart(
-    state: ChatState,
+    state: SessionState,
     turnId: String,
     partId: String,
     updater: (ResponsePart) -> ResponsePart
-) -> ChatState {
+) -> SessionState {
     guard var activeTurn = state.activeTurn, activeTurn.id == turnId else {
         return state
     }

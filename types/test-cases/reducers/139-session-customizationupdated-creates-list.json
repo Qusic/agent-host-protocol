@@ -11,7 +11,7 @@
       "modifiedAt": 1000
     },
     "lifecycle": "creating",
-    "chats": []
+    "turns": []
   },
   "actions": [
     {
@@ -37,6 +37,7 @@
       "modifiedAt": 1000
     },
     "lifecycle": "creating",
+    "turns": [],
     "customizations": [
       {
         "type": "directory",
@@ -47,7 +48,6 @@
         "contents": "skill",
         "writable": true
       }
-    ],
-    "chats": []
+    ]
   }
 }

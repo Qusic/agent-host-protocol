@@ -11,7 +11,7 @@
       "modifiedAt": 1000
     },
     "lifecycle": "ready",
-    "chats": [],
+    "turns": [],
     "customizations": [
       {
         "type": "mcpServer",
@@ -19,9 +19,7 @@
         "uri": "file:///workspace/.mcp/servers.json",
         "name": "Filesystem",
         "enabled": true,
-        "state": {
-          "kind": "ready"
-        },
+        "state": { "kind": "ready" },
         "channel": "mcp://filesystem"
       }
     ]
@@ -30,9 +28,7 @@
     {
       "type": "session/mcpServerStateChanged",
       "id": "mcp-does-not-exist",
-      "state": {
-        "kind": "stopped"
-      }
+      "state": { "kind": "stopped" }
     }
   ],
   "expected": {
@@ -45,7 +41,7 @@
       "modifiedAt": 1000
     },
     "lifecycle": "ready",
-    "chats": [],
+    "turns": [],
     "customizations": [
       {
         "type": "mcpServer",
@@ -53,9 +49,7 @@
         "uri": "file:///workspace/.mcp/servers.json",
         "name": "Filesystem",
         "enabled": true,
-        "state": {
-          "kind": "ready"
-        },
+        "state": { "kind": "ready" },
         "channel": "mcp://filesystem"
       }
     ]

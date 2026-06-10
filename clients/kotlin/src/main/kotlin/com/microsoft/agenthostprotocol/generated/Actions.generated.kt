@@ -34,46 +34,38 @@ enum class ActionType {
     SESSION_READY,
     @SerialName("session/creationFailed")
     SESSION_CREATION_FAILED,
-    @SerialName("session/chatAdded")
-    SESSION_CHAT_ADDED,
-    @SerialName("session/chatRemoved")
-    SESSION_CHAT_REMOVED,
-    @SerialName("session/chatUpdated")
-    SESSION_CHAT_UPDATED,
-    @SerialName("session/defaultChatChanged")
-    SESSION_DEFAULT_CHAT_CHANGED,
-    @SerialName("chat/turnStarted")
-    CHAT_TURN_STARTED,
-    @SerialName("chat/delta")
-    CHAT_DELTA,
-    @SerialName("chat/responsePart")
-    CHAT_RESPONSE_PART,
-    @SerialName("chat/toolCallStart")
-    CHAT_TOOL_CALL_START,
-    @SerialName("chat/toolCallDelta")
-    CHAT_TOOL_CALL_DELTA,
-    @SerialName("chat/toolCallReady")
-    CHAT_TOOL_CALL_READY,
-    @SerialName("chat/toolCallConfirmed")
-    CHAT_TOOL_CALL_CONFIRMED,
-    @SerialName("chat/toolCallComplete")
-    CHAT_TOOL_CALL_COMPLETE,
-    @SerialName("chat/toolCallResultConfirmed")
-    CHAT_TOOL_CALL_RESULT_CONFIRMED,
-    @SerialName("chat/toolCallContentChanged")
-    CHAT_TOOL_CALL_CONTENT_CHANGED,
-    @SerialName("chat/turnComplete")
-    CHAT_TURN_COMPLETE,
-    @SerialName("chat/turnCancelled")
-    CHAT_TURN_CANCELLED,
-    @SerialName("chat/error")
-    CHAT_ERROR,
+    @SerialName("session/turnStarted")
+    SESSION_TURN_STARTED,
+    @SerialName("session/delta")
+    SESSION_DELTA,
+    @SerialName("session/responsePart")
+    SESSION_RESPONSE_PART,
+    @SerialName("session/toolCallStart")
+    SESSION_TOOL_CALL_START,
+    @SerialName("session/toolCallDelta")
+    SESSION_TOOL_CALL_DELTA,
+    @SerialName("session/toolCallReady")
+    SESSION_TOOL_CALL_READY,
+    @SerialName("session/toolCallConfirmed")
+    SESSION_TOOL_CALL_CONFIRMED,
+    @SerialName("session/toolCallComplete")
+    SESSION_TOOL_CALL_COMPLETE,
+    @SerialName("session/toolCallResultConfirmed")
+    SESSION_TOOL_CALL_RESULT_CONFIRMED,
+    @SerialName("session/toolCallContentChanged")
+    SESSION_TOOL_CALL_CONTENT_CHANGED,
+    @SerialName("session/turnComplete")
+    SESSION_TURN_COMPLETE,
+    @SerialName("session/turnCancelled")
+    SESSION_TURN_CANCELLED,
+    @SerialName("session/error")
+    SESSION_ERROR,
     @SerialName("session/titleChanged")
     SESSION_TITLE_CHANGED,
-    @SerialName("chat/usage")
-    CHAT_USAGE,
-    @SerialName("chat/reasoning")
-    CHAT_REASONING,
+    @SerialName("session/usage")
+    SESSION_USAGE,
+    @SerialName("session/reasoning")
+    SESSION_REASONING,
     @SerialName("session/modelChanged")
     SESSION_MODEL_CHANGED,
     @SerialName("session/agentChanged")
@@ -84,18 +76,18 @@ enum class ActionType {
     SESSION_ACTIVE_CLIENT_CHANGED,
     @SerialName("session/activeClientToolsChanged")
     SESSION_ACTIVE_CLIENT_TOOLS_CHANGED,
-    @SerialName("chat/pendingMessageSet")
-    CHAT_PENDING_MESSAGE_SET,
-    @SerialName("chat/pendingMessageRemoved")
-    CHAT_PENDING_MESSAGE_REMOVED,
-    @SerialName("chat/queuedMessagesReordered")
-    CHAT_QUEUED_MESSAGES_REORDERED,
-    @SerialName("chat/inputRequested")
-    CHAT_INPUT_REQUESTED,
-    @SerialName("chat/inputAnswerChanged")
-    CHAT_INPUT_ANSWER_CHANGED,
-    @SerialName("chat/inputCompleted")
-    CHAT_INPUT_COMPLETED,
+    @SerialName("session/pendingMessageSet")
+    SESSION_PENDING_MESSAGE_SET,
+    @SerialName("session/pendingMessageRemoved")
+    SESSION_PENDING_MESSAGE_REMOVED,
+    @SerialName("session/queuedMessagesReordered")
+    SESSION_QUEUED_MESSAGES_REORDERED,
+    @SerialName("session/inputRequested")
+    SESSION_INPUT_REQUESTED,
+    @SerialName("session/inputAnswerChanged")
+    SESSION_INPUT_ANSWER_CHANGED,
+    @SerialName("session/inputCompleted")
+    SESSION_INPUT_COMPLETED,
     @SerialName("session/customizationsChanged")
     SESSION_CUSTOMIZATIONS_CHANGED,
     @SerialName("session/customizationToggled")
@@ -106,8 +98,8 @@ enum class ActionType {
     SESSION_CUSTOMIZATION_REMOVED,
     @SerialName("session/mcpServerStateChanged")
     SESSION_MCP_SERVER_STATE_CHANGED,
-    @SerialName("chat/truncated")
-    CHAT_TRUNCATED,
+    @SerialName("session/truncated")
+    SESSION_TRUNCATED,
     @SerialName("session/isReadChanged")
     SESSION_IS_READ_CHANGED,
     @SerialName("session/isArchivedChanged")
@@ -227,50 +219,7 @@ data class SessionCreationFailedAction(
 )
 
 @Serializable
-data class SessionChatAddedAction(
-    val type: ActionType,
-    /**
-     * The full summary of the newly added (or upserted) chat.
-     */
-    val summary: ChatSummary
-)
-
-@Serializable
-data class SessionChatRemovedAction(
-    val type: ActionType,
-    /**
-     * The URI of the chat to remove.
-     */
-    val chat: String
-)
-
-@Serializable
-data class SessionChatUpdatedAction(
-    val type: ActionType,
-    /**
-     * The URI of the chat whose summary changed.
-     */
-    val chat: String,
-    /**
-     * Mutable summary fields that changed; omitted fields are unchanged.
-     *
-     * Identity fields (`resource`) never change and MUST be omitted by
-     * senders; receivers SHOULD ignore them if present.
-     */
-    val changes: PartialChatSummary
-)
-
-@Serializable
-data class SessionDefaultChatChangedAction(
-    val type: ActionType,
-    /**
-     * New default chat URI, or `undefined` to clear the hint.
-     */
-    val defaultChat: String? = null
-)
-
-@Serializable
-data class ChatTurnStartedAction(
+data class SessionTurnStartedAction(
     val type: ActionType,
     /**
      * Turn identifier
@@ -287,7 +236,7 @@ data class ChatTurnStartedAction(
 )
 
 @Serializable
-data class ChatDeltaAction(
+data class SessionDeltaAction(
     val type: ActionType,
     /**
      * Turn identifier
@@ -304,7 +253,7 @@ data class ChatDeltaAction(
 )
 
 @Serializable
-data class ChatResponsePartAction(
+data class SessionResponsePartAction(
     val type: ActionType,
     /**
      * Turn identifier
@@ -317,7 +266,7 @@ data class ChatResponsePartAction(
 )
 
 @Serializable
-data class ChatToolCallStartAction(
+data class SessionToolCallStartAction(
     /**
      * Turn identifier
      */
@@ -353,7 +302,7 @@ data class ChatToolCallStartAction(
 )
 
 @Serializable
-data class ChatToolCallDeltaAction(
+data class SessionToolCallDeltaAction(
     /**
      * Turn identifier
      */
@@ -384,7 +333,7 @@ data class ChatToolCallDeltaAction(
 )
 
 @Serializable
-data class ChatToolCallReadyAction(
+data class SessionToolCallReadyAction(
     /**
      * Turn identifier
      */
@@ -441,9 +390,9 @@ data class ChatToolCallReadyAction(
  * Client approves or denies a pending tool call (merged approved + denied variants).
  */
 @Serializable
-data class ChatToolCallConfirmedAction(
+data class SessionToolCallConfirmedAction(
     /** Action type discriminant */
-    val type: ActionType = ActionType.CHAT_TOOL_CALL_CONFIRMED,
+    val type: ActionType = ActionType.SESSION_TOOL_CALL_CONFIRMED,
     /** Turn identifier */
     val turnId: String,
     /** Tool call identifier */
@@ -467,7 +416,7 @@ data class ChatToolCallConfirmedAction(
 )
 
 @Serializable
-data class ChatToolCallCompleteAction(
+data class SessionToolCallCompleteAction(
     /**
      * Turn identifier
      */
@@ -498,7 +447,7 @@ data class ChatToolCallCompleteAction(
 )
 
 @Serializable
-data class ChatToolCallResultConfirmedAction(
+data class SessionToolCallResultConfirmedAction(
     /**
      * Turn identifier
      */
@@ -525,34 +474,7 @@ data class ChatToolCallResultConfirmedAction(
 )
 
 @Serializable
-data class ChatToolCallContentChangedAction(
-    /**
-     * Turn identifier
-     */
-    val turnId: String,
-    /**
-     * Tool call identifier
-     */
-    val toolCallId: String,
-    /**
-     * Additional provider-specific metadata for this tool call.
-     *
-     * Clients MAY look for well-known keys here to provide enhanced UI.
-     * For example, a `ptyTerminal` key with `{ input: string; output: string }`
-     * indicates the tool operated on a terminal (both `input` and `output` may
-     * contain escape sequences).
-     */
-    @SerialName("_meta")
-    val meta: Map<String, JsonElement>? = null,
-    val type: ActionType,
-    /**
-     * The current partial content for the running tool call
-     */
-    val content: List<ToolResultContent>
-)
-
-@Serializable
-data class ChatTurnCompleteAction(
+data class SessionTurnCompleteAction(
     val type: ActionType,
     /**
      * Turn identifier
@@ -561,7 +483,7 @@ data class ChatTurnCompleteAction(
 )
 
 @Serializable
-data class ChatTurnCancelledAction(
+data class SessionTurnCancelledAction(
     val type: ActionType,
     /**
      * Turn identifier
@@ -570,7 +492,7 @@ data class ChatTurnCancelledAction(
 )
 
 @Serializable
-data class ChatErrorAction(
+data class SessionErrorAction(
     val type: ActionType,
     /**
      * Turn identifier
@@ -592,7 +514,7 @@ data class SessionTitleChangedAction(
 )
 
 @Serializable
-data class ChatUsageAction(
+data class SessionUsageAction(
     val type: ActionType,
     /**
      * Turn identifier
@@ -605,7 +527,7 @@ data class ChatUsageAction(
 )
 
 @Serializable
-data class ChatReasoningAction(
+data class SessionReasoningAction(
     val type: ActionType,
     /**
      * Turn identifier
@@ -704,7 +626,7 @@ data class SessionActiveClientToolsChangedAction(
 )
 
 @Serializable
-data class ChatPendingMessageSetAction(
+data class SessionPendingMessageSetAction(
     val type: ActionType,
     /**
      * Whether this is a steering or queued message
@@ -721,7 +643,7 @@ data class ChatPendingMessageSetAction(
 )
 
 @Serializable
-data class ChatPendingMessageRemovedAction(
+data class SessionPendingMessageRemovedAction(
     val type: ActionType,
     /**
      * Whether this is a steering or queued message
@@ -734,7 +656,7 @@ data class ChatPendingMessageRemovedAction(
 )
 
 @Serializable
-data class ChatQueuedMessagesReorderedAction(
+data class SessionQueuedMessagesReorderedAction(
     val type: ActionType,
     /**
      * Queued message IDs in the desired order
@@ -743,16 +665,16 @@ data class ChatQueuedMessagesReorderedAction(
 )
 
 @Serializable
-data class ChatInputRequestedAction(
+data class SessionInputRequestedAction(
     val type: ActionType,
     /**
      * Input request to create or replace
      */
-    val request: ChatInputRequest
+    val request: SessionInputRequest
 )
 
 @Serializable
-data class ChatInputAnswerChangedAction(
+data class SessionInputAnswerChangedAction(
     val type: ActionType,
     /**
      * Input request identifier
@@ -765,11 +687,11 @@ data class ChatInputAnswerChangedAction(
     /**
      * Updated answer, or `undefined` to clear an answer draft
      */
-    val answer: ChatInputAnswer? = null
+    val answer: SessionInputAnswer? = null
 )
 
 @Serializable
-data class ChatInputCompletedAction(
+data class SessionInputCompletedAction(
     val type: ActionType,
     /**
      * Input request identifier
@@ -778,11 +700,11 @@ data class ChatInputCompletedAction(
     /**
      * Completion outcome
      */
-    val response: ChatInputResponseKind,
+    val response: SessionInputResponseKind,
     /**
      * Optional final answer replacement, keyed by question ID
      */
-    val answers: Map<String, ChatInputAnswer>? = null
+    val answers: Map<String, SessionInputAnswer>? = null
 )
 
 @Serializable
@@ -845,7 +767,7 @@ data class SessionMcpServerStateChangedAction(
 )
 
 @Serializable
-data class ChatTruncatedAction(
+data class SessionTruncatedAction(
     val type: ActionType,
     /**
      * Keep turns up to and including this turn. Omit to clear all turns.
@@ -874,6 +796,33 @@ data class SessionMetaChangedAction(
      */
     @SerialName("_meta")
     val meta: Map<String, JsonElement>? = null
+)
+
+@Serializable
+data class SessionToolCallContentChangedAction(
+    /**
+     * Turn identifier
+     */
+    val turnId: String,
+    /**
+     * Tool call identifier
+     */
+    val toolCallId: String,
+    /**
+     * Additional provider-specific metadata for this tool call.
+     *
+     * Clients MAY look for well-known keys here to provide enhanced UI.
+     * For example, a `ptyTerminal` key with `{ input: string; output: string }`
+     * indicates the tool operated on a terminal (both `input` and `output` may
+     * contain escape sequences).
+     */
+    @SerialName("_meta")
+    val meta: Map<String, JsonElement>? = null,
+    val type: ActionType,
+    /**
+     * The current partial content for the running tool call
+     */
+    val content: List<ToolResultContent>
 )
 
 @Serializable
@@ -1159,52 +1108,6 @@ data class ResourceWatchChangedAction(
     val changes: JsonElement
 )
 
-// ─── Partial Summary Types ──────────────────────────────────────────────────
-
-@Serializable
-data class PartialChatSummary(
-    /**
-     * Chat URI
-     */
-    val resource: String? = null,
-    /**
-     * Chat title
-     */
-    val title: String? = null,
-    /**
-     * Current chat status (reuses SessionStatus shape)
-     */
-    val status: SessionStatus? = null,
-    /**
-     * Human-readable description of what the chat is currently doing
-     */
-    val activity: String? = null,
-    /**
-     * Last modification timestamp (ISO 8601, e.g. `"2025-03-10T18:42:03.123Z"`)
-     */
-    val modifiedAt: String? = null,
-    /**
-     * Optional per-chat model override (defaults to the session's model)
-     */
-    val model: ModelSelection? = null,
-    /**
-     * Optional per-chat agent override (defaults to the session's agent)
-     */
-    val agent: AgentSelection? = null,
-    /**
-     * How this chat came into existence
-     */
-    val origin: ChatOrigin? = null,
-    /**
-     * Optional per-chat working directory.
-     *
-     * If absent, the chat inherits
-     * {@link SessionSummary.workingDirectory | the session's working directory}.
-     * See {@link ChatState.workingDirectory} for usage notes.
-     */
-    val workingDirectory: String? = null
-)
-
 // ─── StateAction Union ──────────────────────────────────────────────────────
 
 /**
@@ -1223,26 +1126,21 @@ sealed interface StateAction
 @JvmInline value class StateActionRootActiveSessionsChanged(val value: RootActiveSessionsChangedAction) : StateAction
 @JvmInline value class StateActionSessionReady(val value: SessionReadyAction) : StateAction
 @JvmInline value class StateActionSessionCreationFailed(val value: SessionCreationFailedAction) : StateAction
-@JvmInline value class StateActionSessionChatAdded(val value: SessionChatAddedAction) : StateAction
-@JvmInline value class StateActionSessionChatRemoved(val value: SessionChatRemovedAction) : StateAction
-@JvmInline value class StateActionSessionChatUpdated(val value: SessionChatUpdatedAction) : StateAction
-@JvmInline value class StateActionSessionDefaultChatChanged(val value: SessionDefaultChatChangedAction) : StateAction
-@JvmInline value class StateActionChatTurnStarted(val value: ChatTurnStartedAction) : StateAction
-@JvmInline value class StateActionChatDelta(val value: ChatDeltaAction) : StateAction
-@JvmInline value class StateActionChatResponsePart(val value: ChatResponsePartAction) : StateAction
-@JvmInline value class StateActionChatToolCallStart(val value: ChatToolCallStartAction) : StateAction
-@JvmInline value class StateActionChatToolCallDelta(val value: ChatToolCallDeltaAction) : StateAction
-@JvmInline value class StateActionChatToolCallReady(val value: ChatToolCallReadyAction) : StateAction
-@JvmInline value class StateActionChatToolCallConfirmed(val value: ChatToolCallConfirmedAction) : StateAction
-@JvmInline value class StateActionChatToolCallComplete(val value: ChatToolCallCompleteAction) : StateAction
-@JvmInline value class StateActionChatToolCallResultConfirmed(val value: ChatToolCallResultConfirmedAction) : StateAction
-@JvmInline value class StateActionChatToolCallContentChanged(val value: ChatToolCallContentChangedAction) : StateAction
-@JvmInline value class StateActionChatTurnComplete(val value: ChatTurnCompleteAction) : StateAction
-@JvmInline value class StateActionChatTurnCancelled(val value: ChatTurnCancelledAction) : StateAction
-@JvmInline value class StateActionChatError(val value: ChatErrorAction) : StateAction
+@JvmInline value class StateActionSessionTurnStarted(val value: SessionTurnStartedAction) : StateAction
+@JvmInline value class StateActionSessionDelta(val value: SessionDeltaAction) : StateAction
+@JvmInline value class StateActionSessionResponsePart(val value: SessionResponsePartAction) : StateAction
+@JvmInline value class StateActionSessionToolCallStart(val value: SessionToolCallStartAction) : StateAction
+@JvmInline value class StateActionSessionToolCallDelta(val value: SessionToolCallDeltaAction) : StateAction
+@JvmInline value class StateActionSessionToolCallReady(val value: SessionToolCallReadyAction) : StateAction
+@JvmInline value class StateActionSessionToolCallConfirmed(val value: SessionToolCallConfirmedAction) : StateAction
+@JvmInline value class StateActionSessionToolCallComplete(val value: SessionToolCallCompleteAction) : StateAction
+@JvmInline value class StateActionSessionToolCallResultConfirmed(val value: SessionToolCallResultConfirmedAction) : StateAction
+@JvmInline value class StateActionSessionTurnComplete(val value: SessionTurnCompleteAction) : StateAction
+@JvmInline value class StateActionSessionTurnCancelled(val value: SessionTurnCancelledAction) : StateAction
+@JvmInline value class StateActionSessionError(val value: SessionErrorAction) : StateAction
 @JvmInline value class StateActionSessionTitleChanged(val value: SessionTitleChangedAction) : StateAction
-@JvmInline value class StateActionChatUsage(val value: ChatUsageAction) : StateAction
-@JvmInline value class StateActionChatReasoning(val value: ChatReasoningAction) : StateAction
+@JvmInline value class StateActionSessionUsage(val value: SessionUsageAction) : StateAction
+@JvmInline value class StateActionSessionReasoning(val value: SessionReasoningAction) : StateAction
 @JvmInline value class StateActionSessionModelChanged(val value: SessionModelChangedAction) : StateAction
 @JvmInline value class StateActionSessionAgentChanged(val value: SessionAgentChangedAction) : StateAction
 @JvmInline value class StateActionSessionIsReadChanged(val value: SessionIsReadChangedAction) : StateAction
@@ -1252,20 +1150,21 @@ sealed interface StateAction
 @JvmInline value class StateActionSessionServerToolsChanged(val value: SessionServerToolsChangedAction) : StateAction
 @JvmInline value class StateActionSessionActiveClientChanged(val value: SessionActiveClientChangedAction) : StateAction
 @JvmInline value class StateActionSessionActiveClientToolsChanged(val value: SessionActiveClientToolsChangedAction) : StateAction
-@JvmInline value class StateActionChatPendingMessageSet(val value: ChatPendingMessageSetAction) : StateAction
-@JvmInline value class StateActionChatPendingMessageRemoved(val value: ChatPendingMessageRemovedAction) : StateAction
-@JvmInline value class StateActionChatQueuedMessagesReordered(val value: ChatQueuedMessagesReorderedAction) : StateAction
-@JvmInline value class StateActionChatInputRequested(val value: ChatInputRequestedAction) : StateAction
-@JvmInline value class StateActionChatInputAnswerChanged(val value: ChatInputAnswerChangedAction) : StateAction
-@JvmInline value class StateActionChatInputCompleted(val value: ChatInputCompletedAction) : StateAction
+@JvmInline value class StateActionSessionPendingMessageSet(val value: SessionPendingMessageSetAction) : StateAction
+@JvmInline value class StateActionSessionPendingMessageRemoved(val value: SessionPendingMessageRemovedAction) : StateAction
+@JvmInline value class StateActionSessionQueuedMessagesReordered(val value: SessionQueuedMessagesReorderedAction) : StateAction
+@JvmInline value class StateActionSessionInputRequested(val value: SessionInputRequestedAction) : StateAction
+@JvmInline value class StateActionSessionInputAnswerChanged(val value: SessionInputAnswerChangedAction) : StateAction
+@JvmInline value class StateActionSessionInputCompleted(val value: SessionInputCompletedAction) : StateAction
 @JvmInline value class StateActionSessionCustomizationsChanged(val value: SessionCustomizationsChangedAction) : StateAction
 @JvmInline value class StateActionSessionCustomizationToggled(val value: SessionCustomizationToggledAction) : StateAction
 @JvmInline value class StateActionSessionCustomizationUpdated(val value: SessionCustomizationUpdatedAction) : StateAction
 @JvmInline value class StateActionSessionCustomizationRemoved(val value: SessionCustomizationRemovedAction) : StateAction
 @JvmInline value class StateActionSessionMcpServerStateChanged(val value: SessionMcpServerStateChangedAction) : StateAction
-@JvmInline value class StateActionChatTruncated(val value: ChatTruncatedAction) : StateAction
+@JvmInline value class StateActionSessionTruncated(val value: SessionTruncatedAction) : StateAction
 @JvmInline value class StateActionSessionConfigChanged(val value: SessionConfigChangedAction) : StateAction
 @JvmInline value class StateActionSessionMetaChanged(val value: SessionMetaChangedAction) : StateAction
+@JvmInline value class StateActionSessionToolCallContentChanged(val value: SessionToolCallContentChangedAction) : StateAction
 @JvmInline value class StateActionChangesetStatusChanged(val value: ChangesetStatusChangedAction) : StateAction
 @JvmInline value class StateActionChangesetFileSet(val value: ChangesetFileSetAction) : StateAction
 @JvmInline value class StateActionChangesetFileRemoved(val value: ChangesetFileRemovedAction) : StateAction
@@ -1310,26 +1209,21 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             "root/activeSessionsChanged" -> StateActionRootActiveSessionsChanged(input.json.decodeFromJsonElement(RootActiveSessionsChangedAction.serializer(), element))
             "session/ready" -> StateActionSessionReady(input.json.decodeFromJsonElement(SessionReadyAction.serializer(), element))
             "session/creationFailed" -> StateActionSessionCreationFailed(input.json.decodeFromJsonElement(SessionCreationFailedAction.serializer(), element))
-            "session/chatAdded" -> StateActionSessionChatAdded(input.json.decodeFromJsonElement(SessionChatAddedAction.serializer(), element))
-            "session/chatRemoved" -> StateActionSessionChatRemoved(input.json.decodeFromJsonElement(SessionChatRemovedAction.serializer(), element))
-            "session/chatUpdated" -> StateActionSessionChatUpdated(input.json.decodeFromJsonElement(SessionChatUpdatedAction.serializer(), element))
-            "session/defaultChatChanged" -> StateActionSessionDefaultChatChanged(input.json.decodeFromJsonElement(SessionDefaultChatChangedAction.serializer(), element))
-            "chat/turnStarted" -> StateActionChatTurnStarted(input.json.decodeFromJsonElement(ChatTurnStartedAction.serializer(), element))
-            "chat/delta" -> StateActionChatDelta(input.json.decodeFromJsonElement(ChatDeltaAction.serializer(), element))
-            "chat/responsePart" -> StateActionChatResponsePart(input.json.decodeFromJsonElement(ChatResponsePartAction.serializer(), element))
-            "chat/toolCallStart" -> StateActionChatToolCallStart(input.json.decodeFromJsonElement(ChatToolCallStartAction.serializer(), element))
-            "chat/toolCallDelta" -> StateActionChatToolCallDelta(input.json.decodeFromJsonElement(ChatToolCallDeltaAction.serializer(), element))
-            "chat/toolCallReady" -> StateActionChatToolCallReady(input.json.decodeFromJsonElement(ChatToolCallReadyAction.serializer(), element))
-            "chat/toolCallConfirmed" -> StateActionChatToolCallConfirmed(input.json.decodeFromJsonElement(ChatToolCallConfirmedAction.serializer(), element))
-            "chat/toolCallComplete" -> StateActionChatToolCallComplete(input.json.decodeFromJsonElement(ChatToolCallCompleteAction.serializer(), element))
-            "chat/toolCallResultConfirmed" -> StateActionChatToolCallResultConfirmed(input.json.decodeFromJsonElement(ChatToolCallResultConfirmedAction.serializer(), element))
-            "chat/toolCallContentChanged" -> StateActionChatToolCallContentChanged(input.json.decodeFromJsonElement(ChatToolCallContentChangedAction.serializer(), element))
-            "chat/turnComplete" -> StateActionChatTurnComplete(input.json.decodeFromJsonElement(ChatTurnCompleteAction.serializer(), element))
-            "chat/turnCancelled" -> StateActionChatTurnCancelled(input.json.decodeFromJsonElement(ChatTurnCancelledAction.serializer(), element))
-            "chat/error" -> StateActionChatError(input.json.decodeFromJsonElement(ChatErrorAction.serializer(), element))
+            "session/turnStarted" -> StateActionSessionTurnStarted(input.json.decodeFromJsonElement(SessionTurnStartedAction.serializer(), element))
+            "session/delta" -> StateActionSessionDelta(input.json.decodeFromJsonElement(SessionDeltaAction.serializer(), element))
+            "session/responsePart" -> StateActionSessionResponsePart(input.json.decodeFromJsonElement(SessionResponsePartAction.serializer(), element))
+            "session/toolCallStart" -> StateActionSessionToolCallStart(input.json.decodeFromJsonElement(SessionToolCallStartAction.serializer(), element))
+            "session/toolCallDelta" -> StateActionSessionToolCallDelta(input.json.decodeFromJsonElement(SessionToolCallDeltaAction.serializer(), element))
+            "session/toolCallReady" -> StateActionSessionToolCallReady(input.json.decodeFromJsonElement(SessionToolCallReadyAction.serializer(), element))
+            "session/toolCallConfirmed" -> StateActionSessionToolCallConfirmed(input.json.decodeFromJsonElement(SessionToolCallConfirmedAction.serializer(), element))
+            "session/toolCallComplete" -> StateActionSessionToolCallComplete(input.json.decodeFromJsonElement(SessionToolCallCompleteAction.serializer(), element))
+            "session/toolCallResultConfirmed" -> StateActionSessionToolCallResultConfirmed(input.json.decodeFromJsonElement(SessionToolCallResultConfirmedAction.serializer(), element))
+            "session/turnComplete" -> StateActionSessionTurnComplete(input.json.decodeFromJsonElement(SessionTurnCompleteAction.serializer(), element))
+            "session/turnCancelled" -> StateActionSessionTurnCancelled(input.json.decodeFromJsonElement(SessionTurnCancelledAction.serializer(), element))
+            "session/error" -> StateActionSessionError(input.json.decodeFromJsonElement(SessionErrorAction.serializer(), element))
             "session/titleChanged" -> StateActionSessionTitleChanged(input.json.decodeFromJsonElement(SessionTitleChangedAction.serializer(), element))
-            "chat/usage" -> StateActionChatUsage(input.json.decodeFromJsonElement(ChatUsageAction.serializer(), element))
-            "chat/reasoning" -> StateActionChatReasoning(input.json.decodeFromJsonElement(ChatReasoningAction.serializer(), element))
+            "session/usage" -> StateActionSessionUsage(input.json.decodeFromJsonElement(SessionUsageAction.serializer(), element))
+            "session/reasoning" -> StateActionSessionReasoning(input.json.decodeFromJsonElement(SessionReasoningAction.serializer(), element))
             "session/modelChanged" -> StateActionSessionModelChanged(input.json.decodeFromJsonElement(SessionModelChangedAction.serializer(), element))
             "session/agentChanged" -> StateActionSessionAgentChanged(input.json.decodeFromJsonElement(SessionAgentChangedAction.serializer(), element))
             "session/isReadChanged" -> StateActionSessionIsReadChanged(input.json.decodeFromJsonElement(SessionIsReadChangedAction.serializer(), element))
@@ -1339,20 +1233,21 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             "session/serverToolsChanged" -> StateActionSessionServerToolsChanged(input.json.decodeFromJsonElement(SessionServerToolsChangedAction.serializer(), element))
             "session/activeClientChanged" -> StateActionSessionActiveClientChanged(input.json.decodeFromJsonElement(SessionActiveClientChangedAction.serializer(), element))
             "session/activeClientToolsChanged" -> StateActionSessionActiveClientToolsChanged(input.json.decodeFromJsonElement(SessionActiveClientToolsChangedAction.serializer(), element))
-            "chat/pendingMessageSet" -> StateActionChatPendingMessageSet(input.json.decodeFromJsonElement(ChatPendingMessageSetAction.serializer(), element))
-            "chat/pendingMessageRemoved" -> StateActionChatPendingMessageRemoved(input.json.decodeFromJsonElement(ChatPendingMessageRemovedAction.serializer(), element))
-            "chat/queuedMessagesReordered" -> StateActionChatQueuedMessagesReordered(input.json.decodeFromJsonElement(ChatQueuedMessagesReorderedAction.serializer(), element))
-            "chat/inputRequested" -> StateActionChatInputRequested(input.json.decodeFromJsonElement(ChatInputRequestedAction.serializer(), element))
-            "chat/inputAnswerChanged" -> StateActionChatInputAnswerChanged(input.json.decodeFromJsonElement(ChatInputAnswerChangedAction.serializer(), element))
-            "chat/inputCompleted" -> StateActionChatInputCompleted(input.json.decodeFromJsonElement(ChatInputCompletedAction.serializer(), element))
+            "session/pendingMessageSet" -> StateActionSessionPendingMessageSet(input.json.decodeFromJsonElement(SessionPendingMessageSetAction.serializer(), element))
+            "session/pendingMessageRemoved" -> StateActionSessionPendingMessageRemoved(input.json.decodeFromJsonElement(SessionPendingMessageRemovedAction.serializer(), element))
+            "session/queuedMessagesReordered" -> StateActionSessionQueuedMessagesReordered(input.json.decodeFromJsonElement(SessionQueuedMessagesReorderedAction.serializer(), element))
+            "session/inputRequested" -> StateActionSessionInputRequested(input.json.decodeFromJsonElement(SessionInputRequestedAction.serializer(), element))
+            "session/inputAnswerChanged" -> StateActionSessionInputAnswerChanged(input.json.decodeFromJsonElement(SessionInputAnswerChangedAction.serializer(), element))
+            "session/inputCompleted" -> StateActionSessionInputCompleted(input.json.decodeFromJsonElement(SessionInputCompletedAction.serializer(), element))
             "session/customizationsChanged" -> StateActionSessionCustomizationsChanged(input.json.decodeFromJsonElement(SessionCustomizationsChangedAction.serializer(), element))
             "session/customizationToggled" -> StateActionSessionCustomizationToggled(input.json.decodeFromJsonElement(SessionCustomizationToggledAction.serializer(), element))
             "session/customizationUpdated" -> StateActionSessionCustomizationUpdated(input.json.decodeFromJsonElement(SessionCustomizationUpdatedAction.serializer(), element))
             "session/customizationRemoved" -> StateActionSessionCustomizationRemoved(input.json.decodeFromJsonElement(SessionCustomizationRemovedAction.serializer(), element))
             "session/mcpServerStateChanged" -> StateActionSessionMcpServerStateChanged(input.json.decodeFromJsonElement(SessionMcpServerStateChangedAction.serializer(), element))
-            "chat/truncated" -> StateActionChatTruncated(input.json.decodeFromJsonElement(ChatTruncatedAction.serializer(), element))
+            "session/truncated" -> StateActionSessionTruncated(input.json.decodeFromJsonElement(SessionTruncatedAction.serializer(), element))
             "session/configChanged" -> StateActionSessionConfigChanged(input.json.decodeFromJsonElement(SessionConfigChangedAction.serializer(), element))
             "session/metaChanged" -> StateActionSessionMetaChanged(input.json.decodeFromJsonElement(SessionMetaChangedAction.serializer(), element))
+            "session/toolCallContentChanged" -> StateActionSessionToolCallContentChanged(input.json.decodeFromJsonElement(SessionToolCallContentChangedAction.serializer(), element))
             "changeset/statusChanged" -> StateActionChangesetStatusChanged(input.json.decodeFromJsonElement(ChangesetStatusChangedAction.serializer(), element))
             "changeset/fileSet" -> StateActionChangesetFileSet(input.json.decodeFromJsonElement(ChangesetFileSetAction.serializer(), element))
             "changeset/fileRemoved" -> StateActionChangesetFileRemoved(input.json.decodeFromJsonElement(ChangesetFileRemovedAction.serializer(), element))
@@ -1390,26 +1285,21 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             is StateActionRootActiveSessionsChanged -> output.json.encodeToJsonElement(RootActiveSessionsChangedAction.serializer(), value.value)
             is StateActionSessionReady -> output.json.encodeToJsonElement(SessionReadyAction.serializer(), value.value)
             is StateActionSessionCreationFailed -> output.json.encodeToJsonElement(SessionCreationFailedAction.serializer(), value.value)
-            is StateActionSessionChatAdded -> output.json.encodeToJsonElement(SessionChatAddedAction.serializer(), value.value)
-            is StateActionSessionChatRemoved -> output.json.encodeToJsonElement(SessionChatRemovedAction.serializer(), value.value)
-            is StateActionSessionChatUpdated -> output.json.encodeToJsonElement(SessionChatUpdatedAction.serializer(), value.value)
-            is StateActionSessionDefaultChatChanged -> output.json.encodeToJsonElement(SessionDefaultChatChangedAction.serializer(), value.value)
-            is StateActionChatTurnStarted -> output.json.encodeToJsonElement(ChatTurnStartedAction.serializer(), value.value)
-            is StateActionChatDelta -> output.json.encodeToJsonElement(ChatDeltaAction.serializer(), value.value)
-            is StateActionChatResponsePart -> output.json.encodeToJsonElement(ChatResponsePartAction.serializer(), value.value)
-            is StateActionChatToolCallStart -> output.json.encodeToJsonElement(ChatToolCallStartAction.serializer(), value.value)
-            is StateActionChatToolCallDelta -> output.json.encodeToJsonElement(ChatToolCallDeltaAction.serializer(), value.value)
-            is StateActionChatToolCallReady -> output.json.encodeToJsonElement(ChatToolCallReadyAction.serializer(), value.value)
-            is StateActionChatToolCallConfirmed -> output.json.encodeToJsonElement(ChatToolCallConfirmedAction.serializer(), value.value)
-            is StateActionChatToolCallComplete -> output.json.encodeToJsonElement(ChatToolCallCompleteAction.serializer(), value.value)
-            is StateActionChatToolCallResultConfirmed -> output.json.encodeToJsonElement(ChatToolCallResultConfirmedAction.serializer(), value.value)
-            is StateActionChatToolCallContentChanged -> output.json.encodeToJsonElement(ChatToolCallContentChangedAction.serializer(), value.value)
-            is StateActionChatTurnComplete -> output.json.encodeToJsonElement(ChatTurnCompleteAction.serializer(), value.value)
-            is StateActionChatTurnCancelled -> output.json.encodeToJsonElement(ChatTurnCancelledAction.serializer(), value.value)
-            is StateActionChatError -> output.json.encodeToJsonElement(ChatErrorAction.serializer(), value.value)
+            is StateActionSessionTurnStarted -> output.json.encodeToJsonElement(SessionTurnStartedAction.serializer(), value.value)
+            is StateActionSessionDelta -> output.json.encodeToJsonElement(SessionDeltaAction.serializer(), value.value)
+            is StateActionSessionResponsePart -> output.json.encodeToJsonElement(SessionResponsePartAction.serializer(), value.value)
+            is StateActionSessionToolCallStart -> output.json.encodeToJsonElement(SessionToolCallStartAction.serializer(), value.value)
+            is StateActionSessionToolCallDelta -> output.json.encodeToJsonElement(SessionToolCallDeltaAction.serializer(), value.value)
+            is StateActionSessionToolCallReady -> output.json.encodeToJsonElement(SessionToolCallReadyAction.serializer(), value.value)
+            is StateActionSessionToolCallConfirmed -> output.json.encodeToJsonElement(SessionToolCallConfirmedAction.serializer(), value.value)
+            is StateActionSessionToolCallComplete -> output.json.encodeToJsonElement(SessionToolCallCompleteAction.serializer(), value.value)
+            is StateActionSessionToolCallResultConfirmed -> output.json.encodeToJsonElement(SessionToolCallResultConfirmedAction.serializer(), value.value)
+            is StateActionSessionTurnComplete -> output.json.encodeToJsonElement(SessionTurnCompleteAction.serializer(), value.value)
+            is StateActionSessionTurnCancelled -> output.json.encodeToJsonElement(SessionTurnCancelledAction.serializer(), value.value)
+            is StateActionSessionError -> output.json.encodeToJsonElement(SessionErrorAction.serializer(), value.value)
             is StateActionSessionTitleChanged -> output.json.encodeToJsonElement(SessionTitleChangedAction.serializer(), value.value)
-            is StateActionChatUsage -> output.json.encodeToJsonElement(ChatUsageAction.serializer(), value.value)
-            is StateActionChatReasoning -> output.json.encodeToJsonElement(ChatReasoningAction.serializer(), value.value)
+            is StateActionSessionUsage -> output.json.encodeToJsonElement(SessionUsageAction.serializer(), value.value)
+            is StateActionSessionReasoning -> output.json.encodeToJsonElement(SessionReasoningAction.serializer(), value.value)
             is StateActionSessionModelChanged -> output.json.encodeToJsonElement(SessionModelChangedAction.serializer(), value.value)
             is StateActionSessionAgentChanged -> output.json.encodeToJsonElement(SessionAgentChangedAction.serializer(), value.value)
             is StateActionSessionIsReadChanged -> output.json.encodeToJsonElement(SessionIsReadChangedAction.serializer(), value.value)
@@ -1419,20 +1309,21 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             is StateActionSessionServerToolsChanged -> output.json.encodeToJsonElement(SessionServerToolsChangedAction.serializer(), value.value)
             is StateActionSessionActiveClientChanged -> output.json.encodeToJsonElement(SessionActiveClientChangedAction.serializer(), value.value)
             is StateActionSessionActiveClientToolsChanged -> output.json.encodeToJsonElement(SessionActiveClientToolsChangedAction.serializer(), value.value)
-            is StateActionChatPendingMessageSet -> output.json.encodeToJsonElement(ChatPendingMessageSetAction.serializer(), value.value)
-            is StateActionChatPendingMessageRemoved -> output.json.encodeToJsonElement(ChatPendingMessageRemovedAction.serializer(), value.value)
-            is StateActionChatQueuedMessagesReordered -> output.json.encodeToJsonElement(ChatQueuedMessagesReorderedAction.serializer(), value.value)
-            is StateActionChatInputRequested -> output.json.encodeToJsonElement(ChatInputRequestedAction.serializer(), value.value)
-            is StateActionChatInputAnswerChanged -> output.json.encodeToJsonElement(ChatInputAnswerChangedAction.serializer(), value.value)
-            is StateActionChatInputCompleted -> output.json.encodeToJsonElement(ChatInputCompletedAction.serializer(), value.value)
+            is StateActionSessionPendingMessageSet -> output.json.encodeToJsonElement(SessionPendingMessageSetAction.serializer(), value.value)
+            is StateActionSessionPendingMessageRemoved -> output.json.encodeToJsonElement(SessionPendingMessageRemovedAction.serializer(), value.value)
+            is StateActionSessionQueuedMessagesReordered -> output.json.encodeToJsonElement(SessionQueuedMessagesReorderedAction.serializer(), value.value)
+            is StateActionSessionInputRequested -> output.json.encodeToJsonElement(SessionInputRequestedAction.serializer(), value.value)
+            is StateActionSessionInputAnswerChanged -> output.json.encodeToJsonElement(SessionInputAnswerChangedAction.serializer(), value.value)
+            is StateActionSessionInputCompleted -> output.json.encodeToJsonElement(SessionInputCompletedAction.serializer(), value.value)
             is StateActionSessionCustomizationsChanged -> output.json.encodeToJsonElement(SessionCustomizationsChangedAction.serializer(), value.value)
             is StateActionSessionCustomizationToggled -> output.json.encodeToJsonElement(SessionCustomizationToggledAction.serializer(), value.value)
             is StateActionSessionCustomizationUpdated -> output.json.encodeToJsonElement(SessionCustomizationUpdatedAction.serializer(), value.value)
             is StateActionSessionCustomizationRemoved -> output.json.encodeToJsonElement(SessionCustomizationRemovedAction.serializer(), value.value)
             is StateActionSessionMcpServerStateChanged -> output.json.encodeToJsonElement(SessionMcpServerStateChangedAction.serializer(), value.value)
-            is StateActionChatTruncated -> output.json.encodeToJsonElement(ChatTruncatedAction.serializer(), value.value)
+            is StateActionSessionTruncated -> output.json.encodeToJsonElement(SessionTruncatedAction.serializer(), value.value)
             is StateActionSessionConfigChanged -> output.json.encodeToJsonElement(SessionConfigChangedAction.serializer(), value.value)
             is StateActionSessionMetaChanged -> output.json.encodeToJsonElement(SessionMetaChangedAction.serializer(), value.value)
+            is StateActionSessionToolCallContentChanged -> output.json.encodeToJsonElement(SessionToolCallContentChangedAction.serializer(), value.value)
             is StateActionChangesetStatusChanged -> output.json.encodeToJsonElement(ChangesetStatusChangedAction.serializer(), value.value)
             is StateActionChangesetFileSet -> output.json.encodeToJsonElement(ChangesetFileSetAction.serializer(), value.value)
             is StateActionChangesetFileRemoved -> output.json.encodeToJsonElement(ChangesetFileRemovedAction.serializer(), value.value)
