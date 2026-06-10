@@ -1321,7 +1321,7 @@ public fun annotationsReducer(state: AnnotationsState, action: StateAction): Ann
         if (idx < 0) {
             state
         } else {
-            val next: List<Annotation> = state.annotations.toMutableList().also { it.removeAt(idx) }
+            val next = state.annotations.toMutableList().also { it.removeAt(idx) }
             state.copy(annotations = next)
         }
     }
