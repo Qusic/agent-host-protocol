@@ -31,7 +31,7 @@ Notes:
 Smoke check:
 
 ```bash
-ls -l .claude .codex .github
+ls -ld .claude/skills .codex/skills .github/skills
 ```
 
 If any agent fails to resolve symlinks, switch that client to generated mirror files as fallback.

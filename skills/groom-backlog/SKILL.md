@@ -26,7 +26,7 @@ This is the most important instruction in this skill. **Do not rush, and do not 
 - **When the right answer is ambiguous, stop and ask** rather than guessing — especially before bulk-closing issues or before starting a multi-PR implementation push. A wrong close or a wasted PR is costly.
 - **Prefer correctness over a small diff.** Don't contort an implementation to minimize the diff, and don't add migration shims or phased rollouts unless the [versioning policy](../../docs/specification/versioning.md) or the user calls for them. Get each issue *right*. But AHP is a **published, versioned wire contract** with real-world implementers — a breaking protocol change is governed by `docs/specification/versioning.md` and the version registry in `types/version/`, not made casually. When a fix would break the wire surface, treat the versioning policy as a hard constraint and surface the call rather than silently shipping it.
 
-Lean on the `explore` agent for parallel research across repos and across many PRs / issues at once when the investigation is broad, and feel free to spend several passes reading before you conclude anything.
+Lean on the `explore` agent to parallelize research across many PRs / issues within this repo when the investigation is broad, and feel free to spend several passes reading before you conclude anything.
 
 ## Familiarize yourself first
 
