@@ -37,6 +37,10 @@ changes accumulate. Track in-flight protocol changes via PRs touching
   event to a specific agent (e.g. a sub-agent acting within the turn). The
   tool-call actions already exposed `_meta`; this extends the same convention
   to the remaining turn-scoped actions.
+
+### Changed
+
+- `Snapshot.state` now accepts `ResourceWatchState`, so `initialize` /
   `reconnect` / `subscribe` can seed an `ahp-resource-watch:` channel from a
   point-in-time snapshot. Existing variants (root, session, terminal,
   changeset, annotations) are unchanged.
