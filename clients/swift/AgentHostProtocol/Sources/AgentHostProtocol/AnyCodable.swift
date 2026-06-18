@@ -44,12 +44,29 @@ public struct AnyCodable: Codable, @unchecked Sendable, Equatable {
         switch value {
         case is NSNull:
             try container.encodeNil()
-        case let bool as Bool:
+        // Native Swift types are matched first with an exact metatype guard so
+        // these arms stay reachable even though Swift also bridges them to NSNumber.
+        case let bool as Bool where type(of: value) == Bool.self:
             try container.encode(bool)
-        case let int as Int:
+        case let int as Int where type(of: value) == Int.self:
             try container.encode(int)
-        case let double as Double:
+        case let double as Double where type(of: value) == Double.self:
             try container.encode(double)
+        case let n as NSNumber:
+            // Reached only for NSNumber objects not already matched above (e.g.
+            // values produced by JSONSerialization.jsonObject). Use CFTypeID to
+            // distinguish booleans, then objCType for float vs integral.
+            if CFGetTypeID(n) == CFBooleanGetTypeID() {
+                try container.encode(n.boolValue)
+            } else {
+                let objCType = String(cString: n.objCType)
+                switch objCType {
+                case "f", "d":
+                    try container.encode(n.doubleValue)
+                default:
+                    try container.encode(n.int64Value)
+                }
+            }
         case let string as String:
             try container.encode(string)
         case let array as [Any]:
