@@ -1,6 +1,6 @@
 {
   "client": "rust",
-  "packageVersion": "0.3.0",
+  "packageVersion": "0.4.0",
   "supportedProtocolVersions": [
     "0.4.0",
     "0.3.0"

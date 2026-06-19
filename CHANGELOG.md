@@ -15,13 +15,9 @@ at the time of release. The `publish-spec.yml` workflow refuses to publish a
 `spec/vX.Y.Z` tag whose matching `## [X.Y.Z]` heading is missing from this
 file.
 
-## [Unreleased]
+## [0.4.0] — 2026-06-19
 
-The next spec release will be cut from `main` once breaking or notable additive
-changes accumulate. Track in-flight protocol changes via PRs touching
-[`types/`](types/) and the per-symbol `ACTION_INTRODUCED_IN` /
-`NOTIFICATION_INTRODUCED_IN` maps in
-[`types/version/registry.ts`](types/version/registry.ts).
+Spec version: `0.4.0`
 
 ### Added
 
@@ -48,30 +44,6 @@ changes accumulate. Track in-flight protocol changes via PRs touching
   event to a specific agent (e.g. a sub-agent acting within the turn). The
   tool-call actions already exposed `_meta`; this extends the same convention
   to the remaining turn-scoped actions.
-
-### Changed
-
-- `ToolResultSubagentContent.resource` is now specified as the spawned worker
-  **chat** URI (`ahp-chat:/<cid>`), not a session URI — a tool-spawned
-  sub-agent is a chat. Its doc now describes the correspondence with the worker
-  chat's `ChatOrigin` record (`kind: 'tool'`, matching `toolCallId`), which
-  remains the canonical representation of the spawn relationship.
-- `Snapshot.state` now accepts `ResourceWatchState`, so `initialize` /
-  `reconnect` / `subscribe` can seed an `ahp-resource-watch:` channel from a
-  point-in-time snapshot. Existing variants (root, session, terminal,
-  changeset, annotations) are unchanged.
-
-### Fixed
-
-- Session reducers now apply `_meta` updates from every tool-call-scoped
-  action, not only `session/toolCallStart`.
-
-## [0.4.0] — Unreleased
-
-Spec version: `0.4.0`
-
-### Added
-
 - `annotations/updated` (`AnnotationsUpdatedAction`) — a client-dispatchable
   action that partially updates an existing annotation's own properties
   (`turnId`, `resource`, `range`, `resolved`) without resending its entries.
@@ -91,10 +63,24 @@ Spec version: `0.4.0`
 
 ### Changed
 
+- `ToolResultSubagentContent.resource` is now specified as the spawned worker
+  **chat** URI (`ahp-chat:/<cid>`), not a session URI — a tool-spawned
+  sub-agent is a chat. Its doc now describes the correspondence with the worker
+  chat's `ChatOrigin` record (`kind: 'tool'`, matching `toolCallId`), which
+  remains the canonical representation of the spawn relationship.
+- `Snapshot.state` now accepts `ResourceWatchState`, so `initialize` /
+  `reconnect` / `subscribe` can seed an `ahp-resource-watch:` channel from a
+  point-in-time snapshot. Existing variants (root, session, terminal,
+  changeset, annotations) are unchanged.
 - `fetchTurns` and `completions` now target an `ahp-chat:` channel; `PROTOCOL_VERSION` bumped to `0.4.0`.
 - `ChatState` is now **flat** — the previous `summary: ChatSummary` sub-object has been replaced by inlined `resource` / `title` / `status` / `activity` / `modifiedAt` / `model` / `agent` / `origin` / `workingDirectory` fields. `ChatSummary` remains as the standalone catalog entry on `SessionState.chats`.
 - `ChatSummary.modifiedAt` and `ChatState.modifiedAt` are now ISO 8601 strings instead of numeric milliseconds.
 - `SessionSummary` now documents how its aggregate fields (`status`, `activity`, `modifiedAt`) are derived from the session's chats, including `InputNeeded` / `Error` promotion when any chat raises the flag.
+
+### Fixed
+
+- Session reducers now apply `_meta` updates from every tool-call-scoped
+  action, not only `session/toolCallStart`.
 
 ### Removed
 
