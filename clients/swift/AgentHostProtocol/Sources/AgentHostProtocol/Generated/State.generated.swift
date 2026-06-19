@@ -85,9 +85,13 @@ public struct SessionStatus: OptionSet, Codable, Sendable, Hashable {
     public static let isArchived = SessionStatus(rawValue: 64)
 }
 
+/// Discriminant for {@link ChatOrigin} — how a chat came into existence.
 public enum ChatOriginKind: String, Codable, Sendable {
+    /// User created the chat explicitly (e.g. via the host UI).
     case user = "user"
+    /// Forked from an existing chat at a specific turn.
     case fork = "fork"
+    /// Spawned by a tool call running in another chat (e.g. a sub-agent delegation).
     case tool = "tool"
 }
 
@@ -2684,7 +2688,7 @@ public struct ToolResultTerminalContent: Codable, Sendable {
 
 public struct ToolResultSubagentContent: Codable, Sendable {
     public var type: ToolResultContentType
-    /// Subagent session URI (subscribable for full session state)
+    /// Worker chat URI (subscribable for full chat state)
     public var resource: String
     /// Display title for the subagent
     public var title: String

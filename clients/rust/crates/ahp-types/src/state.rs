@@ -137,12 +137,16 @@ impl std::ops::Not for SessionStatus {
     }
 }
 
+/// Discriminant for {@link ChatOrigin} — how a chat came into existence.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ChatOriginKind {
+    /// User created the chat explicitly (e.g. via the host UI).
     #[serde(rename = "user")]
     User,
+    /// Forked from an existing chat at a specific turn.
     #[serde(rename = "fork")]
     Fork,
+    /// Spawned by a tool call running in another chat (e.g. a sub-agent delegation).
     #[serde(rename = "tool")]
     Tool,
 }
@@ -2208,14 +2212,16 @@ pub struct ToolResultTerminalContent {
     pub title: String,
 }
 
-/// A reference to a subagent session spawned by a tool.
+/// A reference, embedded in a tool result, to a worker chat spawned by the tool
+/// call (a sub-agent delegation), referenced by a chat URI (`ahp-chat:/...`).
 ///
-/// Clients can subscribe to the subagent's session URI to stream its
-/// progress in real time, including inner tool calls and responses.
+/// This is the spawning tool call's forward view of the worker. The worker chat
+/// records the same edge in reverse via its {@link ChatOrigin} (`kind: 'tool'`),
+/// whose `toolCallId` identifies the tool call that emitted this content.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolResultSubagentContent {
-    /// Subagent session URI (subscribable for full session state)
+    /// Worker chat URI (subscribable for full chat state)
     pub resource: Uri,
     /// Display title for the subagent
     pub title: String,

@@ -61,11 +61,15 @@ func (s SessionStatus) Has(other SessionStatus) bool { return s&other == other }
 // Or returns s combined with the flags in other.
 func (s SessionStatus) Or(other SessionStatus) SessionStatus { return s | other }
 
+// Discriminant for {@link ChatOrigin} — how a chat came into existence.
 type ChatOriginKind string
 
 const (
+	// User created the chat explicitly (e.g. via the host UI).
 	ChatOriginKindUser ChatOriginKind = "user"
+	// Forked from an existing chat at a specific turn.
 	ChatOriginKindFork ChatOriginKind = "fork"
+	// Spawned by a tool call running in another chat (e.g. a sub-agent delegation).
 	ChatOriginKindTool ChatOriginKind = "tool"
 )
 
@@ -1745,13 +1749,15 @@ type ToolResultTerminalContent struct {
 	Title string `json:"title"`
 }
 
-// A reference to a subagent session spawned by a tool.
+// A reference, embedded in a tool result, to a worker chat spawned by the tool
+// call (a sub-agent delegation), referenced by a chat URI (`ahp-chat:/...`).
 //
-// Clients can subscribe to the subagent's session URI to stream its
-// progress in real time, including inner tool calls and responses.
+// This is the spawning tool call's forward view of the worker. The worker chat
+// records the same edge in reverse via its {@link ChatOrigin} (`kind: 'tool'`),
+// whose `toolCallId` identifies the tool call that emitted this content.
 type ToolResultSubagentContent struct {
 	Type ToolResultContentType `json:"type"`
-	// Subagent session URI (subscribable for full session state)
+	// Worker chat URI (subscribable for full chat state)
 	Resource URI `json:"resource"`
 	// Display title for the subagent
 	Title string `json:"title"`
