@@ -22,6 +22,10 @@ hotfix escape hatch.
 
 ### Added
 
+- `MessageOrigin` interface now types `Message.origin`, and `MessageKind` gains
+  `Agent` and `Tool` values for turns initiated by the agent or a tool rather
+  than the user (e.g. a tool seeding the first message of a worker chat it
+  spawned).
 - `ConfigPropertySchema.additionalProperties` — optional JSON Schema field
   (`ConfigPropertySchema`) describing the schema for object-typed config
   properties beyond those listed in `properties`.

@@ -527,18 +527,42 @@ export interface ActiveTurn {
 }
 
 /**
- * Discriminant for Message types.
+ * Discriminant for {@link MessageOrigin} — identifies who produced a message.
  *
  * @category Turn Types
  */
 export enum MessageKind {
+  /** Sent directly by the user. */
   User = 'user',
+  /**
+   * Produced by the agent itself rather than the user — for example, an agent
+   * that seeds the first message of a chat it spawned.
+   */
+  Agent = 'agent',
+  /**
+   * Produced by a tool rather than the user — for example, a tool that spawns a
+   * worker chat whose first message carries a seed prompt.
+   */
+  Tool = 'tool',
+  /** A system-generated notification rather than a direct user message. */
   SystemNotification = 'systemNotification',
 }
 
 /**
+ * Identifies the origin of a {@link Message} — who produced it. For the message
+ * that initiates a turn ({@link Turn.message}), this is also the origin of the
+ * turn; for steering or queued messages it is just the origin of that message.
+ *
+ * @category Turn Types
+ */
+export interface MessageOrigin {
+  /** The kind of actor that produced the message. */
+  kind: MessageKind;
+}
+
+/**
  * A message that initiates or steers a turn. Messages can originate from the
- * user or be system-generated (see {@link MessageKind}).
+ * user, the agent, a tool, or be system-generated (see {@link MessageOrigin}).
  *
  * Attachments MAY be referenced inside {@link Message.text} via their
  * {@link MessageAttachmentBase.range} field. Attachments without a range are
@@ -551,7 +575,7 @@ export interface Message {
   /** Message text */
   text: string;
   /** The origin of the message */
-  origin: { kind: MessageKind };
+  origin: MessageOrigin;
   /** File/selection attachments */
   attachments?: MessageAttachment[];
   /**

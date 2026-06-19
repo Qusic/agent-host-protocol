@@ -17,6 +17,10 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 
 ### Added
 
+- `MessageOrigin` data class now types `Message.origin` (previously an untyped
+  `JsonElement`), and `MessageKind` gains `AGENT` and `TOOL` values for turns
+  initiated by the agent or a tool rather than the user (e.g. a tool seeding the
+  first message of a worker chat it spawned).
 - `ConfigPropertySchema.additionalProperties` — optional field describing the
   schema for object-typed config properties beyond those in `properties`.
 - `ChangesetContentChangedAction` for full-replacement changeset file

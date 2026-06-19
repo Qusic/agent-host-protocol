@@ -19,6 +19,10 @@ the tag matches the version pinned in [`VERSION`](VERSION).
 
 ### Added
 
+- `MessageOrigin` struct and `MessageKind` enum now type `Message.origin`
+  (previously an untyped `AnyCodable`); `MessageKind` covers `user`, `agent`,
+  `tool`, and `systemNotification`, adding faithful agent- and tool-initiated
+  origins.
 - `ConfigPropertySchema.additionalProperties` — optional field describing the
   schema for object-typed config properties beyond those in `properties`.
 - `ChangesetContentChangedAction` for full-replacement changeset file

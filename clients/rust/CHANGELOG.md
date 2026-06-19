@@ -17,6 +17,10 @@ matching `## [X.Y.Z]` heading is missing from this file.
 
 ### Added
 
+- `MessageOrigin` struct and `MessageKind` enum now type `Message.origin`
+  (previously an untyped `serde_json::Value`); `MessageKind` covers `User`,
+  `Agent`, `Tool`, and `SystemNotification`, adding faithful agent- and
+  tool-initiated origins.
 - `ConfigPropertySchema.additional_properties` — optional field describing the
   schema for object-typed config properties beyond those in `properties`.
 - `ChangesetContentChangedAction` for full-replacement changeset file

@@ -25,6 +25,11 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 
 ### Added
 
+- `MessageOrigin` — `Message.origin` is now a named type (was an inline
+  `{ kind }` object), and its `MessageKind` gains `Agent` and `Tool` kinds for
+  turns initiated by the agent or a tool rather than the user (e.g. a tool
+  seeding the first message of a worker chat it spawned), so a host no longer
+  has to misrepresent such a message as `User` or `SystemNotification`.
 - `ConfigPropertySchema.additionalProperties` — optional JSON Schema field
   (`ConfigPropertySchema`) describing the schema for object-typed config
   properties beyond those listed in `properties`.

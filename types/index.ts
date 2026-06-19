@@ -29,6 +29,7 @@ export type {
   Turn,
   ActiveTurn,
   Message,
+  MessageOrigin,
   MessageAttachment,
   MessageAttachmentBase,
   TextPosition,

@@ -16,6 +16,10 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 
 ### Added
 
+- `MessageOrigin` struct and `MessageKind` type now model `Message.Origin`
+  (previously an untyped `json.RawMessage`); `MessageKind` covers `user`,
+  `agent`, `tool`, and `systemNotification`, adding faithful agent- and
+  tool-initiated origins.
 - `ConfigPropertySchema.AdditionalProperties` — optional field describing the
   schema for object-typed config properties beyond those in `Properties`.
 - `ChangesetContentChangedAction` for full-replacement changeset file
