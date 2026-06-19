@@ -40,6 +40,11 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 
 ### Changed
 
+- `ToolResultSubagentContent.resource` is now specified as the spawned worker
+  **chat** URI (`ahp-chat:/<cid>`), not a session URI — a tool-spawned
+  sub-agent is a chat. Its doc now describes the correspondence with the worker
+  chat's `ChatOrigin.Tool` record (matching `toolCallId`), which remains the
+  canonical representation of the spawn relationship.
 - `Snapshot.state` now accepts `ResourceWatchState`, so `initialize` /
   `reconnect` / `subscribe` can seed an `ahp-resource-watch:` channel from a
   point-in-time snapshot. Existing variants (root, session, terminal,

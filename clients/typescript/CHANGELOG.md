@@ -32,6 +32,14 @@ hotfix escape hatch.
   hosts can carry portable per-event context, such as attributing an event to a
   specific agent (e.g. a sub-agent acting within the turn).
 
+### Changed
+
+- `ToolResultSubagentContent.resource` is now specified as the spawned worker
+  **chat** URI (`ahp-chat:/<cid>`), not a session URI — a tool-spawned
+  sub-agent is a chat. Its doc now describes the correspondence with the worker
+  chat's `ChatOrigin.Tool` record (matching `toolCallId`), which remains the
+  canonical representation of the spawn relationship.
+
 ### Added
 
 - `Snapshot.state` now accepts `ResourceWatchState`, so the existing

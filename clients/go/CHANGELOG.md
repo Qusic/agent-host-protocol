@@ -29,6 +29,11 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 
 ### Changed
 
+- `ToolResultSubagentContent.Resource` is now specified as the spawned worker
+  **chat** URI (`ahp-chat:/<cid>`), not a session URI — a tool-spawned
+  sub-agent is a chat. Its doc now describes the correspondence with the worker
+  chat's `ChatToolOrigin` record (matching `ToolCallId`), which remains the
+  canonical representation of the spawn relationship.
 - **BREAKING:** `ChangesetOperationTargetRange` is now a nested `TextRange`
   (`{start: {line, character}, end: {line, character}}`) instead of flat
   `{start, end}` `int64` fields.

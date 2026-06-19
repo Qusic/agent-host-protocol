@@ -58,6 +58,8 @@ Each chat advertises how it came into existence via [`ChatOrigin`](/reference/ch
 
 Clients MAY use the origin to render contextual UI (parent indicators, fork markers, "spawned by tool" badges), but origin is **not** a hierarchy — every chat is equally addressable.
 
+A tool-spawned worker is described from both ends of the same edge. The worker chat carries the canonical record via its `tool` origin (the spawning chat URI and tool call id). The spawning tool call surfaces the same relationship forward through a [`ToolResultSubagentContent`](/reference/chat#toolresultsubagentcontent) block in its result, whose `resource` is the worker **chat** URI (`ahp-chat:/<cid>`, not a session URI) and whose `toolCallId` matches the worker's origin. Hosts MUST keep the two consistent.
+
 ### Active chat
 
 Once a chat exists and its session is `lifecycle: 'ready'`, the chat accepts turns. The wire shape mirrors the legacy single-chat session shape:

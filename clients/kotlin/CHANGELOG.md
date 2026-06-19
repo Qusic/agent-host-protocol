@@ -30,6 +30,11 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 
 ### Changed
 
+- `ToolResultSubagentContent.resource` is now specified as the spawned worker
+  **chat** URI (`ahp-chat:/<cid>`), not a session URI — a tool-spawned
+  sub-agent is a chat. Its doc now describes the correspondence with the worker
+  chat's `ChatOrigin.Tool` record (matching `toolCallId`), which remains the
+  canonical representation of the spawn relationship.
 - **BREAKING:** `SessionStatus.rawValue` is now a `UInt` (was `Int`), and the
   named flag constants are `UInt` literals. `SessionStatus` is an unsigned
   32-bit bitset on the wire; a signed `Int` could not hold a forward-compat bit
