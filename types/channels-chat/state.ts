@@ -1174,8 +1174,6 @@ export interface ToolResultTerminalContent {
  * This is the spawning tool call's forward view of the worker. The worker chat
  * records the same edge in reverse via its {@link ChatOrigin} (`kind: 'tool'`),
  * whose `toolCallId` identifies the tool call that emitted this content. The
- * `ChatOrigin.Tool` record is canonical for the spawn relationship; hosts MUST
- * keep the two consistent, and clients MAY use either direction to render it.
  *
  * @category Tool Result Content
  */
