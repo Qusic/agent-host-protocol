@@ -4,10 +4,12 @@ import Foundation
 
 /// A type-erased `Codable` value for handling `unknown` and `Record<string, unknown>` types.
 ///
-/// Marked `@unchecked Sendable` because the stored `Any` is only ever set to
-/// immutable, `Sendable`-safe types during decoding (Bool, Int, Double, String,
-/// NSNull, and recursive `[Any]`/`[String: Any]` of those). The value is `let`,
-/// so it cannot be mutated after initialization.
+/// Marked `@unchecked Sendable`: `value` is a `let`, so it cannot be mutated
+/// after initialization, and the decoding path only ever stores immutable,
+/// `Sendable`-safe types (Bool, Int, Double, String, NSNull, and recursive
+/// `[Any]`/`[String: Any]` of those). The public `init(_:)` accepts arbitrary
+/// `Any`, so Sendability is unchecked and relies on callers passing
+/// `Sendable`-safe values.
 public struct AnyCodable: Codable, @unchecked Sendable, Equatable {
     public let value: Any
 
@@ -55,14 +57,20 @@ public struct AnyCodable: Codable, @unchecked Sendable, Equatable {
         case let n as NSNumber:
             // Reached only for NSNumber objects not already matched above (e.g.
             // values produced by JSONSerialization.jsonObject). Use CFTypeID to
-            // distinguish booleans, then objCType for float vs integral.
+            // distinguish booleans, then objCType for float/integral and signed/unsigned.
             if CFGetTypeID(n) == CFBooleanGetTypeID() {
                 try container.encode(n.boolValue)
             } else {
+                // objCType distinguishes float/double from integral, and signed
+                // from unsigned. A JSON integer above Int64.max is boxed as an
+                // unsigned NSNumber; int64Value would corrupt it (it does not
+                // round-trip), so those encode via uint64Value.
                 let objCType = String(cString: n.objCType)
                 switch objCType {
                 case "f", "d":
                     try container.encode(n.doubleValue)
+                case "C", "I", "S", "L", "Q":
+                    try container.encode(n.uint64Value)
                 default:
                     try container.encode(n.int64Value)
                 }
