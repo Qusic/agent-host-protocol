@@ -25,6 +25,9 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 
 ### Added
 
+- `ConfigPropertySchema.additionalProperties` — optional JSON Schema field
+  (`ConfigPropertySchema`) describing the schema for object-typed config
+  properties beyond those listed in `properties`.
 - `changeset/contentChanged` — full-replacement changeset action for sending
   batched files, optional operations, and error details on initial snapshots or
   bulk refreshes.

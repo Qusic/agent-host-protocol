@@ -17,6 +17,8 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 
 ### Added
 
+- `ConfigPropertySchema.additionalProperties` — optional field describing the
+  schema for object-typed config properties beyond those in `properties`.
 - `ChangesetContentChangedAction` for full-replacement changeset file
   snapshots with optional operations and error details.
 - `ChangesetOperationStatus.Disabled` — new enum value for changeset

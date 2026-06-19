@@ -17,6 +17,8 @@ matching `## [X.Y.Z]` heading is missing from this file.
 
 ### Added
 
+- `ConfigPropertySchema.additional_properties` — optional field describing the
+  schema for object-typed config properties beyond those in `properties`.
 - `ChangesetContentChangedAction` for full-replacement changeset file
   snapshots with optional operations and error details.
 - `ahp_error_codes::CONFLICT` constant (`-32011`) added to `ahp-types`; covers ETag-conflict failures from `ResourceWriteParams.if_match` checks.
