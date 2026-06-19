@@ -20,6 +20,10 @@ hotfix escape hatch.
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-06-19
+
+Implements AHP 0.4.0.
+
 ### Added
 
 - `MessageOrigin` interface now types `Message.origin`, and `MessageKind` gains

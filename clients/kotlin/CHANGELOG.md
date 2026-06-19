@@ -15,6 +15,10 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-06-19
+
+Implements AHP 0.4.0.
+
 ### Added
 
 - `MessageOrigin` data class now types `Message.origin` (previously an untyped

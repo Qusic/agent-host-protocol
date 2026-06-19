@@ -15,6 +15,10 @@ matching `## [X.Y.Z]` heading is missing from this file.
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-06-19
+
+Implements AHP 0.4.0.
+
 ### Added
 
 - `MessageOrigin` struct and `MessageKind` enum now type `Message.origin`
