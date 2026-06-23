@@ -19,6 +19,8 @@ the tag matches the version pinned in [`VERSION`](VERSION).
 
 ### Added
 
+- `SessionModelInfo.maxOutputTokens` and `SessionModelInfo.maxPromptTokens`
+  optional fields for communicating model token limits.
 - `SessionSummary.meta` (`_meta` on the wire) optional provider metadata field
   for lightweight session-list presentation hints.
 

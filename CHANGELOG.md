@@ -25,6 +25,8 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 
 ### Added
 
+- `SessionModelInfo.maxOutputTokens` and `SessionModelInfo.maxPromptTokens`
+  optional fields for communicating model token limits.
 - `SessionSummary._meta` optional provider metadata field for lightweight
   session-list presentation hints.
 

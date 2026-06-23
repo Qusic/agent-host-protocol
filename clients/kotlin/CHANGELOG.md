@@ -17,6 +17,8 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 
 ### Added
 
+- `SessionModelInfo.maxOutputTokens` and `SessionModelInfo.maxPromptTokens`
+  optional fields for communicating model token limits.
 - `SessionSummary.meta` (`_meta` on the wire) optional provider metadata field
   for lightweight session-list presentation hints.
 
