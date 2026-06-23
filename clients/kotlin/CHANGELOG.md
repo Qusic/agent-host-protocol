@@ -20,6 +20,11 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 - `SessionSummary.meta` (`_meta` on the wire) optional provider metadata field
   for lightweight session-list presentation hints.
 
+### Changed
+
+- `ConfigPropertySchema.enum` field is now `List<JsonElement>?` instead of
+  `List<String>?`, allowing numeric, boolean, and null enum values.
+
 ## [0.4.0] — 2026-06-19
 
 Implements AHP 0.4.0.

@@ -24,6 +24,12 @@ hotfix escape hatch.
 
 - `SessionSummary._meta` optional provider metadata field for lightweight
   session-list presentation hints.
+- Exported `JsonPrimitive` type alias (`string | number | boolean | null`).
+
+### Changed
+
+- `ConfigPropertySchema.enum` field is now `JsonPrimitive[]` instead of
+  `string[]`, allowing numeric, boolean, and null enum values.
 
 ### Fixed
 
