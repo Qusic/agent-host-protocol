@@ -32,6 +32,8 @@ matching `## [X.Y.Z]` heading is missing from this file.
   instead of `native-tls`, dropping the OpenSSL link on Linux while still
   validating against the OS trust store. To keep the previous behaviour, depend
   on `ahp-ws` with `default-features = false, features = ["native-tls"]`.
+- `ConfigPropertySchema.enum` field is now `Option<Vec<AnyValue>>` instead of
+  `Option<Vec<String>>`, allowing numeric, boolean, and null enum values.
 
 ## [0.4.0] — 2026-06-19
 

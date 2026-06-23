@@ -29,6 +29,11 @@ changes accumulate. Track in-flight protocol changes via PRs touching
   optional fields for communicating model token limits.
 - `SessionSummary._meta` optional provider metadata field for lightweight
   session-list presentation hints.
+- `JsonPrimitive` type alias (`string | number | boolean | null`) in `types/common/state.ts`.
+
+### Changed
+
+- `ConfigPropertySchema.enum` now accepts `JsonPrimitive[]` instead of `string[]`, allowing numeric, boolean, and null enum values.
 
 ## [0.5.0] — Unreleased
 

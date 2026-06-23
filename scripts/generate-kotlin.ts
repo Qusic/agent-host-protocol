@@ -128,6 +128,9 @@ function mapType(tsType: string): string {
   if (tsType === 'boolean') return 'Boolean';
   if (tsType === 'unknown') return 'JsonElement';
   if (tsType === 'object') return 'JsonElement';
+  // A primitive JSON value (`string | number | boolean | null`) maps to a
+  // generic JSON element.
+  if (tsType === 'JsonPrimitive') return 'JsonElement';
   if (tsType === 'true' || tsType === 'false') return 'Boolean';
 
   // Type aliases
@@ -1832,6 +1835,7 @@ function checkExhaustiveness(project: Project): void {
 
   const knownSpecial = new Set<string>([
     'URI',                          // type alias for string
+    'JsonPrimitive',                // primitive JSON value alias; mapped to JsonElement
     'BaseParams',                    // marker base interface; flattened into each command params struct
     // PingParams shape is `interface PingParams extends BaseParams { channel: 'ahp-root://' }`
     // (i.e. a `BaseParams` with `channel` narrowed to a string literal). We don't

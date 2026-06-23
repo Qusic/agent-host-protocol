@@ -97,6 +97,9 @@ function mapType(tsType: string, propName?: string, containerName?: string): str
   if (tsType === 'unknown') return 'AnyCodable';
   if (tsType === 'object') return 'AnyCodable';
   if (tsType === 'true' || tsType === 'false') return 'Bool';
+  // A primitive JSON value (`string | number | boolean | null`) maps to a
+  // type-erased JSON value.
+  if (tsType === 'JsonPrimitive') return 'AnyCodable';
 
   // Type aliases
   if (tsType === 'URI') return 'String';
@@ -1856,6 +1859,7 @@ function checkExhaustiveness(project: Project): void {
   // Types that ARE generated but via explicit non-list code paths.
   const knownSpecial = new Set<string>([
     'URI',                          // type alias for string
+    'JsonPrimitive',                // primitive JSON value alias; mapped to AnyCodable
     'BaseParams',                    // marker base interface; flattened into each command params struct
     'StringOrMarkdown',              // generateStringOrMarkdown()
     'ToolCallState',                // TOOL_CALL_STATE_UNION discriminated union

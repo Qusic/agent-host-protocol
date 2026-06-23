@@ -825,9 +825,9 @@ pub struct ConfigPropertySchema {
     /// JSON Schema: default value
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default: Option<AnyValue>,
-    /// JSON Schema: allowed values (typically used with `string` type)
+    /// JSON Schema: allowed values. May be primitives of any JSON type.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub r#enum: Option<Vec<String>>,
+    pub r#enum: Option<Vec<AnyValue>>,
     /// Display extension: human-readable label per enum value (parallel array)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub enum_labels: Option<Vec<String>>,
@@ -1215,9 +1215,9 @@ pub struct SessionConfigPropertySchema {
     /// JSON Schema: default value
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default: Option<AnyValue>,
-    /// JSON Schema: allowed values (typically used with `string` type)
+    /// JSON Schema: allowed values. May be primitives of any JSON type.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub r#enum: Option<Vec<String>>,
+    pub r#enum: Option<Vec<AnyValue>>,
     /// Display extension: human-readable label per enum value (parallel array)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub enum_labels: Option<Vec<String>>,

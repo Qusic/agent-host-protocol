@@ -965,9 +965,9 @@ data class ConfigPropertySchema(
      */
     val default: JsonElement? = null,
     /**
-     * JSON Schema: allowed values (typically used with `string` type)
+     * JSON Schema: allowed values. May be primitives of any JSON type.
      */
-    val enum: List<String>? = null,
+    val enum: List<JsonElement>? = null,
     /**
      * Display extension: human-readable label per enum value (parallel array)
      */
