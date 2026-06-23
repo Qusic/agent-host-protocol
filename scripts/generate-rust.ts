@@ -139,6 +139,10 @@ function mapType(tsType: string, propName?: string, containerName?: string): str
   if (tsType === 'object') return 'AnyValue';
   if (tsType === 'true' || tsType === 'false') return 'bool';
 
+  // A primitive JSON value (`string | number | boolean | null`) has no single
+  // Rust counterpart — represent it as an arbitrary JSON value.
+  if (tsType === 'JsonPrimitive') return 'AnyValue';
+
   if (tsType === 'URI') return 'Uri';
   if (tsType === 'StringOrMarkdown') return 'StringOrMarkdown';
 
@@ -1717,6 +1721,7 @@ function checkExhaustiveness(project: Project): void {
 
   const knownSpecial = new Set<string>([
     'URI',
+    'JsonPrimitive',
     'BaseParams',
     'StringOrMarkdown',
     'ToolCallState',

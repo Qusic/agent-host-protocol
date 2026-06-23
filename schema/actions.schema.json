@@ -2044,9 +2044,9 @@
         "enum": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/JsonPrimitive"
           },
-          "description": "JSON Schema: allowed values (typically used with `string` type)"
+          "description": "JSON Schema: allowed values. May be primitives of any JSON type."
         },
         "enumLabels": {
           "type": "array",
@@ -2753,9 +2753,9 @@
         "enum": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/JsonPrimitive"
           },
-          "description": "JSON Schema: allowed values (typically used with `string` type)"
+          "description": "JSON Schema: allowed values. May be primitives of any JSON type."
         },
         "enumLabels": {
           "type": "array",
@@ -5991,6 +5991,21 @@
         }
       ],
       "description": "A string that may optionally be rendered as Markdown.\n\n- A plain `string` is rendered as-is (no Markdown processing).\n- An object with `{ markdown: string }` is rendered with Markdown formatting."
+    },
+    "JsonPrimitive": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {}
+      ],
+      "description": "A primitive JSON value: a string, number, boolean, or `null`."
     },
     "ChildCustomizationType": {
       "oneOf": [

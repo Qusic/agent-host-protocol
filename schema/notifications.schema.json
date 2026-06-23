@@ -368,9 +368,9 @@
         "enum": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/JsonPrimitive"
           },
-          "description": "JSON Schema: allowed values (typically used with `string` type)"
+          "description": "JSON Schema: allowed values. May be primitives of any JSON type."
         },
         "enumLabels": {
           "type": "array",
@@ -1077,9 +1077,9 @@
         "enum": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/JsonPrimitive"
           },
-          "description": "JSON Schema: allowed values (typically used with `string` type)"
+          "description": "JSON Schema: allowed values. May be primitives of any JSON type."
         },
         "enumLabels": {
           "type": "array",

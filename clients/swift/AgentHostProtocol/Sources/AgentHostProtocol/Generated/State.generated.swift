@@ -677,8 +677,8 @@ public final class ConfigPropertySchema: Codable, @unchecked Sendable {
     public var description: String?
     /// JSON Schema: default value
     public var `default`: AnyCodable?
-    /// JSON Schema: allowed values (typically used with `string` type)
-    public var `enum`: [String]?
+    /// JSON Schema: allowed values. May be primitives of any JSON type.
+    public var `enum`: [AnyCodable]?
     /// Display extension: human-readable label per enum value (parallel array)
     public var enumLabels: [String]?
     /// Display extension: description per enum value (parallel array)
@@ -714,7 +714,7 @@ public final class ConfigPropertySchema: Codable, @unchecked Sendable {
         title: String,
         description: String? = nil,
         `default`: AnyCodable? = nil,
-        `enum`: [String]? = nil,
+        `enum`: [AnyCodable]? = nil,
         enumLabels: [String]? = nil,
         enumDescriptions: [String]? = nil,
         readOnly: Bool? = nil,

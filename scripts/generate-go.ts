@@ -149,6 +149,10 @@ function mapType(tsType: string): string {
   if (tsType === 'object') return 'json.RawMessage';
   if (tsType === 'true' || tsType === 'false') return 'bool';
 
+  // A primitive JSON value (`string | number | boolean | null`) has no single
+  // Go counterpart — represent it as an arbitrary JSON value.
+  if (tsType === 'JsonPrimitive') return 'json.RawMessage';
+
   if (tsType === 'URI') return 'URI';
   if (tsType === 'StringOrMarkdown') return 'StringOrMarkdown';
 
@@ -1849,6 +1853,7 @@ function checkExhaustiveness(project: Project): void {
 
   const knownSpecial = new Set<string>([
     'URI',
+    'JsonPrimitive',
     'BaseParams',
     'StringOrMarkdown',
     'ToolCallState',
