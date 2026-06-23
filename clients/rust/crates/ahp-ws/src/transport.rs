@@ -46,9 +46,10 @@ pub struct WebSocketTransport {
 impl WebSocketTransport {
     /// Open a new WebSocket connection to `url`.
     ///
-    /// Both `ws://` and `wss://` schemes are accepted; TLS is handled
-    /// transparently via `native-tls`. The URL is parsed eagerly so
-    /// malformed URLs surface as
+    /// Both `ws://` and `wss://` schemes are accepted; the `wss://` TLS
+    /// backend is chosen at compile time by Cargo feature (see the crate
+    /// docs), defaulting to rustls with OS-trust-store roots. The URL is
+    /// parsed eagerly so malformed URLs surface as
     /// [`WebSocketTransportError::InvalidUrl`] before any network I/O.
     pub async fn connect(url: &str) -> Result<Self, WebSocketTransportError> {
         let _parsed = Url::parse(url)?; // validate early

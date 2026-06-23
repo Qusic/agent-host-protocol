@@ -16,11 +16,32 @@ categories = ["api-bindings", "asynchronous", "network-programming"]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
+[features]
+# Default to rustls with roots loaded from the OS trust store: a pure-Rust
+# TLS stack (no OpenSSL on Linux) that still validates against the platform
+# certificate store, so dials through a TLS-intercepting egress proxy keep
+# working. Disable with `default-features = false` to pick a different
+# backend; with no backend enabled, only `ws://` works (`wss://` fails).
+default = ["rustls-tls-native-roots"]
+# Platform TLS stack (SChannel / Secure Transport / OpenSSL).
+native-tls = ["tokio-tungstenite/native-tls"]
+# rustls with roots from the OS trust store (via rustls-native-certs).
+rustls-tls-native-roots = ["tokio-tungstenite/rustls-tls-native-roots", "dep:rustls"]
+# rustls with the bundled Mozilla root set (via webpki-roots). Does not see
+# enterprise/proxy CAs that live only in the OS trust store.
+rustls-tls-webpki-roots = ["tokio-tungstenite/rustls-tls-webpki-roots", "dep:rustls"]
+
 [dependencies]
 ahp = { workspace = true }
 futures-util = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["rt", "sync", "macros"] }
-tokio-tungstenite = { version = "0.29", features = ["native-tls"] }
+tokio-tungstenite = { version = "0.29", default-features = false, features = ["connect", "handshake"] }
 thiserror = { workspace = true }
 url = "2"
+# Only linked by the rustls-* features. The `ring` provider builds without
+# cmake/NASM (unlike aws-lc-rs) and links no external/system TLS library
+# (no OpenSSL), and it makes rustls 0.23's `CryptoProvider::get_default()`
+# resolve, which tokio-tungstenite's rustls connector relies on — without a
+# provider the first `wss://` dial panics.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"], optional = true }

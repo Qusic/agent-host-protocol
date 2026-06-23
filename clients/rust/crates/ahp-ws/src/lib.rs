@@ -5,9 +5,36 @@
 //!
 //! This crate provides [`WebSocketTransport`], an implementation of
 //! [`ahp::Transport`] backed by [`tokio-tungstenite`][tt]. It supports
-//! both `ws://` and `wss://` URLs (TLS via `native-tls`).
+//! both `ws://` and `wss://` URLs.
 //!
 //! [tt]: https://crates.io/crates/tokio-tungstenite
+//!
+//! # TLS backends
+//!
+//! `wss://` support is selected by Cargo feature. The default,
+//! `rustls-tls-native-roots`, uses [rustls] (a pure-Rust stack, so no
+//! OpenSSL on Linux) with roots loaded from the OS trust store, which keeps
+//! dials working through a TLS-intercepting egress proxy whose CA lives in
+//! the platform store. Override it with `default-features = false` plus one
+//! of:
+//!
+//! - `native-tls` — the platform TLS stack (SChannel / Secure Transport /
+//!   OpenSSL).
+//! - `rustls-tls-native-roots` — rustls with OS-trust-store roots (default).
+//! - `rustls-tls-webpki-roots` — rustls with the bundled Mozilla root set;
+//!   does not see enterprise/proxy CAs that live only in the OS store.
+//!
+//! With no TLS feature enabled, only `ws://` works and `wss://` fails at
+//! connect time.
+//!
+//! If more than one backend ends up enabled — which Cargo feature
+//! unification can do when several crates in the graph request different
+//! ones — `native-tls` takes precedence over the rustls backends, because
+//! `tokio-tungstenite`'s automatic connector prefers it. Disable the
+//! default with `default-features = false` if you need to guarantee a
+//! rustls backend.
+//!
+//! [rustls]: https://crates.io/crates/rustls
 //!
 //! # Companion crates
 //!
