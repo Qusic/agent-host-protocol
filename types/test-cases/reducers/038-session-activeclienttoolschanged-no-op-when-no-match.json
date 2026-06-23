@@ -1,5 +1,5 @@
 {
-  "description": "session/agentChanged sets agent",
+  "description": "session/activeClientToolsChanged is a no-op when no client matches",
   "reducer": "session",
   "initial": {
     "summary": {
@@ -11,15 +11,23 @@
       "modifiedAt": 1000
     },
     "lifecycle": "creating",
-    "activeClients": [],
+    "activeClients": [
+      {
+        "clientId": "vscode-1",
+        "tools": []
+      }
+    ],
     "chats": []
   },
   "actions": [
     {
-      "type": "session/agentChanged",
-      "agent": {
-        "uri": "file:///workspace/.github/agents/review.agent.md"
-      }
+      "type": "session/activeClientToolsChanged",
+      "clientId": "unknown-client",
+      "tools": [
+        {
+          "name": "openFile"
+        }
+      ]
     }
   ],
   "expected": {
@@ -29,13 +37,15 @@
       "title": "Test Session",
       "status": 1,
       "createdAt": 1000,
-      "modifiedAt": 9999,
-      "agent": {
-        "uri": "file:///workspace/.github/agents/review.agent.md"
-      }
+      "modifiedAt": 1000
     },
     "lifecycle": "creating",
-    "activeClients": [],
+    "activeClients": [
+      {
+        "clientId": "vscode-1",
+        "tools": []
+      }
+    ],
     "chats": []
   }
 }

@@ -27,6 +27,8 @@ hotfix escape hatch.
 - `SessionSummary._meta` optional provider metadata field for lightweight
   session-list presentation hints.
 - Exported `JsonPrimitive` type alias (`string | number | boolean | null`).
+- `SessionActiveClientRemovedAction` (`session/activeClientRemoved`) to release
+  a single active client by `clientId`.
 
 ### Changed
 
@@ -34,6 +36,14 @@ hotfix escape hatch.
   `string[]`, allowing numeric, boolean, and null enum values.
 - `ModelSelection.config` values are now `JsonPrimitive` instead of `string`,
   allowing numeric, boolean, and null configuration values.
+- `SessionState.activeClients` (a required array) replaces the single optional
+  `SessionState.activeClient`; `sessionReducer` upserts and removes entries
+  keyed by `clientId`.
+- `SessionActiveClientChangedAction` is renamed to `SessionActiveClientSetAction`
+  (`session/activeClientSet`) with upsert-by-`clientId` semantics; it no longer
+  accepts `null` to unset (dispatch `session/activeClientRemoved` instead).
+- `SessionActiveClientToolsChangedAction` gains a `clientId` field naming which
+  active client's tools changed.
 
 ### Fixed
 

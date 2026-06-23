@@ -572,16 +572,25 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
         next.serverTools = a.tools
         return next
 
-    case .sessionActiveClientChanged(let a):
+    case .sessionActiveClientSet(let a):
         var next = state
-        next.activeClient = a.activeClient
+        if let idx = next.activeClients.firstIndex(where: { $0.clientId == a.activeClient.clientId }) {
+            next.activeClients[idx] = a.activeClient
+        } else {
+            next.activeClients.append(a.activeClient)
+        }
+        return next
+
+    case .sessionActiveClientRemoved(let a):
+        guard let idx = state.activeClients.firstIndex(where: { $0.clientId == a.clientId }) else { return state }
+        var next = state
+        next.activeClients.remove(at: idx)
         return next
 
     case .sessionActiveClientToolsChanged(let a):
-        guard var activeClient = state.activeClient else { return state }
-        activeClient.tools = a.tools
+        guard let idx = state.activeClients.firstIndex(where: { $0.clientId == a.clientId }) else { return state }
         var next = state
-        next.activeClient = activeClient
+        next.activeClients[idx].tools = a.tools
         return next
 
     // ── Customizations ──────────────────────────────────────────────────
@@ -674,7 +683,8 @@ public let clientDispatchableActions: Set<String> = [
     "chat/turnCancelled",
     "session/modelChanged",
     "session/agentChanged",
-    "session/activeClientChanged",
+    "session/activeClientSet",
+    "session/activeClientRemoved",
     "session/activeClientToolsChanged",
     "chat/pendingMessageSet",
     "chat/pendingMessageRemoved",
@@ -691,8 +701,9 @@ public func isClientDispatchable(_ action: StateAction) -> Bool {
     switch action {
     case .chatTurnStarted, .chatToolCallConfirmed, .chatToolCallComplete,
          .chatToolCallResultConfirmed, .chatTurnCancelled,
-         .sessionModelChanged, .sessionAgentChanged, .sessionActiveClientChanged,
-         .sessionActiveClientToolsChanged, .chatPendingMessageSet,
+         .sessionModelChanged, .sessionAgentChanged, .sessionActiveClientSet,
+         .sessionActiveClientRemoved, .sessionActiveClientToolsChanged,
+         .chatPendingMessageSet,
          .chatPendingMessageRemoved, .chatQueuedMessagesReordered,
          .chatInputAnswerChanged, .chatInputCompleted,
          .sessionCustomizationToggled, .sessionIsReadChanged,

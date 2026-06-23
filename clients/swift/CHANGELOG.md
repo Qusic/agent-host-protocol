@@ -23,6 +23,21 @@ the tag matches the version pinned in [`VERSION`](VERSION).
   optional fields for communicating model token limits.
 - `SessionSummary.meta` (`_meta` on the wire) optional provider metadata field
   for lightweight session-list presentation hints.
+- `SessionActiveClientRemovedAction` (`StateAction.sessionActiveClientRemoved`,
+  wire `session/activeClientRemoved`) to release a single active client by
+  `clientId`.
+
+### Changed
+
+- `SessionState.activeClients` (`[SessionActiveClient]`, required) replaces the
+  single optional `SessionState.activeClient`; the session reducer upserts and
+  removes entries keyed by `clientId`.
+- `StateAction.sessionActiveClientChanged` is renamed to
+  `StateAction.sessionActiveClientSet` (wire `session/activeClientSet`) with
+  upsert-by-`clientId` semantics; it no longer unsets the active client
+  (dispatch `session/activeClientRemoved` instead).
+- `SessionActiveClientToolsChangedAction` gains a `clientId` field naming which
+  active client's tools changed.
 
 ### Changed
 

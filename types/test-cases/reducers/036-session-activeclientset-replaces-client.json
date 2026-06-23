@@ -1,5 +1,5 @@
 {
-  "description": "session/activeClientToolsChanged updates tools for the named client",
+  "description": "session/activeClientSet replaces an existing client",
   "reducer": "session",
   "initial": {
     "summary": {
@@ -14,6 +14,7 @@
     "activeClients": [
       {
         "clientId": "vscode-1",
+        "displayName": "VS Code",
         "tools": []
       }
     ],
@@ -21,14 +22,17 @@
   },
   "actions": [
     {
-      "type": "session/activeClientToolsChanged",
-      "clientId": "vscode-1",
-      "tools": [
-        {
-          "name": "openFile",
-          "description": "Open a file"
-        }
-      ]
+      "type": "session/activeClientSet",
+      "activeClient": {
+        "clientId": "vscode-1",
+        "displayName": "VS Code Insiders",
+        "tools": [
+          {
+            "name": "openFile",
+            "description": "Open a file"
+          }
+        ]
+      }
     }
   ],
   "expected": {
@@ -44,6 +48,7 @@
     "activeClients": [
       {
         "clientId": "vscode-1",
+        "displayName": "VS Code Insiders",
         "tools": [
           {
             "name": "openFile",
