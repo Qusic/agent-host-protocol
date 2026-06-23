@@ -19,6 +19,17 @@ matching `## [X.Y.Z]` heading is missing from this file.
 
 - `SessionSummary.meta` (`_meta` on the wire) optional provider metadata field
   for lightweight session-list presentation hints.
+- `ahp-ws` TLS backend is now selectable via Cargo features: `native-tls`,
+  `rustls-tls-native-roots` (default), and `rustls-tls-webpki-roots`. The crate
+  no longer forces `tokio-tungstenite/native-tls` onto the dependency graph, so
+  downstream binaries are free to choose their own WebSocket TLS stack.
+
+### Changed
+
+- `ahp-ws` now defaults to rustls (`rustls-tls-native-roots`, `ring` provider)
+  instead of `native-tls`, dropping the OpenSSL link on Linux while still
+  validating against the OS trust store. To keep the previous behaviour, depend
+  on `ahp-ws` with `default-features = false, features = ["native-tls"]`.
 
 ## [0.4.0] — 2026-06-19
 

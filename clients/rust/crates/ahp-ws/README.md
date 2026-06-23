@@ -5,7 +5,7 @@ WebSocket transport for the [Agent Host Protocol (AHP)](https://github.com/micro
 [![crates.io](https://img.shields.io/crates/v/ahp-ws.svg)](https://crates.io/crates/ahp-ws)
 [![docs.rs](https://img.shields.io/docsrs/ahp-ws)](https://docs.rs/ahp-ws)
 
-Implements [`ahp::Transport`](https://docs.rs/ahp/latest/ahp/transport/trait.Transport.html) using [`tokio-tungstenite`](https://crates.io/crates/tokio-tungstenite), supporting both `ws://` and `wss://` (TLS via `native-tls`).
+Implements [`ahp::Transport`](https://docs.rs/ahp/latest/ahp/transport/trait.Transport.html) using [`tokio-tungstenite`](https://crates.io/crates/tokio-tungstenite), supporting both `ws://` and `wss://`.
 
 ## Usage
 
@@ -41,6 +41,18 @@ async fn main() -> anyhow::Result<()> {
 
 - **[`WebSocketTransport::connect(url)`](https://docs.rs/ahp-ws/latest/ahp_ws/struct.WebSocketTransport.html#method.connect)** — open a new connection
 - **[`WebSocketTransport::from_stream(stream)`](https://docs.rs/ahp-ws/latest/ahp_ws/struct.WebSocketTransport.html#method.from_stream)** — wrap an existing `tokio-tungstenite` stream for custom TLS or connection options
+
+## TLS backends
+
+`wss://` support is selected by Cargo feature. The default is `rustls-tls-native-roots`: a pure-Rust TLS stack (no OpenSSL on Linux) with roots loaded from the OS trust store, so dials through a TLS-intercepting egress proxy keep working. Override it with `default-features = false` and pick one:
+
+| Feature | TLS stack | Trust roots |
+| --- | --- | --- |
+| `rustls-tls-native-roots` (default) | rustls (pure Rust) | OS trust store |
+| `rustls-tls-webpki-roots` | rustls (pure Rust) | bundled Mozilla roots |
+| `native-tls` | platform (SChannel / Secure Transport / OpenSSL) | OS trust store |
+
+With no TLS feature enabled, only `ws://` works; `wss://` fails at connect time. The rustls backends use the `ring` crypto provider.
 
 ## See also
 
