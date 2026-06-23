@@ -596,6 +596,10 @@ public struct SessionModelInfo: Codable, Sendable {
     public var name: String
     /// Maximum context window size
     public var maxContextWindow: Int?
+    /// Maximum number of output tokens the model can generate
+    public var maxOutputTokens: Int?
+    /// Maximum number of prompt (input) tokens the model accepts
+    public var maxPromptTokens: Int?
     /// Whether the model supports vision
     public var supportsVision: Bool?
     /// Policy configuration state
@@ -615,6 +619,8 @@ public struct SessionModelInfo: Codable, Sendable {
         case provider
         case name
         case maxContextWindow
+        case maxOutputTokens
+        case maxPromptTokens
         case supportsVision
         case policyState
         case configSchema
@@ -626,6 +632,8 @@ public struct SessionModelInfo: Codable, Sendable {
         provider: String,
         name: String,
         maxContextWindow: Int? = nil,
+        maxOutputTokens: Int? = nil,
+        maxPromptTokens: Int? = nil,
         supportsVision: Bool? = nil,
         policyState: PolicyState? = nil,
         configSchema: ConfigSchema? = nil,
@@ -635,6 +643,8 @@ public struct SessionModelInfo: Codable, Sendable {
         self.provider = provider
         self.name = name
         self.maxContextWindow = maxContextWindow
+        self.maxOutputTokens = maxOutputTokens
+        self.maxPromptTokens = maxPromptTokens
         self.supportsVision = supportsVision
         self.policyState = policyState
         self.configSchema = configSchema

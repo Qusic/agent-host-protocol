@@ -895,6 +895,14 @@ data class SessionModelInfo(
      */
     val maxContextWindow: Long? = null,
     /**
+     * Maximum number of output tokens the model can generate
+     */
+    val maxOutputTokens: Long? = null,
+    /**
+     * Maximum number of prompt (input) tokens the model accepts
+     */
+    val maxPromptTokens: Long? = null,
+    /**
      * Whether the model supports vision
      */
     val supportsVision: Boolean? = null,

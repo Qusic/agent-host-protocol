@@ -17,6 +17,8 @@ matching `## [X.Y.Z]` heading is missing from this file.
 
 ### Added
 
+- `SessionModelInfo.maxOutputTokens` and `SessionModelInfo.maxPromptTokens`
+  optional fields for communicating model token limits.
 - `SessionSummary.meta` (`_meta` on the wire) optional provider metadata field
   for lightweight session-list presentation hints.
 - `ahp-ws` TLS backend is now selectable via Cargo features: `native-tls`,

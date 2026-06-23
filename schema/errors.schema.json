@@ -631,6 +631,14 @@
           "type": "number",
           "description": "Maximum context window size"
         },
+        "maxOutputTokens": {
+          "type": "number",
+          "description": "Maximum number of output tokens the model can generate"
+        },
+        "maxPromptTokens": {
+          "type": "number",
+          "description": "Maximum number of prompt (input) tokens the model accepts"
+        },
         "supportsVision": {
           "type": "boolean",
           "description": "Whether the model supports vision"

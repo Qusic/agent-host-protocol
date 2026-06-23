@@ -16,6 +16,8 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 
 ### Added
 
+- `SessionModelInfo.MaxOutputTokens` and `SessionModelInfo.MaxPromptTokens`
+  optional fields for communicating model token limits.
 - `SessionSummary.Meta` (wire `_meta`) optional provider metadata field for
   lightweight session-list presentation hints.
 
