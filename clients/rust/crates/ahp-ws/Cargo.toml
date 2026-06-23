@@ -39,8 +39,9 @@ tokio = { workspace = true, features = ["rt", "sync", "macros"] }
 tokio-tungstenite = { version = "0.29", default-features = false, features = ["connect", "handshake"] }
 thiserror = { workspace = true }
 url = "2"
-# Only linked by the rustls-* features. The `ring` provider keeps the build
-# portable (no C toolchain, unlike aws-lc-rs) and makes rustls 0.23's
-# `CryptoProvider::get_default()` resolve, which tokio-tungstenite's rustls
-# connector relies on — without a provider the first `wss://` dial panics.
+# Only linked by the rustls-* features. The `ring` provider builds without
+# cmake/NASM (unlike aws-lc-rs) and links no external/system TLS library
+# (no OpenSSL), and it makes rustls 0.23's `CryptoProvider::get_default()`
+# resolve, which tokio-tungstenite's rustls connector relies on — without a
+# provider the first `wss://` dial panics.
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"], optional = true }

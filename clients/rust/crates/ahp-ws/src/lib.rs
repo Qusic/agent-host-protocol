@@ -27,6 +27,13 @@
 //! With no TLS feature enabled, only `ws://` works and `wss://` fails at
 //! connect time.
 //!
+//! If more than one backend ends up enabled — which Cargo feature
+//! unification can do when several crates in the graph request different
+//! ones — `native-tls` takes precedence over the rustls backends, because
+//! `tokio-tungstenite`'s automatic connector prefers it. Disable the
+//! default with `default-features = false` if you need to guarantee a
+//! rustls backend.
+//!
 //! [rustls]: https://crates.io/crates/rustls
 //!
 //! # Companion crates
