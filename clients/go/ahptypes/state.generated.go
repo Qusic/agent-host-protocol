@@ -539,6 +539,10 @@ type SessionModelInfo struct {
 	Name string `json:"name"`
 	// Maximum context window size
 	MaxContextWindow *int64 `json:"maxContextWindow,omitempty"`
+	// Maximum number of output tokens the model can generate
+	MaxOutputTokens *int64 `json:"maxOutputTokens,omitempty"`
+	// Maximum number of prompt (input) tokens the model accepts
+	MaxPromptTokens *int64 `json:"maxPromptTokens,omitempty"`
 	// Whether the model supports vision
 	SupportsVision *bool `json:"supportsVision,omitempty"`
 	// Policy configuration state
