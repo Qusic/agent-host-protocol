@@ -84,6 +84,10 @@ enum class ActionType {
     SESSION_ACTIVE_CLIENT_SET,
     @SerialName("session/activeClientRemoved")
     SESSION_ACTIVE_CLIENT_REMOVED,
+    @SerialName("session/inputNeededSet")
+    SESSION_INPUT_NEEDED_SET,
+    @SerialName("session/inputNeededRemoved")
+    SESSION_INPUT_NEEDED_REMOVED,
     @SerialName("chat/pendingMessageSet")
     CHAT_PENDING_MESSAGE_SET,
     @SerialName("chat/pendingMessageRemoved")
@@ -794,6 +798,24 @@ data class SessionActiveClientRemovedAction(
 )
 
 @Serializable
+data class SessionInputNeededSetAction(
+    val type: ActionType,
+    /**
+     * The input request to add or update, matched by `id`.
+     */
+    val request: SessionInputRequest
+)
+
+@Serializable
+data class SessionInputNeededRemovedAction(
+    val type: ActionType,
+    /**
+     * The `id` of the input request to remove.
+     */
+    val id: String
+)
+
+@Serializable
 data class ChatPendingMessageSetAction(
     val type: ActionType,
     /**
@@ -1367,6 +1389,8 @@ sealed interface StateAction
 @JvmInline value class StateActionSessionServerToolsChanged(val value: SessionServerToolsChangedAction) : StateAction
 @JvmInline value class StateActionSessionActiveClientSet(val value: SessionActiveClientSetAction) : StateAction
 @JvmInline value class StateActionSessionActiveClientRemoved(val value: SessionActiveClientRemovedAction) : StateAction
+@JvmInline value class StateActionSessionInputNeededSet(val value: SessionInputNeededSetAction) : StateAction
+@JvmInline value class StateActionSessionInputNeededRemoved(val value: SessionInputNeededRemovedAction) : StateAction
 @JvmInline value class StateActionChatPendingMessageSet(val value: ChatPendingMessageSetAction) : StateAction
 @JvmInline value class StateActionChatPendingMessageRemoved(val value: ChatPendingMessageRemovedAction) : StateAction
 @JvmInline value class StateActionChatQueuedMessagesReordered(val value: ChatQueuedMessagesReorderedAction) : StateAction
@@ -1455,6 +1479,8 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             "session/serverToolsChanged" -> StateActionSessionServerToolsChanged(input.json.decodeFromJsonElement(SessionServerToolsChangedAction.serializer(), element))
             "session/activeClientSet" -> StateActionSessionActiveClientSet(input.json.decodeFromJsonElement(SessionActiveClientSetAction.serializer(), element))
             "session/activeClientRemoved" -> StateActionSessionActiveClientRemoved(input.json.decodeFromJsonElement(SessionActiveClientRemovedAction.serializer(), element))
+            "session/inputNeededSet" -> StateActionSessionInputNeededSet(input.json.decodeFromJsonElement(SessionInputNeededSetAction.serializer(), element))
+            "session/inputNeededRemoved" -> StateActionSessionInputNeededRemoved(input.json.decodeFromJsonElement(SessionInputNeededRemovedAction.serializer(), element))
             "chat/pendingMessageSet" -> StateActionChatPendingMessageSet(input.json.decodeFromJsonElement(ChatPendingMessageSetAction.serializer(), element))
             "chat/pendingMessageRemoved" -> StateActionChatPendingMessageRemoved(input.json.decodeFromJsonElement(ChatPendingMessageRemovedAction.serializer(), element))
             "chat/queuedMessagesReordered" -> StateActionChatQueuedMessagesReordered(input.json.decodeFromJsonElement(ChatQueuedMessagesReorderedAction.serializer(), element))
@@ -1536,6 +1562,8 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             is StateActionSessionServerToolsChanged -> output.json.encodeToJsonElement(SessionServerToolsChangedAction.serializer(), value.value)
             is StateActionSessionActiveClientSet -> output.json.encodeToJsonElement(SessionActiveClientSetAction.serializer(), value.value)
             is StateActionSessionActiveClientRemoved -> output.json.encodeToJsonElement(SessionActiveClientRemovedAction.serializer(), value.value)
+            is StateActionSessionInputNeededSet -> output.json.encodeToJsonElement(SessionInputNeededSetAction.serializer(), value.value)
+            is StateActionSessionInputNeededRemoved -> output.json.encodeToJsonElement(SessionInputNeededRemovedAction.serializer(), value.value)
             is StateActionChatPendingMessageSet -> output.json.encodeToJsonElement(ChatPendingMessageSetAction.serializer(), value.value)
             is StateActionChatPendingMessageRemoved -> output.json.encodeToJsonElement(ChatPendingMessageRemovedAction.serializer(), value.value)
             is StateActionChatQueuedMessagesReordered -> output.json.encodeToJsonElement(ChatQueuedMessagesReorderedAction.serializer(), value.value)

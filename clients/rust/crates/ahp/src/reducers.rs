@@ -61,6 +61,7 @@ use ahp_types::state::{
     ChatInputRequest, ChatState, ChildCustomization, ConfirmationOption, Customization, ErrorInfo,
     PendingMessage, PendingMessageKind, ResourceWatchState, ResponsePart, RootState,
     SessionLifecycle, SessionState, SessionStatus, TerminalCommandPart, TerminalContentPart,
+    SessionInputRequest,
     TerminalState, TerminalUnclassifiedPart, ToolCallCancellationReason, ToolCallCancelledState,
     ToolCallCompletedState, ToolCallConfirmationReason, ToolCallContributor,
     ToolCallPendingConfirmationState, ToolCallPendingResultConfirmationState, ToolCallResponsePart,
@@ -364,6 +365,15 @@ fn customization_id(c: &Customization) -> Option<&str> {
     }
 }
 
+fn session_input_request_id(r: &SessionInputRequest) -> Option<&str> {
+    match r {
+        SessionInputRequest::ChatInput(x) => Some(x.id.as_str()),
+        SessionInputRequest::ToolConfirmation(x) => Some(x.id.as_str()),
+        SessionInputRequest::ToolClientExecution(x) => Some(x.id.as_str()),
+        SessionInputRequest::Unknown(_) => None,
+    }
+}
+
 fn child_id_of(c: &ChildCustomization) -> Option<&str> {
     match c {
         ChildCustomization::Agent(x) => Some(x.id.as_str()),
@@ -660,6 +670,34 @@ pub fn apply_action_to_session(state: &mut SessionState, action: &StateAction) -
                 return ReduceOutcome::NoOp;
             };
             state.active_clients.remove(idx);
+            ReduceOutcome::Applied
+        }
+        StateAction::SessionInputNeededSet(a) => {
+            let Some(action_id) = session_input_request_id(&a.request) else {
+                return ReduceOutcome::NoOp;
+            };
+            let list = state.input_needed.get_or_insert_with(Vec::new);
+            if let Some(idx) = list
+                .iter()
+                .position(|r| session_input_request_id(r) == Some(action_id))
+            {
+                list[idx] = a.request.clone();
+            } else {
+                list.push(a.request.clone());
+            }
+            ReduceOutcome::Applied
+        }
+        StateAction::SessionInputNeededRemoved(a) => {
+            let Some(list) = state.input_needed.as_mut() else {
+                return ReduceOutcome::NoOp;
+            };
+            let Some(idx) = list
+                .iter()
+                .position(|r| session_input_request_id(r) == Some(a.id.as_str()))
+            else {
+                return ReduceOutcome::NoOp;
+            };
+            list.remove(idx);
             ReduceOutcome::Applied
         }
         StateAction::SessionCustomizationsChanged(a) => {
@@ -1578,6 +1616,7 @@ mod tests {
             config: None,
             customizations: None,
             changesets: None,
+            input_needed: None,
             meta: None,
         }
     }

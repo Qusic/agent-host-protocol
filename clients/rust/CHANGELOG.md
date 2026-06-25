@@ -23,6 +23,12 @@ matching `## [X.Y.Z]` heading is missing from this file.
   for lightweight session-list presentation hints.
 - `StateAction::SessionActiveClientRemoved` (`SessionActiveClientRemovedAction`)
   to release a single active client by `client_id`.
+- `SessionState.input_needed` — a session-level aggregate of outstanding input
+  requests across all chats (`SessionInputRequest` enum with
+  `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
+  `SessionToolClientExecutionRequest` variants), plus the
+  `StateAction::SessionInputNeededSet` / `StateAction::SessionInputNeededRemoved`
+  actions and the `ToolCallConfirmationState` union.
 - `ahp-ws` TLS backend is now selectable via Cargo features: `native-tls`,
   `rustls-tls-native-roots` (default), and `rustls-tls-webpki-roots`. The crate
   no longer forces `tokio-tungstenite/native-tls` onto the dependency graph, so

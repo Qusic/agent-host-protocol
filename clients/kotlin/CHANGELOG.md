@@ -24,6 +24,12 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 - `SessionActiveClientRemovedAction` (`StateActionSessionActiveClientRemoved`,
   wire `session/activeClientRemoved`) to release a single active client by
   `clientId`.
+- `SessionState.inputNeeded` — a session-level aggregate of outstanding input
+  requests across all chats (`SessionInputRequest` sealed interface with
+  `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
+  `SessionToolClientExecutionRequest`), plus the `SessionInputNeededSetAction` /
+  `SessionInputNeededRemovedAction` actions and the `ToolCallConfirmationState`
+  union.
 
 ### Changed
 

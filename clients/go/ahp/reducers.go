@@ -263,6 +263,18 @@ func customizationID(c ahptypes.Customization) (string, bool) {
 	return "", false
 }
 
+func sessionInputRequestID(r ahptypes.SessionInputRequest) (string, bool) {
+	switch v := r.Value.(type) {
+	case *ahptypes.SessionChatInputRequest:
+		return v.Id, true
+	case *ahptypes.SessionToolConfirmationRequest:
+		return v.Id, true
+	case *ahptypes.SessionToolClientExecutionRequest:
+		return v.Id, true
+	}
+	return "", false
+}
+
 func childCustomizationID(c ahptypes.ChildCustomization) (string, bool) {
 	switch v := c.Value.(type) {
 	case *ahptypes.AgentCustomization:
@@ -739,6 +751,27 @@ func ApplyActionToSession(state *ahptypes.SessionState, action ahptypes.StateAct
 		for i := range state.ActiveClients {
 			if state.ActiveClients[i].ClientId == a.ClientId {
 				state.ActiveClients = append(state.ActiveClients[:i], state.ActiveClients[i+1:]...)
+				return ReduceOutcomeApplied
+			}
+		}
+		return ReduceOutcomeNoOp
+	case *ahptypes.SessionInputNeededSetAction:
+		id, ok := sessionInputRequestID(a.Request)
+		if !ok {
+			return ReduceOutcomeNoOp
+		}
+		for i := range state.InputNeeded {
+			if got, ok := sessionInputRequestID(state.InputNeeded[i]); ok && got == id {
+				state.InputNeeded[i] = a.Request
+				return ReduceOutcomeApplied
+			}
+		}
+		state.InputNeeded = append(state.InputNeeded, a.Request)
+		return ReduceOutcomeApplied
+	case *ahptypes.SessionInputNeededRemovedAction:
+		for i := range state.InputNeeded {
+			if got, ok := sessionInputRequestID(state.InputNeeded[i]); ok && got == a.Id {
+				state.InputNeeded = append(state.InputNeeded[:i], state.InputNeeded[i+1:]...)
 				return ReduceOutcomeApplied
 			}
 		}

@@ -181,6 +181,33 @@ export function sessionReducer(state: SessionState, action: SessionAction, log?:
       return { ...state, activeClients: updated };
     }
 
+    // ── Input Needed ────────────────────────────────────────────────────
+
+    case ActionType.SessionInputNeededSet: {
+      const list = state.inputNeeded ?? [];
+      const idx = list.findIndex(r => r.id === action.request.id);
+      if (idx < 0) {
+        return { ...state, inputNeeded: [...list, action.request] };
+      }
+      const updated = list.slice();
+      updated[idx] = action.request;
+      return { ...state, inputNeeded: updated };
+    }
+
+    case ActionType.SessionInputNeededRemoved: {
+      const list = state.inputNeeded;
+      if (!list) {
+        return state;
+      }
+      const idx = list.findIndex(r => r.id === action.id);
+      if (idx < 0) {
+        return state;
+      }
+      const updated = list.slice();
+      updated.splice(idx, 1);
+      return { ...state, inputNeeded: updated };
+    }
+
     // ── Customizations ──────────────────────────────────────────────────
 
     case ActionType.SessionCustomizationsChanged:

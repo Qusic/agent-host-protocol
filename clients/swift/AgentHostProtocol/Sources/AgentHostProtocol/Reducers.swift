@@ -35,6 +35,16 @@ private func resolveSelectedOption(_ options: [ConfirmationOption]?, id: String?
     return options.first { $0.id == id }
 }
 
+/// Extracts the stable `id` of a session input request, or `nil` for unknown variants.
+private func sessionInputRequestID(_ r: SessionInputRequest) -> String? {
+    switch r {
+    case .chatInput(let x): return x.id
+    case .toolConfirmation(let x): return x.id
+    case .toolClientExecution(let x): return x.id
+    case .unknown: return nil
+    }
+}
+
 // MARK: - Root Reducer
 
 /// Pure reducer for root state.
@@ -585,6 +595,26 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
         guard let idx = state.activeClients.firstIndex(where: { $0.clientId == a.clientId }) else { return state }
         var next = state
         next.activeClients.remove(at: idx)
+        return next
+
+    case .sessionInputNeededSet(let a):
+        guard let id = sessionInputRequestID(a.request) else { return state }
+        var next = state
+        var list = next.inputNeeded ?? []
+        if let idx = list.firstIndex(where: { sessionInputRequestID($0) == id }) {
+            list[idx] = a.request
+        } else {
+            list.append(a.request)
+        }
+        next.inputNeeded = list
+        return next
+
+    case .sessionInputNeededRemoved(let a):
+        guard var list = state.inputNeeded,
+              let idx = list.firstIndex(where: { sessionInputRequestID($0) == a.id }) else { return state }
+        var next = state
+        list.remove(at: idx)
+        next.inputNeeded = list
         return next
 
     // ── Customizations ──────────────────────────────────────────────────

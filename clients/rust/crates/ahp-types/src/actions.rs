@@ -16,9 +16,9 @@ use crate::state::{
     ChangesetOperation, ChangesetOperationStatus, ChangesetStatus, ChatInputAnswer,
     ChatInputRequest, ChatInputResponseKind, ChatInteractivity, ChatOrigin, ChatSummary,
     ConfirmationOption, Customization, ErrorInfo, McpServerState, Message, ModelSelection,
-    PendingMessageKind, ResponsePart, SessionActiveClient, TerminalClaim, TerminalInfo, TextRange,
-    ToolCallCancellationReason, ToolCallConfirmationReason, ToolCallContributor, ToolCallResult,
-    ToolDefinition, ToolResultContent, UsageInfo,
+    PendingMessageKind, ResponsePart, SessionActiveClient, SessionInputRequest, TerminalClaim,
+    TerminalInfo, TextRange, ToolCallCancellationReason, ToolCallConfirmationReason,
+    ToolCallContributor, ToolCallResult, ToolDefinition, ToolResultContent, UsageInfo,
 };
 
 // ─── ActionType ──────────────────────────────────────────────────────
@@ -84,6 +84,10 @@ pub enum ActionType {
     SessionActiveClientSet,
     #[serde(rename = "session/activeClientRemoved")]
     SessionActiveClientRemoved,
+    #[serde(rename = "session/inputNeededSet")]
+    SessionInputNeededSet,
+    #[serde(rename = "session/inputNeededRemoved")]
+    SessionInputNeededRemoved,
     #[serde(rename = "chat/pendingMessageSet")]
     ChatPendingMessageSet,
     #[serde(rename = "chat/pendingMessageRemoved")]
@@ -823,6 +827,40 @@ pub struct SessionActiveClientRemovedAction {
     pub client_id: String,
 }
 
+/// A session-level input request was added or updated.
+///
+/// Upsert semantics keyed by {@link SessionInputRequest.id | `request.id`}: the
+/// host dispatches this with the full {@link SessionInputRequest} to append a new
+/// entry to {@link SessionState.inputNeeded} or replace the existing entry with
+/// the same `id`.
+///
+/// Server-originated: the host mirrors chat-level requests (elicitations, tool
+/// confirmations, client-tool executions) into the session aggregate so clients
+/// subscribed only to the session channel can discover them. Clients respond by
+/// dispatching the ordinary `chat/*` action to the entry's `chat` channel — see
+/// {@link SessionInputRequest}.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionInputNeededSetAction {
+    /// The input request to add or update, matched by `id`.
+    pub request: SessionInputRequest,
+}
+
+/// A session-level input request was removed.
+///
+/// Removes the entry identified by `id` from
+/// {@link SessionState.inputNeeded}; a no-op when no entry matches.
+///
+/// Server-originated: the host dispatches this once the underlying request
+/// resolves (the user answers, the tool call is confirmed, or the client
+/// reports its result).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionInputNeededRemovedAction {
+    /// The `id` of the input request to remove.
+    pub id: String,
+}
+
 /// A pending message was set (upsert semantics: creates or replaces).
 ///
 /// For steering messages, this always replaces the single steering message.
@@ -1530,6 +1568,10 @@ pub enum StateAction {
     SessionActiveClientSet(SessionActiveClientSetAction),
     #[serde(rename = "session/activeClientRemoved")]
     SessionActiveClientRemoved(SessionActiveClientRemovedAction),
+    #[serde(rename = "session/inputNeededSet")]
+    SessionInputNeededSet(SessionInputNeededSetAction),
+    #[serde(rename = "session/inputNeededRemoved")]
+    SessionInputNeededRemoved(SessionInputNeededRemovedAction),
     #[serde(rename = "chat/pendingMessageSet")]
     ChatPendingMessageSet(ChatPendingMessageSetAction),
     #[serde(rename = "chat/pendingMessageRemoved")]

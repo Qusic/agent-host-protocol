@@ -29,6 +29,13 @@ hotfix escape hatch.
 - Exported `JsonPrimitive` type alias (`string | number | boolean | null`).
 - `SessionActiveClientRemovedAction` (`session/activeClientRemoved`) to release
   a single active client by `clientId`.
+- `SessionState.inputNeeded` — a session-level aggregate of outstanding input
+  requests across all chats (`SessionInputRequest` union with
+  `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
+  `SessionToolClientExecutionRequest`), plus the `SessionInputNeededSetAction`
+  (`session/inputNeededSet`) and `SessionInputNeededRemovedAction`
+  (`session/inputNeededRemoved`) actions and the `ToolCallConfirmationState`
+  union.
 
 ### Changed
 

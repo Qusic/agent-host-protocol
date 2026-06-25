@@ -189,6 +189,14 @@ private fun customizationId(c: Customization): String? = when (c) {
     is CustomizationUnknown -> null
 }
 
+private fun sessionInputRequestId(r: SessionInputRequest): String? = when (r) {
+    is SessionInputRequestChatInput -> r.value.id
+    is SessionInputRequestToolConfirmation -> r.value.id
+    is SessionInputRequestToolClientExecution -> r.value.id
+    // Unknown variants carry an opaque `raw` JSON object — no id to expose.
+    is SessionInputRequestUnknown -> null
+}
+
 private fun customizationChildren(c: Customization): List<ChildCustomization>? = when (c) {
     is CustomizationPlugin -> c.value.children
     is CustomizationDirectory -> c.value.children
@@ -550,6 +558,34 @@ public fun sessionReducer(state: SessionState, action: StateAction): SessionStat
             val updated = state.activeClients.toMutableList()
             updated.removeAt(idx)
             state.copy(activeClients = updated)
+        }
+    }
+
+    is StateActionSessionInputNeededSet -> {
+        val request = action.value.request
+        val id = sessionInputRequestId(request)
+        if (id == null) state else {
+            val list = state.inputNeeded ?: emptyList()
+            val idx = list.indexOfFirst { sessionInputRequestId(it) == id }
+            if (idx < 0) {
+                state.copy(inputNeeded = list + request)
+            } else {
+                val updated = list.toMutableList()
+                updated[idx] = request
+                state.copy(inputNeeded = updated)
+            }
+        }
+    }
+
+    is StateActionSessionInputNeededRemoved -> {
+        val list = state.inputNeeded
+        if (list == null) state else {
+            val idx = list.indexOfFirst { sessionInputRequestId(it) == action.value.id }
+            if (idx < 0) state else {
+                val updated = list.toMutableList()
+                updated.removeAt(idx)
+                state.copy(inputNeeded = updated)
+            }
         }
     }
 

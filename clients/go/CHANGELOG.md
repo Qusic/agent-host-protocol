@@ -22,6 +22,13 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
   lightweight session-list presentation hints.
 - `SessionActiveClientRemovedAction` (wire `session/activeClientRemoved`) to
   release a single active client by `ClientId`.
+- `SessionState.InputNeeded` — a session-level aggregate of outstanding input
+  requests across all chats (`SessionInputRequest` union with
+  `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
+  `SessionToolClientExecutionRequest`), plus the `SessionInputNeededSetAction`
+  (wire `session/inputNeededSet`) and `SessionInputNeededRemovedAction` (wire
+  `session/inputNeededRemoved`) actions and the `ToolCallConfirmationState`
+  union.
 
 ### Changed
 

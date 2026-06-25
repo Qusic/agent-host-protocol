@@ -32,6 +32,18 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 - `JsonPrimitive` type alias (`string | number | boolean | null`) in `types/common/state.ts`.
 - `session/activeClientRemoved` action to release a single active client from a
   session by `clientId`.
+- `SessionState.inputNeeded` — a session-level aggregate of outstanding input
+  requests across all chats, so a client can discover and answer elicitations,
+  tool confirmations, and client-tool execution requests from the session
+  channel without subscribing to individual chats. Each entry
+  (`SessionChatInputRequest`, `SessionToolConfirmationRequest`,
+  `SessionToolClientExecutionRequest`, unioned as `SessionInputRequest`) carries
+  the owning chat URI plus the identifiers needed to respond.
+- `session/inputNeededSet` and `session/inputNeededRemoved` actions for the host
+  to upsert and remove `SessionState.inputNeeded` entries.
+- `ToolCallConfirmationState` union (`ToolCallPendingConfirmationState |
+  ToolCallPendingResultConfirmationState`) for the tool call carried by
+  `SessionToolConfirmationRequest`.
 
 ### Changed
 

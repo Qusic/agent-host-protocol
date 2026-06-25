@@ -26,6 +26,12 @@ the tag matches the version pinned in [`VERSION`](VERSION).
 - `SessionActiveClientRemovedAction` (`StateAction.sessionActiveClientRemoved`,
   wire `session/activeClientRemoved`) to release a single active client by
   `clientId`.
+- `SessionState.inputNeeded` — a session-level aggregate of outstanding input
+  requests across all chats (`SessionInputRequest` enum with
+  `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
+  `SessionToolClientExecutionRequest` cases), plus the
+  `StateAction.sessionInputNeededSet` / `StateAction.sessionInputNeededRemoved`
+  actions and the `ToolCallConfirmationState` union.
 
 ### Changed
 
