@@ -1439,13 +1439,13 @@ pub enum ChangesetOperationTarget {
 
 // ─── Notifications File Generator ────────────────────────────────────────────
 
-const NOTIFICATION_ENUMS = ['AuthRequiredReason', 'DownloadPhase'];
+const NOTIFICATION_ENUMS = ['AuthRequiredReason'];
 
 const NOTIFICATION_STRUCTS = [
   'SessionAddedParams',
   'SessionRemovedParams',
   'SessionSummaryChangedParams',
-  'DownloadProgressParams',
+  'ProgressParams',
   'AuthRequiredParams',
   'OtlpExportLogsParams',
   'OtlpExportTracesParams',

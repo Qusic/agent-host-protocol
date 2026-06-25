@@ -143,63 +143,41 @@ export interface SessionSummaryChangedParams {
   changes: Partial<SessionSummary>;
 }
 
-// ─── root/downloadProgress ───────────────────────────────────────────────────
+// ─── progress ────────────────────────────────────────────────────────────────
 
 /**
- * Lifecycle phase of a single download.
+ * Generic progress notification for a long-running operation.
  *
- * @category Protocol Notifications
- */
-export const enum DownloadPhase {
-  /** The download has begun; no bytes received yet. */
-  Started = 'started',
-  /** A throttled progress sample with bytes received so far. */
-  Progress = 'progress',
-  /** Terminal success frame; the resource is fully downloaded. */
-  Completed = 'completed',
-  /** Terminal failure frame; see {@link DownloadProgressParams.error}. */
-  Failed = 'failed',
-}
-
-/**
- * Broadcast on the root channel while the host downloads a resource on the
- * client's behalf — typically a multi-MB artifact fetched lazily the first time
- * it is needed (today: an agent's native SDK/runtime, `kind: 'agent-sdk'`). Lets
- * clients show a progress indicator instead of a silent multi-second hang.
+ * A client opts in to progress for a request by including a `progressToken` in
+ * that request (today: the `progressToken` field on `createSession`). If the
+ * server does long-running work to service the request — e.g. lazily
+ * downloading an agent's native SDK the first time a session of that provider
+ * is materialized — it emits `progress` notifications carrying the same token.
  *
- * The notification is intentionally **resource-agnostic** so the same channel
- * can report future downloads (additional agent runtimes, plugins, models, …)
- * without a new method. The `kind` discriminant categorizes the resource and
- * `resourceId` identifies it within that kind; clients that don't care can show
- * a single generic indicator driven by `displayName` + the byte counts.
- *
- * This is **host-level**, not session state: the artifact is shared across every
- * consumer and the host deduplicates concurrent fetches into one download (one
- * `downloadId`). The optional `session` field names the session whose action
- * triggered the fetch, purely as context — a client MAY attribute the progress
- * to that session's row, or show a single global indicator and ignore it.
+ * The notification is operation-agnostic: it says nothing about *what* is
+ * progressing. The client correlates `progressToken` back to the request it
+ * originated from (and thus the UI surface awaiting it) and renders its own
+ * localized indicator. The same channel serves any future long-running
+ * operation without a new method.
  *
  * Semantics:
  *
- * - Frames for one download share a stable `downloadId`. The first frame a
- *   client observes for a `downloadId` begins the indicator even if it is not
- *   `phase: 'started'` (a client that connects mid-download may miss the
- *   `started` frame).
- * - `receivedBytes` is monotonically non-decreasing within a `downloadId`.
- *   `totalBytes` is present only when the host knows the size up front
+ * - `progress` is monotonically non-decreasing for a given `progressToken`.
+ * - `total` is present only when the server knows the magnitude up front
  *   (e.g. a `Content-Length`); when absent the client SHOULD show an
  *   indeterminate indicator.
- * - Exactly one terminal frame (`phase: 'completed'` or `'failed'`) ends a
- *   download. `error` carries a short, non-localized reason on failure.
+ * - The operation is complete when `progress === total`. The server MUST emit a
+ *   final frame satisfying `progress === total`; when the total was never
+ *   known, it sets `total` to the final `progress` on that frame. No further
+ *   frames reference the token afterwards.
+ * - The server MAY emit no progress at all (e.g. the work was already done);
+ *   the client then never shows an indicator.
  * - Like all notifications this is ephemeral and is **not** replayed on
- *   reconnect. A client that never receives a terminal frame (the download
- *   finished while it was disconnected) SHOULD expire the indicator after an
- *   idle timeout.
- * - The brand noun is carried in `displayName`; clients own the surrounding
- *   (localized) template, e.g. `"Downloading {displayName}… {pct}%"`.
+ *   reconnect. A client that never receives the terminal frame SHOULD expire
+ *   the indicator after an idle timeout.
  *
  * @category Protocol Notifications
- * @method root/downloadProgress
+ * @method root/progress
  * @direction Server → Client
  * @messageType Notification
  * @version 1
@@ -207,56 +185,39 @@ export const enum DownloadPhase {
  * ```json
  * {
  *   "jsonrpc": "2.0",
- *   "method": "root/downloadProgress",
+ *   "method": "root/progress",
  *   "params": {
  *     "channel": "ahp-root://",
- *     "downloadId": "d3f1c2",
- *     "kind": "agent-sdk",
- *     "resourceId": "claude",
- *     "displayName": "Claude",
- *     "phase": "progress",
- *     "receivedBytes": 18874368,
- *     "totalBytes": 41957498,
- *     "session": "ahp-session:/<uuid>"
+ *     "progressToken": "9b2c1f7e-4a0d-4e2b-8b1a-2f7e4a0d4e2b",
+ *     "progress": 18874368,
+ *     "total": 41957498
  *   }
  * }
  * ```
  */
-export interface DownloadProgressParams {
-  /** Channel URI this notification belongs to (the root channel) */
+export interface ProgressParams {
+  /** Channel URI this notification belongs to (the root channel). */
   channel: URI;
   /**
-   * Stable id for one download. Coalesces the frames of a single fetch and
-   * distinguishes concurrent downloads (e.g. two resources at once).
+   * Echoes the `progressToken` the client supplied on the originating request
+   * (e.g. the `progressToken` field of `createSession`), correlating this frame
+   * to that call. Unique across the client's active requests.
    */
-  downloadId: string;
+  progressToken: string;
   /**
-   * Category of resource being downloaded. An open string (not a closed enum)
-   * so new resource types can be reported without a protocol bump. Known
-   * values today: `'agent-sdk'` (an agent's native SDK/runtime).
+   * Progress so far, in operation-defined units (e.g. bytes received).
+   * Monotonically non-decreasing for a given `progressToken`.
    */
-  kind: string;
+  progress: number;
   /**
-   * Id of the resource within its {@link kind}, e.g. the provider id `'claude'`
-   * or `'codex'` for an `'agent-sdk'` download.
+   * Total when known up front (e.g. from a `Content-Length`); omitted ⇒
+   * indeterminate. The operation is complete once `progress === total`.
    */
-  resourceId: string;
+  total?: number;
   /**
-   * Human-readable brand name for display, e.g. `'Claude'`. The host supplies
-   * the noun; the client owns the surrounding localized template.
+   * Optional human-readable progress message. The client owns its own
+   * (localized) presentation derived from the originating request; generic
+   * clients that don't track the token MAY display this instead.
    */
-  displayName: string;
-  /** Lifecycle phase of this frame. */
-  phase: DownloadPhase;
-  /** Bytes written so far. Monotonically non-decreasing within a `downloadId`. */
-  receivedBytes: number;
-  /** Total bytes when known (e.g. from `Content-Length`); omitted ⇒ indeterminate. */
-  totalBytes?: number;
-  /**
-   * Session whose action triggered the fetch, if any. Informational only —
-   * the download is host-level and shared across sessions.
-   */
-  session?: URI;
-  /** Short, non-localized failure reason; present only when `phase: 'failed'`. */
-  error?: string;
+  message?: string;
 }

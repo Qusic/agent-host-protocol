@@ -22,9 +22,9 @@ hotfix escape hatch.
 
 ### Added
 
-- `root/downloadProgress` notification types (`DownloadProgressParams`,
-  `DownloadPhase`) for reporting host-side resource download progress (e.g. an
-  agent's native SDK fetched lazily on first use), so clients can show a progress
+- `ProgressParams` (wire `root/progress`) generic progress notification correlated by
+  a `progressToken`, plus `createSession.progressToken` to opt in. Used today for
+  the lazy first-use download of an agent's native SDK, so clients can show an
   indicator instead of a silent multi-second hang.
 - `SessionModelInfo.maxOutputTokens` and `SessionModelInfo.maxPromptTokens`
   optional fields for communicating model token limits.

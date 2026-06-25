@@ -145,59 +145,35 @@
         "changes"
       ]
     },
-    "DownloadProgressParams": {
+    "ProgressParams": {
       "type": "object",
-      "description": "Broadcast on the root channel while the host downloads a resource on the\nclient's behalf — typically a multi-MB artifact fetched lazily the first time\nit is needed (today: an agent's native SDK/runtime, `kind: 'agent-sdk'`). Lets\nclients show a progress indicator instead of a silent multi-second hang.\n\nThe notification is intentionally **resource-agnostic** so the same channel\ncan report future downloads (additional agent runtimes, plugins, models, …)\nwithout a new method. The `kind` discriminant categorizes the resource and\n`resourceId` identifies it within that kind; clients that don't care can show\na single generic indicator driven by `displayName` + the byte counts.\n\nThis is **host-level**, not session state: the artifact is shared across every\nconsumer and the host deduplicates concurrent fetches into one download (one\n`downloadId`). The optional `session` field names the session whose action\ntriggered the fetch, purely as context — a client MAY attribute the progress\nto that session's row, or show a single global indicator and ignore it.\n\nSemantics:\n\n- Frames for one download share a stable `downloadId`. The first frame a\n  client observes for a `downloadId` begins the indicator even if it is not\n  `phase: 'started'` (a client that connects mid-download may miss the\n  `started` frame).\n- `receivedBytes` is monotonically non-decreasing within a `downloadId`.\n  `totalBytes` is present only when the host knows the size up front\n  (e.g. a `Content-Length`); when absent the client SHOULD show an\n  indeterminate indicator.\n- Exactly one terminal frame (`phase: 'completed'` or `'failed'`) ends a\n  download. `error` carries a short, non-localized reason on failure.\n- Like all notifications this is ephemeral and is **not** replayed on\n  reconnect. A client that never receives a terminal frame (the download\n  finished while it was disconnected) SHOULD expire the indicator after an\n  idle timeout.\n- The brand noun is carried in `displayName`; clients own the surrounding\n  (localized) template, e.g. `\"Downloading {displayName}… {pct}%\"`.",
+      "description": "Generic progress notification for a long-running operation.\n\nA client opts in to progress for a request by including a `progressToken` in\nthat request (today: the `progressToken` field on `createSession`). If the\nserver does long-running work to service the request — e.g. lazily\ndownloading an agent's native SDK the first time a session of that provider\nis materialized — it emits `progress` notifications carrying the same token.\n\nThe notification is operation-agnostic: it says nothing about *what* is\nprogressing. The client correlates `progressToken` back to the request it\noriginated from (and thus the UI surface awaiting it) and renders its own\nlocalized indicator. The same channel serves any future long-running\noperation without a new method.\n\nSemantics:\n\n- `progress` is monotonically non-decreasing for a given `progressToken`.\n- `total` is present only when the server knows the magnitude up front\n  (e.g. a `Content-Length`); when absent the client SHOULD show an\n  indeterminate indicator.\n- The operation is complete when `progress === total`. The server MUST emit a\n  final frame satisfying `progress === total`; when the total was never\n  known, it sets `total` to the final `progress` on that frame. No further\n  frames reference the token afterwards.\n- The server MAY emit no progress at all (e.g. the work was already done);\n  the client then never shows an indicator.\n- Like all notifications this is ephemeral and is **not** replayed on\n  reconnect. A client that never receives the terminal frame SHOULD expire\n  the indicator after an idle timeout.",
       "properties": {
         "channel": {
           "$ref": "#/$defs/URI",
-          "description": "Channel URI this notification belongs to (the root channel)"
+          "description": "Channel URI this notification belongs to (the root channel)."
         },
-        "downloadId": {
+        "progressToken": {
           "type": "string",
-          "description": "Stable id for one download. Coalesces the frames of a single fetch and\ndistinguishes concurrent downloads (e.g. two resources at once)."
+          "description": "Echoes the `progressToken` the client supplied on the originating request\n(e.g. the `progressToken` field of `createSession`), correlating this frame\nto that call. Unique across the client's active requests."
         },
-        "kind": {
-          "type": "string",
-          "description": "Category of resource being downloaded. An open string (not a closed enum)\nso new resource types can be reported without a protocol bump. Known\nvalues today: `'agent-sdk'` (an agent's native SDK/runtime)."
-        },
-        "resourceId": {
-          "type": "string",
-          "description": "Id of the resource within its {@link kind}, e.g. the provider id `'claude'`\nor `'codex'` for an `'agent-sdk'` download."
-        },
-        "displayName": {
-          "type": "string",
-          "description": "Human-readable brand name for display, e.g. `'Claude'`. The host supplies\nthe noun; the client owns the surrounding localized template."
-        },
-        "phase": {
-          "$ref": "#/$defs/DownloadPhase",
-          "description": "Lifecycle phase of this frame."
-        },
-        "receivedBytes": {
+        "progress": {
           "type": "number",
-          "description": "Bytes written so far. Monotonically non-decreasing within a `downloadId`."
+          "description": "Progress so far, in operation-defined units (e.g. bytes received).\nMonotonically non-decreasing for a given `progressToken`."
         },
-        "totalBytes": {
+        "total": {
           "type": "number",
-          "description": "Total bytes when known (e.g. from `Content-Length`); omitted ⇒ indeterminate."
+          "description": "Total when known up front (e.g. from a `Content-Length`); omitted ⇒\nindeterminate. The operation is complete once `progress === total`."
         },
-        "session": {
-          "$ref": "#/$defs/URI",
-          "description": "Session whose action triggered the fetch, if any. Informational only —\nthe download is host-level and shared across sessions."
-        },
-        "error": {
+        "message": {
           "type": "string",
-          "description": "Short, non-localized failure reason; present only when `phase: 'failed'`."
+          "description": "Optional human-readable progress message. The client owns its own\n(localized) presentation derived from the originating request; generic\nclients that don't track the token MAY display this instead."
         }
       },
       "required": [
         "channel",
-        "downloadId",
-        "kind",
-        "resourceId",
-        "displayName",
-        "phase",
-        "receivedBytes"
+        "progressToken",
+        "progress"
       ]
     },
     "OtlpExportLogsParams": {
@@ -273,7 +249,7 @@
           "$ref": "#/$defs/SessionSummaryChangedParams"
         },
         {
-          "$ref": "#/$defs/DownloadProgressParams"
+          "$ref": "#/$defs/ProgressParams"
         },
         {
           "$ref": "#/$defs/OtlpExportLogsParams"

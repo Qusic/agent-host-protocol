@@ -38,33 +38,6 @@ enum class AuthRequiredReason {
     EXPIRED
 }
 
-/**
- * Lifecycle phase of a single download.
- */
-@Serializable
-enum class DownloadPhase {
-    /**
-     * The download has begun; no bytes received yet.
-     */
-    @SerialName("started")
-    STARTED,
-    /**
-     * A throttled progress sample with bytes received so far.
-     */
-    @SerialName("progress")
-    PROGRESS,
-    /**
-     * Terminal success frame; the resource is fully downloaded.
-     */
-    @SerialName("completed")
-    COMPLETED,
-    /**
-     * Terminal failure frame; see {@link DownloadProgressParams.error}.
-     */
-    @SerialName("failed")
-    FAILED
-}
-
 // ─── Notification Types ─────────────────────────────────────────────────────
 
 @Serializable
@@ -111,53 +84,33 @@ data class SessionSummaryChangedParams(
 )
 
 @Serializable
-data class DownloadProgressParams(
+data class ProgressParams(
     /**
-     * Channel URI this notification belongs to (the root channel)
+     * Channel URI this notification belongs to (the root channel).
      */
     val channel: String,
     /**
-     * Stable id for one download. Coalesces the frames of a single fetch and
-     * distinguishes concurrent downloads (e.g. two resources at once).
+     * Echoes the `progressToken` the client supplied on the originating request
+     * (e.g. the `progressToken` field of `createSession`), correlating this frame
+     * to that call. Unique across the client's active requests.
      */
-    val downloadId: String,
+    val progressToken: String,
     /**
-     * Category of resource being downloaded. An open string (not a closed enum)
-     * so new resource types can be reported without a protocol bump. Known
-     * values today: `'agent-sdk'` (an agent's native SDK/runtime).
+     * Progress so far, in operation-defined units (e.g. bytes received).
+     * Monotonically non-decreasing for a given `progressToken`.
      */
-    val kind: String,
+    val progress: Long,
     /**
-     * Id of the resource within its {@link kind}, e.g. the provider id `'claude'`
-     * or `'codex'` for an `'agent-sdk'` download.
+     * Total when known up front (e.g. from a `Content-Length`); omitted ⇒
+     * indeterminate. The operation is complete once `progress === total`.
      */
-    val resourceId: String,
+    val total: Long? = null,
     /**
-     * Human-readable brand name for display, e.g. `'Claude'`. The host supplies
-     * the noun; the client owns the surrounding localized template.
+     * Optional human-readable progress message. The client owns its own
+     * (localized) presentation derived from the originating request; generic
+     * clients that don't track the token MAY display this instead.
      */
-    val displayName: String,
-    /**
-     * Lifecycle phase of this frame.
-     */
-    val phase: DownloadPhase,
-    /**
-     * Bytes written so far. Monotonically non-decreasing within a `downloadId`.
-     */
-    val receivedBytes: Long,
-    /**
-     * Total bytes when known (e.g. from `Content-Length`); omitted ⇒ indeterminate.
-     */
-    val totalBytes: Long? = null,
-    /**
-     * Session whose action triggered the fetch, if any. Informational only —
-     * the download is host-level and shared across sessions.
-     */
-    val session: String? = null,
-    /**
-     * Short, non-localized failure reason; present only when `phase: 'failed'`.
-     */
-    val error: String? = null
+    val message: String? = null
 )
 
 @Serializable
