@@ -60,12 +60,12 @@ use ahp_types::state::{
     ActiveTurn, AnnotationsState, ChangesetOperationStatus, ChangesetState, ChangesetStatus,
     ChatInputRequest, ChatState, ChildCustomization, ConfirmationOption, Customization, ErrorInfo,
     PendingMessage, PendingMessageKind, ResourceWatchState, ResponsePart, RootState,
-    SessionLifecycle, SessionState, SessionStatus, TerminalCommandPart, TerminalContentPart,
-    SessionInputRequest,
-    TerminalState, TerminalUnclassifiedPart, ToolCallCancellationReason, ToolCallCancelledState,
-    ToolCallCompletedState, ToolCallConfirmationReason, ToolCallContributor,
-    ToolCallPendingConfirmationState, ToolCallPendingResultConfirmationState, ToolCallResponsePart,
-    ToolCallRunningState, ToolCallState, ToolCallStreamingState, Turn, TurnState,
+    SessionInputRequest, SessionLifecycle, SessionState, SessionStatus, TerminalCommandPart,
+    TerminalContentPart, TerminalState, TerminalUnclassifiedPart, ToolCallCancellationReason,
+    ToolCallCancelledState, ToolCallCompletedState, ToolCallConfirmationReason,
+    ToolCallContributor, ToolCallPendingConfirmationState, ToolCallPendingResultConfirmationState,
+    ToolCallResponsePart, ToolCallRunningState, ToolCallState, ToolCallStreamingState, Turn,
+    TurnState,
 };
 
 /// What happened when an action was applied.
