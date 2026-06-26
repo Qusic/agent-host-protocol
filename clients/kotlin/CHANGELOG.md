@@ -17,6 +17,12 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 
 ### Added
 
+- `ChatDraftChangedAction` (`StateActionChatDraftChanged`, wire
+  `chat/draftChanged`) and `ChatState.draft` (`Message?`) for syncing a chat's
+  in-progress input draft; `chatReducer` sets or clears `draft` without stamping
+  `modifiedAt`.
+- `Message.model` and `Message.agent` optional fields recording the model /
+  agent selection a message was composed with.
 - `ProgressParams` data class (wire `root/progress`) — a generic progress
   notification correlated by a `progressToken` (added on `CreateSessionParams`).
   Used today for the lazy first-use download of an agent's native SDK.
@@ -30,6 +36,15 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 
 ### Changed
 
+- `SessionState` no longer embeds a `summary` sub-object; its metadata fields
+  (`provider`, `title`, `status`, `activity`, `project`, `workingDirectory`,
+  `annotations`) are inlined directly on `SessionState`, which no longer carries
+  `model`, `agent`, `createdAt`, or `modifiedAt`. `sessionReducer` reads and
+  writes these flat fields and no longer stamps a session `modifiedAt`.
+- `SessionSummary` is now a root-only catalog type (introduced via a shared
+  `SessionMetadata` base); its `createdAt` / `modifiedAt` are ISO-8601 strings
+  (previously numeric) and it no longer carries `model` / `agent`.
+- `ChatState` and `ChatSummary` no longer carry `model` / `agent`.
 - `SessionState.activeClients` (`List<SessionActiveClient>`, required) replaces
   the single nullable `SessionState.activeClient`; `sessionReducer` upserts and
   removes entries keyed by `clientId`.
@@ -44,6 +59,12 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 
 ### Removed
 
+- `StateActionSessionModelChanged` (`session/modelChanged`) and
+  `StateActionSessionAgentChanged` (`session/agentChanged`). There is no longer
+  a session-level model/agent selection — selection lives on each `Message` (and
+  a chat's `draft`). The `model` / `agent` params were also removed from the
+  `createSession` and `createChat` commands; pass them on the (initial) message
+  instead.
 - `SessionActiveClientToolsChangedAction`. An active client now updates its
   published tools by re-dispatching `StateActionSessionActiveClientSet` with its
   full, updated entry.
