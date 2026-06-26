@@ -15,6 +15,10 @@ matching `## [X.Y.Z]` heading is missing from this file.
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-06-26
+
+Implements AHP 0.5.0.
+
 ### Added
 
 - `StateAction::ChatActivityChanged` (`ChatActivityChangedAction`, wire

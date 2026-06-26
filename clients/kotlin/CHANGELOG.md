@@ -15,6 +15,10 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-06-26
+
+Implements AHP 0.5.0.
+
 ### Added
 
 - `ChatDraftChangedAction` (`StateActionChatDraftChanged`, wire

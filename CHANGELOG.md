@@ -23,6 +23,14 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 `NOTIFICATION_INTRODUCED_IN` maps in
 [`types/version/registry.ts`](types/version/registry.ts).
 
+## [0.5.1] — Unreleased
+
+Spec version: `0.5.1`
+
+## [0.5.0] — 2026-06-26
+
+Spec version: `0.5.0`
+
 ### Added
 
 - `chat/activityChanged` action for updating a chat's current activity
@@ -67,10 +75,6 @@ changes accumulate. Track in-flight protocol changes via PRs touching
   from `0.3.0` to `0.4.0`. The annotations channel first shipped in the
   `0.4.0` spec release (it is absent from `spec/v0.3.0`), so version
   negotiation must not advertise it to peers speaking `0.3.0`.
-
-## [0.5.0] — Unreleased
-
-Spec version: `0.5.0`
 
 ## [0.4.0] — 2026-06-19
 

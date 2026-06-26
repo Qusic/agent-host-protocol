@@ -17,6 +17,10 @@ the tag matches the version pinned in [`VERSION`](VERSION).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-06-26
+
+Implements AHP 0.5.0.
+
 ### Added
 
 - `ChatActivityChangedAction` (`StateAction.chatActivityChanged`, wire

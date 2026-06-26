@@ -20,6 +20,10 @@ hotfix escape hatch.
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-06-26
+
+Implements AHP 0.5.0.
+
 ### Added
 
 - `ChatDraftChangedAction` (`chat/draftChanged`) and `ChatState.draft`
