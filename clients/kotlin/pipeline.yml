@@ -44,7 +44,7 @@ resources:
     - repository: templates
       type: github
       name: microsoft/vscode-engineering
-      ref: connor4312/maven-pipeline # temporary to validate
+      ref: main
       endpoint: Monaco
 
 extends:
