@@ -28,6 +28,19 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 - Optional `intention` field on `chat/toolCallStart` and every `ToolCallState`
   variant, providing a human-readable description of what the invocation intends
   to do.
+- Optional `enabled` flag on the child customizations (`AgentCustomization`,
+  `SkillCustomization`, `PromptCustomization`, `RuleCustomization`,
+  `HookCustomization`) so an individual child can be turned off independently of
+  its container; absent means enabled.
+- `disableUserInvocation` on `SkillCustomization`, plus `disableModelInvocation`
+  and `disableUserInvocation` on `AgentCustomization`, giving custom agents and
+  skills a symmetric user/model invocation matrix.
+
+### Changed
+
+- `session/customizationToggled` now targets a top-level container **or** an
+  individual child by `id` and sets that entry's `enabled`; the effective state
+  of a child is `container.enabled && (child.enabled ?? true)`.
 
 ## [0.5.1] — Unreleased
 

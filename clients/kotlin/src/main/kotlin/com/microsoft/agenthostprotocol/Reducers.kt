@@ -211,6 +211,16 @@ private fun withCustomizationEnabled(c: Customization, enabled: Boolean): Custom
     is CustomizationUnknown -> c
 }
 
+private fun withChildCustomizationEnabled(c: ChildCustomization, enabled: Boolean): ChildCustomization = when (c) {
+    is ChildCustomizationAgent -> ChildCustomizationAgent(c.value.copy(enabled = enabled))
+    is ChildCustomizationSkill -> ChildCustomizationSkill(c.value.copy(enabled = enabled))
+    is ChildCustomizationPrompt -> ChildCustomizationPrompt(c.value.copy(enabled = enabled))
+    is ChildCustomizationRule -> ChildCustomizationRule(c.value.copy(enabled = enabled))
+    is ChildCustomizationHook -> ChildCustomizationHook(c.value.copy(enabled = enabled))
+    is ChildCustomizationMcpServer -> ChildCustomizationMcpServer(c.value.copy(enabled = enabled))
+    is ChildCustomizationUnknown -> c
+}
+
 private fun childCustomizationId(c: ChildCustomization): String? = when (c) {
     is ChildCustomizationAgent -> c.value.id
     is ChildCustomizationSkill -> c.value.id
@@ -543,10 +553,25 @@ public fun sessionReducer(state: SessionState, action: StateAction): SessionStat
         val list = state.customizations
         if (list == null) state else {
             val idx = list.indexOfFirst { customizationId(it) == a.id }
-            if (idx < 0) state else {
+            if (idx >= 0) {
                 val updated = list.toMutableList()
                 updated[idx] = withCustomizationEnabled(updated[idx], a.enabled)
                 state.copy(customizations = updated)
+            } else {
+                var changed = false
+                val updated = list.map { container ->
+                    val children = customizationChildren(container)
+                    if (children == null) container else {
+                        val childIdx = children.indexOfFirst { childCustomizationId(it) == a.id }
+                        if (childIdx < 0) container else {
+                            changed = true
+                            val newChildren = children.toMutableList()
+                            newChildren[childIdx] = withChildCustomizationEnabled(newChildren[childIdx], a.enabled)
+                            withCustomizationChildren(container, newChildren)
+                        }
+                    }
+                }
+                if (!changed) state else state.copy(customizations = updated)
             }
         }
     }

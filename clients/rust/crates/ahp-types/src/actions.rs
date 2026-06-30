@@ -938,18 +938,21 @@ pub struct SessionCustomizationsChangedAction {
     pub customizations: Vec<Customization>,
 }
 
-/// A client toggled a container customization on or off.
+/// A client toggled a customization on or off.
 ///
-/// Targets a top-level container (plugin or directory) by `id`. Only
-/// containers have an `enabled` flag; children are always active when
-/// their container is enabled. Is a no-op when no matching container is
-/// found.
+/// Targets either a top-level container (plugin or directory) or an
+/// individual child (a skill, agent, or other entry inside a container) by
+/// `id`, and sets that entry's `enabled` flag. Disabling a container still
+/// disables all of its children — the effective state of a child is
+/// `container.enabled && (child.enabled ?? true)` — so toggling a child
+/// only matters while its container is enabled. Is a no-op when no
+/// customization (container or child) has the given `id`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionCustomizationToggledAction {
-    /// The id of the container to toggle.
+    /// The id of the container or child to toggle.
     pub id: String,
-    /// Whether to enable or disable the container.
+    /// Whether to enable or disable the targeted customization.
     pub enabled: bool,
 }
 

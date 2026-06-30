@@ -2560,10 +2560,33 @@ pub struct AgentCustomization {
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Whether this child is individually enabled. Absent means enabled, so a
+    /// producer only needs to set it to surface a child that exists but is
+    /// turned off on its own.
+    ///
+    /// This flag is independent of the parent container's: the **effective**
+    /// enabled state of a child is
+    /// `container.enabled && (child.enabled ?? true)`, so a disabled container
+    /// disables every child regardless of each child's own flag.
+    ///
+    /// A child is turned on or off by id with
+    /// {@link SessionCustomizationToggledAction | `session/customizationToggled`}.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
     /// Short description of what the agent specializes in and when to
     /// invoke it. Sourced from the agent file's frontmatter `description`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    /// When `true`, the agent will not auto-delegate to this custom agent
+    /// as a sub-agent; it can only be selected by the user. Absent or
+    /// `false` means the agent may delegate to it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub disable_model_invocation: Option<bool>,
+    /// When `true`, the user cannot select this custom agent (for example,
+    /// in a picker); it remains available for the agent to auto-delegate
+    /// to. Absent or `false` means the user may select it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub disable_user_invocation: Option<bool>,
     /// Additional provider-specific metadata for this custom agent.
     ///
     /// Mirrors the MCP `_meta` convention.
@@ -2603,6 +2626,19 @@ pub struct SkillCustomization {
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Whether this child is individually enabled. Absent means enabled, so a
+    /// producer only needs to set it to surface a child that exists but is
+    /// turned off on its own.
+    ///
+    /// This flag is independent of the parent container's: the **effective**
+    /// enabled state of a child is
+    /// `container.enabled && (child.enabled ?? true)`, so a disabled container
+    /// disables every child regardless of each child's own flag.
+    ///
+    /// A child is turned on or off by id with
+    /// {@link SessionCustomizationToggledAction | `session/customizationToggled`}.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
     /// Short description used for help text and auto-invocation matching.
     /// Sourced from the skill's frontmatter `description`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -2612,6 +2648,11 @@ pub struct SkillCustomization {
     /// `disable-model-invocation` flag.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub disable_model_invocation: Option<bool>,
+    /// When `true`, the user cannot directly invoke this skill (for example,
+    /// as a slash command); it remains available for the agent to
+    /// auto-invoke. Absent or `false` means the user may invoke it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub disable_user_invocation: Option<bool>,
 }
 
 /// A prompt contributed by a plugin or directory.
@@ -2641,6 +2682,19 @@ pub struct PromptCustomization {
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Whether this child is individually enabled. Absent means enabled, so a
+    /// producer only needs to set it to surface a child that exists but is
+    /// turned off on its own.
+    ///
+    /// This flag is independent of the parent container's: the **effective**
+    /// enabled state of a child is
+    /// `container.enabled && (child.enabled ?? true)`, so a disabled container
+    /// disables every child regardless of each child's own flag.
+    ///
+    /// A child is turned on or off by id with
+    /// {@link SessionCustomizationToggledAction | `session/customizationToggled`}.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
     /// Short description of what the prompt does.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
@@ -2681,6 +2735,19 @@ pub struct RuleCustomization {
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Whether this child is individually enabled. Absent means enabled, so a
+    /// producer only needs to set it to surface a child that exists but is
+    /// turned off on its own.
+    ///
+    /// This flag is independent of the parent container's: the **effective**
+    /// enabled state of a child is
+    /// `container.enabled && (child.enabled ?? true)`, so a disabled container
+    /// disables every child regardless of each child's own flag.
+    ///
+    /// A child is turned on or off by id with
+    /// {@link SessionCustomizationToggledAction | `session/customizationToggled`}.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
     /// Description of what the rule enforces.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
@@ -2722,6 +2789,19 @@ pub struct HookCustomization {
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Whether this child is individually enabled. Absent means enabled, so a
+    /// producer only needs to set it to surface a child that exists but is
+    /// turned off on its own.
+    ///
+    /// This flag is independent of the parent container's: the **effective**
+    /// enabled state of a child is
+    /// `container.enabled && (child.enabled ?? true)`, so a disabled container
+    /// disables every child regardless of each child's own flag.
+    ///
+    /// A child is turned on or off by id with
+    /// {@link SessionCustomizationToggledAction | `session/customizationToggled`}.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
 }
 
 /// An MCP server contributed by a plugin or directory.

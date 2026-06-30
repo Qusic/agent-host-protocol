@@ -2052,11 +2052,31 @@ type AgentCustomization struct {
 	// customization is a subset of a larger file (for example, one entry
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
-	Range *TextRange        `json:"range,omitempty"`
-	Type  CustomizationType `json:"type"`
+	Range *TextRange `json:"range,omitempty"`
+	// Whether this child is individually enabled. Absent means enabled, so a
+	// producer only needs to set it to surface a child that exists but is
+	// turned off on its own.
+	//
+	// This flag is independent of the parent container's: the **effective**
+	// enabled state of a child is
+	// `container.enabled && (child.enabled ?? true)`, so a disabled container
+	// disables every child regardless of each child's own flag.
+	//
+	// A child is turned on or off by id with
+	// {@link SessionCustomizationToggledAction | `session/customizationToggled`}.
+	Enabled *bool             `json:"enabled,omitempty"`
+	Type    CustomizationType `json:"type"`
 	// Short description of what the agent specializes in and when to
 	// invoke it. Sourced from the agent file's frontmatter `description`.
 	Description *string `json:"description,omitempty"`
+	// When `true`, the agent will not auto-delegate to this custom agent
+	// as a sub-agent; it can only be selected by the user. Absent or
+	// `false` means the agent may delegate to it.
+	DisableModelInvocation *bool `json:"disableModelInvocation,omitempty"`
+	// When `true`, the user cannot select this custom agent (for example,
+	// in a picker); it remains available for the agent to auto-delegate
+	// to. Absent or `false` means the user may select it.
+	DisableUserInvocation *bool `json:"disableUserInvocation,omitempty"`
 	// Additional provider-specific metadata for this custom agent.
 	//
 	// Mirrors the MCP `_meta` convention.
@@ -2090,8 +2110,20 @@ type SkillCustomization struct {
 	// customization is a subset of a larger file (for example, one entry
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
-	Range *TextRange        `json:"range,omitempty"`
-	Type  CustomizationType `json:"type"`
+	Range *TextRange `json:"range,omitempty"`
+	// Whether this child is individually enabled. Absent means enabled, so a
+	// producer only needs to set it to surface a child that exists but is
+	// turned off on its own.
+	//
+	// This flag is independent of the parent container's: the **effective**
+	// enabled state of a child is
+	// `container.enabled && (child.enabled ?? true)`, so a disabled container
+	// disables every child regardless of each child's own flag.
+	//
+	// A child is turned on or off by id with
+	// {@link SessionCustomizationToggledAction | `session/customizationToggled`}.
+	Enabled *bool             `json:"enabled,omitempty"`
+	Type    CustomizationType `json:"type"`
 	// Short description used for help text and auto-invocation matching.
 	// Sourced from the skill's frontmatter `description`.
 	Description *string `json:"description,omitempty"`
@@ -2099,6 +2131,10 @@ type SkillCustomization struct {
 	// auto-invoke it. Sourced from the command skill's frontmatter
 	// `disable-model-invocation` flag.
 	DisableModelInvocation *bool `json:"disableModelInvocation,omitempty"`
+	// When `true`, the user cannot directly invoke this skill (for example,
+	// as a slash command); it remains available for the agent to
+	// auto-invoke. Absent or `false` means the user may invoke it.
+	DisableUserInvocation *bool `json:"disableUserInvocation,omitempty"`
 }
 
 // A prompt contributed by a plugin or directory.
@@ -2123,8 +2159,20 @@ type PromptCustomization struct {
 	// customization is a subset of a larger file (for example, one entry
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
-	Range *TextRange        `json:"range,omitempty"`
-	Type  CustomizationType `json:"type"`
+	Range *TextRange `json:"range,omitempty"`
+	// Whether this child is individually enabled. Absent means enabled, so a
+	// producer only needs to set it to surface a child that exists but is
+	// turned off on its own.
+	//
+	// This flag is independent of the parent container's: the **effective**
+	// enabled state of a child is
+	// `container.enabled && (child.enabled ?? true)`, so a disabled container
+	// disables every child regardless of each child's own flag.
+	//
+	// A child is turned on or off by id with
+	// {@link SessionCustomizationToggledAction | `session/customizationToggled`}.
+	Enabled *bool             `json:"enabled,omitempty"`
+	Type    CustomizationType `json:"type"`
 	// Short description of what the prompt does.
 	Description *string `json:"description,omitempty"`
 }
@@ -2159,8 +2207,20 @@ type RuleCustomization struct {
 	// customization is a subset of a larger file (for example, one entry
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
-	Range *TextRange        `json:"range,omitempty"`
-	Type  CustomizationType `json:"type"`
+	Range *TextRange `json:"range,omitempty"`
+	// Whether this child is individually enabled. Absent means enabled, so a
+	// producer only needs to set it to surface a child that exists but is
+	// turned off on its own.
+	//
+	// This flag is independent of the parent container's: the **effective**
+	// enabled state of a child is
+	// `container.enabled && (child.enabled ?? true)`, so a disabled container
+	// disables every child regardless of each child's own flag.
+	//
+	// A child is turned on or off by id with
+	// {@link SessionCustomizationToggledAction | `session/customizationToggled`}.
+	Enabled *bool             `json:"enabled,omitempty"`
+	Type    CustomizationType `json:"type"`
 	// Description of what the rule enforces.
 	Description *string `json:"description,omitempty"`
 	// When `true`, the rule is always active (subject to `globs` if any).
@@ -2194,8 +2254,20 @@ type HookCustomization struct {
 	// customization is a subset of a larger file (for example, one entry
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
-	Range *TextRange        `json:"range,omitempty"`
-	Type  CustomizationType `json:"type"`
+	Range *TextRange `json:"range,omitempty"`
+	// Whether this child is individually enabled. Absent means enabled, so a
+	// producer only needs to set it to surface a child that exists but is
+	// turned off on its own.
+	//
+	// This flag is independent of the parent container's: the **effective**
+	// enabled state of a child is
+	// `container.enabled && (child.enabled ?? true)`, so a disabled container
+	// disables every child regardless of each child's own flag.
+	//
+	// A child is turned on or off by id with
+	// {@link SessionCustomizationToggledAction | `session/customizationToggled`}.
+	Enabled *bool             `json:"enabled,omitempty"`
+	Type    CustomizationType `json:"type"`
 }
 
 // An MCP server contributed by a plugin or directory.

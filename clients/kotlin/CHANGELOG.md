@@ -19,6 +19,16 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 
 - Optional `intention` field on `ChatToolCallStartAction` and every tool-call
   lifecycle state.
+- Optional `enabled` field on the child customization types
+  (`AgentCustomization`, `SkillCustomization`, `PromptCustomization`,
+  `RuleCustomization`, `HookCustomization`).
+- `disableUserInvocation` on `SkillCustomization`, plus `disableModelInvocation`
+  and `disableUserInvocation` on `AgentCustomization`.
+
+### Changed
+
+- The `session/customizationToggled` reducer now toggles a top-level container
+  **or** an individual child by `id`, setting that entry's `enabled`.
 
 ## [0.5.0] — 2026-06-26
 

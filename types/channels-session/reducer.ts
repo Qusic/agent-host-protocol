@@ -168,12 +168,33 @@ export function sessionReducer(state: SessionState, action: SessionAction, log?:
       if (!list) {
         return state;
       }
-      const idx = list.findIndex(c => c.id === action.id);
-      if (idx < 0) {
+      const topIdx = list.findIndex(c => c.id === action.id);
+      if (topIdx >= 0) {
+        const updated = list.slice();
+        updated[topIdx] = { ...list[topIdx], enabled: action.enabled };
+        return { ...state, customizations: updated };
+      }
+      let changed = false;
+      const updated = list.map(container => {
+        if (container.type === CustomizationType.McpServer) {
+          return container;
+        }
+        const children = container.children;
+        if (!children) {
+          return container;
+        }
+        const childIdx = children.findIndex(c => c.id === action.id);
+        if (childIdx < 0) {
+          return container;
+        }
+        changed = true;
+        const newChildren = children.slice();
+        newChildren[childIdx] = { ...children[childIdx], enabled: action.enabled };
+        return { ...container, children: newChildren };
+      });
+      if (!changed) {
         return state;
       }
-      const updated = [...list];
-      updated[idx] = { ...list[idx], enabled: action.enabled };
       return { ...state, customizations: updated };
     }
 

@@ -18,6 +18,16 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 
 - Optional `Intention` field on `ChatToolCallStartAction` and every tool-call
   lifecycle state.
+- Optional `Enabled` field on the child customization types
+  (`AgentCustomization`, `SkillCustomization`, `PromptCustomization`,
+  `RuleCustomization`, `HookCustomization`).
+- `DisableUserInvocation` on `SkillCustomization`, plus `DisableModelInvocation`
+  and `DisableUserInvocation` on `AgentCustomization`.
+
+### Changed
+
+- The `session/customizationToggled` reducer now toggles a top-level container
+  **or** an individual child by `id`, setting that entry's `Enabled`.
 
 ## [0.5.0] — 2026-06-26
 
