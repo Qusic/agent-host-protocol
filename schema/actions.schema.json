@@ -427,7 +427,7 @@
     },
     "SessionCustomizationToggledAction": {
       "type": "object",
-      "description": "A client toggled a customization on or off.\n\nTargets either a top-level container (plugin or directory) or an\nindividual child (a skill, agent, or other entry inside a container) by\n`id`, and sets that entry's `enabled` flag. Disabling a container still\ndisables all of its children — the effective state of a child is\n`container.enabled && (child.enabled ?? true)` — so toggling a child\nonly matters while its container is enabled. Is a no-op when no\ncustomization (container or child) has the given `id`.",
+      "description": "A client toggled a customization on or off.\n\nMatches `id` against every top-level customization first — a plugin or\ndirectory container, or a bare top-level MCP server — then against the\nchildren inside each container (a skill, agent, or other entry), and\nsets the matched entry's `enabled` flag. Disabling a container still\ndisables all of its children — the effective state of a child is\n`container.enabled && (child.enabled ?? true)` — so toggling a child\nonly matters while its container is enabled. Is a no-op when no\ncustomization has the given `id`.",
       "properties": {
         "type": {
           "$ref": "#/$defs/ActionType.SessionCustomizationToggled"

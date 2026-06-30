@@ -274,13 +274,14 @@ export interface SessionCustomizationsChangedAction {
 /**
  * A client toggled a customization on or off.
  *
- * Targets either a top-level container (plugin or directory) or an
- * individual child (a skill, agent, or other entry inside a container) by
- * `id`, and sets that entry's `enabled` flag. Disabling a container still
+ * Matches `id` against every top-level customization first — a plugin or
+ * directory container, or a bare top-level MCP server — then against the
+ * children inside each container (a skill, agent, or other entry), and
+ * sets the matched entry's `enabled` flag. Disabling a container still
  * disables all of its children — the effective state of a child is
  * `container.enabled && (child.enabled ?? true)` — so toggling a child
  * only matters while its container is enabled. Is a no-op when no
- * customization (container or child) has the given `id`.
+ * customization has the given `id`.
  *
  * @category Session Actions
  * @version 1

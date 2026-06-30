@@ -131,17 +131,17 @@ state.customizations
 
 ## Toggling
 
-Any client can enable or disable a container or an individual child by dispatching `session/customizationToggled` with that entry's `id`:
+Any client can enable or disable any customization by dispatching `session/customizationToggled` with that entry's `id`:
 
 ```typescript
 {
   type: 'session/customizationToggled'
-  id: string         // container or child id
+  id: string         // any customization id
   enabled: boolean
 }
 ```
 
-Both containers and children carry an `enabled` flag. The reducer matches `id` against the top-level containers first, then the children inside every container, and sets that entry's `enabled`. A child's effective state is `container.enabled && (child.enabled ?? true)`, so disabling a container disables all of its children regardless of each child's own flag, and a child toggle only takes effect while its container is enabled. The action is a no-op if no container or child has that id.
+Both containers and children carry an `enabled` flag. The reducer matches `id` against every top-level customization first — plugins, directories, and bare top-level MCP servers — then against the children inside every container, and sets that entry's `enabled`. A child's effective state is `container.enabled && (child.enabled ?? true)`, so disabling a container disables all of its children regardless of each child's own flag, and a child toggle only takes effect while its container is enabled. The action is a no-op if no customization has that id.
 
 ```mermaid
 sequenceDiagram
@@ -387,7 +387,7 @@ sequenceDiagram
 | Type | Client-dispatchable? | When |
 |---|---|---|
 | `session/customizationsChanged` | No | Server replaced the top-level customization list (full replacement) |
-| `session/customizationToggled` | **Yes** | Client toggled a container or child on or off by id |
+| `session/customizationToggled` | **Yes** | Client toggled a customization on or off by id |
 | `session/customizationUpdated` | No | Server upserts a top-level container by id (full-entry replacement, including children) |
 | `session/customizationRemoved` | No | Server removes a customization by id (containers cascade) |
 | `session/activeClientSet` | **Yes** | Client joins or refreshes as an active client (with tools + customizations), keyed by `clientId` |
