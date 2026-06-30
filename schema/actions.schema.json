@@ -3392,7 +3392,7 @@
           "items": {
             "type": "string"
           },
-          "description": "Allowlist of tool names the agent is scoped to, sourced from the\nagent file's frontmatter `tools`. When present, the agent may only\nuse the named tools. Absent means no restriction beyond the session\ndefault (the agent may use any available tool)."
+          "description": "Allowlist of tool names the agent is scoped to, sourced from the\nagent file's frontmatter `tools`. A non-empty list restricts the\nagent to exactly those tools. Absent — or an empty list — imposes no\nrestriction beyond the session default: the agent may use any\navailable tool. Producers express \"no restriction\" by omitting the\nfield rather than sending an empty array, so an empty list carries no\nmeaning distinct from absence."
         },
         "_meta": {
           "type": "object",

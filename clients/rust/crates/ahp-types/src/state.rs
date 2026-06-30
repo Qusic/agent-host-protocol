@@ -2570,9 +2570,12 @@ pub struct AgentCustomization {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
     /// Allowlist of tool names the agent is scoped to, sourced from the
-    /// agent file's frontmatter `tools`. When present, the agent may only
-    /// use the named tools. Absent means no restriction beyond the session
-    /// default (the agent may use any available tool).
+    /// agent file's frontmatter `tools`. A non-empty list restricts the
+    /// agent to exactly those tools. Absent — or an empty list — imposes no
+    /// restriction beyond the session default: the agent may use any
+    /// available tool. Producers express "no restriction" by omitting the
+    /// field rather than sending an empty array, so an empty list carries no
+    /// meaning distinct from absence.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tools: Option<Vec<String>>,
     /// Additional provider-specific metadata for this custom agent.
