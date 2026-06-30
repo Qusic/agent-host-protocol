@@ -557,21 +557,18 @@ public fun sessionReducer(state: SessionState, action: StateAction): SessionStat
                 val updated = list.toMutableList()
                 updated[idx] = withCustomizationEnabled(updated[idx], a.enabled)
                 state.copy(customizations = updated)
-            } else {
-                var changed = false
-                val updated = list.map { container ->
-                    val children = customizationChildren(container)
-                    if (children == null) container else {
-                        val childIdx = children.indexOfFirst { childCustomizationId(it) == a.id }
-                        if (childIdx < 0) container else {
-                            changed = true
-                            val newChildren = children.toMutableList()
-                            newChildren[childIdx] = withChildCustomizationEnabled(newChildren[childIdx], a.enabled)
-                            withCustomizationChildren(container, newChildren)
-                        }
-                    }
+            } else run {
+                for (i in list.indices) {
+                    val children = customizationChildren(list[i]) ?: continue
+                    val childIdx = children.indexOfFirst { childCustomizationId(it) == a.id }
+                    if (childIdx < 0) continue
+                    val newChildren = children.toMutableList()
+                    newChildren[childIdx] = withChildCustomizationEnabled(newChildren[childIdx], a.enabled)
+                    val updated = list.toMutableList()
+                    updated[i] = withCustomizationChildren(list[i], newChildren)
+                    return@run state.copy(customizations = updated)
                 }
-                if (!changed) state else state.copy(customizations = updated)
+                state
             }
         }
     }

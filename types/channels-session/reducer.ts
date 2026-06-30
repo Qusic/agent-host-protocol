@@ -174,28 +174,26 @@ export function sessionReducer(state: SessionState, action: SessionAction, log?:
         updated[topIdx] = { ...list[topIdx], enabled: action.enabled };
         return { ...state, customizations: updated };
       }
-      let changed = false;
-      const updated = list.map(container => {
+      for (let i = 0; i < list.length; i++) {
+        const container = list[i];
         if (container.type === CustomizationType.McpServer) {
-          return container;
+          continue;
         }
         const children = container.children;
         if (!children) {
-          return container;
+          continue;
         }
         const childIdx = children.findIndex(c => c.id === action.id);
         if (childIdx < 0) {
-          return container;
+          continue;
         }
-        changed = true;
         const newChildren = children.slice();
         newChildren[childIdx] = { ...children[childIdx], enabled: action.enabled };
-        return { ...container, children: newChildren };
-      });
-      if (!changed) {
-        return state;
+        const updated = list.slice();
+        updated[i] = { ...container, children: newChildren };
+        return { ...state, customizations: updated };
       }
-      return { ...state, customizations: updated };
+      return state;
     }
 
     case ActionType.SessionCustomizationUpdated: {
