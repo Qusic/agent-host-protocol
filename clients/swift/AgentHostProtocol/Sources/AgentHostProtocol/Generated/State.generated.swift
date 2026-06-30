@@ -3131,6 +3131,18 @@ public struct AgentCustomization: Codable, Sendable {
     /// Short description of what the agent specializes in and when to
     /// invoke it. Sourced from the agent file's frontmatter `description`.
     public var description: String?
+    /// Model the agent is pinned to, sourced from the agent file's
+    /// frontmatter `model`. Absent means the agent inherits the session's
+    /// default model.
+    public var model: String?
+    /// Allowlist of tool names the agent is scoped to, sourced from the
+    /// agent file's frontmatter `tools`. A non-empty list restricts the
+    /// agent to exactly those tools. Absent — or an empty list — imposes no
+    /// restriction beyond the session default: the agent may use any
+    /// available tool. Producers express "no restriction" by omitting the
+    /// field rather than sending an empty array, so an empty list carries no
+    /// meaning distinct from absence.
+    public var tools: [String]?
     /// Additional provider-specific metadata for this custom agent.
     ///
     /// Mirrors the MCP `_meta` convention.
@@ -3144,6 +3156,8 @@ public struct AgentCustomization: Codable, Sendable {
         case range
         case type
         case description
+        case model
+        case tools
         case meta = "_meta"
     }
 
@@ -3155,6 +3169,8 @@ public struct AgentCustomization: Codable, Sendable {
         range: TextRange? = nil,
         type: CustomizationType,
         description: String? = nil,
+        model: String? = nil,
+        tools: [String]? = nil,
         meta: [String: AnyCodable]? = nil
     ) {
         self.id = id
@@ -3164,6 +3180,8 @@ public struct AgentCustomization: Codable, Sendable {
         self.range = range
         self.type = type
         self.description = description
+        self.model = model
+        self.tools = tools
         self.meta = meta
     }
 }

@@ -28,6 +28,8 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 - Optional `intention` field on `chat/toolCallStart` and every `ToolCallState`
   variant, providing a human-readable description of what the invocation intends
   to do.
+- Optional `model` and `tools` fields on `AgentCustomization`, giving a custom
+  agent's pinned model and tool allowlist a first-class home instead of `_meta`.
 
 ## [0.5.1] — Unreleased
 

@@ -21,6 +21,8 @@ the tag matches the version pinned in [`VERSION`](VERSION).
 
 - Optional `intention` field on `ChatToolCallStartAction` and every tool-call
   lifecycle state.
+- Optional `model` and `tools` fields on `AgentCustomization` for a custom
+  agent's pinned model and tool allowlist.
 
 ## [0.5.0] — 2026-06-26
 
