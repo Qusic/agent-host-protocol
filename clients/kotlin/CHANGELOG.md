@@ -22,6 +22,14 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 - Optional `model` and `tools` fields on `AgentCustomization` for a custom
   agent's pinned model and tool allowlist.
 
+### Fixed
+
+- `SnapshotState` now decodes the `Chat` variant. Its serializer previously never
+  matched `ChatState`, so chat snapshots decoded as the `Root` catch-all. Variant
+  disambiguation also no longer relies on the removed `summary` field (a leftover
+  from before `SessionState` was flattened); sessions are now matched on
+  `lifecycle`.
+
 ## [0.5.0] — 2026-06-26
 
 Implements AHP 0.5.0.

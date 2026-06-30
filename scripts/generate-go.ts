@@ -1080,13 +1080,13 @@ func (s *SnapshotState) UnmarshalJSON(data []byte) error {
 \t\treturn err
 \t}
 \tswitch {
-\tcase containsAll(probe, "summary", "lifecycle"):
+\tcase containsAll(probe, "lifecycle"):
 \t\tvar v SessionState
 \t\tif err := json.Unmarshal(data, &v); err != nil {
 \t\t\treturn err
 \t\t}
 \t\ts.Session = &v
-\tcase containsAll(probe, "summary", "turns"):
+\tcase containsAll(probe, "turns"):
 \t\tvar v ChatState
 \t\tif err := json.Unmarshal(data, &v); err != nil {
 \t\t\treturn err
