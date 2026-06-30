@@ -95,6 +95,22 @@ private fun withStatusFlag(status: SessionStatus, flag: SessionStatus, set: Bool
         SessionStatus(status.rawValue and flag.rawValue.inv())
     }
 
+/**
+ * Reflects the session-level [SessionState.inputNeeded] queue into the activity
+ * bits of [status]. A non-empty queue promotes the activity to
+ * [SessionStatus.INPUT_NEEDED]; emptying it clears the input-needed-specific
+ * bit. Since INPUT_NEEDED implies [SessionStatus.IN_PROGRESS], an unblocked turn
+ * falls back to IN_PROGRESS while an already-idle session stays idle. Orthogonal
+ * flags (IS_READ / IS_ARCHIVED) are preserved.
+ */
+private fun withInputNeededStatus(status: SessionStatus, inputNeeded: List<SessionInputRequest>): SessionStatus =
+    if (inputNeeded.isNotEmpty()) {
+        SessionStatus((status.rawValue and STATUS_ACTIVITY_MASK.inv()) or SessionStatus.INPUT_NEEDED.rawValue)
+    } else {
+        val inputBit = SessionStatus.INPUT_NEEDED.rawValue and SessionStatus.IN_PROGRESS.rawValue.inv()
+        SessionStatus(status.rawValue and inputBit.inv())
+    }
+
 /** Derives the summary status from live session work, preserving orthogonal flags. */
 private fun chatSummaryStatus(state: ChatState, terminalStatus: SessionStatus? = null): SessionStatus {
     val activity: SessionStatus = when {
@@ -550,13 +566,12 @@ public fun sessionReducer(state: SessionState, action: StateAction): SessionStat
         if (id == null) state else {
             val list = state.inputNeeded ?: emptyList()
             val idx = list.indexOfFirst { sessionInputRequestId(it) == id }
-            if (idx < 0) {
-                state.copy(inputNeeded = list + request)
+            val updated = if (idx < 0) {
+                list + request
             } else {
-                val updated = list.toMutableList()
-                updated[idx] = request
-                state.copy(inputNeeded = updated)
+                list.toMutableList().also { it[idx] = request }
             }
+            state.copy(inputNeeded = updated, status = withInputNeededStatus(state.status, updated))
         }
     }
 
@@ -567,7 +582,10 @@ public fun sessionReducer(state: SessionState, action: StateAction): SessionStat
             if (idx < 0) state else {
                 val updated = list.toMutableList()
                 updated.removeAt(idx)
-                state.copy(inputNeeded = updated)
+                state.copy(
+                    inputNeeded = if (updated.isEmpty()) null else updated,
+                    status = withInputNeededStatus(state.status, updated),
+                )
             }
         }
     }

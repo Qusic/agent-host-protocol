@@ -27,6 +27,18 @@ private func withStatusFlag(_ status: SessionStatus, _ flag: SessionStatus, _ se
     set ? status.union(flag) : status.subtracting(flag)
 }
 
+/// Reflects the session-level input queue into the activity bits of `status`.
+/// A non-empty queue promotes the activity to `.inputNeeded`; emptying it clears
+/// the input-needed-specific bit. Since `.inputNeeded` implies `.inProgress`, an
+/// unblocked turn falls back to `.inProgress` while an already-idle session stays
+/// idle. Orthogonal flags (`.isRead` / `.isArchived`) are preserved.
+private func withInputNeededStatus(_ status: SessionStatus, _ inputNeeded: [SessionInputRequest]) -> SessionStatus {
+    if inputNeeded.isEmpty {
+        return status.subtracting(SessionStatus.inputNeeded.subtracting(.inProgress))
+    }
+    return status.subtracting(statusActivityMask).union(.inputNeeded)
+}
+
 /// Resolves a selected confirmation option by ID from a pending-confirmation state.
 private func resolveSelectedOption(_ options: [ConfirmationOption]?, id: String?) -> ConfirmationOption? {
     guard let id, let options else {
@@ -612,6 +624,7 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
             list.append(a.request)
         }
         next.inputNeeded = list
+        next.status = withInputNeededStatus(next.status, list)
         return next
 
     case .sessionInputNeededRemoved(let a):
@@ -619,7 +632,8 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
               let idx = list.firstIndex(where: { sessionInputRequestID($0) == a.id }) else { return state }
         var next = state
         list.remove(at: idx)
-        next.inputNeeded = list
+        next.inputNeeded = list.isEmpty ? nil : list
+        next.status = withInputNeededStatus(next.status, list)
         return next
 
     // ── Customizations ──────────────────────────────────────────────────

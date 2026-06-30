@@ -234,6 +234,19 @@ fn with_status_flag(status: u32, flag: SessionStatus, set: bool) -> u32 {
     }
 }
 
+/// Reflects the session-level input queue into the activity bits of `status`.
+/// A non-empty queue promotes the activity to `InputNeeded`; emptying it clears
+/// the input-needed-specific bit. Since `InputNeeded` implies `InProgress`, an
+/// unblocked turn falls back to `InProgress` while an already-idle session stays
+/// idle. Orthogonal flags (`IsRead` / `IsArchived`) are preserved.
+fn with_input_needed_status(status: u32, input_needed: &[SessionInputRequest]) -> u32 {
+    if input_needed.is_empty() {
+        status & !(SessionStatus::InputNeeded.bits() & !SessionStatus::InProgress.bits())
+    } else {
+        (status & !STATUS_ACTIVITY_MASK) | SessionStatus::InputNeeded.bits()
+    }
+}
+
 fn summary_status(state: &ChatState, terminal: Option<SessionStatus>) -> u32 {
     let activity: u32 = if let Some(t) = terminal {
         t.bits()
@@ -673,6 +686,9 @@ pub fn apply_action_to_session(state: &mut SessionState, action: &StateAction) -
             } else {
                 list.push(a.request.clone());
             }
+            let new_status =
+                with_input_needed_status(state.status, state.input_needed.as_deref().unwrap_or(&[]));
+            state.status = new_status;
             ReduceOutcome::Applied
         }
         StateAction::SessionInputNeededRemoved(a) => {
@@ -686,6 +702,13 @@ pub fn apply_action_to_session(state: &mut SessionState, action: &StateAction) -
                 return ReduceOutcome::NoOp;
             };
             list.remove(idx);
+            let empty = list.is_empty();
+            if empty {
+                state.input_needed = None;
+            }
+            let new_status =
+                with_input_needed_status(state.status, state.input_needed.as_deref().unwrap_or(&[]));
+            state.status = new_status;
             ReduceOutcome::Applied
         }
         StateAction::SessionCustomizationsChanged(a) => {

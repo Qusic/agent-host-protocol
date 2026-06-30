@@ -45,7 +45,9 @@ Spec version: `0.5.1`
   `SessionToolClientExecutionRequest`, unioned as `SessionInputRequest`) carries
   the owning chat URI plus the identifiers needed to respond.
 - `session/inputNeededSet` and `session/inputNeededRemoved` actions for the host
-  to upsert and remove `SessionState.inputNeeded` entries.
+  to upsert and remove `SessionState.inputNeeded` entries. The session reducer
+  sets `SessionStatus.InputNeeded` while the queue is non-empty and clears it
+  (falling back to `InProgress`) once it empties, preserving orthogonal flags.
 - `ToolCallConfirmationState` union (`ToolCallPendingConfirmationState |
   ToolCallPendingResultConfirmationState`) for the tool call carried by
   `SessionToolConfirmationRequest`.

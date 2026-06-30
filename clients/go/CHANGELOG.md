@@ -22,7 +22,9 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
   `SessionToolClientExecutionRequest`), plus the `SessionInputNeededSetAction`
   (wire `session/inputNeededSet`) and `SessionInputNeededRemovedAction` (wire
   `session/inputNeededRemoved`) actions and the `ToolCallConfirmationState`
-  union.
+  union. The session reducer maintains the `SessionStatusInputNeeded` activity
+  bit from the queue, clearing it (falling back to `SessionStatusInProgress`)
+  when the last entry is removed.
 - Optional `Intention` field on `ChatToolCallStartAction` and every tool-call
   lifecycle state.
 - Optional `Model` and `Tools` fields on `AgentCustomization` for a custom

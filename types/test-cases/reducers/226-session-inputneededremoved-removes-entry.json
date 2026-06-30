@@ -1,15 +1,10 @@
 {
-  "description": "session/inputNeededRemoved removes the entry with the matching id",
+  "description": "session/inputNeededRemoved removes the entry with the matching id and keeps status InputNeeded while entries remain",
   "reducer": "session",
   "initial": {
-    "summary": {
-      "resource": "copilot:/test-session",
-      "provider": "copilot",
-      "title": "Test Session",
-      "status": 24,
-      "createdAt": 1000,
-      "modifiedAt": 1000
-    },
+    "provider": "copilot",
+    "title": "Test Session",
+    "status": 24,
     "lifecycle": "ready",
     "activeClients": [],
     "chats": [],
@@ -35,14 +30,9 @@
     }
   ],
   "expected": {
-    "summary": {
-      "resource": "copilot:/test-session",
-      "provider": "copilot",
-      "title": "Test Session",
-      "status": 24,
-      "createdAt": 1000,
-      "modifiedAt": 1000
-    },
+    "provider": "copilot",
+    "title": "Test Session",
+    "status": 24,
     "lifecycle": "ready",
     "activeClients": [],
     "chats": [],

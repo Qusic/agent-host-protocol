@@ -22,7 +22,9 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
   `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
   `SessionToolClientExecutionRequest`), plus the `SessionInputNeededSetAction` /
   `SessionInputNeededRemovedAction` actions and the `ToolCallConfirmationState`
-  union.
+  union. The session reducer maintains the `SessionStatus.INPUT_NEEDED` activity
+  bit from the queue, clearing it (falling back to `IN_PROGRESS`) when the last
+  entry is removed.
 - Optional `intention` field on `ChatToolCallStartAction` and every tool-call
   lifecycle state.
 - Optional `model` and `tools` fields on `AgentCustomization` for a custom

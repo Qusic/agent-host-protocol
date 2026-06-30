@@ -22,7 +22,9 @@ matching `## [X.Y.Z]` heading is missing from this file.
   `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
   `SessionToolClientExecutionRequest` variants), plus the
   `StateAction::SessionInputNeededSet` / `StateAction::SessionInputNeededRemoved`
-  actions and the `ToolCallConfirmationState` union.
+  actions and the `ToolCallConfirmationState` union. The session reducer
+  maintains the `SessionStatus::InputNeeded` activity bit from the queue,
+  clearing it (falling back to `InProgress`) when the last entry is removed.
 - Optional `intention` field on `ChatToolCallStartAction` and every tool-call
   lifecycle state.
 - Optional `model` and `tools` fields on `AgentCustomization` for a custom

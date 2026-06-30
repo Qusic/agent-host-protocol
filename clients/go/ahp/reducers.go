@@ -70,6 +70,18 @@ func withStatusFlag(status, flag ahptypes.SessionStatus, set bool) ahptypes.Sess
 	return status &^ flag
 }
 
+// withInputNeededStatus reflects the session-level input queue into the activity
+// bits of status. A non-empty queue promotes the activity to InputNeeded;
+// emptying it clears the input-needed-specific bit. Because InputNeeded implies
+// InProgress, an unblocked turn falls back to InProgress while an already-idle
+// session stays idle. Orthogonal flags (IsRead / IsArchived) are preserved.
+func withInputNeededStatus(status ahptypes.SessionStatus, inputNeeded []ahptypes.SessionInputRequest) ahptypes.SessionStatus {
+	if len(inputNeeded) == 0 {
+		return status &^ (ahptypes.SessionStatusInputNeeded &^ ahptypes.SessionStatusInProgress)
+	}
+	return (status &^ statusActivityMask) | ahptypes.SessionStatusInputNeeded
+}
+
 // ─── Tool-call helpers ─────────────────────────────────────────────────
 
 // toolCallCommon carries the fields shared by every concrete
@@ -751,15 +763,21 @@ func ApplyActionToSession(state *ahptypes.SessionState, action ahptypes.StateAct
 		for i := range state.InputNeeded {
 			if got, ok := sessionInputRequestID(state.InputNeeded[i]); ok && got == id {
 				state.InputNeeded[i] = a.Request
+				state.Status = withInputNeededStatus(state.Status, state.InputNeeded)
 				return ReduceOutcomeApplied
 			}
 		}
 		state.InputNeeded = append(state.InputNeeded, a.Request)
+		state.Status = withInputNeededStatus(state.Status, state.InputNeeded)
 		return ReduceOutcomeApplied
 	case *ahptypes.SessionInputNeededRemovedAction:
 		for i := range state.InputNeeded {
 			if got, ok := sessionInputRequestID(state.InputNeeded[i]); ok && got == a.Id {
 				state.InputNeeded = append(state.InputNeeded[:i], state.InputNeeded[i+1:]...)
+				if len(state.InputNeeded) == 0 {
+					state.InputNeeded = nil
+				}
+				state.Status = withInputNeededStatus(state.Status, state.InputNeeded)
 				return ReduceOutcomeApplied
 			}
 		}
