@@ -3383,6 +3383,17 @@
           "type": "string",
           "description": "Short description of what the agent specializes in and when to\ninvoke it. Sourced from the agent file's frontmatter `description`."
         },
+        "model": {
+          "type": "string",
+          "description": "Model the agent is pinned to, sourced from the agent file's\nfrontmatter `model`. Absent means the agent inherits the session's\ndefault model."
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Allowlist of tool names the agent is scoped to, sourced from the\nagent file's frontmatter `tools`. When present, the agent may only\nuse the named tools. Absent means no restriction beyond the session\ndefault (the agent may use any available tool)."
+        },
         "_meta": {
           "type": "object",
           "additionalProperties": {},

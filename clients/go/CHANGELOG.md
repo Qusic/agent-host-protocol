@@ -18,6 +18,8 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 
 - Optional `Intention` field on `ChatToolCallStartAction` and every tool-call
   lifecycle state.
+- Optional `Model` and `Tools` fields on `AgentCustomization` for a custom
+  agent's pinned model and tool allowlist.
 
 ## [0.5.0] — 2026-06-26
 

@@ -2564,6 +2564,17 @@ pub struct AgentCustomization {
     /// invoke it. Sourced from the agent file's frontmatter `description`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    /// Model the agent is pinned to, sourced from the agent file's
+    /// frontmatter `model`. Absent means the agent inherits the session's
+    /// default model.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    /// Allowlist of tool names the agent is scoped to, sourced from the
+    /// agent file's frontmatter `tools`. When present, the agent may only
+    /// use the named tools. Absent means no restriction beyond the session
+    /// default (the agent may use any available tool).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tools: Option<Vec<String>>,
     /// Additional provider-specific metadata for this custom agent.
     ///
     /// Mirrors the MCP `_meta` convention.

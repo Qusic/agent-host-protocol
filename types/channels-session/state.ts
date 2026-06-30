@@ -656,6 +656,19 @@ export interface AgentCustomization extends CustomizationBase {
    */
   description?: string;
   /**
+   * Model the agent is pinned to, sourced from the agent file's
+   * frontmatter `model`. Absent means the agent inherits the session's
+   * default model.
+   */
+  model?: string;
+  /**
+   * Allowlist of tool names the agent is scoped to, sourced from the
+   * agent file's frontmatter `tools`. When present, the agent may only
+   * use the named tools. Absent means no restriction beyond the session
+   * default (the agent may use any available tool).
+   */
+  tools?: string[];
+  /**
    * Additional provider-specific metadata for this custom agent.
    *
    * Mirrors the MCP `_meta` convention.
