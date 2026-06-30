@@ -22,6 +22,13 @@ the tag matches the version pinned in [`VERSION`](VERSION).
 - Optional `intention` field on `ChatToolCallStartAction` and every tool-call
   lifecycle state.
 
+### Fixed
+
+- `SnapshotState` now decodes the `chat` variant. Its decoder previously never
+  attempted `ChatState`, so chat snapshots failed to decode. Variant
+  disambiguation also no longer relies on the removed `summary` field (a leftover
+  from before `SessionState` was flattened).
+
 ## [0.5.0] — 2026-06-26
 
 Implements AHP 0.5.0.

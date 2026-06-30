@@ -3999,13 +3999,13 @@ func (s *SnapshotState) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	switch {
-	case containsAll(probe, "summary", "lifecycle"):
+	case containsAll(probe, "lifecycle"):
 		var v SessionState
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		s.Session = &v
-	case containsAll(probe, "summary", "turns"):
+	case containsAll(probe, "turns"):
 		var v ChatState
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err

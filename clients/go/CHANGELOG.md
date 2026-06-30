@@ -19,6 +19,14 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 - Optional `Intention` field on `ChatToolCallStartAction` and every tool-call
   lifecycle state.
 
+### Fixed
+
+- `SnapshotState.UnmarshalJSON` now decodes the `Chat` variant. Variant
+  disambiguation previously probed for the removed `summary` field (a leftover
+  from before `SessionState` was flattened), so chat and session snapshots both
+  fell through to the `Root` catch-all. Sessions are now matched on `lifecycle`
+  and chats on `turns`.
+
 ## [0.5.0] — 2026-06-26
 
 Implements AHP 0.5.0.
