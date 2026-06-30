@@ -288,16 +288,6 @@ data class CreateSessionParams(
      */
     val provider: String? = null,
     /**
-     * Model selection (ID and optional model-specific configuration)
-     */
-    val model: ModelSelection? = null,
-    /**
-     * Initial custom agent selection for the new session.
-     *
-     * Omit to start the session with no custom agent selected (provider default).
-     */
-    val agent: AgentSelection? = null,
-    /**
      * Working directory for the session
      */
     val workingDirectory: String? = null,
@@ -319,7 +309,20 @@ data class CreateSessionParams(
      * action immediately after creation. The `clientId` MUST match the
      * `clientId` the creating client supplied in `initialize`.
      */
-    val activeClient: SessionActiveClient? = null
+    val activeClient: SessionActiveClient? = null,
+    /**
+     * Opt-in progress token. When set, the client is offering to receive
+     * `progress` notifications (see `ProgressParams`) for any long-running work
+     * the server does to bring this session up — most notably the lazy,
+     * first-use download of the provider's native SDK. The server echoes this
+     * exact token on every `progress` frame so the client can correlate it to
+     * this `createSession` call (and the UI awaiting it).
+     *
+     * The token MUST be unique across the client's active requests. The server
+     * MAY ignore it (e.g. when nothing long-running is needed), in which case no
+     * `progress` notifications are emitted.
+     */
+    val progressToken: String? = null
 )
 
 @Serializable
@@ -356,14 +359,6 @@ data class CreateChatParams(
      * Optional initial message for the new chat.
      */
     val initialMessage: Message? = null,
-    /**
-     * Optional per-chat model override.
-     */
-    val model: ModelSelection? = null,
-    /**
-     * Optional per-chat agent override.
-     */
-    val agent: AgentSelection? = null,
     /**
      * Optional source chat and turn to fork from.
      */

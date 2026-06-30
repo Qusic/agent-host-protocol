@@ -23,8 +23,6 @@ import type {
   SessionChatUpdatedAction,
   SessionDefaultChatChangedAction,
   SessionTitleChangedAction,
-  SessionModelChangedAction,
-  SessionAgentChangedAction,
   SessionServerToolsChangedAction,
   SessionActiveClientSetAction,
   SessionActiveClientRemovedAction,
@@ -57,11 +55,13 @@ import type {
   ChatTurnCompleteAction,
   ChatTurnCancelledAction,
   ChatErrorAction,
+  ChatActivityChangedAction,
   ChatUsageAction,
   ChatReasoningAction,
   ChatPendingMessageSetAction,
   ChatPendingMessageRemovedAction,
   ChatQueuedMessagesReorderedAction,
+  ChatDraftChangedAction,
   ChatInputRequestedAction,
   ChatInputAnswerChangedAction,
   ChatInputCompletedAction,
@@ -133,11 +133,10 @@ export const enum ActionType {
   ChatTurnComplete = 'chat/turnComplete',
   ChatTurnCancelled = 'chat/turnCancelled',
   ChatError = 'chat/error',
+  ChatActivityChanged = 'chat/activityChanged',
   SessionTitleChanged = 'session/titleChanged',
   ChatUsage = 'chat/usage',
   ChatReasoning = 'chat/reasoning',
-  SessionModelChanged = 'session/modelChanged',
-  SessionAgentChanged = 'session/agentChanged',
   SessionServerToolsChanged = 'session/serverToolsChanged',
   SessionActiveClientSet = 'session/activeClientSet',
   SessionActiveClientRemoved = 'session/activeClientRemoved',
@@ -146,6 +145,7 @@ export const enum ActionType {
   ChatPendingMessageSet = 'chat/pendingMessageSet',
   ChatPendingMessageRemoved = 'chat/pendingMessageRemoved',
   ChatQueuedMessagesReordered = 'chat/queuedMessagesReordered',
+  ChatDraftChanged = 'chat/draftChanged',
   ChatInputRequested = 'chat/inputRequested',
   ChatInputAnswerChanged = 'chat/inputAnswerChanged',
   ChatInputCompleted = 'chat/inputCompleted',
@@ -234,8 +234,6 @@ export type StateAction =
   | SessionChatUpdatedAction
   | SessionDefaultChatChangedAction
   | SessionTitleChangedAction
-  | SessionModelChangedAction
-  | SessionAgentChangedAction
   | SessionServerToolsChangedAction
   | SessionActiveClientSetAction
   | SessionActiveClientRemovedAction
@@ -265,11 +263,13 @@ export type StateAction =
   | ChatTurnCompleteAction
   | ChatTurnCancelledAction
   | ChatErrorAction
+  | ChatActivityChangedAction
   | ChatUsageAction
   | ChatReasoningAction
   | ChatPendingMessageSetAction
   | ChatPendingMessageRemovedAction
   | ChatQueuedMessagesReorderedAction
+  | ChatDraftChangedAction
   | ChatInputRequestedAction
   | ChatInputAnswerChangedAction
   | ChatInputCompletedAction

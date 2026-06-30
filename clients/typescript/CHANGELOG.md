@@ -22,13 +22,6 @@ hotfix escape hatch.
 
 ### Added
 
-- `SessionModelInfo.maxOutputTokens` and `SessionModelInfo.maxPromptTokens`
-  optional fields for communicating model token limits.
-- `SessionSummary._meta` optional provider metadata field for lightweight
-  session-list presentation hints.
-- Exported `JsonPrimitive` type alias (`string | number | boolean | null`).
-- `SessionActiveClientRemovedAction` (`session/activeClientRemoved`) to release
-  a single active client by `clientId`.
 - `SessionState.inputNeeded` — a session-level aggregate of outstanding input
   requests across all chats (`SessionInputRequest` union with
   `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
@@ -36,9 +29,47 @@ hotfix escape hatch.
   (`session/inputNeededSet`) and `SessionInputNeededRemovedAction`
   (`session/inputNeededRemoved`) actions and the `ToolCallConfirmationState`
   union.
+- Optional `intention` field on `ChatToolCallStartAction` and every tool-call
+  lifecycle state.
+- Optional `model` and `tools` fields on `AgentCustomization` for a custom
+  agent's pinned model and tool allowlist.
+
+## [0.5.0] — 2026-06-26
+
+Implements AHP 0.5.0.
+
+### Added
+
+- `ChatDraftChangedAction` (`chat/draftChanged`) and `ChatState.draft`
+  (`Message`) for syncing a chat's in-progress input draft; `chatReducer` sets
+  or clears `draft` without stamping `modifiedAt`.
+- `Message.model` and `Message.agent` optional fields recording the model /
+  agent selection a message was composed with.
+- `ChatActivityChangedAction` (`chat/activityChanged`) for updating a chat's
+  current activity description independently of the session summary.
+- `ProgressParams` (wire `root/progress`) generic progress notification correlated by
+  a `progressToken`, plus `createSession.progressToken` to opt in. Used today for
+  the lazy first-use download of an agent's native SDK, so clients can show an
+  indicator instead of a silent multi-second hang.
+- `SessionModelInfo.maxOutputTokens` and `SessionModelInfo.maxPromptTokens`
+  optional fields for communicating model token limits.
+- `SessionSummary._meta` optional provider metadata field for lightweight
+  session-list presentation hints.
+- Exported `JsonPrimitive` type alias (`string | number | boolean | null`).
+- `SessionActiveClientRemovedAction` (`session/activeClientRemoved`) to release
+  a single active client by `clientId`.
 
 ### Changed
 
+- `SessionState` no longer embeds a `summary` sub-object; its metadata fields
+  (`provider`, `title`, `status`, `activity`, `project`, `workingDirectory`,
+  `annotations`) are inlined directly on `SessionState`, which no longer carries
+  `model`, `agent`, `createdAt`, or `modifiedAt`. `sessionReducer` reads and
+  writes these flat fields and no longer stamps a session `modifiedAt`.
+- `SessionSummary` is now a root-only catalog type (introduced via a shared
+  `SessionMetadata` base); its `createdAt` / `modifiedAt` are ISO-8601 strings
+  (previously numeric) and it no longer carries `model` / `agent`.
+- `ChatState` and `ChatSummary` no longer carry `model` / `agent`.
 - `ConfigPropertySchema.enum` field is now `JsonPrimitive[]` instead of
   `string[]`, allowing numeric, boolean, and null enum values.
 - `ModelSelection.config` values are now `JsonPrimitive` instead of `string`,
@@ -52,6 +83,12 @@ hotfix escape hatch.
 
 ### Removed
 
+- `SessionModelChangedAction` (`session/modelChanged`) and
+  `SessionAgentChangedAction` (`session/agentChanged`). There is no longer a
+  session-level model/agent selection — selection lives on each `Message` (and
+  a chat's `draft`). The `model` / `agent` params were also removed from the
+  `createSession` and `createChat` commands; pass them on the (initial) message
+  instead.
 - `SessionActiveClientToolsChangedAction`. An active client now updates its
   published tools by re-dispatching `SessionActiveClientSetAction` with its
   full, updated entry.

@@ -80,7 +80,6 @@ public object ResourceWatchReducer : Reducer<ResourceWatchState, StateAction> {
  */
 public var currentTimestampProvider: () -> Long = { System.currentTimeMillis() }
 
-private fun now(): Long = currentTimestampProvider()
 private fun nowIsoString(): String = Instant.ofEpochMilli(currentTimestampProvider()).toString()
 
 // ─── Status Bitset Helpers ──────────────────────────────────────────────────
@@ -139,6 +138,7 @@ private data class ToolCallBase(
     val toolCallId: String,
     val toolName: String,
     val displayName: String,
+    val intention: String?,
     val contributor: ToolCallContributor?,
     val meta: Map<String, JsonElement>?,
 ) {
@@ -147,28 +147,28 @@ private data class ToolCallBase(
 
 private fun toolCallBase(tc: ToolCallState): ToolCallBase = when (tc) {
     is ToolCallStateStreaming -> tc.value.let {
-        ToolCallBase(it.toolCallId, it.toolName, it.displayName, it.contributor, it.meta)
+        ToolCallBase(it.toolCallId, it.toolName, it.displayName, it.intention, it.contributor, it.meta)
     }
     is ToolCallStatePendingConfirmation -> tc.value.let {
-        ToolCallBase(it.toolCallId, it.toolName, it.displayName, it.contributor, it.meta)
+        ToolCallBase(it.toolCallId, it.toolName, it.displayName, it.intention, it.contributor, it.meta)
     }
     is ToolCallStateRunning -> tc.value.let {
-        ToolCallBase(it.toolCallId, it.toolName, it.displayName, it.contributor, it.meta)
+        ToolCallBase(it.toolCallId, it.toolName, it.displayName, it.intention, it.contributor, it.meta)
     }
     is ToolCallStatePendingResultConfirmation -> tc.value.let {
-        ToolCallBase(it.toolCallId, it.toolName, it.displayName, it.contributor, it.meta)
+        ToolCallBase(it.toolCallId, it.toolName, it.displayName, it.intention, it.contributor, it.meta)
     }
     is ToolCallStateCompleted -> tc.value.let {
-        ToolCallBase(it.toolCallId, it.toolName, it.displayName, it.contributor, it.meta)
+        ToolCallBase(it.toolCallId, it.toolName, it.displayName, it.intention, it.contributor, it.meta)
     }
     is ToolCallStateCancelled -> tc.value.let {
-        ToolCallBase(it.toolCallId, it.toolName, it.displayName, it.contributor, it.meta)
+        ToolCallBase(it.toolCallId, it.toolName, it.displayName, it.intention, it.contributor, it.meta)
     }
     // Forward-compat: unknown lifecycle variants have no extractable base; mirror
     // Rust's `ToolCallState::Unknown(_) => (String::new(), ...)`. Combined with
     // `toolCallIdOf` returning `""`, this guarantees an unknown tool call never
     // matches a real `toolCallId` in delta/lookup paths.
-    is ToolCallStateUnknown -> ToolCallBase("", "", "", null, null)
+    is ToolCallStateUnknown -> ToolCallBase("", "", "", null, null, null)
 }
 
 /** Resolves a selected confirmation option by ID from a pending-confirmation state. */
@@ -347,6 +347,7 @@ private fun endTurn(
                         toolCallId = base.toolCallId,
                         toolName = base.toolName,
                         displayName = base.displayName,
+                        intention = base.intention,
                         contributor = base.contributor,
                         meta = base.meta,
                         invocationMessage = invocationMessage,
@@ -482,8 +483,6 @@ public fun sessionReducer(state: SessionState, action: StateAction): SessionStat
                 status = c.status ?: prior.status,
                 activity = c.activity ?: prior.activity,
                 modifiedAt = c.modifiedAt ?: prior.modifiedAt,
-                model = c.model ?: prior.model,
-                agent = c.agent ?: prior.agent,
                 origin = c.origin ?: prior.origin,
                 workingDirectory = c.workingDirectory ?: prior.workingDirectory,
             )
@@ -495,33 +494,17 @@ public fun sessionReducer(state: SessionState, action: StateAction): SessionStat
 
     is StateActionSessionDefaultChatChanged -> state.copy(defaultChat = action.value.defaultChat)
 
-    is StateActionSessionTitleChanged -> state.copy(
-        summary = state.summary.copy(title = action.value.title, modifiedAt = now()),
-    )
-
-    is StateActionSessionModelChanged -> state.copy(
-        summary = state.summary.copy(model = action.value.model, modifiedAt = now()),
-    )
-
-    is StateActionSessionAgentChanged -> state.copy(
-        summary = state.summary.copy(agent = action.value.agent, modifiedAt = now()),
-    )
+    is StateActionSessionTitleChanged -> state.copy(title = action.value.title)
 
     is StateActionSessionIsReadChanged -> state.copy(
-        summary = state.summary.copy(
-            status = withStatusFlag(state.summary.status, SessionStatus.IS_READ, action.value.isRead),
-        ),
+        status = withStatusFlag(state.status, SessionStatus.IS_READ, action.value.isRead),
     )
 
     is StateActionSessionIsArchivedChanged -> state.copy(
-        summary = state.summary.copy(
-            status = withStatusFlag(state.summary.status, SessionStatus.IS_ARCHIVED, action.value.isArchived),
-        ),
+        status = withStatusFlag(state.status, SessionStatus.IS_ARCHIVED, action.value.isArchived),
     )
 
-    is StateActionSessionActivityChanged -> state.copy(
-        summary = state.summary.copy(activity = action.value.activity),
-    )
+    is StateActionSessionActivityChanged -> state.copy(activity = action.value.activity)
 
     is StateActionSessionChangesetsChanged -> state.copy(changesets = action.value.changesets)
 
@@ -530,7 +513,7 @@ public fun sessionReducer(state: SessionState, action: StateAction): SessionStat
         val config = state.config
         if (config == null) state else {
             val newValues = if (a.replace == true) a.config else config.values + a.config
-            state.copy(config = config.copy(values = newValues), summary = state.summary.copy(modifiedAt = now()))
+            state.copy(config = config.copy(values = newValues))
         }
     }
 
@@ -752,6 +735,9 @@ public fun chatReducer(state: ChatState, action: StateAction): ChatState = when 
     is StateActionChatError ->
         endTurn(state, action.value.turnId, TurnState.ERROR, SessionStatus.ERROR, action.value.error)
 
+    is StateActionChatActivityChanged ->
+        state.copy(activity = action.value.activity)
+
     // ── Tool Call State Machine ───────────────────────────────────────────
 
     is StateActionChatToolCallStart -> {
@@ -768,6 +754,7 @@ public fun chatReducer(state: ChatState, action: StateAction): ChatState = when 
                             toolCallId = a.toolCallId,
                             toolName = a.toolName,
                             displayName = a.displayName,
+                            intention = a.intention,
                             contributor = a.contributor,
                             meta = a.meta,
                             status = ToolCallStatus.STREAMING,
@@ -808,6 +795,7 @@ public fun chatReducer(state: ChatState, action: StateAction): ChatState = when 
                                 toolCallId = base.toolCallId,
                                 toolName = base.toolName,
                                 displayName = base.displayName,
+                                intention = base.intention,
                                 contributor = base.contributor,
                                 meta = base.meta,
                                 invocationMessage = a.invocationMessage,
@@ -822,6 +810,7 @@ public fun chatReducer(state: ChatState, action: StateAction): ChatState = when 
                                 toolCallId = base.toolCallId,
                                 toolName = base.toolName,
                                 displayName = base.displayName,
+                                intention = base.intention,
                                 contributor = base.contributor,
                                 meta = base.meta,
                                 invocationMessage = a.invocationMessage,
@@ -852,6 +841,7 @@ public fun chatReducer(state: ChatState, action: StateAction): ChatState = when 
                                 toolCallId = base.toolCallId,
                                 toolName = base.toolName,
                                 displayName = base.displayName,
+                                intention = base.intention,
                                 contributor = base.contributor,
                                 meta = base.meta,
                                 invocationMessage = tc.value.invocationMessage,
@@ -868,6 +858,7 @@ public fun chatReducer(state: ChatState, action: StateAction): ChatState = when 
                                 toolCallId = base.toolCallId,
                                 toolName = base.toolName,
                                 displayName = base.displayName,
+                                intention = base.intention,
                                 contributor = base.contributor,
                                 meta = base.meta,
                                 invocationMessage = tc.value.invocationMessage,
@@ -912,6 +903,7 @@ public fun chatReducer(state: ChatState, action: StateAction): ChatState = when 
                             toolCallId = base.toolCallId,
                             toolName = base.toolName,
                             displayName = base.displayName,
+                            intention = base.intention,
                             contributor = base.contributor,
                             meta = base.meta,
                             invocationMessage = invocationMessage,
@@ -932,6 +924,7 @@ public fun chatReducer(state: ChatState, action: StateAction): ChatState = when 
                             toolCallId = base.toolCallId,
                             toolName = base.toolName,
                             displayName = base.displayName,
+                            intention = base.intention,
                             contributor = base.contributor,
                             meta = base.meta,
                             invocationMessage = invocationMessage,
@@ -963,6 +956,7 @@ public fun chatReducer(state: ChatState, action: StateAction): ChatState = when 
                                 toolCallId = base.toolCallId,
                                 toolName = base.toolName,
                                 displayName = base.displayName,
+                                intention = base.intention,
                                 contributor = base.contributor,
                                 meta = base.meta,
                                 invocationMessage = tc.value.invocationMessage,
@@ -983,6 +977,7 @@ public fun chatReducer(state: ChatState, action: StateAction): ChatState = when 
                                 toolCallId = base.toolCallId,
                                 toolName = base.toolName,
                                 displayName = base.displayName,
+                                intention = base.intention,
                                 contributor = base.contributor,
                                 meta = base.meta,
                                 invocationMessage = tc.value.invocationMessage,
@@ -1149,6 +1144,8 @@ public fun chatReducer(state: ChatState, action: StateAction): ChatState = when 
         }
         state.copy(queuedMessages = reordered)
     }
+
+    is StateActionChatDraftChanged -> state.copy(draft = action.value.draft)
 
     else -> state
 

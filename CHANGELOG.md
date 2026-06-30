@@ -25,13 +25,18 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 
 ### Added
 
-- `SessionModelInfo.maxOutputTokens` and `SessionModelInfo.maxPromptTokens`
-  optional fields for communicating model token limits.
-- `SessionSummary._meta` optional provider metadata field for lightweight
-  session-list presentation hints.
-- `JsonPrimitive` type alias (`string | number | boolean | null`) in `types/common/state.ts`.
-- `session/activeClientRemoved` action to release a single active client from a
-  session by `clientId`.
+- Optional `intention` field on `chat/toolCallStart` and every `ToolCallState`
+  variant, providing a human-readable description of what the invocation intends
+  to do.
+- Optional `model` and `tools` fields on `AgentCustomization`, giving a custom
+  agent's pinned model and tool allowlist a first-class home instead of `_meta`.
+
+## [0.5.1] — Unreleased
+
+Spec version: `0.5.1`
+
+### Added
+
 - `SessionState.inputNeeded` — a session-level aggregate of outstanding input
   requests across all chats, so a client can discover and answer elicitations,
   tool confirmations, and client-tool execution requests from the session
@@ -44,6 +49,31 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 - `ToolCallConfirmationState` union (`ToolCallPendingConfirmationState |
   ToolCallPendingResultConfirmationState`) for the tool call carried by
   `SessionToolConfirmationRequest`.
+
+## [0.5.0] — 2026-06-26
+
+Spec version: `0.5.0`
+
+### Added
+
+- `chat/activityChanged` action for updating a chat's current activity
+  description independently of the session summary.
+- `root/progress` (`ProgressParams`) generic host→client progress notification,
+  correlated by a `progressToken` the client supplies on the originating
+  request (today `createSession.progressToken`) rather than a domain object. Lets
+  the host report long-running work — e.g. the lazy first-use download of an
+  agent's native SDK — so clients can show an indicator instead of a silent
+  multi-second hang. Carries monotonic `progress` and optional `total`; complete
+  when `progress === total`.
+- `createSession.progressToken` optional opt-in token for receiving `root/progress`
+  notifications about a session's bring-up.
+- `SessionModelInfo.maxOutputTokens` and `SessionModelInfo.maxPromptTokens`
+  optional fields for communicating model token limits.
+- `SessionSummary._meta` optional provider metadata field for lightweight
+  session-list presentation hints.
+- `JsonPrimitive` type alias (`string | number | boolean | null`) in `types/common/state.ts`.
+- `session/activeClientRemoved` action to release a single active client from a
+  session by `clientId`.
 
 ### Changed
 
@@ -68,10 +98,6 @@ changes accumulate. Track in-flight protocol changes via PRs touching
   from `0.3.0` to `0.4.0`. The annotations channel first shipped in the
   `0.4.0` spec release (it is absent from `spec/v0.3.0`), so version
   negotiation must not advertise it to peers speaking `0.3.0`.
-
-## [0.5.0] — Unreleased
-
-Spec version: `0.5.0`
 
 ## [0.4.0] — 2026-06-19
 

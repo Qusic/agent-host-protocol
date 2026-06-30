@@ -273,14 +273,6 @@ pub struct CreateSessionParams {
     /// Agent provider ID
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provider: Option<String>,
-    /// Model selection (ID and optional model-specific configuration)
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub model: Option<ModelSelection>,
-    /// Initial custom agent selection for the new session.
-    ///
-    /// Omit to start the session with no custom agent selected (provider default).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub agent: Option<AgentSelection>,
     /// Working directory for the session
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub working_directory: Option<Uri>,
@@ -300,6 +292,18 @@ pub struct CreateSessionParams {
     /// `clientId` the creating client supplied in `initialize`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub active_client: Option<SessionActiveClient>,
+    /// Opt-in progress token. When set, the client is offering to receive
+    /// `progress` notifications (see `ProgressParams`) for any long-running work
+    /// the server does to bring this session up — most notably the lazy,
+    /// first-use download of the provider's native SDK. The server echoes this
+    /// exact token on every `progress` frame so the client can correlate it to
+    /// this `createSession` call (and the UI awaiting it).
+    ///
+    /// The token MUST be unique across the client's active requests. The server
+    /// MAY ignore it (e.g. when nothing long-running is needed), in which case no
+    /// `progress` notifications are emitted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub progress_token: Option<String>,
 }
 
 /// Disposes a session and cleans up server-side resources.
@@ -333,12 +337,6 @@ pub struct CreateChatParams {
     /// Optional initial message for the new chat.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub initial_message: Option<Message>,
-    /// Optional per-chat model override.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub model: Option<ModelSelection>,
-    /// Optional per-chat agent override.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub agent: Option<AgentSelection>,
     /// Optional source chat and turn to fork from.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<ChatForkSource>,

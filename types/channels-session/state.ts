@@ -12,7 +12,6 @@ import type {
   ToolCallConfirmationState,
   ToolCallState,
 } from '../channels-chat/state.js';
-import type { ModelSelection } from '../channels-root/state.js';
 import type {
   ConfigPropertySchema,
   ErrorInfo,
@@ -60,13 +59,57 @@ export const enum SessionStatus {
 }
 
 /**
- * Full state for a single session, loaded when a client subscribes to the session's URI.
+ * Metadata shared between the full {@link SessionState} (delivered when a
+ * client subscribes to a session's URI) and the lightweight
+ * {@link SessionSummary} (carried in the root-channel session catalog).
+ *
+ * These fields describe the session at a glance and appear in both places.
+ * `SessionState` owns the authoritative values for a subscribed session;
+ * `SessionSummary` mirrors them into the catalog so clients that only render a
+ * session list don't have to subscribe to every session URI. The host keeps
+ * the catalog in sync via `root/sessionSummaryChanged`.
  *
  * @category Session State
  */
-export interface SessionState {
-  /** Lightweight session metadata */
-  summary: SessionSummary;
+export interface SessionMetadata {
+  /** Agent provider ID */
+  provider: string;
+  /** Session title */
+  title: string;
+  /** Current session status */
+  status: SessionStatus;
+  /** Human-readable description of what the session is currently doing */
+  activity?: string;
+  /** Server-owned project for this session */
+  project?: ProjectInfo;
+  /**
+   * The default working directory URI for this session. Individual chats
+   * MAY override via {@link ChatSummary.workingDirectory | their own
+   * `workingDirectory`}; this field acts as the fallback for any chat that
+   * does not.
+   */
+  workingDirectory?: URI;
+  /**
+   * Lightweight summary of this session's inline annotations channel
+   * (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
+   * annotation / entry counts without subscribing. Absent when the session
+   * does not expose an annotations channel.
+   */
+  annotations?: AnnotationsSummary;
+}
+
+/**
+ * Full state for a single session, loaded when a client subscribes to the session's URI.
+ *
+ * Inlines (denormalizes) every {@link SessionMetadata} field directly onto
+ * itself so subscribers receive one flat object instead of a nested summary.
+ * The lightweight catalog representation is {@link SessionSummary}, surfaced on
+ * the root channel; the host keeps the two in sync via
+ * `root/sessionSummaryChanged`.
+ *
+ * @category Session State
+ */
+export interface SessionState extends SessionMetadata {
   /** Session initialization state */
   lifecycle: SessionLifecycle;
   /** Error details if creation failed */
@@ -344,8 +387,6 @@ export interface ProjectInfo {
  *   chat currently driving the promoted status bits when a non-default chat
  *   wins (e.g. the chat that raised `InputNeeded`).
  * - `modifiedAt`: the max of all chats' `modifiedAt`.
- * - `model` / `agent`: the session-level selection. Per-chat overrides are
- *   surfaced on individual {@link ChatSummary} entries, not aggregated up.
  * - `workingDirectory`: the session-level **default**. Individual chats MAY
  *   override via {@link ChatSummary.workingDirectory}; aggregating these up
  *   is meaningless and SHOULD NOT be attempted.
@@ -359,39 +400,13 @@ export interface ProjectInfo {
  *
  * @category Session State
  */
-export interface SessionSummary {
+export interface SessionSummary extends SessionMetadata {
   /** Session URI */
   resource: URI;
-  /** Agent provider ID */
-  provider: string;
-  /** Session title */
-  title: string;
-  /** Current session status */
-  status: SessionStatus;
-  /** Human-readable description of what the session is currently doing */
-  activity?: string;
-  /** Creation timestamp */
-  createdAt: number;
-  /** Last modification timestamp */
-  modifiedAt: number;
-  /** Server-owned project for this session */
-  project?: ProjectInfo;
-  /** Currently selected model */
-  model?: ModelSelection;
-  /**
-   * Currently selected custom agent.
-   *
-   * Absent (`undefined`) means no custom agent is selected for this session
-   * — the session uses the provider's default behavior.
-   */
-  agent?: AgentSelection;
-  /**
-   * The default working directory URI for this session. Individual chats
-   * MAY override via {@link ChatSummary.workingDirectory | their own
-   * `workingDirectory`}; this field acts as the fallback for any chat that
-   * does not.
-   */
-  workingDirectory?: URI;
+  /** Creation timestamp (ISO 8601, e.g. `"2025-03-10T18:42:03.123Z"`) */
+  createdAt: string;
+  /** Last modification timestamp (ISO 8601, e.g. `"2025-03-10T18:42:03.123Z"`) */
+  modifiedAt: string;
   /**
   * Aggregate summary of file changes associated with this session. Servers
   * may populate this to give clients a quick at-a-glance view of the
@@ -399,14 +414,6 @@ export interface SessionSummary {
   * client to subscribe to a changeset.
   */
   changes?: ChangesSummary;
-  /**
-   * Lightweight summary of this session's inline annotations channel
-   * (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
-   * annotation / entry counts without subscribing. Absent when the session
-   * does not expose an annotations channel.
-   */
-  annotations?: AnnotationsSummary;
-
   /**
    * Lightweight server-defined metadata clients may use for the session
    * presentation. The protocol does not interpret these values; producers
@@ -433,10 +440,6 @@ export interface ChangesSummary {
   files?: number;
 }
 
-// ─── Model Selection ─────────────────────────────────────────────────────────
-// `ModelSelection` is declared in channels-root/state.ts (the model lives on
-// `AgentInfo`); we import it above for use in `SessionSummary.model`.
-
 // ─── Agent Selection ─────────────────────────────────────────────────────────
 
 /**
@@ -447,7 +450,7 @@ export interface ChangesSummary {
  * the session's effective customizations). Consumers resolve the agent's
  * display name by looking up `uri` in the session's customization tree.
  *
- * A session with no `agent` selected uses the provider's default behavior.
+ * A message with no `agent` selected uses the provider's default behavior.
  *
  * @category Session State
  */
@@ -804,6 +807,22 @@ export interface AgentCustomization extends CustomizationBase {
    * invoke it. Sourced from the agent file's frontmatter `description`.
    */
   description?: string;
+  /**
+   * Model the agent is pinned to, sourced from the agent file's
+   * frontmatter `model`. Absent means the agent inherits the session's
+   * default model.
+   */
+  model?: string;
+  /**
+   * Allowlist of tool names the agent is scoped to, sourced from the
+   * agent file's frontmatter `tools`. A non-empty list restricts the
+   * agent to exactly those tools. Absent — or an empty list — imposes no
+   * restriction beyond the session default: the agent may use any
+   * available tool. Producers express "no restriction" by omitting the
+   * field rather than sending an empty array, so an empty list carries no
+   * meaning distinct from absence.
+   */
+  tools?: string[];
   /**
    * Additional provider-specific metadata for this custom agent.
    *

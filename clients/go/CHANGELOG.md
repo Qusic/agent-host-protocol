@@ -16,12 +16,6 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 
 ### Added
 
-- `SessionModelInfo.MaxOutputTokens` and `SessionModelInfo.MaxPromptTokens`
-  optional fields for communicating model token limits.
-- `SessionSummary.Meta` (wire `_meta`) optional provider metadata field for
-  lightweight session-list presentation hints.
-- `SessionActiveClientRemovedAction` (wire `session/activeClientRemoved`) to
-  release a single active client by `ClientId`.
 - `SessionState.InputNeeded` — a session-level aggregate of outstanding input
   requests across all chats (`SessionInputRequest` union with
   `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
@@ -29,9 +23,54 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
   (wire `session/inputNeededSet`) and `SessionInputNeededRemovedAction` (wire
   `session/inputNeededRemoved`) actions and the `ToolCallConfirmationState`
   union.
+- Optional `Intention` field on `ChatToolCallStartAction` and every tool-call
+  lifecycle state.
+- Optional `Model` and `Tools` fields on `AgentCustomization` for a custom
+  agent's pinned model and tool allowlist.
+
+### Fixed
+
+- `SnapshotState.UnmarshalJSON` now decodes the `Chat` variant. Variant
+  disambiguation previously probed for the removed `summary` field (a leftover
+  from before `SessionState` was flattened), so chat and session snapshots both
+  fell through to the `Root` catch-all. Sessions are now matched on `lifecycle`
+  and chats on `turns`.
+
+## [0.5.0] — 2026-06-26
+
+Implements AHP 0.5.0.
+
+### Added
+
+- `ChatDraftChangedAction` (wire `chat/draftChanged`) and `ChatState.Draft`
+  (`*Message`) for syncing a chat's in-progress input draft; `ApplyActionToChat`
+  sets or clears `state.Draft` without stamping `ModifiedAt`.
+- `Message.Model` and `Message.Agent` optional fields recording the model /
+  agent selection a message was composed with.
+- `ChatActivityChangedAction` (wire `chat/activityChanged`) for updating a chat's
+  current activity description independently of the session summary.
+- `ProgressParams` struct (wire `root/progress`) — a generic progress notification
+  correlated by a `ProgressToken` (added on `CreateSessionParams`).
+  Used today for the lazy first-use download of an agent's native SDK.
+- `SessionModelInfo.MaxOutputTokens` and `SessionModelInfo.MaxPromptTokens`
+  optional fields for communicating model token limits.
+- `SessionSummary.Meta` (wire `_meta`) optional provider metadata field for
+  lightweight session-list presentation hints.
+- `SessionActiveClientRemovedAction` (wire `session/activeClientRemoved`) to
+  release a single active client by `ClientId`.
 
 ### Changed
 
+- `SessionState` no longer embeds a `Summary` sub-struct; its metadata fields
+  (`Provider`, `Title`, `Status`, `Activity`, `Project`, `WorkingDirectory`,
+  `Annotations`) are now inlined directly on `SessionState`, which no longer
+  carries `Model`, `Agent`, `CreatedAt`, or `ModifiedAt`. `ApplyActionToSession`
+  reads and writes these flat fields and no longer stamps a session
+  `ModifiedAt`.
+- `SessionSummary` is now a root-only catalog struct; its `CreatedAt` /
+  `ModifiedAt` are ISO-8601 strings (previously numeric) and it no longer
+  carries `Model` / `Agent`.
+- `ChatState` and `ChatSummary` no longer carry `Model` / `Agent`.
 - `SessionState.ActiveClients` (`[]SessionActiveClient`, required) replaces the
   single pointer `SessionState.ActiveClient`; `ApplyActionToSession` upserts and
   removes entries keyed by `ClientId`.
@@ -46,6 +85,9 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 
 ### Removed
 
+- `SessionModelChangedAction` (wire `session/modelChanged`) and
+  `SessionAgentChangedAction` (wire `session/agentChanged`); session model /
+  agent are no longer part of the protocol surface.
 - `SessionActiveClientToolsChangedAction`. An active client now updates its
   published tools by re-dispatching `SessionActiveClientSetAction` with its
   full, updated entry.

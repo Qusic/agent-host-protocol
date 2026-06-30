@@ -231,12 +231,6 @@ type CreateSessionParams struct {
 	Channel URI `json:"channel"`
 	// Agent provider ID
 	Provider *string `json:"provider,omitempty"`
-	// Model selection (ID and optional model-specific configuration)
-	Model *ModelSelection `json:"model,omitempty"`
-	// Initial custom agent selection for the new session.
-	//
-	// Omit to start the session with no custom agent selected (provider default).
-	Agent *AgentSelection `json:"agent,omitempty"`
 	// Working directory for the session
 	WorkingDirectory *URI `json:"workingDirectory,omitempty"`
 	// Fork from an existing session. The new session is populated with content
@@ -252,6 +246,17 @@ type CreateSessionParams struct {
 	// action immediately after creation. The `clientId` MUST match the
 	// `clientId` the creating client supplied in `initialize`.
 	ActiveClient *SessionActiveClient `json:"activeClient,omitempty"`
+	// Opt-in progress token. When set, the client is offering to receive
+	// `progress` notifications (see `ProgressParams`) for any long-running work
+	// the server does to bring this session up — most notably the lazy,
+	// first-use download of the provider's native SDK. The server echoes this
+	// exact token on every `progress` frame so the client can correlate it to
+	// this `createSession` call (and the UI awaiting it).
+	//
+	// The token MUST be unique across the client's active requests. The server
+	// MAY ignore it (e.g. when nothing long-running is needed), in which case no
+	// `progress` notifications are emitted.
+	ProgressToken *string `json:"progressToken,omitempty"`
 }
 
 // Disposes a session and cleans up server-side resources.
@@ -278,10 +283,6 @@ type CreateChatParams struct {
 	Chat URI `json:"chat"`
 	// Optional initial message for the new chat.
 	InitialMessage *Message `json:"initialMessage,omitempty"`
-	// Optional per-chat model override.
-	Model *ModelSelection `json:"model,omitempty"`
-	// Optional per-chat agent override.
-	Agent *AgentSelection `json:"agent,omitempty"`
 	// Optional source chat and turn to fork from.
 	Source *ChatForkSource `json:"source,omitempty"`
 }

@@ -14,8 +14,6 @@ import type {
   SessionChatUpdatedAction,
   SessionDefaultChatChangedAction,
   SessionTitleChangedAction,
-  SessionModelChangedAction,
-  SessionAgentChangedAction,
   SessionServerToolsChangedAction,
   SessionActiveClientSetAction,
   SessionActiveClientRemovedAction,
@@ -45,11 +43,13 @@ import type {
   ChatTurnCompleteAction,
   ChatTurnCancelledAction,
   ChatErrorAction,
+  ChatActivityChangedAction,
   ChatUsageAction,
   ChatReasoningAction,
   ChatPendingMessageSetAction,
   ChatPendingMessageRemovedAction,
   ChatQueuedMessagesReorderedAction,
+  ChatDraftChangedAction,
   ChatInputRequestedAction,
   ChatInputAnswerChangedAction,
   ChatInputCompletedAction,
@@ -113,8 +113,6 @@ export type SessionAction =
   | SessionChatUpdatedAction
   | SessionDefaultChatChangedAction
   | SessionTitleChangedAction
-  | SessionModelChangedAction
-  | SessionAgentChangedAction
   | SessionServerToolsChangedAction
   | SessionActiveClientSetAction
   | SessionActiveClientRemovedAction
@@ -136,8 +134,6 @@ export type SessionAction =
 /** Union of session actions that clients may dispatch. */
 export type ClientSessionAction =
   | SessionTitleChangedAction
-  | SessionModelChangedAction
-  | SessionAgentChangedAction
   | SessionActiveClientSetAction
   | SessionActiveClientRemovedAction
   | SessionCustomizationToggledAction
@@ -181,11 +177,13 @@ export type ChatAction =
   | ChatTurnCompleteAction
   | ChatTurnCancelledAction
   | ChatErrorAction
+  | ChatActivityChangedAction
   | ChatUsageAction
   | ChatReasoningAction
   | ChatPendingMessageSetAction
   | ChatPendingMessageRemovedAction
   | ChatQueuedMessagesReorderedAction
+  | ChatDraftChangedAction
   | ChatInputRequestedAction
   | ChatInputAnswerChangedAction
   | ChatInputCompletedAction
@@ -203,6 +201,7 @@ export type ClientChatAction =
   | ChatPendingMessageSetAction
   | ChatPendingMessageRemovedAction
   | ChatQueuedMessagesReorderedAction
+  | ChatDraftChangedAction
   | ChatInputAnswerChangedAction
   | ChatInputCompletedAction
   | ChatTruncatedAction
@@ -217,6 +216,7 @@ export type ServerChatAction =
   | ChatToolCallReadyAction
   | ChatTurnCompleteAction
   | ChatErrorAction
+  | ChatActivityChangedAction
   | ChatUsageAction
   | ChatReasoningAction
   | ChatInputRequestedAction
@@ -339,8 +339,6 @@ export const IS_CLIENT_DISPATCHABLE: { readonly [K in StateAction['type']]: bool
   [ActionType.SessionChatUpdated]: false,
   [ActionType.SessionDefaultChatChanged]: false,
   [ActionType.SessionTitleChanged]: true,
-  [ActionType.SessionModelChanged]: true,
-  [ActionType.SessionAgentChanged]: true,
   [ActionType.SessionServerToolsChanged]: false,
   [ActionType.SessionActiveClientSet]: true,
   [ActionType.SessionActiveClientRemoved]: true,
@@ -370,11 +368,13 @@ export const IS_CLIENT_DISPATCHABLE: { readonly [K in StateAction['type']]: bool
   [ActionType.ChatTurnComplete]: false,
   [ActionType.ChatTurnCancelled]: true,
   [ActionType.ChatError]: false,
+  [ActionType.ChatActivityChanged]: false,
   [ActionType.ChatUsage]: false,
   [ActionType.ChatReasoning]: false,
   [ActionType.ChatPendingMessageSet]: true,
   [ActionType.ChatPendingMessageRemoved]: true,
   [ActionType.ChatQueuedMessagesReordered]: true,
+  [ActionType.ChatDraftChanged]: true,
   [ActionType.ChatInputRequested]: false,
   [ActionType.ChatInputAnswerChanged]: true,
   [ActionType.ChatInputCompleted]: true,

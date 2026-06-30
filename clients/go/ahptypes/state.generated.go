@@ -593,7 +593,7 @@ type ModelSelection struct {
 // the session's effective customizations). Consumers resolve the agent's
 // display name by looking up `uri` in the session's customization tree.
 //
-// A session with no `agent` selected uses the provider's default behavior.
+// A message with no `agent` selected uses the provider's default behavior.
 type AgentSelection struct {
 	// Stable agent URI (matches an {@link AgentCustomization.uri}).
 	Uri URI `json:"uri"`
@@ -649,9 +649,33 @@ type ConfigSchema struct {
 }
 
 // Full state for a single session, loaded when a client subscribes to the session's URI.
+//
+// Inlines (denormalizes) every {@link SessionMetadata} field directly onto
+// itself so subscribers receive one flat object instead of a nested summary.
+// The lightweight catalog representation is {@link SessionSummary}, surfaced on
+// the root channel; the host keeps the two in sync via
+// `root/sessionSummaryChanged`.
 type SessionState struct {
-	// Lightweight session metadata
-	Summary SessionSummary `json:"summary"`
+	// Agent provider ID
+	Provider string `json:"provider"`
+	// Session title
+	Title string `json:"title"`
+	// Current session status
+	Status SessionStatus `json:"status"`
+	// Human-readable description of what the session is currently doing
+	Activity *string `json:"activity,omitempty"`
+	// Server-owned project for this session
+	Project *ProjectInfo `json:"project,omitempty"`
+	// The default working directory URI for this session. Individual chats
+	// MAY override via {@link ChatSummary.workingDirectory | their own
+	// `workingDirectory`}; this field acts as the fallback for any chat that
+	// does not.
+	WorkingDirectory *URI `json:"workingDirectory,omitempty"`
+	// Lightweight summary of this session's inline annotations channel
+	// (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
+	// annotation / entry counts without subscribing. Absent when the session
+	// does not expose an annotations channel.
+	Annotations *AnnotationsSummary `json:"annotations,omitempty"`
 	// Session initialization state
 	Lifecycle SessionLifecycle `json:"lifecycle"`
 	// Error details if creation failed
@@ -851,8 +875,6 @@ type SessionToolClientExecutionRequest struct {
 //     chat currently driving the promoted status bits when a non-default chat
 //     wins (e.g. the chat that raised `InputNeeded`).
 //   - `modifiedAt`: the max of all chats' `modifiedAt`.
-//   - `model` / `agent`: the session-level selection. Per-chat overrides are
-//     surfaced on individual {@link ChatSummary} entries, not aggregated up.
 //   - `workingDirectory`: the session-level **default**. Individual chats MAY
 //     override via {@link ChatSummary.workingDirectory}; aggregating these up
 //     is meaningless and SHOULD NOT be attempted.
@@ -864,8 +886,6 @@ type SessionToolClientExecutionRequest struct {
 // values pass through unchanged). The rules only matter once a session
 // carries multiple chats.
 type SessionSummary struct {
-	// Session URI
-	Resource URI `json:"resource"`
 	// Agent provider ID
 	Provider string `json:"provider"`
 	// Session title
@@ -874,34 +894,29 @@ type SessionSummary struct {
 	Status SessionStatus `json:"status"`
 	// Human-readable description of what the session is currently doing
 	Activity *string `json:"activity,omitempty"`
-	// Creation timestamp
-	CreatedAt int64 `json:"createdAt"`
-	// Last modification timestamp
-	ModifiedAt int64 `json:"modifiedAt"`
 	// Server-owned project for this session
 	Project *ProjectInfo `json:"project,omitempty"`
-	// Currently selected model
-	Model *ModelSelection `json:"model,omitempty"`
-	// Currently selected custom agent.
-	//
-	// Absent (`undefined`) means no custom agent is selected for this session
-	// — the session uses the provider's default behavior.
-	Agent *AgentSelection `json:"agent,omitempty"`
 	// The default working directory URI for this session. Individual chats
 	// MAY override via {@link ChatSummary.workingDirectory | their own
 	// `workingDirectory`}; this field acts as the fallback for any chat that
 	// does not.
 	WorkingDirectory *URI `json:"workingDirectory,omitempty"`
-	// Aggregate summary of file changes associated with this session. Servers
-	// may populate this to give clients a quick at-a-glance view of the
-	// session's footprint (e.g., for list rendering) without requiring the
-	// client to subscribe to a changeset.
-	Changes *ChangesSummary `json:"changes,omitempty"`
 	// Lightweight summary of this session's inline annotations channel
 	// (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
 	// annotation / entry counts without subscribing. Absent when the session
 	// does not expose an annotations channel.
 	Annotations *AnnotationsSummary `json:"annotations,omitempty"`
+	// Session URI
+	Resource URI `json:"resource"`
+	// Creation timestamp (ISO 8601, e.g. `"2025-03-10T18:42:03.123Z"`)
+	CreatedAt string `json:"createdAt"`
+	// Last modification timestamp (ISO 8601, e.g. `"2025-03-10T18:42:03.123Z"`)
+	ModifiedAt string `json:"modifiedAt"`
+	// Aggregate summary of file changes associated with this session. Servers
+	// may populate this to give clients a quick at-a-glance view of the
+	// session's footprint (e.g., for list rendering) without requiring the
+	// client to subscribe to a changeset.
+	Changes *ChangesSummary `json:"changes,omitempty"`
 	// Lightweight server-defined metadata clients may use for the session
 	// presentation. The protocol does not interpret these values; producers
 	// SHOULD keep the payload small because summaries appear in session lists
@@ -944,10 +959,6 @@ type ChatState struct {
 	Activity *string `json:"activity,omitempty"`
 	// Last modification timestamp (ISO 8601, e.g. `"2025-03-10T18:42:03.123Z"`)
 	ModifiedAt string `json:"modifiedAt"`
-	// Optional per-chat model override (defaults to the session's model)
-	Model *ModelSelection `json:"model,omitempty"`
-	// Optional per-chat agent override (defaults to the session's agent)
-	Agent *AgentSelection `json:"agent,omitempty"`
 	// How this chat came into existence
 	Origin *ChatOrigin `json:"origin,omitempty"`
 	// How the user can interact with this chat. See {@link ChatInteractivity}.
@@ -959,7 +970,7 @@ type ChatState struct {
 	// Optional per-chat working directory.
 	//
 	// If absent, the chat inherits
-	// {@link SessionSummary.workingDirectory | the session's working directory}.
+	// {@link SessionState.workingDirectory | the session's working directory}.
 	// Hosts MAY override this for individual chats — for example, to give a
 	// subordinate chat its own git worktree so multiple chats in a session can
 	// make independent edits that the orchestrator later merges back.
@@ -974,6 +985,18 @@ type ChatState struct {
 	QueuedMessages []PendingMessage `json:"queuedMessages,omitempty"`
 	// Requests for user input that are currently blocking or informing chat progress
 	InputRequests []ChatInputRequest `json:"inputRequests,omitempty"`
+	// The user's in-progress draft input for this chat — the message they are
+	// composing but have not sent yet, including its
+	// {@link Message.model | model} / {@link Message.agent | agent} selection
+	// and attachments.
+	//
+	// Clients MAY periodically sync their local input state into this field so
+	// a draft survives reloads and is visible to other clients viewing the same
+	// chat. Eager syncing is **not** required — clients SHOULD debounce and MAY
+	// sync only at convenient points. When presenting input UI for an existing
+	// chat, clients SHOULD use any `draft` to initialize their input state.
+	// Cleared (set to `undefined`) once the message is sent.
+	Draft *Message `json:"draft,omitempty"`
 	// Additional provider-specific metadata for this chat.
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 }
@@ -992,10 +1015,6 @@ type ChatSummary struct {
 	Activity *string `json:"activity,omitempty"`
 	// Last modification timestamp (ISO 8601, e.g. `"2025-03-10T18:42:03.123Z"`)
 	ModifiedAt string `json:"modifiedAt"`
-	// Optional per-chat model override (defaults to the session's model)
-	Model *ModelSelection `json:"model,omitempty"`
-	// Optional per-chat agent override (defaults to the session's agent)
-	Agent *AgentSelection `json:"agent,omitempty"`
 	// How this chat came into existence
 	Origin *ChatOrigin `json:"origin,omitempty"`
 	// How the user can interact with this chat. See {@link ChatInteractivity}.
@@ -1138,6 +1157,20 @@ type Message struct {
 	Origin MessageOrigin `json:"origin"`
 	// File/selection attachments
 	Attachments []MessageAttachment `json:"attachments,omitempty"`
+	// The model this message was, or will be, sent with.
+	//
+	// For historic user/agent messages this records the model actually used, so
+	// a client editing or resending the message can retain that selection. For a
+	// {@link ChatState.draft | draft} it carries the model the user picked for
+	// the message they are composing. Absent means the agent host's default
+	// model applies.
+	Model *ModelSelection `json:"model,omitempty"`
+	// The custom agent this message was, or will be, sent with.
+	//
+	// For historic messages this records the agent actually used; for a
+	// {@link ChatState.draft | draft} it carries the agent the user picked.
+	// Absent means no custom agent — the provider's default behavior applies.
+	Agent *AgentSelection `json:"agent,omitempty"`
 	// Additional provider-specific metadata for this message.
 	//
 	// Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -1618,6 +1651,8 @@ type ToolCallStreamingState struct {
 	ToolName string `json:"toolName"`
 	// Human-readable tool name
 	DisplayName string `json:"displayName"`
+	// Human-readable description of what the tool invocation intends to do
+	Intention *string `json:"intention,omitempty"`
 	// Reference to the contributor of the tool being called.
 	Contributor *ToolCallContributor `json:"contributor,omitempty"`
 	// Additional provider-specific metadata for this tool call.
@@ -1642,6 +1677,8 @@ type ToolCallPendingConfirmationState struct {
 	ToolName string `json:"toolName"`
 	// Human-readable tool name
 	DisplayName string `json:"displayName"`
+	// Human-readable description of what the tool invocation intends to do
+	Intention *string `json:"intention,omitempty"`
 	// Reference to the contributor of the tool being called.
 	Contributor *ToolCallContributor `json:"contributor,omitempty"`
 	// Additional provider-specific metadata for this tool call.
@@ -1676,6 +1713,8 @@ type ToolCallRunningState struct {
 	ToolName string `json:"toolName"`
 	// Human-readable tool name
 	DisplayName string `json:"displayName"`
+	// Human-readable description of what the tool invocation intends to do
+	Intention *string `json:"intention,omitempty"`
 	// Reference to the contributor of the tool being called.
 	Contributor *ToolCallContributor `json:"contributor,omitempty"`
 	// Additional provider-specific metadata for this tool call.
@@ -1708,6 +1747,8 @@ type ToolCallPendingResultConfirmationState struct {
 	ToolName string `json:"toolName"`
 	// Human-readable tool name
 	DisplayName string `json:"displayName"`
+	// Human-readable description of what the tool invocation intends to do
+	Intention *string `json:"intention,omitempty"`
 	// Reference to the contributor of the tool being called.
 	Contributor *ToolCallContributor `json:"contributor,omitempty"`
 	// Additional provider-specific metadata for this tool call.
@@ -1749,6 +1790,8 @@ type ToolCallCompletedState struct {
 	ToolName string `json:"toolName"`
 	// Human-readable tool name
 	DisplayName string `json:"displayName"`
+	// Human-readable description of what the tool invocation intends to do
+	Intention *string `json:"intention,omitempty"`
 	// Reference to the contributor of the tool being called.
 	Contributor *ToolCallContributor `json:"contributor,omitempty"`
 	// Additional provider-specific metadata for this tool call.
@@ -1790,6 +1833,8 @@ type ToolCallCancelledState struct {
 	ToolName string `json:"toolName"`
 	// Human-readable tool name
 	DisplayName string `json:"displayName"`
+	// Human-readable description of what the tool invocation intends to do
+	Intention *string `json:"intention,omitempty"`
 	// Reference to the contributor of the tool being called.
 	Contributor *ToolCallContributor `json:"contributor,omitempty"`
 	// Additional provider-specific metadata for this tool call.
@@ -2126,6 +2171,18 @@ type AgentCustomization struct {
 	// Short description of what the agent specializes in and when to
 	// invoke it. Sourced from the agent file's frontmatter `description`.
 	Description *string `json:"description,omitempty"`
+	// Model the agent is pinned to, sourced from the agent file's
+	// frontmatter `model`. Absent means the agent inherits the session's
+	// default model.
+	Model *string `json:"model,omitempty"`
+	// Allowlist of tool names the agent is scoped to, sourced from the
+	// agent file's frontmatter `tools`. A non-empty list restricts the
+	// agent to exactly those tools. Absent — or an empty list — imposes no
+	// restriction beyond the session default: the agent may use any
+	// available tool. Producers express "no restriction" by omitting the
+	// field rather than sending an empty array, so an empty list carries no
+	// meaning distinct from absence.
+	Tools []string `json:"tools,omitempty"`
 	// Additional provider-specific metadata for this custom agent.
 	//
 	// Mirrors the MCP `_meta` convention.
@@ -4195,13 +4252,13 @@ func (s *SnapshotState) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	switch {
-	case containsAll(probe, "summary", "lifecycle"):
+	case containsAll(probe, "lifecycle"):
 		var v SessionState
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		s.Session = &v
-	case containsAll(probe, "summary", "turns"):
+	case containsAll(probe, "turns"):
 		var v ChatState
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err

@@ -96,6 +96,58 @@ pub struct SessionSummaryChangedParams {
     pub changes: PartialSessionSummary,
 }
 
+/// Generic progress notification for a long-running operation.
+///
+/// A client opts in to progress for a request by including a `progressToken` in
+/// that request (today: the `progressToken` field on `createSession`). If the
+/// server does long-running work to service the request — e.g. lazily
+/// downloading an agent's native SDK the first time a session of that provider
+/// is materialized — it emits `progress` notifications carrying the same token.
+///
+/// The notification is operation-agnostic: it says nothing about *what* is
+/// progressing. The client correlates `progressToken` back to the request it
+/// originated from (and thus the UI surface awaiting it) and renders its own
+/// localized indicator. The same channel serves any future long-running
+/// operation without a new method.
+///
+/// Semantics:
+///
+/// - `progress` is monotonically non-decreasing for a given `progressToken`.
+/// - `total` is present only when the server knows the magnitude up front
+///   (e.g. a `Content-Length`); when absent the client SHOULD show an
+///   indeterminate indicator.
+/// - The operation is complete when `progress === total`. The server MUST emit a
+///   final frame satisfying `progress === total`; when the total was never
+///   known, it sets `total` to the final `progress` on that frame. No further
+///   frames reference the token afterwards.
+/// - The server MAY emit no progress at all (e.g. the work was already done);
+///   the client then never shows an indicator.
+/// - Like all notifications this is ephemeral and is **not** replayed on
+///   reconnect. A client that never receives the terminal frame SHOULD expire
+///   the indicator after an idle timeout.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProgressParams {
+    /// Channel URI this notification belongs to (the root channel).
+    pub channel: Uri,
+    /// Echoes the `progressToken` the client supplied on the originating request
+    /// (e.g. the `progressToken` field of `createSession`), correlating this frame
+    /// to that call. Unique across the client's active requests.
+    pub progress_token: String,
+    /// Progress so far, in operation-defined units (e.g. bytes received).
+    /// Monotonically non-decreasing for a given `progressToken`.
+    pub progress: i64,
+    /// Total when known up front (e.g. from a `Content-Length`); omitted ⇒
+    /// indeterminate. The operation is complete once `progress === total`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total: Option<i64>,
+    /// Optional human-readable progress message. The client owns its own
+    /// (localized) presentation derived from the originating request; generic
+    /// clients that don't track the token MAY display this instead.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+}
+
 /// Sent by the server when a protected resource requires (re-)authentication.
 ///
 /// This notification MAY be associated with any channel — for example, an
@@ -181,9 +233,6 @@ pub struct OtlpExportMetricsParams {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct PartialSessionSummary {
-    /// Session URI
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub resource: Option<Uri>,
     /// Agent provider ID
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provider: Option<String>,
@@ -196,42 +245,36 @@ pub struct PartialSessionSummary {
     /// Human-readable description of what the session is currently doing
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub activity: Option<String>,
-    /// Creation timestamp
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<i64>,
-    /// Last modification timestamp
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub modified_at: Option<i64>,
     /// Server-owned project for this session
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project: Option<ProjectInfo>,
-    /// Currently selected model
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub model: Option<ModelSelection>,
-    /// Currently selected custom agent.
-    ///
-    /// Absent (`undefined`) means no custom agent is selected for this session
-    /// — the session uses the provider's default behavior.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub agent: Option<AgentSelection>,
     /// The default working directory URI for this session. Individual chats
     /// MAY override via {@link ChatSummary.workingDirectory | their own
     /// `workingDirectory`}; this field acts as the fallback for any chat that
     /// does not.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub working_directory: Option<Uri>,
-    /// Aggregate summary of file changes associated with this session. Servers
-    /// may populate this to give clients a quick at-a-glance view of the
-    /// session's footprint (e.g., for list rendering) without requiring the
-    /// client to subscribe to a changeset.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub changes: Option<ChangesSummary>,
     /// Lightweight summary of this session's inline annotations channel
     /// (`ahp-session:/<uuid>/annotations`). Surfaced so badge UI can render
     /// annotation / entry counts without subscribing. Absent when the session
     /// does not expose an annotations channel.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub annotations: Option<AnnotationsSummary>,
+    /// Session URI
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resource: Option<Uri>,
+    /// Creation timestamp (ISO 8601, e.g. `"2025-03-10T18:42:03.123Z"`)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    /// Last modification timestamp (ISO 8601, e.g. `"2025-03-10T18:42:03.123Z"`)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub modified_at: Option<String>,
+    /// Aggregate summary of file changes associated with this session. Servers
+    /// may populate this to give clients a quick at-a-glance view of the
+    /// session's footprint (e.g., for list rendering) without requiring the
+    /// client to subscribe to a changeset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub changes: Option<ChangesSummary>,
     /// Lightweight server-defined metadata clients may use for the session
     /// presentation. The protocol does not interpret these values; producers
     /// SHOULD keep the payload small because summaries appear in session lists
