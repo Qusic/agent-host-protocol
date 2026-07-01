@@ -61,6 +61,7 @@ fn session_state(title: &str, _resource: &str) -> SessionState {
         config: None,
         customizations: None,
         changesets: None,
+        input_needed: None,
         meta: None,
     }
 }

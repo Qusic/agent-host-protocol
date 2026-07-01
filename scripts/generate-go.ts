@@ -642,7 +642,7 @@ function generateDiscriminatedUnion(cfg: UnionConfig): string {
 const STATE_ENUMS = [
   'PolicyState', 'SessionLifecycle', 'SessionStatus',
   'ChatOriginKind', 'ChatInteractivity', 'PendingMessageKind', 'ChatInputAnswerState', 'ChatInputAnswerValueKind', 'ChatInputQuestionKind',
-  'ChatInputResponseKind',
+  'ChatInputResponseKind', 'SessionInputRequestKind',
   'TurnState', 'MessageKind', 'MessageAttachmentKind', 'ResponsePartKind', 'ToolCallStatus',
   'ToolCallConfirmationReason', 'ToolCallCancellationReason',
   'ConfirmationOptionKind', 'ToolCallContributorKind',
@@ -664,6 +664,9 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; goName?: strin
   { name: 'ConfigSchema' },
   { name: 'SessionState' },
   { name: 'SessionActiveClient' },
+  { name: 'SessionChatInputRequest' },
+  { name: 'SessionToolConfirmationRequest' },
+  { name: 'SessionToolClientExecutionRequest' },
   { name: 'SessionSummary' },
   { name: 'ChangesSummary' },
   { name: 'ChatState' },
@@ -790,6 +793,17 @@ const TOOL_CALL_STATE_UNION: UnionConfig = {
     { variantName: 'PendingResultConfirmation', innerType: 'ToolCallPendingResultConfirmationState', wireValue: 'pending-result-confirmation' },
     { variantName: 'Completed', innerType: 'ToolCallCompletedState', wireValue: 'completed' },
     { variantName: 'Cancelled', innerType: 'ToolCallCancelledState', wireValue: 'cancelled' },
+  ],
+  unknown: true,
+};
+
+const TOOL_CALL_CONFIRMATION_STATE_UNION: UnionConfig = {
+  name: 'ToolCallConfirmationState',
+  discriminantField: 'status',
+  doc: 'ToolCallConfirmationState is a tool call blocked on parameter- or result-confirmation.',
+  variants: [
+    { variantName: 'PendingConfirmation', innerType: 'ToolCallPendingConfirmationState', wireValue: 'pending-confirmation' },
+    { variantName: 'PendingResultConfirmation', innerType: 'ToolCallPendingResultConfirmationState', wireValue: 'pending-result-confirmation' },
   ],
   unknown: true,
 };
@@ -946,6 +960,18 @@ const TOOL_CALL_CONTRIBUTOR_UNION: UnionConfig = {
   variants: [
     { variantName: 'Client', innerType: 'ToolCallClientContributor', wireValue: 'client' },
     { variantName: 'Mcp', innerType: 'ToolCallMcpContributor', wireValue: 'mcp' },
+  ],
+  unknown: true,
+};
+
+const SESSION_INPUT_REQUEST_UNION: UnionConfig = {
+  name: 'SessionInputRequest',
+  discriminantField: 'kind',
+  doc: 'SessionInputRequest is one outstanding piece of input a session is blocked on, aggregated across all chats.',
+  variants: [
+    { variantName: 'ChatInput', innerType: 'SessionChatInputRequest', wireValue: 'chatInput' },
+    { variantName: 'ToolConfirmation', innerType: 'SessionToolConfirmationRequest', wireValue: 'toolConfirmation' },
+    { variantName: 'ToolClientExecution', innerType: 'SessionToolClientExecutionRequest', wireValue: 'toolClientExecution' },
   ],
   unknown: true,
 };
@@ -1168,6 +1194,8 @@ function generateStateFile(project: Project): string {
   lines.push('');
   lines.push(generateDiscriminatedUnion(TOOL_CALL_STATE_UNION));
   lines.push('');
+  lines.push(generateDiscriminatedUnion(TOOL_CALL_CONFIRMATION_STATE_UNION));
+  lines.push('');
   lines.push(generateDiscriminatedUnion(TERMINAL_CLAIM_UNION));
   lines.push('');
   lines.push(generateDiscriminatedUnion(TERMINAL_CONTENT_PART_UNION));
@@ -1191,6 +1219,8 @@ function generateStateFile(project: Project): string {
   lines.push(generateDiscriminatedUnion(MCP_SERVER_STATUS_UNION));
   lines.push('');
   lines.push(generateDiscriminatedUnion(TOOL_CALL_CONTRIBUTOR_UNION));
+  lines.push('');
+  lines.push(generateDiscriminatedUnion(SESSION_INPUT_REQUEST_UNION));
   lines.push('');
   lines.push(generateChatOriginGo());
   lines.push('');
@@ -1248,6 +1278,8 @@ const ACTION_VARIANTS: {
   { type: 'session/serverToolsChanged', variantName: 'SessionServerToolsChanged', tsInterface: 'SessionServerToolsChangedAction' },
   { type: 'session/activeClientSet', variantName: 'SessionActiveClientSet', tsInterface: 'SessionActiveClientSetAction' },
   { type: 'session/activeClientRemoved', variantName: 'SessionActiveClientRemoved', tsInterface: 'SessionActiveClientRemovedAction' },
+  { type: 'session/inputNeededSet', variantName: 'SessionInputNeededSet', tsInterface: 'SessionInputNeededSetAction' },
+  { type: 'session/inputNeededRemoved', variantName: 'SessionInputNeededRemoved', tsInterface: 'SessionInputNeededRemovedAction' },
   { type: 'session/customizationsChanged', variantName: 'SessionCustomizationsChanged', tsInterface: 'SessionCustomizationsChangedAction' },
   { type: 'session/customizationToggled', variantName: 'SessionCustomizationToggled', tsInterface: 'SessionCustomizationToggledAction' },
   { type: 'session/customizationUpdated', variantName: 'SessionCustomizationUpdated', tsInterface: 'SessionCustomizationUpdatedAction' },
@@ -1886,6 +1918,8 @@ function checkExhaustiveness(project: Project): void {
     'CustomizationLoadState',
     'McpServerState',
     'ToolCallContributor',
+    'SessionInputRequest',
+    'ToolCallConfirmationState',
     'ReconnectResult',
     'AuthRequiredErrorData',
     'PermissionDeniedErrorData',

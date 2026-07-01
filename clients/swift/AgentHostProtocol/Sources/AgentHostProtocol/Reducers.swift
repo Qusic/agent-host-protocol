@@ -27,12 +27,34 @@ private func withStatusFlag(_ status: SessionStatus, _ flag: SessionStatus, _ se
     set ? status.union(flag) : status.subtracting(flag)
 }
 
+/// Reflects the session-level input queue into the activity bits of `status`.
+/// A non-empty queue promotes the activity to `.inputNeeded`; emptying it clears
+/// the input-needed-specific bit. Since `.inputNeeded` implies `.inProgress`, an
+/// unblocked turn falls back to `.inProgress` while an already-idle session stays
+/// idle. Orthogonal flags (`.isRead` / `.isArchived`) are preserved.
+private func withInputNeededStatus(_ status: SessionStatus, _ inputNeeded: [SessionInputRequest]) -> SessionStatus {
+    if inputNeeded.isEmpty {
+        return status.subtracting(SessionStatus.inputNeeded.subtracting(.inProgress))
+    }
+    return status.subtracting(statusActivityMask).union(.inputNeeded)
+}
+
 /// Resolves a selected confirmation option by ID from a pending-confirmation state.
 private func resolveSelectedOption(_ options: [ConfirmationOption]?, id: String?) -> ConfirmationOption? {
     guard let id, let options else {
         return nil
     }
     return options.first { $0.id == id }
+}
+
+/// Extracts the stable `id` of a session input request, or `nil` for unknown variants.
+private func sessionInputRequestID(_ r: SessionInputRequest) -> String? {
+    switch r {
+    case .chatInput(let x): return x.id
+    case .toolConfirmation(let x): return x.id
+    case .toolClientExecution(let x): return x.id
+    case .unknown: return nil
+    }
 }
 
 // MARK: - Root Reducer
@@ -590,6 +612,28 @@ public func sessionReducer(state: SessionState, action: StateAction) -> SessionS
         guard let idx = state.activeClients.firstIndex(where: { $0.clientId == a.clientId }) else { return state }
         var next = state
         next.activeClients.remove(at: idx)
+        return next
+
+    case .sessionInputNeededSet(let a):
+        guard let id = sessionInputRequestID(a.request) else { return state }
+        var next = state
+        var list = next.inputNeeded ?? []
+        if let idx = list.firstIndex(where: { sessionInputRequestID($0) == id }) {
+            list[idx] = a.request
+        } else {
+            list.append(a.request)
+        }
+        next.inputNeeded = list
+        next.status = withInputNeededStatus(next.status, list)
+        return next
+
+    case .sessionInputNeededRemoved(let a):
+        guard var list = state.inputNeeded,
+              let idx = list.firstIndex(where: { sessionInputRequestID($0) == a.id }) else { return state }
+        var next = state
+        list.remove(at: idx)
+        next.inputNeeded = list.isEmpty ? nil : list
+        next.status = withInputNeededStatus(next.status, list)
         return next
 
     // ── Customizations ──────────────────────────────────────────────────

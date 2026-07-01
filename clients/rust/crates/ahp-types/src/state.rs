@@ -228,6 +228,24 @@ pub enum ChatInputResponseKind {
     Cancel,
 }
 
+/// Discriminant for the kinds of outstanding input a session can surface in
+/// {@link SessionState.inputNeeded}.
+///
+/// This is a general/typological union (not a lifecycle), so the discriminant is
+/// a `*Kind`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum SessionInputRequestKind {
+    /// A user-facing elicitation mirrored from a chat's `inputRequests`.
+    #[serde(rename = "chatInput")]
+    ChatInput,
+    /// A tool call awaiting parameter- or result-confirmation.
+    #[serde(rename = "toolConfirmation")]
+    ToolConfirmation,
+    /// A running tool the session wants an active client to execute.
+    #[serde(rename = "toolClientExecution")]
+    ToolClientExecution,
+}
+
 /// How a turn ended.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TurnState {
@@ -1086,6 +1104,22 @@ pub struct SessionState {
     /// {@link /guide/changesets | Changesets} for an overview of the model.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub changesets: Option<Vec<Changeset>>,
+    /// Outstanding input the session is blocked on, aggregated across every chat
+    /// so a client can discover and answer it from the session channel alone,
+    /// without subscribing to individual chats.
+    ///
+    /// Each entry is self-sufficient: it carries the owning chat's URI plus every
+    /// identifier the client needs to respond. A client answers by dispatching the
+    /// ordinary `chat/*` action to that chat's channel — see
+    /// {@link SessionInputRequest} for the per-variant response path. A present,
+    /// non-empty list implies {@link SessionStatus.InputNeeded} on
+    /// {@link SessionSummary.status}.
+    ///
+    /// Host-managed: the host upserts entries with `session/inputNeededSet` as
+    /// chats raise requests and removes them with `session/inputNeededRemoved`
+    /// once the underlying request resolves.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input_needed: Option<Vec<SessionInputRequest>>,
     /// Additional provider-specific metadata for this session.
     ///
     /// Clients MAY look for well-known keys here to provide enhanced UI.
@@ -1118,6 +1152,92 @@ pub struct SessionActiveClient {
     /// children inside {@link SessionState.customizations}.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub customizations: Option<Vec<ClientPluginCustomization>>,
+}
+
+/// A user-input elicitation surfaced at the session level, mirroring one entry
+/// of the owning chat's {@link ChatState.inputRequests}.
+///
+/// Respond by dispatching `chat/inputCompleted` (or syncing drafts with
+/// `chat/inputAnswerChanged`) to {@link SessionInputRequestBase.chat | `chat`},
+/// keyed by {@link ChatInputRequest.id | `request.id`}.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionChatInputRequest {
+    /// Stable key for this entry, unique within the session's
+    /// {@link SessionState.inputNeeded} list. The host derives it however it likes
+    /// (for example from the chat URI plus the underlying request or tool-call
+    /// id); consumers MUST treat it as opaque. It is the key for the
+    /// `session/inputNeededSet` / `session/inputNeededRemoved` upsert convention.
+    pub id: String,
+    /// The chat the underlying request lives in. This is the channel a client
+    /// dispatches its response to — it does not need to have subscribed to that
+    /// chat first.
+    pub chat: Uri,
+    /// The mirrored chat input request.
+    pub request: ChatInputRequest,
+}
+
+/// A tool call blocked on confirmation — either parameter confirmation before
+/// execution or result confirmation after — surfaced at the session level.
+///
+/// Respond by dispatching `chat/toolCallConfirmed` (for
+/// {@link ToolCallPendingConfirmationState}) or `chat/toolCallResultConfirmed`
+/// (for {@link ToolCallPendingResultConfirmationState}) to
+/// {@link SessionInputRequestBase.chat | `chat`}, keyed by `turnId` and
+/// `toolCall.toolCallId`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionToolConfirmationRequest {
+    /// Stable key for this entry, unique within the session's
+    /// {@link SessionState.inputNeeded} list. The host derives it however it likes
+    /// (for example from the chat URI plus the underlying request or tool-call
+    /// id); consumers MUST treat it as opaque. It is the key for the
+    /// `session/inputNeededSet` / `session/inputNeededRemoved` upsert convention.
+    pub id: String,
+    /// The chat the underlying request lives in. This is the channel a client
+    /// dispatches its response to — it does not need to have subscribed to that
+    /// chat first.
+    pub chat: Uri,
+    /// The turn the tool call belongs to.
+    pub turn_id: String,
+    /// The tool call awaiting confirmation.
+    pub tool_call: ToolCallConfirmationState,
+}
+
+/// A running tool whose execution is delegated to an active client. Surfaced so
+/// a client that provides the tool can pick up the work without subscribing to
+/// the owning chat.
+///
+/// The {@link toolCall} is always a {@link ToolCallRunningState} (a
+/// {@link ToolCallState} in `running` status) whose
+/// {@link ToolCallRunningState.contributor | `contributor`} is a client
+/// {@link ToolCallClientContributor} whose `clientId` matches the denormalized
+/// {@link clientId} here. Execute and report the result by dispatching
+/// `chat/toolCallComplete` (and optionally streaming with
+/// `chat/toolCallContentChanged`) to {@link SessionInputRequestBase.chat |
+/// `chat`}, keyed by `turnId` and `toolCall.toolCallId`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionToolClientExecutionRequest {
+    /// Stable key for this entry, unique within the session's
+    /// {@link SessionState.inputNeeded} list. The host derives it however it likes
+    /// (for example from the chat URI plus the underlying request or tool-call
+    /// id); consumers MUST treat it as opaque. It is the key for the
+    /// `session/inputNeededSet` / `session/inputNeededRemoved` upsert convention.
+    pub id: String,
+    /// The chat the underlying request lives in. This is the channel a client
+    /// dispatches its response to — it does not need to have subscribed to that
+    /// chat first.
+    pub chat: Uri,
+    /// The turn the tool call belongs to.
+    pub turn_id: String,
+    /// The `clientId` expected to execute the tool. Matches the `clientId` of the
+    /// tool call's client {@link ToolCallContributor}.
+    pub client_id: String,
+    /// The running tool call the session wants the owning client to execute. The
+    /// host only ever populates this with a {@link ToolCallRunningState} (i.e. a
+    /// {@link ToolCallState} in `running` status).
+    pub tool_call: ToolCallState,
 }
 
 /// Lightweight catalog entry summarizing one session. Surfaced via
@@ -3522,6 +3642,20 @@ pub enum ToolCallState {
     Unknown(serde_json::Value),
 }
 
+/// A tool call blocked on parameter- or result-confirmation.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "status")]
+pub enum ToolCallConfirmationState {
+    #[serde(rename = "pending-confirmation")]
+    PendingConfirmation(ToolCallPendingConfirmationState),
+    #[serde(rename = "pending-result-confirmation")]
+    PendingResultConfirmation(ToolCallPendingResultConfirmationState),
+    /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.
+    /// Reducers treat this as a no-op.
+    #[serde(untagged)]
+    Unknown(serde_json::Value),
+}
+
 /// Who currently holds a terminal.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
@@ -3732,6 +3866,22 @@ pub enum ToolCallContributor {
     Client(ToolCallClientContributor),
     #[serde(rename = "mcp")]
     Mcp(ToolCallMcpContributor),
+    /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.
+    /// Reducers treat this as a no-op.
+    #[serde(untagged)]
+    Unknown(serde_json::Value),
+}
+
+/// One outstanding piece of input a session is blocked on, aggregated across all chats.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum SessionInputRequest {
+    #[serde(rename = "chatInput")]
+    ChatInput(SessionChatInputRequest),
+    #[serde(rename = "toolConfirmation")]
+    ToolConfirmation(SessionToolConfirmationRequest),
+    #[serde(rename = "toolClientExecution")]
+    ToolClientExecution(SessionToolClientExecutionRequest),
     /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.
     /// Reducers treat this as a no-op.
     #[serde(untagged)]

@@ -17,6 +17,8 @@ import type {
   SessionServerToolsChangedAction,
   SessionActiveClientSetAction,
   SessionActiveClientRemovedAction,
+  SessionInputNeededSetAction,
+  SessionInputNeededRemovedAction,
   SessionCustomizationsChangedAction,
   SessionCustomizationToggledAction,
   SessionCustomizationUpdatedAction,
@@ -114,6 +116,8 @@ export type SessionAction =
   | SessionServerToolsChangedAction
   | SessionActiveClientSetAction
   | SessionActiveClientRemovedAction
+  | SessionInputNeededSetAction
+  | SessionInputNeededRemovedAction
   | SessionCustomizationsChangedAction
   | SessionCustomizationToggledAction
   | SessionCustomizationUpdatedAction
@@ -147,6 +151,8 @@ export type ServerSessionAction =
   | SessionChatUpdatedAction
   | SessionDefaultChatChangedAction
   | SessionServerToolsChangedAction
+  | SessionInputNeededSetAction
+  | SessionInputNeededRemovedAction
   | SessionCustomizationsChangedAction
   | SessionCustomizationUpdatedAction
   | SessionCustomizationRemovedAction
@@ -336,6 +342,8 @@ export const IS_CLIENT_DISPATCHABLE: { readonly [K in StateAction['type']]: bool
   [ActionType.SessionServerToolsChanged]: false,
   [ActionType.SessionActiveClientSet]: true,
   [ActionType.SessionActiveClientRemoved]: true,
+  [ActionType.SessionInputNeededSet]: false,
+  [ActionType.SessionInputNeededRemoved]: false,
   [ActionType.SessionCustomizationsChanged]: false,
   [ActionType.SessionCustomizationToggled]: true,
   [ActionType.SessionCustomizationUpdated]: false,

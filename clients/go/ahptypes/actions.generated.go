@@ -47,6 +47,8 @@ const (
 	ActionTypeSessionServerToolsChanged         ActionType = "session/serverToolsChanged"
 	ActionTypeSessionActiveClientSet            ActionType = "session/activeClientSet"
 	ActionTypeSessionActiveClientRemoved        ActionType = "session/activeClientRemoved"
+	ActionTypeSessionInputNeededSet             ActionType = "session/inputNeededSet"
+	ActionTypeSessionInputNeededRemoved         ActionType = "session/inputNeededRemoved"
 	ActionTypeChatPendingMessageSet             ActionType = "chat/pendingMessageSet"
 	ActionTypeChatPendingMessageRemoved         ActionType = "chat/pendingMessageRemoved"
 	ActionTypeChatQueuedMessagesReordered       ActionType = "chat/queuedMessagesReordered"
@@ -764,6 +766,38 @@ type SessionActiveClientRemovedAction struct {
 	ClientId string `json:"clientId"`
 }
 
+// A session-level input request was added or updated.
+//
+// Upsert semantics keyed by {@link SessionInputRequest.id | `request.id`}: the
+// host dispatches this with the full {@link SessionInputRequest} to append a new
+// entry to {@link SessionState.inputNeeded} or replace the existing entry with
+// the same `id`.
+//
+// Server-originated: the host mirrors chat-level requests (elicitations, tool
+// confirmations, client-tool executions) into the session aggregate so clients
+// subscribed only to the session channel can discover them. Clients respond by
+// dispatching the ordinary `chat/*` action to the entry's `chat` channel — see
+// {@link SessionInputRequest}.
+type SessionInputNeededSetAction struct {
+	Type ActionType `json:"type"`
+	// The input request to add or update, matched by `id`.
+	Request SessionInputRequest `json:"request"`
+}
+
+// A session-level input request was removed.
+//
+// Removes the entry identified by `id` from
+// {@link SessionState.inputNeeded}; a no-op when no entry matches.
+//
+// Server-originated: the host dispatches this once the underlying request
+// resolves (the user answers, the tool call is confirmed, or the client
+// reports its result).
+type SessionInputNeededRemovedAction struct {
+	Type ActionType `json:"type"`
+	// The `id` of the input request to remove.
+	Id string `json:"id"`
+}
+
 // The session's customizations have changed.
 //
 // Full-replacement semantics: the `customizations` array replaces the
@@ -1251,6 +1285,8 @@ func (*SessionChangesetsChangedAction) isStateAction()          {}
 func (*SessionServerToolsChangedAction) isStateAction()         {}
 func (*SessionActiveClientSetAction) isStateAction()            {}
 func (*SessionActiveClientRemovedAction) isStateAction()        {}
+func (*SessionInputNeededSetAction) isStateAction()             {}
+func (*SessionInputNeededRemovedAction) isStateAction()         {}
 func (*SessionCustomizationsChangedAction) isStateAction()      {}
 func (*SessionCustomizationToggledAction) isStateAction()       {}
 func (*SessionCustomizationUpdatedAction) isStateAction()       {}
@@ -1540,6 +1576,18 @@ func (u *StateAction) UnmarshalJSON(data []byte) error {
 		u.Value = &value
 	case "session/activeClientRemoved":
 		var value SessionActiveClientRemovedAction
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	case "session/inputNeededSet":
+		var value SessionInputNeededSetAction
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	case "session/inputNeededRemoved":
+		var value SessionInputNeededRemovedAction
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err
 		}

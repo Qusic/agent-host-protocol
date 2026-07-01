@@ -405,6 +405,40 @@
         "clientId"
       ]
     },
+    "SessionInputNeededSetAction": {
+      "type": "object",
+      "description": "A session-level input request was added or updated.\n\nUpsert semantics keyed by {@link SessionInputRequest.id | `request.id`}: the\nhost dispatches this with the full {@link SessionInputRequest} to append a new\nentry to {@link SessionState.inputNeeded} or replace the existing entry with\nthe same `id`.\n\nServer-originated: the host mirrors chat-level requests (elicitations, tool\nconfirmations, client-tool executions) into the session aggregate so clients\nsubscribed only to the session channel can discover them. Clients respond by\ndispatching the ordinary `chat/*` action to the entry's `chat` channel — see\n{@link SessionInputRequest}.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ActionType.SessionInputNeededSet"
+        },
+        "request": {
+          "$ref": "#/$defs/SessionInputRequest",
+          "description": "The input request to add or update, matched by `id`."
+        }
+      },
+      "required": [
+        "type",
+        "request"
+      ]
+    },
+    "SessionInputNeededRemovedAction": {
+      "type": "object",
+      "description": "A session-level input request was removed.\n\nRemoves the entry identified by `id` from\n{@link SessionState.inputNeeded}; a no-op when no entry matches.\n\nServer-originated: the host dispatches this once the underlying request\nresolves (the user answers, the tool call is confirmed, or the client\nreports its result).",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ActionType.SessionInputNeededRemoved"
+        },
+        "id": {
+          "type": "string",
+          "description": "The `id` of the input request to remove."
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ]
+    },
     "SessionCustomizationsChangedAction": {
       "type": "object",
       "description": "The session's customizations have changed.\n\nFull-replacement semantics: the `customizations` array replaces the\nprevious `customizations` entirely.",
@@ -2627,6 +2661,13 @@
           },
           "description": "Catalogue of changesets the server can produce for this session. Each\nentry advertises a subscribable view of file changes (uncommitted,\nsession-wide, per-turn, etc.) and the URI template the client expands\nbefore subscribing. See {@link Changeset} for the full shape and\n{@link /guide/changesets | Changesets} for an overview of the model."
         },
+        "inputNeeded": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SessionInputRequest"
+          },
+          "description": "Outstanding input the session is blocked on, aggregated across every chat\nso a client can discover and answer it from the session channel alone,\nwithout subscribing to individual chats.\n\nEach entry is self-sufficient: it carries the owning chat's URI plus every\nidentifier the client needs to respond. A client answers by dispatching the\nordinary `chat/*` action to that chat's channel — see\n{@link SessionInputRequest} for the per-variant response path. A present,\nnon-empty list implies {@link SessionStatus.InputNeeded} on\n{@link SessionSummary.status}.\n\nHost-managed: the host upserts entries with `session/inputNeededSet` as\nchats raise requests and removes them with `session/inputNeededRemoved`\nonce the underlying request resolves."
+        },
         "_meta": {
           "type": "object",
           "additionalProperties": {},
@@ -2672,6 +2713,120 @@
       "required": [
         "clientId",
         "tools"
+      ]
+    },
+    "SessionInputRequestBase": {
+      "type": "object",
+      "description": "Fields common to every {@link SessionInputRequest} variant.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable key for this entry, unique within the session's\n{@link SessionState.inputNeeded} list. The host derives it however it likes\n(for example from the chat URI plus the underlying request or tool-call\nid); consumers MUST treat it as opaque. It is the key for the\n`session/inputNeededSet` / `session/inputNeededRemoved` upsert convention."
+        },
+        "chat": {
+          "$ref": "#/$defs/URI",
+          "description": "The chat the underlying request lives in. This is the channel a client\ndispatches its response to — it does not need to have subscribed to that\nchat first."
+        }
+      },
+      "required": [
+        "id",
+        "chat"
+      ]
+    },
+    "SessionChatInputRequest": {
+      "type": "object",
+      "description": "A user-input elicitation surfaced at the session level, mirroring one entry\nof the owning chat's {@link ChatState.inputRequests}.\n\nRespond by dispatching `chat/inputCompleted` (or syncing drafts with\n`chat/inputAnswerChanged`) to {@link SessionInputRequestBase.chat | `chat`},\nkeyed by {@link ChatInputRequest.id | `request.id`}.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable key for this entry, unique within the session's\n{@link SessionState.inputNeeded} list. The host derives it however it likes\n(for example from the chat URI plus the underlying request or tool-call\nid); consumers MUST treat it as opaque. It is the key for the\n`session/inputNeededSet` / `session/inputNeededRemoved` upsert convention."
+        },
+        "chat": {
+          "$ref": "#/$defs/URI",
+          "description": "The chat the underlying request lives in. This is the channel a client\ndispatches its response to — it does not need to have subscribed to that\nchat first."
+        },
+        "kind": {
+          "$ref": "#/$defs/SessionInputRequestKind.ChatInput"
+        },
+        "request": {
+          "$ref": "#/$defs/ChatInputRequest",
+          "description": "The mirrored chat input request."
+        }
+      },
+      "required": [
+        "id",
+        "chat",
+        "kind",
+        "request"
+      ]
+    },
+    "SessionToolConfirmationRequest": {
+      "type": "object",
+      "description": "A tool call blocked on confirmation — either parameter confirmation before\nexecution or result confirmation after — surfaced at the session level.\n\nRespond by dispatching `chat/toolCallConfirmed` (for\n{@link ToolCallPendingConfirmationState}) or `chat/toolCallResultConfirmed`\n(for {@link ToolCallPendingResultConfirmationState}) to\n{@link SessionInputRequestBase.chat | `chat`}, keyed by `turnId` and\n`toolCall.toolCallId`.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable key for this entry, unique within the session's\n{@link SessionState.inputNeeded} list. The host derives it however it likes\n(for example from the chat URI plus the underlying request or tool-call\nid); consumers MUST treat it as opaque. It is the key for the\n`session/inputNeededSet` / `session/inputNeededRemoved` upsert convention."
+        },
+        "chat": {
+          "$ref": "#/$defs/URI",
+          "description": "The chat the underlying request lives in. This is the channel a client\ndispatches its response to — it does not need to have subscribed to that\nchat first."
+        },
+        "kind": {
+          "$ref": "#/$defs/SessionInputRequestKind.ToolConfirmation"
+        },
+        "turnId": {
+          "type": "string",
+          "description": "The turn the tool call belongs to."
+        },
+        "toolCall": {
+          "$ref": "#/$defs/ToolCallConfirmationState",
+          "description": "The tool call awaiting confirmation."
+        }
+      },
+      "required": [
+        "id",
+        "chat",
+        "kind",
+        "turnId",
+        "toolCall"
+      ]
+    },
+    "SessionToolClientExecutionRequest": {
+      "type": "object",
+      "description": "A running tool whose execution is delegated to an active client. Surfaced so\na client that provides the tool can pick up the work without subscribing to\nthe owning chat.\n\nThe {@link toolCall} is always a {@link ToolCallRunningState} (a\n{@link ToolCallState} in `running` status) whose\n{@link ToolCallRunningState.contributor | `contributor`} is a client\n{@link ToolCallClientContributor} whose `clientId` matches the denormalized\n{@link clientId} here. Execute and report the result by dispatching\n`chat/toolCallComplete` (and optionally streaming with\n`chat/toolCallContentChanged`) to {@link SessionInputRequestBase.chat |\n`chat`}, keyed by `turnId` and `toolCall.toolCallId`.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable key for this entry, unique within the session's\n{@link SessionState.inputNeeded} list. The host derives it however it likes\n(for example from the chat URI plus the underlying request or tool-call\nid); consumers MUST treat it as opaque. It is the key for the\n`session/inputNeededSet` / `session/inputNeededRemoved` upsert convention."
+        },
+        "chat": {
+          "$ref": "#/$defs/URI",
+          "description": "The chat the underlying request lives in. This is the channel a client\ndispatches its response to — it does not need to have subscribed to that\nchat first."
+        },
+        "kind": {
+          "$ref": "#/$defs/SessionInputRequestKind.ToolClientExecution"
+        },
+        "turnId": {
+          "type": "string",
+          "description": "The turn the tool call belongs to."
+        },
+        "clientId": {
+          "type": "string",
+          "description": "The `clientId` expected to execute the tool. Matches the `clientId` of the\ntool call's client {@link ToolCallContributor}."
+        },
+        "toolCall": {
+          "$ref": "#/$defs/ToolCallState",
+          "description": "The running tool call the session wants the owning client to execute. The\nhost only ever populates this with a {@link ToolCallRunningState} (i.e. a\n{@link ToolCallState} in `running` status)."
+        }
+      },
+      "required": [
+        "id",
+        "chat",
+        "kind",
+        "turnId",
+        "clientId",
+        "toolCall"
       ]
     },
     "ProjectInfo": {
@@ -6104,6 +6259,21 @@
       ],
       "description": "A primitive JSON value: a string, number, boolean, or `null`."
     },
+    "SessionInputRequest": {
+      "oneOf": [
+        {},
+        {
+          "$ref": "#/$defs/SessionChatInputRequest"
+        },
+        {
+          "$ref": "#/$defs/SessionToolConfirmationRequest"
+        },
+        {
+          "$ref": "#/$defs/SessionToolClientExecutionRequest"
+        }
+      ],
+      "description": "One outstanding piece of input a session is blocked on, aggregated across all\nchats in {@link SessionState.inputNeeded}.\n\nEach entry is self-sufficient: it carries the owning\n{@link SessionInputRequestBase.chat | `chat`} URI plus every identifier needed\nto construct the response, so a client can answer by dispatching the ordinary\n`chat/*` action (`chat/inputCompleted`, `chat/toolCallConfirmed`,\n`chat/toolCallComplete`, …) to that chat's channel **without having subscribed\nto the chat**. The host removes the entry with `session/inputNeededRemoved`\nonce the underlying request resolves."
+    },
     "ChildCustomizationType": {
       "oneOf": [
         {},
@@ -6383,6 +6553,18 @@
       ],
       "description": "Discriminated union of all tool call lifecycle states.\n\nSee the [state model guide](/guide/state-model.html#tool-call-lifecycle)\nfor the full state machine diagram."
     },
+    "ToolCallConfirmationState": {
+      "oneOf": [
+        {},
+        {
+          "$ref": "#/$defs/ToolCallPendingConfirmationState"
+        },
+        {
+          "$ref": "#/$defs/ToolCallPendingResultConfirmationState"
+        }
+      ],
+      "description": "The two tool-call states that block on a client confirmation: parameter\nconfirmation before execution ({@link ToolCallPendingConfirmationState}) and\nresult confirmation after execution\n({@link ToolCallPendingResultConfirmationState}).\n\nSurfaced at the session level by {@link SessionToolConfirmationRequest}."
+    },
     "ToolResultContent": {
       "oneOf": [
         {},
@@ -6477,6 +6659,12 @@
         },
         {
           "$ref": "#/$defs/SessionActiveClientRemovedAction"
+        },
+        {
+          "$ref": "#/$defs/SessionInputNeededSetAction"
+        },
+        {
+          "$ref": "#/$defs/SessionInputNeededRemovedAction"
         },
         {
           "$ref": "#/$defs/SessionCustomizationsChangedAction"

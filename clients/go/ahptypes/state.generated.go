@@ -145,6 +145,22 @@ const (
 	ChatInputResponseKindCancel  ChatInputResponseKind = "cancel"
 )
 
+// Discriminant for the kinds of outstanding input a session can surface in
+// {@link SessionState.inputNeeded}.
+//
+// This is a general/typological union (not a lifecycle), so the discriminant is
+// a `*Kind`.
+type SessionInputRequestKind string
+
+const (
+	// A user-facing elicitation mirrored from a chat's `inputRequests`.
+	SessionInputRequestKindChatInput SessionInputRequestKind = "chatInput"
+	// A tool call awaiting parameter- or result-confirmation.
+	SessionInputRequestKindToolConfirmation SessionInputRequestKind = "toolConfirmation"
+	// A running tool the session wants an active client to execute.
+	SessionInputRequestKindToolClientExecution SessionInputRequestKind = "toolClientExecution"
+)
+
 // How a turn ended.
 type TurnState string
 
@@ -711,6 +727,21 @@ type SessionState struct {
 	// before subscribing. See {@link Changeset} for the full shape and
 	// {@link /guide/changesets | Changesets} for an overview of the model.
 	Changesets []Changeset `json:"changesets,omitempty"`
+	// Outstanding input the session is blocked on, aggregated across every chat
+	// so a client can discover and answer it from the session channel alone,
+	// without subscribing to individual chats.
+	//
+	// Each entry is self-sufficient: it carries the owning chat's URI plus every
+	// identifier the client needs to respond. A client answers by dispatching the
+	// ordinary `chat/*` action to that chat's channel — see
+	// {@link SessionInputRequest} for the per-variant response path. A present,
+	// non-empty list implies {@link SessionStatus.InputNeeded} on
+	// {@link SessionSummary.status}.
+	//
+	// Host-managed: the host upserts entries with `session/inputNeededSet` as
+	// chats raise requests and removes them with `session/inputNeededRemoved`
+	// once the underlying request resolves.
+	InputNeeded []SessionInputRequest `json:"inputNeeded,omitempty"`
 	// Additional provider-specific metadata for this session.
 	//
 	// Clients MAY look for well-known keys here to provide enhanced UI.
@@ -738,6 +769,89 @@ type SessionActiveClient struct {
 	// plugins in memory and rely on the host to expand them into concrete
 	// children inside {@link SessionState.customizations}.
 	Customizations []ClientPluginCustomization `json:"customizations,omitempty"`
+}
+
+// A user-input elicitation surfaced at the session level, mirroring one entry
+// of the owning chat's {@link ChatState.inputRequests}.
+//
+// Respond by dispatching `chat/inputCompleted` (or syncing drafts with
+// `chat/inputAnswerChanged`) to {@link SessionInputRequestBase.chat | `chat`},
+// keyed by {@link ChatInputRequest.id | `request.id`}.
+type SessionChatInputRequest struct {
+	// Stable key for this entry, unique within the session's
+	// {@link SessionState.inputNeeded} list. The host derives it however it likes
+	// (for example from the chat URI plus the underlying request or tool-call
+	// id); consumers MUST treat it as opaque. It is the key for the
+	// `session/inputNeededSet` / `session/inputNeededRemoved` upsert convention.
+	Id string `json:"id"`
+	// The chat the underlying request lives in. This is the channel a client
+	// dispatches its response to — it does not need to have subscribed to that
+	// chat first.
+	Chat URI                     `json:"chat"`
+	Kind SessionInputRequestKind `json:"kind"`
+	// The mirrored chat input request.
+	Request ChatInputRequest `json:"request"`
+}
+
+// A tool call blocked on confirmation — either parameter confirmation before
+// execution or result confirmation after — surfaced at the session level.
+//
+// Respond by dispatching `chat/toolCallConfirmed` (for
+// {@link ToolCallPendingConfirmationState}) or `chat/toolCallResultConfirmed`
+// (for {@link ToolCallPendingResultConfirmationState}) to
+// {@link SessionInputRequestBase.chat | `chat`}, keyed by `turnId` and
+// `toolCall.toolCallId`.
+type SessionToolConfirmationRequest struct {
+	// Stable key for this entry, unique within the session's
+	// {@link SessionState.inputNeeded} list. The host derives it however it likes
+	// (for example from the chat URI plus the underlying request or tool-call
+	// id); consumers MUST treat it as opaque. It is the key for the
+	// `session/inputNeededSet` / `session/inputNeededRemoved` upsert convention.
+	Id string `json:"id"`
+	// The chat the underlying request lives in. This is the channel a client
+	// dispatches its response to — it does not need to have subscribed to that
+	// chat first.
+	Chat URI                     `json:"chat"`
+	Kind SessionInputRequestKind `json:"kind"`
+	// The turn the tool call belongs to.
+	TurnId string `json:"turnId"`
+	// The tool call awaiting confirmation.
+	ToolCall ToolCallConfirmationState `json:"toolCall"`
+}
+
+// A running tool whose execution is delegated to an active client. Surfaced so
+// a client that provides the tool can pick up the work without subscribing to
+// the owning chat.
+//
+// The {@link toolCall} is always a {@link ToolCallRunningState} (a
+// {@link ToolCallState} in `running` status) whose
+// {@link ToolCallRunningState.contributor | `contributor`} is a client
+// {@link ToolCallClientContributor} whose `clientId` matches the denormalized
+// {@link clientId} here. Execute and report the result by dispatching
+// `chat/toolCallComplete` (and optionally streaming with
+// `chat/toolCallContentChanged`) to {@link SessionInputRequestBase.chat |
+// `chat`}, keyed by `turnId` and `toolCall.toolCallId`.
+type SessionToolClientExecutionRequest struct {
+	// Stable key for this entry, unique within the session's
+	// {@link SessionState.inputNeeded} list. The host derives it however it likes
+	// (for example from the chat URI plus the underlying request or tool-call
+	// id); consumers MUST treat it as opaque. It is the key for the
+	// `session/inputNeededSet` / `session/inputNeededRemoved` upsert convention.
+	Id string `json:"id"`
+	// The chat the underlying request lives in. This is the channel a client
+	// dispatches its response to — it does not need to have subscribed to that
+	// chat first.
+	Chat URI                     `json:"chat"`
+	Kind SessionInputRequestKind `json:"kind"`
+	// The turn the tool call belongs to.
+	TurnId string `json:"turnId"`
+	// The `clientId` expected to execute the tool. Matches the `clientId` of the
+	// tool call's client {@link ToolCallContributor}.
+	ClientId string `json:"clientId"`
+	// The running tool call the session wants the owning client to execute. The
+	// host only ever populates this with a {@link ToolCallRunningState} (i.e. a
+	// {@link ToolCallState} in `running` status).
+	ToolCall ToolCallState `json:"toolCall"`
 }
 
 // Lightweight catalog entry summarizing one session. Surfaced via
@@ -2998,6 +3112,66 @@ func (u ToolCallState) MarshalJSON() ([]byte, error) {
 	return json.Marshal(u.Value)
 }
 
+// ToolCallConfirmationState is a tool call blocked on parameter- or result-confirmation.
+type ToolCallConfirmationState struct {
+	Value isToolCallConfirmationState
+}
+
+// isToolCallConfirmationState is the marker interface implemented by every
+// concrete variant of ToolCallConfirmationState.
+type isToolCallConfirmationState interface{ isToolCallConfirmationState() }
+
+func (*ToolCallPendingConfirmationState) isToolCallConfirmationState()       {}
+func (*ToolCallPendingResultConfirmationState) isToolCallConfirmationState() {}
+
+// ToolCallConfirmationStateUnknown carries an unrecognized ToolCallConfirmationState variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
+type ToolCallConfirmationStateUnknown struct {
+	Raw json.RawMessage
+}
+
+func (*ToolCallConfirmationStateUnknown) isToolCallConfirmationState() {}
+
+// UnmarshalJSON decodes the variant indicated by the "status" discriminator.
+func (u *ToolCallConfirmationState) UnmarshalJSON(data []byte) error {
+	disc, _, err := readDiscriminator(data, "status")
+	if err != nil {
+		return err
+	}
+	switch disc {
+	case "pending-confirmation":
+		var value ToolCallPendingConfirmationState
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	case "pending-result-confirmation":
+		var value ToolCallPendingResultConfirmationState
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	default:
+		raw := make(json.RawMessage, len(data))
+		copy(raw, data)
+		u.Value = &ToolCallConfirmationStateUnknown{Raw: raw}
+	}
+	return nil
+}
+
+// MarshalJSON encodes the active variant back to JSON.
+func (u ToolCallConfirmationState) MarshalJSON() ([]byte, error) {
+	if unk, ok := u.Value.(*ToolCallConfirmationStateUnknown); ok {
+		if len(unk.Raw) == 0 {
+			return []byte("null"), nil
+		}
+		return unk.Raw, nil
+	}
+	if u.Value == nil {
+		return []byte("null"), nil
+	}
+	return json.Marshal(u.Value)
+}
+
 // TerminalClaim identifies who currently holds a terminal.
 type TerminalClaim struct {
 	Value isTerminalClaim
@@ -3873,6 +4047,73 @@ func (u *ToolCallContributor) UnmarshalJSON(data []byte) error {
 // MarshalJSON encodes the active variant back to JSON.
 func (u ToolCallContributor) MarshalJSON() ([]byte, error) {
 	if unk, ok := u.Value.(*ToolCallContributorUnknown); ok {
+		if len(unk.Raw) == 0 {
+			return []byte("null"), nil
+		}
+		return unk.Raw, nil
+	}
+	if u.Value == nil {
+		return []byte("null"), nil
+	}
+	return json.Marshal(u.Value)
+}
+
+// SessionInputRequest is one outstanding piece of input a session is blocked on, aggregated across all chats.
+type SessionInputRequest struct {
+	Value isSessionInputRequest
+}
+
+// isSessionInputRequest is the marker interface implemented by every
+// concrete variant of SessionInputRequest.
+type isSessionInputRequest interface{ isSessionInputRequest() }
+
+func (*SessionChatInputRequest) isSessionInputRequest()           {}
+func (*SessionToolConfirmationRequest) isSessionInputRequest()    {}
+func (*SessionToolClientExecutionRequest) isSessionInputRequest() {}
+
+// SessionInputRequestUnknown carries an unrecognized SessionInputRequest variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
+type SessionInputRequestUnknown struct {
+	Raw json.RawMessage
+}
+
+func (*SessionInputRequestUnknown) isSessionInputRequest() {}
+
+// UnmarshalJSON decodes the variant indicated by the "kind" discriminator.
+func (u *SessionInputRequest) UnmarshalJSON(data []byte) error {
+	disc, _, err := readDiscriminator(data, "kind")
+	if err != nil {
+		return err
+	}
+	switch disc {
+	case "chatInput":
+		var value SessionChatInputRequest
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	case "toolConfirmation":
+		var value SessionToolConfirmationRequest
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	case "toolClientExecution":
+		var value SessionToolClientExecutionRequest
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	default:
+		raw := make(json.RawMessage, len(data))
+		copy(raw, data)
+		u.Value = &SessionInputRequestUnknown{Raw: raw}
+	}
+	return nil
+}
+
+// MarshalJSON encodes the active variant back to JSON.
+func (u SessionInputRequest) MarshalJSON() ([]byte, error) {
+	if unk, ok := u.Value.(*SessionInputRequestUnknown); ok {
 		if len(unk.Raw) == 0 {
 			return []byte("null"), nil
 		}

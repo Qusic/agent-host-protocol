@@ -35,6 +35,23 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 
 Spec version: `0.5.1`
 
+### Added
+
+- `SessionState.inputNeeded` — a session-level aggregate of outstanding input
+  requests across all chats, so a client can discover and answer elicitations,
+  tool confirmations, and client-tool execution requests from the session
+  channel without subscribing to individual chats. Each entry
+  (`SessionChatInputRequest`, `SessionToolConfirmationRequest`,
+  `SessionToolClientExecutionRequest`, unioned as `SessionInputRequest`) carries
+  the owning chat URI plus the identifiers needed to respond.
+- `session/inputNeededSet` and `session/inputNeededRemoved` actions for the host
+  to upsert and remove `SessionState.inputNeeded` entries. The session reducer
+  sets `SessionStatus.InputNeeded` while the queue is non-empty and clears it
+  (falling back to `InProgress`) once it empties, preserving orthogonal flags.
+- `ToolCallConfirmationState` union (`ToolCallPendingConfirmationState |
+  ToolCallPendingResultConfirmationState`) for the tool call carried by
+  `SessionToolConfirmationRequest`.
+
 ## [0.5.0] — 2026-06-26
 
 Spec version: `0.5.0`
