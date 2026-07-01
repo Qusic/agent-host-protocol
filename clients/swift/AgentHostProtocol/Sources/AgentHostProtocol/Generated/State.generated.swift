@@ -583,6 +583,10 @@ public struct AgentInfo: Codable, Sendable {
     /// resolved against the workspace, children are parsed) and propagated
     /// into the session's `customizations` list.
     public var customizations: [Customization]?
+    /// Static capabilities the agent advertises about itself. Clients use these
+    /// to gate features (multi-chat, fork) instead of switching on the provider
+    /// id.
+    public var capabilities: AgentCapabilities?
 
     public init(
         provider: String,
@@ -590,7 +594,8 @@ public struct AgentInfo: Codable, Sendable {
         description: String,
         models: [SessionModelInfo],
         protectedResources: [ProtectedResourceMetadata]? = nil,
-        customizations: [Customization]? = nil
+        customizations: [Customization]? = nil,
+        capabilities: AgentCapabilities? = nil
     ) {
         self.provider = provider
         self.displayName = displayName
@@ -598,6 +603,34 @@ public struct AgentInfo: Codable, Sendable {
         self.models = models
         self.protectedResources = protectedResources
         self.customizations = customizations
+        self.capabilities = capabilities
+    }
+}
+
+public struct AgentCapabilities: Codable, Sendable {
+    /// The agent can host more than one concurrent chat per session. When absent,
+    /// clients MUST NOT call `createChat` to open chats beyond the default one the
+    /// session starts with. An empty object `{}` advertises multi-chat without
+    /// forking; set {@link MultipleChatsCapability.fork} to also allow forking.
+    public var multipleChats: MultipleChatsCapability?
+
+    public init(
+        multipleChats: MultipleChatsCapability? = nil
+    ) {
+        self.multipleChats = multipleChats
+    }
+}
+
+public struct MultipleChatsCapability: Codable, Sendable {
+    /// The agent can fork a chat from a specific turn. When absent or `false`,
+    /// clients MUST NOT pass a {@link ChatForkSource} (`source`) to `createChat`.
+    /// Forking always implies multi-chat support.
+    public var fork: Bool?
+
+    public init(
+        fork: Bool? = nil
+    ) {
+        self.fork = fork
     }
 }
 

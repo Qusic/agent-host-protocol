@@ -20,6 +20,9 @@ matching `## [X.Y.Z]` heading is missing from this file.
 - `SubscribeParams.delivery.max_latency_ms` and
   `Client::subscribe_with_delivery` for clients to request a maximum
   subscription delivery latency, including `0` for no intentional coalescing.
+- Optional `capabilities` field on `AgentInfo` (`AgentCapabilities` with a
+  nested `multipleChats` capability carrying `fork`) so clients gate multi-chat
+  and fork via advertised capabilities instead of provider-id switches.
 - `SessionState.input_needed` — a session-level aggregate of outstanding input
   requests across all chats (`SessionInputRequest` enum with
   `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
