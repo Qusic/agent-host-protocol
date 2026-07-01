@@ -254,7 +254,26 @@ data class SubscribeParams(
     /**
      * Channel URI this command targets.
      */
-    val channel: String
+    val channel: String,
+    /**
+     * Optional delivery preferences for this subscription.
+     *
+     * Servers MAY use these preferences to buffer and coalesce high-frequency
+     * updates while preserving the same reduced state. Omit this field for the
+     * server's default delivery behavior.
+     */
+    val delivery: SubscriptionDeliveryOptions? = null
+)
+
+@Serializable
+data class SubscriptionDeliveryOptions(
+    /**
+     * Maximum time, in milliseconds, that the server may intentionally delay
+     * delivery while buffering/coalescing updates for this subscription.
+     *
+     * A value of `0` requests immediate delivery with no intentional coalescing.
+     */
+    val maxLatencyMs: Long? = null
 )
 
 @Serializable

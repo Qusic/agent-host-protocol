@@ -225,11 +225,33 @@ public struct ReconnectSnapshotResult: Codable, Sendable {
 public struct SubscribeParams: Codable, Sendable {
     /// Channel URI this command targets.
     public var channel: String
+    /// Optional delivery preferences for this subscription.
+    ///
+    /// Servers MAY use these preferences to buffer and coalesce high-frequency
+    /// updates while preserving the same reduced state. Omit this field for the
+    /// server's default delivery behavior.
+    public var delivery: SubscriptionDeliveryOptions?
 
     public init(
-        channel: String
+        channel: String,
+        delivery: SubscriptionDeliveryOptions? = nil
     ) {
         self.channel = channel
+        self.delivery = delivery
+    }
+}
+
+public struct SubscriptionDeliveryOptions: Codable, Sendable {
+    /// Maximum time, in milliseconds, that the server may intentionally delay
+    /// delivery while buffering/coalescing updates for this subscription.
+    ///
+    /// A value of `0` requests immediate delivery with no intentional coalescing.
+    public var maxLatencyMs: Int?
+
+    public init(
+        maxLatencyMs: Int? = nil
+    ) {
+        self.maxLatencyMs = maxLatencyMs
     }
 }
 

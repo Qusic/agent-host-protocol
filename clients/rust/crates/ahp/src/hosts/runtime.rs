@@ -622,6 +622,7 @@ impl HostRuntime {
                 "subscribe",
                 SubscribeParams {
                     channel: uri.clone(),
+                    delivery: None,
                 },
             )
             .await
