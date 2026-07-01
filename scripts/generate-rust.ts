@@ -1023,7 +1023,7 @@ function generateSnapshotState(): string {
   return `/// The state payload of a snapshot — root, session, chat, terminal,
 /// changeset, resource-watch, or annotations state.
 ///
-/// Deserialized by trying session first (has required \`summary\`), then
+/// Deserialized by trying session first (has required \`lifecycle\`), then
 /// chat (has required \`turns\`), then terminal (has required \`content\`),
 /// then changeset (has required \`status\` and \`files\`), then resource-watch
 /// (has required \`root\` and \`recursive\`), then annotations (has required

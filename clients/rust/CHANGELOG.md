@@ -25,6 +25,8 @@ matching `## [X.Y.Z]` heading is missing from this file.
 - `disable_user_invocation` on `SkillCustomization`, plus
   `disable_model_invocation` and `disable_user_invocation` on
   `AgentCustomization`.
+- Optional `model` and `tools` fields on `AgentCustomization` for a custom
+  agent's pinned model and tool allowlist.
 
 ### Changed
 

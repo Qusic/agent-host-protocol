@@ -870,9 +870,14 @@ public enum SnapshotState: Codable, Sendable {
     case annotations(AnnotationsState)
 
     public init(from decoder: Decoder) throws {
-        // SessionState has required \`summary\` field, try it first
+        // Try the most distinctive shapes first. SessionState has required
+        // \`lifecycle\` / \`activeClients\` / \`chats\`; ChatState has required
+        // \`turns\`; the remaining variants follow, with RootState as the
+        // catch-all.
         if let session = try? SessionState(from: decoder) {
             self = .session(session)
+        } else if let chat = try? ChatState(from: decoder) {
+            self = .chat(chat)
         } else if let terminal = try? TerminalState(from: decoder) {
             self = .terminal(terminal)
         } else if let changeset = try? ChangesetState(from: decoder) {

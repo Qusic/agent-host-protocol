@@ -3143,6 +3143,18 @@ public struct AgentCustomization: Codable, Sendable {
     /// Short description of what the agent specializes in and when to
     /// invoke it. Sourced from the agent file's frontmatter `description`.
     public var description: String?
+    /// Model the agent is pinned to, sourced from the agent file's
+    /// frontmatter `model`. Absent means the agent inherits the session's
+    /// default model.
+    public var model: String?
+    /// Allowlist of tool names the agent is scoped to, sourced from the
+    /// agent file's frontmatter `tools`. A non-empty list restricts the
+    /// agent to exactly those tools. Absent — or an empty list — imposes no
+    /// restriction beyond the session default: the agent may use any
+    /// available tool. Producers express "no restriction" by omitting the
+    /// field rather than sending an empty array, so an empty list carries no
+    /// meaning distinct from absence.
+    public var tools: [String]?
     /// When `true`, the agent will not auto-delegate to this custom agent
     /// as a sub-agent; it can only be selected by the user. Absent or
     /// `false` means the agent may delegate to it.
@@ -3165,6 +3177,8 @@ public struct AgentCustomization: Codable, Sendable {
         case enabled
         case type
         case description
+        case model
+        case tools
         case disableModelInvocation
         case disableUserInvocation
         case meta = "_meta"
@@ -3179,6 +3193,8 @@ public struct AgentCustomization: Codable, Sendable {
         enabled: Bool? = nil,
         type: CustomizationType,
         description: String? = nil,
+        model: String? = nil,
+        tools: [String]? = nil,
         disableModelInvocation: Bool? = nil,
         disableUserInvocation: Bool? = nil,
         meta: [String: AnyCodable]? = nil
@@ -3191,6 +3207,8 @@ public struct AgentCustomization: Codable, Sendable {
         self.enabled = enabled
         self.type = type
         self.description = description
+        self.model = model
+        self.tools = tools
         self.disableModelInvocation = disableModelInvocation
         self.disableUserInvocation = disableUserInvocation
         self.meta = meta
@@ -4962,9 +4980,14 @@ public enum SnapshotState: Codable, Sendable {
     case annotations(AnnotationsState)
 
     public init(from decoder: Decoder) throws {
-        // SessionState has required `summary` field, try it first
+        // Try the most distinctive shapes first. SessionState has required
+        // `lifecycle` / `activeClients` / `chats`; ChatState has required
+        // `turns`; the remaining variants follow, with RootState as the
+        // catch-all.
         if let session = try? SessionState(from: decoder) {
             self = .session(session)
+        } else if let chat = try? ChatState(from: decoder) {
+            self = .chat(chat)
         } else if let terminal = try? TerminalState(from: decoder) {
             self = .terminal(terminal)
         } else if let changeset = try? ChangesetState(from: decoder) {

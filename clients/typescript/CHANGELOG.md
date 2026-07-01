@@ -29,6 +29,8 @@ hotfix escape hatch.
   `RuleCustomization`, `HookCustomization`).
 - `disableUserInvocation` on `SkillCustomization`, plus `disableModelInvocation`
   and `disableUserInvocation` on `AgentCustomization`.
+- Optional `model` and `tools` fields on `AgentCustomization` for a custom
+  agent's pinned model and tool allowlist.
 
 ### Changed
 

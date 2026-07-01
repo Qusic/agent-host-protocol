@@ -24,11 +24,21 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
   `RuleCustomization`, `HookCustomization`).
 - `disableUserInvocation` on `SkillCustomization`, plus `disableModelInvocation`
   and `disableUserInvocation` on `AgentCustomization`.
+- Optional `model` and `tools` fields on `AgentCustomization` for a custom
+  agent's pinned model and tool allowlist.
 
 ### Changed
 
 - The `session/customizationToggled` reducer now toggles a top-level container
   **or** an individual child by `id`, setting that entry's `enabled`.
+
+### Fixed
+
+- `SnapshotState` now decodes the `Chat` variant. Its serializer previously never
+  matched `ChatState`, so chat snapshots decoded as the `Root` catch-all. Variant
+  disambiguation also no longer relies on the removed `summary` field (a leftover
+  from before `SessionState` was flattened); sessions are now matched on
+  `lifecycle`.
 
 ## [0.5.0] — 2026-06-26
 

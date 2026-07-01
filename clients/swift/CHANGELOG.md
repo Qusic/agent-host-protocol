@@ -26,11 +26,20 @@ the tag matches the version pinned in [`VERSION`](VERSION).
   `RuleCustomization`, `HookCustomization`).
 - `disableUserInvocation` on `SkillCustomization`, plus `disableModelInvocation`
   and `disableUserInvocation` on `AgentCustomization`.
+- Optional `model` and `tools` fields on `AgentCustomization` for a custom
+  agent's pinned model and tool allowlist.
 
 ### Changed
 
 - The `session/customizationToggled` reducer now toggles a top-level container
   **or** an individual child by `id`, setting that entry's `enabled`.
+
+### Fixed
+
+- `SnapshotState` now decodes the `chat` variant. Its decoder previously never
+  attempted `ChatState`, so chat snapshots failed to decode. Variant
+  disambiguation also no longer relies on the removed `summary` field (a leftover
+  from before `SessionState` was flattened).
 
 ## [0.5.0] — 2026-06-26
 

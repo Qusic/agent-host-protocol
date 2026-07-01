@@ -2069,6 +2069,18 @@ type AgentCustomization struct {
 	// Short description of what the agent specializes in and when to
 	// invoke it. Sourced from the agent file's frontmatter `description`.
 	Description *string `json:"description,omitempty"`
+	// Model the agent is pinned to, sourced from the agent file's
+	// frontmatter `model`. Absent means the agent inherits the session's
+	// default model.
+	Model *string `json:"model,omitempty"`
+	// Allowlist of tool names the agent is scoped to, sourced from the
+	// agent file's frontmatter `tools`. A non-empty list restricts the
+	// agent to exactly those tools. Absent — or an empty list — imposes no
+	// restriction beyond the session default: the agent may use any
+	// available tool. Producers express "no restriction" by omitting the
+	// field rather than sending an empty array, so an empty list carries no
+	// meaning distinct from absence.
+	Tools []string `json:"tools,omitempty"`
 	// When `true`, the agent will not auto-delegate to this custom agent
 	// as a sub-agent; it can only be selected by the user. Absent or
 	// `false` means the agent may delegate to it.
@@ -4071,13 +4083,13 @@ func (s *SnapshotState) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	switch {
-	case containsAll(probe, "summary", "lifecycle"):
+	case containsAll(probe, "lifecycle"):
 		var v SessionState
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		s.Session = &v
-	case containsAll(probe, "summary", "turns"):
+	case containsAll(probe, "turns"):
 		var v ChatState
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err

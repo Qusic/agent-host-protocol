@@ -2577,6 +2577,20 @@ pub struct AgentCustomization {
     /// invoke it. Sourced from the agent file's frontmatter `description`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    /// Model the agent is pinned to, sourced from the agent file's
+    /// frontmatter `model`. Absent means the agent inherits the session's
+    /// default model.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    /// Allowlist of tool names the agent is scoped to, sourced from the
+    /// agent file's frontmatter `tools`. A non-empty list restricts the
+    /// agent to exactly those tools. Absent — or an empty list — imposes no
+    /// restriction beyond the session default: the agent may use any
+    /// available tool. Producers express "no restriction" by omitting the
+    /// field rather than sending an empty array, so an empty list carries no
+    /// meaning distinct from absence.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tools: Option<Vec<String>>,
     /// When `true`, the agent will not auto-delegate to this custom agent
     /// as a sub-agent; it can only be selected by the user. Absent or
     /// `false` means the agent may delegate to it.
@@ -3807,7 +3821,7 @@ pub enum ToolCallContributor {
 /// The state payload of a snapshot — root, session, chat, terminal,
 /// changeset, resource-watch, or annotations state.
 ///
-/// Deserialized by trying session first (has required `summary`), then
+/// Deserialized by trying session first (has required `lifecycle`), then
 /// chat (has required `turns`), then terminal (has required `content`),
 /// then changeset (has required `status` and `files`), then resource-watch
 /// (has required `root` and `recursive`), then annotations (has required

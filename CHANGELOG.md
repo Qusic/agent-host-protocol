@@ -35,6 +35,8 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 - `disableUserInvocation` on `SkillCustomization`, plus `disableModelInvocation`
   and `disableUserInvocation` on `AgentCustomization`, giving custom agents and
   skills a symmetric user/model invocation matrix.
+- Optional `model` and `tools` fields on `AgentCustomization`, giving a custom
+  agent's pinned model and tool allowlist a first-class home instead of `_meta`.
 
 ### Changed
 

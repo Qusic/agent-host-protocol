@@ -2953,6 +2953,22 @@ data class AgentCustomization(
      */
     val description: String? = null,
     /**
+     * Model the agent is pinned to, sourced from the agent file's
+     * frontmatter `model`. Absent means the agent inherits the session's
+     * default model.
+     */
+    val model: String? = null,
+    /**
+     * Allowlist of tool names the agent is scoped to, sourced from the
+     * agent file's frontmatter `tools`. A non-empty list restricts the
+     * agent to exactly those tools. Absent — or an empty list — imposes no
+     * restriction beyond the session default: the agent may use any
+     * available tool. Producers express "no restriction" by omitting the
+     * field rather than sending an empty array, so an empty list carries no
+     * meaning distinct from absence.
+     */
+    val tools: List<String>? = null,
+    /**
      * When `true`, the agent will not auto-delegate to this custom agent
      * as a sub-agent; it can only be selected by the user. Absent or
      * `false` means the agent may delegate to it.
@@ -4794,19 +4810,22 @@ internal object SnapshotStateSerializer : KSerializer<SnapshotState> {
         val obj = element as? JsonObject
             ?: error("Expected JsonObject for SnapshotState")
         // Try the most distinctive shape first. SessionState has required
-        // `summary`; ChangesetState has required `status` + `files`;
-        // ResourceWatchState has required `root` + `recursive`;
-        // AnnotationsState has required `annotations`; TerminalState has `uri`
-        // / `size` / `buffer`; RootState is the catch-all.
+        // `lifecycle`; ChatState has required `turns`; ChangesetState has
+        // required `status` + `files`; ResourceWatchState has required
+        // `root` + `recursive`; AnnotationsState has required `annotations`
+        // (checked after session, whose optional annotations summary reuses the
+        // key); TerminalState has required `content`; RootState is the
+        // catch-all.
         return when {
-            obj.containsKey("summary") -> SnapshotState.Session(input.json.decodeFromJsonElement(SessionState.serializer(), element))
+            obj.containsKey("lifecycle") -> SnapshotState.Session(input.json.decodeFromJsonElement(SessionState.serializer(), element))
+            obj.containsKey("turns") -> SnapshotState.Chat(input.json.decodeFromJsonElement(ChatState.serializer(), element))
             obj.containsKey("status") && obj.containsKey("files") ->
                 SnapshotState.Changeset(input.json.decodeFromJsonElement(ChangesetState.serializer(), element))
             obj.containsKey("root") && obj.containsKey("recursive") ->
                 SnapshotState.ResourceWatch(input.json.decodeFromJsonElement(ResourceWatchState.serializer(), element))
             obj.containsKey("annotations") ->
                 SnapshotState.Annotations(input.json.decodeFromJsonElement(AnnotationsState.serializer(), element))
-            obj.containsKey("size") || obj.containsKey("uri") || obj.containsKey("buffer") ->
+            obj.containsKey("content") ->
                 SnapshotState.Terminal(input.json.decodeFromJsonElement(TerminalState.serializer(), element))
             else -> SnapshotState.Root(input.json.decodeFromJsonElement(RootState.serializer(), element))
         }

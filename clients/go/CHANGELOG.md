@@ -23,11 +23,21 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
   `RuleCustomization`, `HookCustomization`).
 - `DisableUserInvocation` on `SkillCustomization`, plus `DisableModelInvocation`
   and `DisableUserInvocation` on `AgentCustomization`.
+- Optional `Model` and `Tools` fields on `AgentCustomization` for a custom
+  agent's pinned model and tool allowlist.
 
 ### Changed
 
 - The `session/customizationToggled` reducer now toggles a top-level container
   **or** an individual child by `id`, setting that entry's `Enabled`.
+
+### Fixed
+
+- `SnapshotState.UnmarshalJSON` now decodes the `Chat` variant. Variant
+  disambiguation previously probed for the removed `summary` field (a leftover
+  from before `SessionState` was flattened), so chat and session snapshots both
+  fell through to the `Root` catch-all. Sessions are now matched on `lifecycle`
+  and chats on `turns`.
 
 ## [0.5.0] — 2026-06-26
 

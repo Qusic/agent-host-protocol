@@ -1533,6 +1533,17 @@
           "type": "string",
           "description": "Short description of what the agent specializes in and when to\ninvoke it. Sourced from the agent file's frontmatter `description`."
         },
+        "model": {
+          "type": "string",
+          "description": "Model the agent is pinned to, sourced from the agent file's\nfrontmatter `model`. Absent means the agent inherits the session's\ndefault model."
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Allowlist of tool names the agent is scoped to, sourced from the\nagent file's frontmatter `tools`. A non-empty list restricts the\nagent to exactly those tools. Absent — or an empty list — imposes no\nrestriction beyond the session default: the agent may use any\navailable tool. Producers express \"no restriction\" by omitting the\nfield rather than sending an empty array, so an empty list carries no\nmeaning distinct from absence."
+        },
         "disableModelInvocation": {
           "type": "boolean",
           "description": "When `true`, the agent will not auto-delegate to this custom agent\nas a sub-agent; it can only be selected by the user. Absent or\n`false` means the agent may delegate to it."
