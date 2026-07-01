@@ -26,6 +26,7 @@ fn agent(provider: &str) -> AgentInfo {
         models: vec![],
         protected_resources: None,
         customizations: None,
+        capabilities: None,
     }
 }
 

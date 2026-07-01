@@ -603,6 +603,10 @@
             "$ref": "#/$defs/Customization"
           },
           "description": "Customizations associated with this agent.\n\nEither container customizations —\n{@link PluginCustomization | `PluginCustomization`} entries the agent\nbundles, plus {@link DirectoryCustomization | `DirectoryCustomization`}\nentries it watches in any workspace it's used with — or top-level\n{@link McpServerCustomization | `McpServerCustomization`} entries\nthe agent host declares directly. When a session is created with\nthis agent, these entries are augmented (e.g. directory URIs are\nresolved against the workspace, children are parsed) and propagated\ninto the session's `customizations` list."
+        },
+        "capabilities": {
+          "$ref": "#/$defs/AgentCapabilities",
+          "description": "Static capabilities the agent advertises about itself. Clients use these\nto gate features (multi-chat, fork) instead of switching on the provider\nid."
         }
       },
       "required": [
@@ -611,6 +615,26 @@
         "description",
         "models"
       ]
+    },
+    "AgentCapabilities": {
+      "type": "object",
+      "description": "Static capabilities an {@link AgentInfo} advertises. Modelled after MCP\ncapabilities: each field is opt-in and its presence (an empty object `{}`)\nsignals support, while absence means the feature is unsupported and the\ncorresponding client commands MUST NOT be used. Sub-fields carry\nper-capability options.",
+      "properties": {
+        "multipleChats": {
+          "$ref": "#/$defs/MultipleChatsCapability",
+          "description": "The agent can host more than one concurrent chat per session. When absent,\nclients MUST NOT call `createChat` to open chats beyond the default one the\nsession starts with. An empty object `{}` advertises multi-chat without\nforking; set {@link MultipleChatsCapability.fork} to also allow forking."
+        }
+      }
+    },
+    "MultipleChatsCapability": {
+      "type": "object",
+      "description": "Options for the {@link AgentCapabilities.multipleChats} capability.",
+      "properties": {
+        "fork": {
+          "type": "boolean",
+          "description": "The agent can fork a chat from a specific turn. When absent or `false`,\nclients MUST NOT pass a {@link ChatForkSource} (`source`) to `createChat`.\nForking always implies multi-chat support."
+        }
+      }
     },
     "SessionModelInfo": {
       "type": "object",
