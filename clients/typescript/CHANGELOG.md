@@ -22,6 +22,9 @@ hotfix escape hatch.
 
 ### Added
 
+- `SubscribeParams.delivery.maxLatencyMs` and `AhpClient.subscribe` delivery
+  options for clients to request a maximum subscription delivery latency,
+  including `0` for no intentional coalescing.
 - `SessionState.inputNeeded` — a session-level aggregate of outstanding input
   requests across all chats (`SessionInputRequest` union with
   `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and

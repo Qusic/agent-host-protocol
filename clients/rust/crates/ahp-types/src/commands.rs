@@ -234,6 +234,43 @@ pub struct ReconnectSnapshotResult {
 pub struct SubscribeParams {
     /// Channel URI this command targets.
     pub channel: Uri,
+    /// Optional delivery preferences for this subscription.
+    ///
+    /// Servers MAY use these preferences to buffer and coalesce high-frequency
+    /// updates while preserving the same reduced state. Omit this field for the
+    /// server's default delivery behavior.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delivery: Option<SubscriptionDeliveryOptions>,
+}
+
+impl SubscribeParams {
+    /// Create subscribe params with default delivery behavior.
+    pub fn new(channel: impl Into<Uri>) -> Self {
+        Self {
+            channel: channel.into(),
+            delivery: None,
+        }
+    }
+
+    /// Create subscribe params with advisory delivery preferences.
+    pub fn with_delivery(channel: impl Into<Uri>, delivery: SubscriptionDeliveryOptions) -> Self {
+        Self {
+            channel: channel.into(),
+            delivery: Some(delivery),
+        }
+    }
+}
+
+/// Advisory delivery preferences for a single subscription.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscriptionDeliveryOptions {
+    /// Maximum time, in milliseconds, that the server may intentionally delay
+    /// delivery while buffering/coalescing updates for this subscription.
+    ///
+    /// A value of `0` requests immediate delivery with no intentional coalescing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_latency_ms: Option<i64>,
 }
 
 /// Result of the `subscribe` command.

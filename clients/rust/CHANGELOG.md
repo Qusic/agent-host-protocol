@@ -17,6 +17,9 @@ matching `## [X.Y.Z]` heading is missing from this file.
 
 ### Added
 
+- `SubscribeParams.delivery.max_latency_ms` and
+  `Client::subscribe_with_delivery` for clients to request a maximum
+  subscription delivery latency, including `0` for no intentional coalescing.
 - `SessionState.input_needed` — a session-level aggregate of outstanding input
   requests across all chats (`SessionInputRequest` enum with
   `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
@@ -29,6 +32,12 @@ matching `## [X.Y.Z]` heading is missing from this file.
   lifecycle state.
 - Optional `model` and `tools` fields on `AgentCustomization` for a custom
   agent's pinned model and tool allowlist.
+
+### Changed
+
+- Direct Rust struct literals for `SubscribeParams` must now include
+  `delivery: None`; use `SubscribeParams::new(channel)` or
+  `Client::subscribe` to keep the default delivery behavior.
 
 ## [0.5.0] — 2026-06-26
 

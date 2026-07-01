@@ -16,6 +16,9 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 
 ### Added
 
+- `SubscribeParams.Delivery.MaxLatencyMs` and `Client.SubscribeWithDelivery`
+  for clients to request a maximum subscription delivery latency, including
+  `0` for no intentional coalescing.
 - `SessionState.InputNeeded` — a session-level aggregate of outstanding input
   requests across all chats (`SessionInputRequest` union with
   `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and

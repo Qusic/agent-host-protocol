@@ -37,6 +37,8 @@ Spec version: `0.5.1`
 
 ### Added
 
+- `SubscribeParams.delivery.maxLatencyMs` for clients to request a maximum
+  subscription delivery latency, including `0` for no intentional coalescing.
 - `SessionState.inputNeeded` — a session-level aggregate of outstanding input
   requests across all chats, so a client can discover and answer elicitations,
   tool confirmations, and client-tool execution requests from the session

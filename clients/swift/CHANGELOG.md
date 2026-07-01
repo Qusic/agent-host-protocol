@@ -19,6 +19,9 @@ the tag matches the version pinned in [`VERSION`](VERSION).
 
 ### Added
 
+- `SubscribeParams.delivery.maxLatencyMs` and
+  `AHPClient.subscribe(_:delivery:)` for clients to request a maximum
+  subscription delivery latency, including `0` for no intentional coalescing.
 - `SessionState.inputNeeded` — a session-level aggregate of outstanding input
   requests across all chats (`SessionInputRequest` enum with
   `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and

@@ -200,6 +200,21 @@ type ReconnectSnapshotResult struct {
 type SubscribeParams struct {
 	// Channel URI this command targets.
 	Channel URI `json:"channel"`
+	// Optional delivery preferences for this subscription.
+	//
+	// Servers MAY use these preferences to buffer and coalesce high-frequency
+	// updates while preserving the same reduced state. Omit this field for the
+	// server's default delivery behavior.
+	Delivery *SubscriptionDeliveryOptions `json:"delivery,omitempty"`
+}
+
+// Advisory delivery preferences for a single subscription.
+type SubscriptionDeliveryOptions struct {
+	// Maximum time, in milliseconds, that the server may intentionally delay
+	// delivery while buffering/coalescing updates for this subscription.
+	//
+	// A value of `0` requests immediate delivery with no intentional coalescing.
+	MaxLatencyMs *int64 `json:"maxLatencyMs,omitempty"`
 }
 
 // Result of the `subscribe` command.

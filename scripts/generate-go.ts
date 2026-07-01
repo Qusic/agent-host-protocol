@@ -1421,7 +1421,7 @@ const COMMAND_STRUCTS: { name: string; omitDiscriminants?: boolean; goName?: str
   { name: 'ReconnectParams' },
   { name: 'ReconnectReplayResult', omitDiscriminants: true },
   { name: 'ReconnectSnapshotResult', omitDiscriminants: true },
-  { name: 'SubscribeParams' }, { name: 'SubscribeResult' },
+  { name: 'SubscribeParams' }, { name: 'SubscriptionDeliveryOptions' }, { name: 'SubscribeResult' },
   { name: 'SessionForkSource' }, { name: 'CreateSessionParams' },
   { name: 'DisposeSessionParams' },
   { name: 'ChatForkSource' }, { name: 'CreateChatParams' }, { name: 'DisposeChatParams' },

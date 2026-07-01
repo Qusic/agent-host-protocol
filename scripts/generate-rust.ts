@@ -1088,6 +1088,10 @@ function generateStateFile(project: Project): string {
       lines.push(generateStructFromInterface(project, entry.name, entry.rustName, {
         omitDiscriminants: entry.omitDiscriminants,
       }));
+      if (entry.name === 'SubscribeParams') {
+        lines.push('');
+        lines.push(generateSubscribeParamsImplRust());
+      }
       lines.push('');
     } catch (e) {
       lines.push(`// TODO: could not generate ${entry.name}: ${e}`);
@@ -1366,7 +1370,7 @@ const COMMAND_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: s
   { name: 'ReconnectParams' },
   { name: 'ReconnectReplayResult', omitDiscriminants: true },
   { name: 'ReconnectSnapshotResult', omitDiscriminants: true },
-  { name: 'SubscribeParams' }, { name: 'SubscribeResult' },
+  { name: 'SubscribeParams' }, { name: 'SubscriptionDeliveryOptions' }, { name: 'SubscribeResult' },
   { name: 'SessionForkSource' }, { name: 'CreateSessionParams' },
   { name: 'DisposeSessionParams' },
   { name: 'ChatForkSource' }, { name: 'CreateChatParams' },
@@ -1431,6 +1435,10 @@ function generateCommandsFile(project: Project): string {
       lines.push(generateStructFromInterface(project, entry.name, entry.rustName, {
         omitDiscriminants: entry.omitDiscriminants,
       }));
+      if (entry.name === 'SubscribeParams') {
+        lines.push('');
+        lines.push(generateSubscribeParamsImplRust());
+      }
       lines.push('');
     } catch (e) {
       lines.push(`// TODO: could not generate ${entry.name}: ${e}`);
@@ -1447,6 +1455,26 @@ function generateCommandsFile(project: Project): string {
   lines.push('');
 
   return lines.join('\n');
+}
+
+function generateSubscribeParamsImplRust(): string {
+  return `impl SubscribeParams {
+    /// Create subscribe params with default delivery behavior.
+    pub fn new(channel: impl Into<Uri>) -> Self {
+        Self {
+            channel: channel.into(),
+            delivery: None,
+        }
+    }
+
+    /// Create subscribe params with advisory delivery preferences.
+    pub fn with_delivery(channel: impl Into<Uri>, delivery: SubscriptionDeliveryOptions) -> Self {
+        Self {
+            channel: channel.into(),
+            delivery: Some(delivery),
+        }
+    }
+}`;
 }
 
 function generateChangesetOperationTargetRust(): string {

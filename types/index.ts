@@ -265,6 +265,7 @@ export type {
   ReconnectSnapshotResult,
   ReconnectResult,
   SubscribeParams,
+  SubscriptionDeliveryOptions,
   SubscribeResult,
   CreateSessionParams,
   SessionForkSource,

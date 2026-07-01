@@ -4601,11 +4601,25 @@
         "channel": {
           "$ref": "#/$defs/URI",
           "description": "Channel URI this command targets."
+        },
+        "delivery": {
+          "$ref": "#/$defs/SubscriptionDeliveryOptions",
+          "description": "Optional delivery preferences for this subscription.\n\nServers MAY use these preferences to buffer and coalesce high-frequency\nupdates while preserving the same reduced state. Omit this field for the\nserver's default delivery behavior."
         }
       },
       "required": [
         "channel"
       ]
+    },
+    "SubscriptionDeliveryOptions": {
+      "type": "object",
+      "description": "Advisory delivery preferences for a single subscription.",
+      "properties": {
+        "maxLatencyMs": {
+          "type": "number",
+          "description": "Maximum time, in milliseconds, that the server may intentionally delay\ndelivery while buffering/coalescing updates for this subscription.\n\nA value of `0` requests immediate delivery with no intentional coalescing."
+        }
+      }
     },
     "SubscribeResult": {
       "type": "object",
