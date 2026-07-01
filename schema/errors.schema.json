@@ -5138,10 +5138,6 @@
         "cursor": {
           "type": "string",
           "description": "Opaque pagination cursor from a previous {@link PaginatedResult.nextCursor}.\nOmit to fetch the first page. Cursors are server-defined and MUST be treated\nas opaque — do not parse, modify, or persist them across connections. An\nunrecognised cursor SHOULD be rejected with an `InvalidParams` error."
-        },
-        "filter": {
-          "type": "object",
-          "description": "Optional filter criteria"
         }
       },
       "required": [

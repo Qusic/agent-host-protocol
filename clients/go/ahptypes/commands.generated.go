@@ -332,8 +332,6 @@ type ListSessionsParams struct {
 	// as opaque — do not parse, modify, or persist them across connections. An
 	// unrecognised cursor SHOULD be rejected with an `InvalidParams` error.
 	Cursor *string `json:"cursor,omitempty"`
-	// Optional filter criteria
-	Filter *json.RawMessage `json:"filter,omitempty"`
 }
 
 // Result of the `listSessions` command.

@@ -404,19 +404,15 @@ public struct ListSessionsParams: Codable, Sendable {
     /// as opaque — do not parse, modify, or persist them across connections. An
     /// unrecognised cursor SHOULD be rejected with an `InvalidParams` error.
     public var cursor: String?
-    /// Optional filter criteria
-    public var filter: AnyCodable?
 
     public init(
         channel: String,
         limit: Int? = nil,
-        cursor: String? = nil,
-        filter: AnyCodable? = nil
+        cursor: String? = nil
     ) {
         self.channel = channel
         self.limit = limit
         self.cursor = cursor
-        self.filter = filter
     }
 }
 

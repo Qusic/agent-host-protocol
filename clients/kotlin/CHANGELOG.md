@@ -40,6 +40,12 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 - Optional `model` and `tools` fields on `AgentCustomization` for a custom
   agent's pinned model and tool allowlist.
 
+### Removed
+
+- `filter` field from `ListSessionsParams`. It was an untyped placeholder with
+  no defined semantics; it will return with a concrete shape once session
+  filtering/sorting is specified.
+
 ### Fixed
 
 - `SnapshotState` now decodes the `Chat` variant. Its serializer previously never

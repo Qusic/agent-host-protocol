@@ -415,9 +415,6 @@ pub struct ListSessionsParams {
     /// unrecognised cursor SHOULD be rejected with an `InvalidParams` error.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cursor: Option<String>,
-    /// Optional filter criteria
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub filter: Option<AnyValue>,
 }
 
 /// Result of the `listSessions` command.

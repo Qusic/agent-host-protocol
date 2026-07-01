@@ -40,6 +40,12 @@ changes accumulate. Track in-flight protocol changes via PRs touching
   incrementally. Fully additive — omitting the fields preserves today's
   behaviour.
 
+### Removed
+
+- `filter` field from `ListSessionsParams`. It was an untyped `object`
+  placeholder with no defined semantics; it will be reintroduced with a concrete
+  shape once session filtering/sorting is specified.
+
 ## [0.5.1] — Unreleased
 
 Spec version: `0.5.1`

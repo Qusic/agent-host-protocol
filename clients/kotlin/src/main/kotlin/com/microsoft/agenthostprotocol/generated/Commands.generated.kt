@@ -410,11 +410,7 @@ data class ListSessionsParams(
      * as opaque — do not parse, modify, or persist them across connections. An
      * unrecognised cursor SHOULD be rejected with an `InvalidParams` error.
      */
-    val cursor: String? = null,
-    /**
-     * Optional filter criteria
-     */
-    val filter: JsonElement? = null
+    val cursor: String? = null
 )
 
 @Serializable

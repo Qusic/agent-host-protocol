@@ -55,8 +55,6 @@ export type { SessionConfigPropertySchema, SessionConfigSchema } from '../channe
  */
 export interface ListSessionsParams extends BaseParams, PaginatedParams {
   channel: 'ahp-root://';
-  /** Optional filter criteria */
-  filter?: object;
 }
 
 /** Result of the `listSessions` command. */

@@ -47,6 +47,12 @@ matching `## [X.Y.Z]` heading is missing from this file.
   `delivery: None`; use `SubscribeParams::new(channel)` or
   `Client::subscribe` to keep the default delivery behavior.
 
+### Removed
+
+- `filter` field from `ListSessionsParams`. It was an untyped placeholder with
+  no defined semantics; it will return with a concrete shape once session
+  filtering/sorting is specified.
+
 ## [0.5.0] — 2026-06-26
 
 Implements AHP 0.5.0.
