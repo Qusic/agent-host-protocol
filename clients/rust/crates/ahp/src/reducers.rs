@@ -686,8 +686,10 @@ pub fn apply_action_to_session(state: &mut SessionState, action: &StateAction) -
             } else {
                 list.push(a.request.clone());
             }
-            let new_status =
-                with_input_needed_status(state.status, state.input_needed.as_deref().unwrap_or(&[]));
+            let new_status = with_input_needed_status(
+                state.status,
+                state.input_needed.as_deref().unwrap_or(&[]),
+            );
             state.status = new_status;
             ReduceOutcome::Applied
         }
@@ -706,8 +708,10 @@ pub fn apply_action_to_session(state: &mut SessionState, action: &StateAction) -
             if empty {
                 state.input_needed = None;
             }
-            let new_status =
-                with_input_needed_status(state.status, state.input_needed.as_deref().unwrap_or(&[]));
+            let new_status = with_input_needed_status(
+                state.status,
+                state.input_needed.as_deref().unwrap_or(&[]),
+            );
             state.status = new_status;
             ReduceOutcome::Applied
         }
