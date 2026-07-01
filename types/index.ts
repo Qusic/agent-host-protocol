@@ -275,6 +275,8 @@ export type {
   DisposeChatParams,
   CreateTerminalParams,
   DisposeTerminalParams,
+  PaginatedParams,
+  PaginatedResult,
   ListSessionsParams,
   ListSessionsResult,
   ResourceReadParams,

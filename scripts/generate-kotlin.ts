@@ -1871,6 +1871,8 @@ function checkExhaustiveness(project: Project): void {
     'URI',                          // type alias for string
     'JsonPrimitive',                // primitive JSON value alias; mapped to JsonElement
     'BaseParams',                    // marker base interface; flattened into each command params struct
+    'PaginatedParams',               // base interface; flattened into each paginated command params struct
+    'PaginatedResult',               // base interface; flattened into each paginated command result struct
     // PingParams shape is `interface PingParams extends BaseParams { channel: 'ahp-root://' }`
     // (i.e. a `BaseParams` with `channel` narrowed to a string literal). We don't
     // emit a dedicated data class because the only useful payload is the

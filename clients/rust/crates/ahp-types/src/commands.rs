@@ -392,21 +392,42 @@ pub struct DisposeChatParams {
 /// The session list is **not** part of the state tree because it can be arbitrarily
 /// large. Clients fetch it imperatively and maintain a local cache updated by
 /// `root/sessionAdded` and `root/sessionRemoved` notifications.
+///
+/// A large catalogue can be fetched incrementally via the {@link PaginatedParams}
+/// `limit`/`cursor` inputs (see that type for the full pagination contract). The
+/// server SHOULD return most-recently-modified entries first, so the first page
+/// is the immediately useful one. The `root/session*` notifications keep an
+/// already-fetched page live; pagination governs only the initial and backfill
+/// fetches.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListSessionsParams {
     /// Channel URI this command targets.
     pub channel: Uri,
-    /// Optional filter criteria
+    /// Maximum number of entries to return in this page. The server SHOULD respect
+    /// this bound but MAY return fewer entries and MAY impose its own upper cap.
+    /// Omit to let the server choose the page size.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub filter: Option<AnyValue>,
+    pub limit: Option<i64>,
+    /// Opaque pagination cursor from a previous {@link PaginatedResult.nextCursor}.
+    /// Omit to fetch the first page. Cursors are server-defined and MUST be treated
+    /// as opaque — do not parse, modify, or persist them across connections. An
+    /// unrecognised cursor SHOULD be rejected with an `InvalidParams` error.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
 }
 
 /// Result of the `listSessions` command.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListSessionsResult {
-    /// The list of session summaries.
+    /// Opaque cursor for the next page. Present when more entries exist beyond the
+    /// returned page; absent signals the end of the collection. Pass it back as
+    /// {@link PaginatedParams.cursor} to fetch the following page.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
+    /// The list of session summaries. The server SHOULD order them
+    /// most-recently-modified first.
     pub items: Vec<SessionSummary>,
 }
 

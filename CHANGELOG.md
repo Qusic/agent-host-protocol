@@ -33,6 +33,18 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 - Optional `capabilities` field on `AgentInfo` (`AgentCapabilities` with a
   nested `multipleChats` capability carrying `fork`) so clients gate multi-chat
   and fork via advertised capabilities instead of provider-id switches.
+- Cursor-based pagination for `listSessions`, via new shared `PaginatedParams`
+  (`limit` + `cursor`) and `PaginatedResult` (`nextCursor`) types:
+  `ListSessionsParams` now extends `PaginatedParams` and `ListSessionsResult`
+  extends `PaginatedResult`, letting clients fetch a large session catalogue
+  incrementally. Fully additive — omitting the fields preserves today's
+  behaviour.
+
+### Removed
+
+- `filter` field from `ListSessionsParams`. It was an untyped `object`
+  placeholder with no defined semantics; it will be reintroduced with a concrete
+  shape once session filtering/sorting is specified.
 
 ## [0.5.1] — Unreleased
 

@@ -399,15 +399,31 @@ data class ListSessionsParams(
      */
     val channel: String,
     /**
-     * Optional filter criteria
+     * Maximum number of entries to return in this page. The server SHOULD respect
+     * this bound but MAY return fewer entries and MAY impose its own upper cap.
+     * Omit to let the server choose the page size.
      */
-    val filter: JsonElement? = null
+    val limit: Long? = null,
+    /**
+     * Opaque pagination cursor from a previous {@link PaginatedResult.nextCursor}.
+     * Omit to fetch the first page. Cursors are server-defined and MUST be treated
+     * as opaque — do not parse, modify, or persist them across connections. An
+     * unrecognised cursor SHOULD be rejected with an `InvalidParams` error.
+     */
+    val cursor: String? = null
 )
 
 @Serializable
 data class ListSessionsResult(
     /**
-     * The list of session summaries.
+     * Opaque cursor for the next page. Present when more entries exist beyond the
+     * returned page; absent signals the end of the collection. Pass it back as
+     * {@link PaginatedParams.cursor} to fetch the following page.
+     */
+    val nextCursor: String? = null,
+    /**
+     * The list of session summaries. The server SHOULD order them
+     * most-recently-modified first.
      */
     val items: List<SessionSummary>
 )

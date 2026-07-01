@@ -1898,6 +1898,8 @@ function checkExhaustiveness(project: Project): void {
     'URI',                          // type alias for string
     'JsonPrimitive',                // primitive JSON value alias; mapped to AnyCodable
     'BaseParams',                    // marker base interface; flattened into each command params struct
+    'PaginatedParams',               // base interface; flattened into each paginated command params struct
+    'PaginatedResult',               // base interface; flattened into each paginated command result struct
     'StringOrMarkdown',              // generateStringOrMarkdown()
     'ToolCallState',                // TOOL_CALL_STATE_UNION discriminated union
     'StateAction',                  // StateAction enum in generateActionsFile()

@@ -23,6 +23,11 @@ matching `## [X.Y.Z]` heading is missing from this file.
 - Optional `capabilities` field on `AgentInfo` (`AgentCapabilities` with a
   nested `multipleChats` capability carrying `fork`) so clients gate multi-chat
   and fork via advertised capabilities instead of provider-id switches.
+- Cursor-based pagination for `listSessions`, via new shared `PaginatedParams`
+  (`limit` + `cursor`) and `PaginatedResult` (`next_cursor`) types:
+  `ListSessionsParams` and `ListSessionsResult` now carry these fields, letting
+  clients page through a large session catalogue. Fully additive — omitting the
+  fields preserves prior behaviour.
 - `SessionState.input_needed` — a session-level aggregate of outstanding input
   requests across all chats (`SessionInputRequest` enum with
   `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
@@ -41,6 +46,12 @@ matching `## [X.Y.Z]` heading is missing from this file.
 - Direct Rust struct literals for `SubscribeParams` must now include
   `delivery: None`; use `SubscribeParams::new(channel)` or
   `Client::subscribe` to keep the default delivery behavior.
+
+### Removed
+
+- `filter` field from `ListSessionsParams`. It was an untyped placeholder with
+  no defined semantics; it will return with a concrete shape once session
+  filtering/sorting is specified.
 
 ## [0.5.0] — 2026-06-26
 
