@@ -17,6 +17,20 @@ matching `## [X.Y.Z]` heading is missing from this file.
 
 ### Added
 
+- `SubscribeParams.delivery.max_latency_ms` and
+  `Client::subscribe_with_delivery` for clients to request a maximum
+  subscription delivery latency, including `0` for no intentional coalescing.
+- Optional `capabilities` field on `AgentInfo` (`AgentCapabilities` with a
+  nested `multipleChats` capability carrying `fork`) so clients gate multi-chat
+  and fork via advertised capabilities instead of provider-id switches.
+- `SessionState.input_needed` — a session-level aggregate of outstanding input
+  requests across all chats (`SessionInputRequest` enum with
+  `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
+  `SessionToolClientExecutionRequest` variants), plus the
+  `StateAction::SessionInputNeededSet` / `StateAction::SessionInputNeededRemoved`
+  actions and the `ToolCallConfirmationState` union. The session reducer
+  maintains the `SessionStatus::InputNeeded` activity bit from the queue,
+  clearing it (falling back to `InProgress`) when the last entry is removed.
 - Optional `intention` field on `ChatToolCallStartAction` and every tool-call
   lifecycle state.
 - Optional `enabled` field on the child customization types
@@ -32,6 +46,9 @@ matching `## [X.Y.Z]` heading is missing from this file.
 
 - The `session/customizationToggled` reducer now toggles a top-level container
   **or** an individual child by `id`, setting that entry's `enabled`.
+- Direct Rust struct literals for `SubscribeParams` must now include
+  `delivery: None`; use `SubscribeParams::new(channel)` or
+  `Client::subscribe` to keep the default delivery behavior.
 
 ## [0.5.0] — 2026-06-26
 

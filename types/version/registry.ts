@@ -88,6 +88,8 @@ export const ACTION_INTRODUCED_IN: { readonly [K in StateAction['type']]: string
   [ActionType.SessionServerToolsChanged]: '0.1.0',
   [ActionType.SessionActiveClientSet]: '0.5.0',
   [ActionType.SessionActiveClientRemoved]: '0.5.0',
+  [ActionType.SessionInputNeededSet]: '0.5.1',
+  [ActionType.SessionInputNeededRemoved]: '0.5.1',
   [ActionType.SessionCustomizationsChanged]: '0.1.0',
   [ActionType.SessionCustomizationToggled]: '0.1.0',
   [ActionType.SessionCustomizationUpdated]: '0.1.0',

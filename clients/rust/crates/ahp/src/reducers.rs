@@ -60,11 +60,12 @@ use ahp_types::state::{
     ActiveTurn, AnnotationsState, ChangesetOperationStatus, ChangesetState, ChangesetStatus,
     ChatInputRequest, ChatState, ChildCustomization, ConfirmationOption, Customization, ErrorInfo,
     PendingMessage, PendingMessageKind, ResourceWatchState, ResponsePart, RootState,
-    SessionLifecycle, SessionState, SessionStatus, TerminalCommandPart, TerminalContentPart,
-    TerminalState, TerminalUnclassifiedPart, ToolCallCancellationReason, ToolCallCancelledState,
-    ToolCallCompletedState, ToolCallConfirmationReason, ToolCallContributor,
-    ToolCallPendingConfirmationState, ToolCallPendingResultConfirmationState, ToolCallResponsePart,
-    ToolCallRunningState, ToolCallState, ToolCallStreamingState, Turn, TurnState,
+    SessionInputRequest, SessionLifecycle, SessionState, SessionStatus, TerminalCommandPart,
+    TerminalContentPart, TerminalState, TerminalUnclassifiedPart, ToolCallCancellationReason,
+    ToolCallCancelledState, ToolCallCompletedState, ToolCallConfirmationReason,
+    ToolCallContributor, ToolCallPendingConfirmationState, ToolCallPendingResultConfirmationState,
+    ToolCallResponsePart, ToolCallRunningState, ToolCallState, ToolCallStreamingState, Turn,
+    TurnState,
 };
 
 /// What happened when an action was applied.
@@ -233,6 +234,19 @@ fn with_status_flag(status: u32, flag: SessionStatus, set: bool) -> u32 {
     }
 }
 
+/// Reflects the session-level input queue into the activity bits of `status`.
+/// A non-empty queue promotes the activity to `InputNeeded`; emptying it clears
+/// the input-needed-specific bit. Since `InputNeeded` implies `InProgress`, an
+/// unblocked turn falls back to `InProgress` while an already-idle session stays
+/// idle. Orthogonal flags (`IsRead` / `IsArchived`) are preserved.
+fn with_input_needed_status(status: u32, input_needed: &[SessionInputRequest]) -> u32 {
+    if input_needed.is_empty() {
+        status & !(SessionStatus::InputNeeded.bits() & !SessionStatus::InProgress.bits())
+    } else {
+        (status & !STATUS_ACTIVITY_MASK) | SessionStatus::InputNeeded.bits()
+    }
+}
+
 fn summary_status(state: &ChatState, terminal: Option<SessionStatus>) -> u32 {
     let activity: u32 = if let Some(t) = terminal {
         t.bits()
@@ -371,6 +385,15 @@ fn customization_id(c: &Customization) -> Option<&str> {
         Customization::Directory(d) => Some(d.id.as_str()),
         Customization::McpServer(m) => Some(m.id.as_str()),
         Customization::Unknown(_) => None,
+    }
+}
+
+fn session_input_request_id(r: &SessionInputRequest) -> Option<&str> {
+    match r {
+        SessionInputRequest::ChatInput(x) => Some(x.id.as_str()),
+        SessionInputRequest::ToolConfirmation(x) => Some(x.id.as_str()),
+        SessionInputRequest::ToolClientExecution(x) => Some(x.id.as_str()),
+        SessionInputRequest::Unknown(_) => None,
     }
 }
 
@@ -668,6 +691,48 @@ pub fn apply_action_to_session(state: &mut SessionState, action: &StateAction) -
                 return ReduceOutcome::NoOp;
             };
             state.active_clients.remove(idx);
+            ReduceOutcome::Applied
+        }
+        StateAction::SessionInputNeededSet(a) => {
+            let Some(action_id) = session_input_request_id(&a.request) else {
+                return ReduceOutcome::NoOp;
+            };
+            let list = state.input_needed.get_or_insert_with(Vec::new);
+            if let Some(idx) = list
+                .iter()
+                .position(|r| session_input_request_id(r) == Some(action_id))
+            {
+                list[idx] = a.request.clone();
+            } else {
+                list.push(a.request.clone());
+            }
+            let new_status = with_input_needed_status(
+                state.status,
+                state.input_needed.as_deref().unwrap_or(&[]),
+            );
+            state.status = new_status;
+            ReduceOutcome::Applied
+        }
+        StateAction::SessionInputNeededRemoved(a) => {
+            let Some(list) = state.input_needed.as_mut() else {
+                return ReduceOutcome::NoOp;
+            };
+            let Some(idx) = list
+                .iter()
+                .position(|r| session_input_request_id(r) == Some(a.id.as_str()))
+            else {
+                return ReduceOutcome::NoOp;
+            };
+            list.remove(idx);
+            let empty = list.is_empty();
+            if empty {
+                state.input_needed = None;
+            }
+            let new_status = with_input_needed_status(
+                state.status,
+                state.input_needed.as_deref().unwrap_or(&[]),
+            );
+            state.status = new_status;
             ReduceOutcome::Applied
         }
         StateAction::SessionCustomizationsChanged(a) => {
@@ -1597,6 +1662,7 @@ mod tests {
             config: None,
             customizations: None,
             changesets: None,
+            input_needed: None,
             meta: None,
         }
     }

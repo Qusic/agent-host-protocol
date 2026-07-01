@@ -284,6 +284,32 @@ enum class ChatInputResponseKind {
 }
 
 /**
+ * Discriminant for the kinds of outstanding input a session can surface in
+ * {@link SessionState.inputNeeded}.
+ *
+ * This is a general/typological union (not a lifecycle), so the discriminant is
+ * a `*Kind`.
+ */
+@Serializable
+enum class SessionInputRequestKind {
+    /**
+     * A user-facing elicitation mirrored from a chat's `inputRequests`.
+     */
+    @SerialName("chatInput")
+    CHAT_INPUT,
+    /**
+     * A tool call awaiting parameter- or result-confirmation.
+     */
+    @SerialName("toolConfirmation")
+    TOOL_CONFIRMATION,
+    /**
+     * A running tool the session wants an active client to execute.
+     */
+    @SerialName("toolClientExecution")
+    TOOL_CLIENT_EXECUTION
+}
+
+/**
  * How a turn ended.
  */
 @Serializable
@@ -873,7 +899,34 @@ data class AgentInfo(
      * resolved against the workspace, children are parsed) and propagated
      * into the session's `customizations` list.
      */
-    val customizations: List<Customization>? = null
+    val customizations: List<Customization>? = null,
+    /**
+     * Static capabilities the agent advertises about itself. Clients use these
+     * to gate features (multi-chat, fork) instead of switching on the provider
+     * id.
+     */
+    val capabilities: AgentCapabilities? = null
+)
+
+@Serializable
+data class AgentCapabilities(
+    /**
+     * The agent can host more than one concurrent chat per session. When absent,
+     * clients MUST NOT call `createChat` to open chats beyond the default one the
+     * session starts with. An empty object `{}` advertises multi-chat without
+     * forking; set {@link MultipleChatsCapability.fork} to also allow forking.
+     */
+    val multipleChats: MultipleChatsCapability? = null
+)
+
+@Serializable
+data class MultipleChatsCapability(
+    /**
+     * The agent can fork a chat from a specific turn. When absent or `false`,
+     * clients MUST NOT pass a {@link ChatForkSource} (`source`) to `createChat`.
+     * Forking always implies multi-chat support.
+     */
+    val fork: Boolean? = null
 )
 
 @Serializable
@@ -1263,6 +1316,23 @@ data class SessionState(
      */
     val changesets: List<Changeset>? = null,
     /**
+     * Outstanding input the session is blocked on, aggregated across every chat
+     * so a client can discover and answer it from the session channel alone,
+     * without subscribing to individual chats.
+     *
+     * Each entry is self-sufficient: it carries the owning chat's URI plus every
+     * identifier the client needs to respond. A client answers by dispatching the
+     * ordinary `chat/​*` action to that chat's channel — see
+     * {@link SessionInputRequest} for the per-variant response path. A present,
+     * non-empty list implies {@link SessionStatus.InputNeeded} on
+     * {@link SessionSummary.status}.
+     *
+     * Host-managed: the host upserts entries with `session/inputNeededSet` as
+     * chats raise requests and removes them with `session/inputNeededRemoved`
+     * once the underlying request resolves.
+     */
+    val inputNeeded: List<SessionInputRequest>? = null,
+    /**
      * Additional provider-specific metadata for this session.
      *
      * Clients MAY look for well-known keys here to provide enhanced UI.
@@ -1296,6 +1366,90 @@ data class SessionActiveClient(
      * children inside {@link SessionState.customizations}.
      */
     val customizations: List<ClientPluginCustomization>? = null
+)
+
+@Serializable
+data class SessionChatInputRequest(
+    /**
+     * Stable key for this entry, unique within the session's
+     * {@link SessionState.inputNeeded} list. The host derives it however it likes
+     * (for example from the chat URI plus the underlying request or tool-call
+     * id); consumers MUST treat it as opaque. It is the key for the
+     * `session/inputNeededSet` / `session/inputNeededRemoved` upsert convention.
+     */
+    val id: String,
+    /**
+     * The chat the underlying request lives in. This is the channel a client
+     * dispatches its response to — it does not need to have subscribed to that
+     * chat first.
+     */
+    val chat: String,
+    val kind: SessionInputRequestKind,
+    /**
+     * The mirrored chat input request.
+     */
+    val request: ChatInputRequest
+)
+
+@Serializable
+data class SessionToolConfirmationRequest(
+    /**
+     * Stable key for this entry, unique within the session's
+     * {@link SessionState.inputNeeded} list. The host derives it however it likes
+     * (for example from the chat URI plus the underlying request or tool-call
+     * id); consumers MUST treat it as opaque. It is the key for the
+     * `session/inputNeededSet` / `session/inputNeededRemoved` upsert convention.
+     */
+    val id: String,
+    /**
+     * The chat the underlying request lives in. This is the channel a client
+     * dispatches its response to — it does not need to have subscribed to that
+     * chat first.
+     */
+    val chat: String,
+    val kind: SessionInputRequestKind,
+    /**
+     * The turn the tool call belongs to.
+     */
+    val turnId: String,
+    /**
+     * The tool call awaiting confirmation.
+     */
+    val toolCall: ToolCallConfirmationState
+)
+
+@Serializable
+data class SessionToolClientExecutionRequest(
+    /**
+     * Stable key for this entry, unique within the session's
+     * {@link SessionState.inputNeeded} list. The host derives it however it likes
+     * (for example from the chat URI plus the underlying request or tool-call
+     * id); consumers MUST treat it as opaque. It is the key for the
+     * `session/inputNeededSet` / `session/inputNeededRemoved` upsert convention.
+     */
+    val id: String,
+    /**
+     * The chat the underlying request lives in. This is the channel a client
+     * dispatches its response to — it does not need to have subscribed to that
+     * chat first.
+     */
+    val chat: String,
+    val kind: SessionInputRequestKind,
+    /**
+     * The turn the tool call belongs to.
+     */
+    val turnId: String,
+    /**
+     * The `clientId` expected to execute the tool. Matches the `clientId` of the
+     * tool call's client {@link ToolCallContributor}.
+     */
+    val clientId: String,
+    /**
+     * The running tool call the session wants the owning client to execute. The
+     * host only ever populates this with a {@link ToolCallRunningState} (i.e. a
+     * {@link ToolCallState} in `running` status).
+     */
+    val toolCall: ToolCallState
 )
 
 @Serializable
@@ -4114,6 +4268,55 @@ internal object ToolCallStateSerializer : KSerializer<ToolCallState> {
     }
 }
 
+@Serializable(with = ToolCallConfirmationStateSerializer::class)
+sealed interface ToolCallConfirmationState
+
+@JvmInline
+value class ToolCallConfirmationStatePendingConfirmation(val value: ToolCallPendingConfirmationState) : ToolCallConfirmationState
+@JvmInline
+value class ToolCallConfirmationStatePendingResultConfirmation(val value: ToolCallPendingResultConfirmationState) : ToolCallConfirmationState
+/**
+ * Forward-compat catch-all for unknown ToolCallConfirmationState discriminators.
+ *
+ * Older clients may receive newer wire variants they don't recognise; capturing
+ * the raw `JsonObject` lets such payloads round-trip through the client unchanged.
+ * Reducers handle this variant conservatively on a per-union basis (typically
+ * as a no-op, but see `Reducers.kt` for the exact treatment).
+ */
+@JvmInline
+value class ToolCallConfirmationStateUnknown(val raw: JsonObject) : ToolCallConfirmationState
+
+internal object ToolCallConfirmationStateSerializer : KSerializer<ToolCallConfirmationState> {
+    override val descriptor: SerialDescriptor =
+        buildClassSerialDescriptor("ToolCallConfirmationState")
+
+    override fun deserialize(decoder: Decoder): ToolCallConfirmationState {
+        val input = decoder as? JsonDecoder
+            ?: error("ToolCallConfirmationState can only be deserialized from JSON")
+        val element = input.decodeJsonElement()
+        val obj = element as? JsonObject
+            ?: error("Expected JsonObject for ToolCallConfirmationState")
+        val discriminant = (obj["status"] as? JsonPrimitive)?.content
+            ?: return ToolCallConfirmationStateUnknown(obj)
+        return when (discriminant) {
+            "pending-confirmation" -> ToolCallConfirmationStatePendingConfirmation(input.json.decodeFromJsonElement(ToolCallPendingConfirmationState.serializer(), element))
+            "pending-result-confirmation" -> ToolCallConfirmationStatePendingResultConfirmation(input.json.decodeFromJsonElement(ToolCallPendingResultConfirmationState.serializer(), element))
+            else -> ToolCallConfirmationStateUnknown(obj)
+        }
+    }
+
+    override fun serialize(encoder: Encoder, value: ToolCallConfirmationState) {
+        val output = encoder as? JsonEncoder
+            ?: error("ToolCallConfirmationState can only be serialized to JSON")
+        val element: JsonElement = when (value) {
+            is ToolCallConfirmationStatePendingConfirmation -> output.json.encodeToJsonElement(ToolCallPendingConfirmationState.serializer(), value.value)
+            is ToolCallConfirmationStatePendingResultConfirmation -> output.json.encodeToJsonElement(ToolCallPendingResultConfirmationState.serializer(), value.value)
+            is ToolCallConfirmationStateUnknown -> value.raw
+        }
+        output.encodeJsonElement(element)
+    }
+}
+
 @Serializable(with = TerminalClaimSerializer::class)
 sealed interface TerminalClaim
 
@@ -4722,6 +4925,59 @@ internal object ToolCallContributorSerializer : KSerializer<ToolCallContributor>
             is ToolCallContributorClient -> output.json.encodeToJsonElement(ToolCallClientContributor.serializer(), value.value)
             is ToolCallContributorMcp -> output.json.encodeToJsonElement(ToolCallMcpContributor.serializer(), value.value)
             is ToolCallContributorUnknown -> value.raw
+        }
+        output.encodeJsonElement(element)
+    }
+}
+
+@Serializable(with = SessionInputRequestSerializer::class)
+sealed interface SessionInputRequest
+
+@JvmInline
+value class SessionInputRequestChatInput(val value: SessionChatInputRequest) : SessionInputRequest
+@JvmInline
+value class SessionInputRequestToolConfirmation(val value: SessionToolConfirmationRequest) : SessionInputRequest
+@JvmInline
+value class SessionInputRequestToolClientExecution(val value: SessionToolClientExecutionRequest) : SessionInputRequest
+/**
+ * Forward-compat catch-all for unknown SessionInputRequest discriminators.
+ *
+ * Older clients may receive newer wire variants they don't recognise; capturing
+ * the raw `JsonObject` lets such payloads round-trip through the client unchanged.
+ * Reducers handle this variant conservatively on a per-union basis (typically
+ * as a no-op, but see `Reducers.kt` for the exact treatment).
+ */
+@JvmInline
+value class SessionInputRequestUnknown(val raw: JsonObject) : SessionInputRequest
+
+internal object SessionInputRequestSerializer : KSerializer<SessionInputRequest> {
+    override val descriptor: SerialDescriptor =
+        buildClassSerialDescriptor("SessionInputRequest")
+
+    override fun deserialize(decoder: Decoder): SessionInputRequest {
+        val input = decoder as? JsonDecoder
+            ?: error("SessionInputRequest can only be deserialized from JSON")
+        val element = input.decodeJsonElement()
+        val obj = element as? JsonObject
+            ?: error("Expected JsonObject for SessionInputRequest")
+        val discriminant = (obj["kind"] as? JsonPrimitive)?.content
+            ?: return SessionInputRequestUnknown(obj)
+        return when (discriminant) {
+            "chatInput" -> SessionInputRequestChatInput(input.json.decodeFromJsonElement(SessionChatInputRequest.serializer(), element))
+            "toolConfirmation" -> SessionInputRequestToolConfirmation(input.json.decodeFromJsonElement(SessionToolConfirmationRequest.serializer(), element))
+            "toolClientExecution" -> SessionInputRequestToolClientExecution(input.json.decodeFromJsonElement(SessionToolClientExecutionRequest.serializer(), element))
+            else -> SessionInputRequestUnknown(obj)
+        }
+    }
+
+    override fun serialize(encoder: Encoder, value: SessionInputRequest) {
+        val output = encoder as? JsonEncoder
+            ?: error("SessionInputRequest can only be serialized to JSON")
+        val element: JsonElement = when (value) {
+            is SessionInputRequestChatInput -> output.json.encodeToJsonElement(SessionChatInputRequest.serializer(), value.value)
+            is SessionInputRequestToolConfirmation -> output.json.encodeToJsonElement(SessionToolConfirmationRequest.serializer(), value.value)
+            is SessionInputRequestToolClientExecution -> output.json.encodeToJsonElement(SessionToolClientExecutionRequest.serializer(), value.value)
+            is SessionInputRequestUnknown -> value.raw
         }
         output.encodeJsonElement(element)
     }

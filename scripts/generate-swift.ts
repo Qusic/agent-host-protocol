@@ -539,7 +539,7 @@ function generatePartialStructFromInterface(
 const STATE_ENUMS = [
   'PolicyState', 'PendingMessageKind', 'SessionLifecycle', 'SessionStatus',
   'ChatOriginKind', 'ChatInteractivity', 'ChatInputAnswerState', 'ChatInputAnswerValueKind', 'ChatInputQuestionKind',
-  'ChatInputResponseKind',
+  'ChatInputResponseKind', 'SessionInputRequestKind',
   'TurnState', 'MessageKind', 'MessageAttachmentKind', 'ResponsePartKind', 'ToolCallStatus',
   'ToolCallConfirmationReason', 'ToolCallCancellationReason', 'ConfirmationOptionKind',
   'ToolCallContributorKind',
@@ -550,8 +550,11 @@ const STATE_ENUMS = [
 
 const STATE_STRUCTS = [
   'Icon', 'ProtectedResourceMetadata', 'RootState', 'RootConfigState', 'AgentInfo',
+  'AgentCapabilities',
+  'MultipleChatsCapability',
   'SessionModelInfo', 'ModelSelection', 'AgentSelection', 'ConfigPropertySchema', 'ConfigSchema',
   'PendingMessage', 'ChatState', 'ChatSummary', 'SessionState', 'SessionActiveClient',
+  'SessionChatInputRequest', 'SessionToolConfirmationRequest', 'SessionToolClientExecutionRequest',
   'SessionSummary', 'ChangesSummary', 'ProjectInfo', 'SessionConfigState', 'Turn', 'ActiveTurn', 'Message',
   'MessageOrigin',
   'ChatInputOption',
@@ -625,6 +628,17 @@ const TOOL_CALL_STATE_UNION: UnionConfig = {
     { caseName: 'pendingResultConfirmation', structName: 'ToolCallPendingResultConfirmationState', discriminantValue: 'pending-result-confirmation' },
     { caseName: 'completed', structName: 'ToolCallCompletedState', discriminantValue: 'completed' },
     { caseName: 'cancelled', structName: 'ToolCallCancelledState', discriminantValue: 'cancelled' },
+  ],
+};
+
+const TOOL_CALL_CONFIRMATION_STATE_UNION: UnionConfig = {
+  name: 'ToolCallConfirmationState',
+  discriminantField: 'status',
+  // Open union: mirrors TOOL_CALL_STATE_UNION's forward-compat policy.
+  allowUnknown: true,
+  variants: [
+    { caseName: 'pendingConfirmation', structName: 'ToolCallPendingConfirmationState', discriminantValue: 'pending-confirmation' },
+    { caseName: 'pendingResultConfirmation', structName: 'ToolCallPendingResultConfirmationState', discriminantValue: 'pending-result-confirmation' },
   ],
 };
 
@@ -766,6 +780,18 @@ const TOOL_CALL_CONTRIBUTOR_UNION: UnionConfig = {
   variants: [
     { caseName: 'client', structName: 'ToolCallClientContributor', discriminantValue: 'client' },
     { caseName: 'mcp', structName: 'ToolCallMcpContributor', discriminantValue: 'mcp' },
+  ],
+};
+
+const SESSION_INPUT_REQUEST_UNION: UnionConfig = {
+  name: 'SessionInputRequest',
+  discriminantField: 'kind',
+  // Open union: future protocol versions may add new session input request kinds.
+  allowUnknown: true,
+  variants: [
+    { caseName: 'chatInput', structName: 'SessionChatInputRequest', discriminantValue: 'chatInput' },
+    { caseName: 'toolConfirmation', structName: 'SessionToolConfirmationRequest', discriminantValue: 'toolConfirmation' },
+    { caseName: 'toolClientExecution', structName: 'SessionToolClientExecutionRequest', discriminantValue: 'toolClientExecution' },
   ],
 };
 
@@ -1005,6 +1031,8 @@ function generateStateFile(project: Project): string {
   lines.push('');
   lines.push(generateDiscriminatedUnion(TOOL_CALL_STATE_UNION));
   lines.push('');
+  lines.push(generateDiscriminatedUnion(TOOL_CALL_CONFIRMATION_STATE_UNION));
+  lines.push('');
   lines.push(generateDiscriminatedUnion(TERMINAL_CLAIM_UNION));
   lines.push('');
   lines.push(generateDiscriminatedUnion(TERMINAL_CONTENT_PART_UNION));
@@ -1026,6 +1054,8 @@ function generateStateFile(project: Project): string {
   lines.push(generateDiscriminatedUnion(MCP_SERVER_STATUS_UNION));
   lines.push('');
   lines.push(generateDiscriminatedUnion(TOOL_CALL_CONTRIBUTOR_UNION));
+  lines.push('');
+  lines.push(generateDiscriminatedUnion(SESSION_INPUT_REQUEST_UNION));
   lines.push('');
   lines.push(generateToolResultContentUnion());
   lines.push('');
@@ -1071,6 +1101,8 @@ const ACTION_VARIANTS: { type: string; caseName: string; tsInterface: string }[]
   { type: 'session/serverToolsChanged', caseName: 'sessionServerToolsChanged', tsInterface: 'SessionServerToolsChangedAction' },
   { type: 'session/activeClientSet', caseName: 'sessionActiveClientSet', tsInterface: 'SessionActiveClientSetAction' },
   { type: 'session/activeClientRemoved', caseName: 'sessionActiveClientRemoved', tsInterface: 'SessionActiveClientRemovedAction' },
+  { type: 'session/inputNeededSet', caseName: 'sessionInputNeededSet', tsInterface: 'SessionInputNeededSetAction' },
+  { type: 'session/inputNeededRemoved', caseName: 'sessionInputNeededRemoved', tsInterface: 'SessionInputNeededRemovedAction' },
   { type: 'chat/pendingMessageSet', caseName: 'chatPendingMessageSet', tsInterface: 'ChatPendingMessageSetAction' },
   { type: 'chat/pendingMessageRemoved', caseName: 'chatPendingMessageRemoved', tsInterface: 'ChatPendingMessageRemovedAction' },
   { type: 'chat/queuedMessagesReordered', caseName: 'chatQueuedMessagesReordered', tsInterface: 'ChatQueuedMessagesReorderedAction' },
@@ -1283,7 +1315,7 @@ const COMMAND_ENUMS = ['ReconnectResultType', 'ContentEncoding', 'CompletionItem
 const COMMAND_STRUCTS = [
   'InitializeParams', 'InitializeResult', 'ClientCapabilities',
   'ReconnectParams', 'ReconnectReplayResult', 'ReconnectSnapshotResult',
-  'SubscribeParams', 'SubscribeResult',
+  'SubscribeParams', 'SubscriptionDeliveryOptions', 'SubscribeResult',
   'SessionForkSource', 'CreateSessionParams', 'DisposeSessionParams',
   'ChatForkSource', 'CreateChatParams', 'DisposeChatParams',
   'ListSessionsParams', 'ListSessionsResult',
@@ -1896,6 +1928,8 @@ function checkExhaustiveness(project: Project): void {
     'CustomizationLoadState',       // CUSTOMIZATION_LOAD_STATE_UNION discriminated union
     'McpServerState',              // MCP_SERVER_STATUS_UNION discriminated union
     'ToolCallContributor',          // TOOL_CALL_CONTRIBUTOR_UNION discriminated union
+    'SessionInputRequest',          // SESSION_INPUT_REQUEST_UNION discriminated union
+    'ToolCallConfirmationState',    // TOOL_CALL_CONFIRMATION_STATE_UNION discriminated union
     'AuthRequiredErrorData',        // emitted by generateErrorsFile()
     'PermissionDeniedErrorData',    // emitted by generateErrorsFile()
     'UnsupportedProtocolVersionErrorData', // emitted by generateErrorsFile()

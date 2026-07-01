@@ -16,6 +16,21 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 
 ### Added
 
+- `SubscribeParams.Delivery.MaxLatencyMs` and `Client.SubscribeWithDelivery`
+  for clients to request a maximum subscription delivery latency, including
+  `0` for no intentional coalescing.
+- Optional `capabilities` field on `AgentInfo` (`AgentCapabilities` with a
+  nested `multipleChats` capability carrying `fork`) so clients gate multi-chat
+  and fork via advertised capabilities instead of provider-id switches.
+- `SessionState.InputNeeded` — a session-level aggregate of outstanding input
+  requests across all chats (`SessionInputRequest` union with
+  `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
+  `SessionToolClientExecutionRequest`), plus the `SessionInputNeededSetAction`
+  (wire `session/inputNeededSet`) and `SessionInputNeededRemovedAction` (wire
+  `session/inputNeededRemoved`) actions and the `ToolCallConfirmationState`
+  union. The session reducer maintains the `SessionStatusInputNeeded` activity
+  bit from the queue, clearing it (falling back to `SessionStatusInProgress`)
+  when the last entry is removed.
 - Optional `Intention` field on `ChatToolCallStartAction` and every tool-call
   lifecycle state.
 - Optional `Enabled` field on the child customization types

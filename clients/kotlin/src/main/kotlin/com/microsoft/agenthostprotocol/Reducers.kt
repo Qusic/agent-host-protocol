@@ -95,6 +95,22 @@ private fun withStatusFlag(status: SessionStatus, flag: SessionStatus, set: Bool
         SessionStatus(status.rawValue and flag.rawValue.inv())
     }
 
+/**
+ * Reflects the session-level [SessionState.inputNeeded] queue into the activity
+ * bits of [status]. A non-empty queue promotes the activity to
+ * [SessionStatus.INPUT_NEEDED]; emptying it clears the input-needed-specific
+ * bit. Since INPUT_NEEDED implies [SessionStatus.IN_PROGRESS], an unblocked turn
+ * falls back to IN_PROGRESS while an already-idle session stays idle. Orthogonal
+ * flags (IS_READ / IS_ARCHIVED) are preserved.
+ */
+private fun withInputNeededStatus(status: SessionStatus, inputNeeded: List<SessionInputRequest>): SessionStatus =
+    if (inputNeeded.isNotEmpty()) {
+        SessionStatus((status.rawValue and STATUS_ACTIVITY_MASK.inv()) or SessionStatus.INPUT_NEEDED.rawValue)
+    } else {
+        val inputBit = SessionStatus.INPUT_NEEDED.rawValue and SessionStatus.IN_PROGRESS.rawValue.inv()
+        SessionStatus(status.rawValue and inputBit.inv())
+    }
+
 /** Derives the summary status from live session work, preserving orthogonal flags. */
 private fun chatSummaryStatus(state: ChatState, terminalStatus: SessionStatus? = null): SessionStatus {
     val activity: SessionStatus = when {
@@ -187,6 +203,14 @@ private fun customizationId(c: Customization): String? = when (c) {
     // Returning `null` mirrors Rust's `Customization::Unknown(_) => None`, so
     // an unknown container can never collide with a real id during lookups.
     is CustomizationUnknown -> null
+}
+
+private fun sessionInputRequestId(r: SessionInputRequest): String? = when (r) {
+    is SessionInputRequestChatInput -> r.value.id
+    is SessionInputRequestToolConfirmation -> r.value.id
+    is SessionInputRequestToolClientExecution -> r.value.id
+    // Unknown variants carry an opaque `raw` JSON object — no id to expose.
+    is SessionInputRequestUnknown -> null
 }
 
 private fun customizationChildren(c: Customization): List<ChildCustomization>? = when (c) {
@@ -543,6 +567,36 @@ public fun sessionReducer(state: SessionState, action: StateAction): SessionStat
             val updated = state.activeClients.toMutableList()
             updated.removeAt(idx)
             state.copy(activeClients = updated)
+        }
+    }
+
+    is StateActionSessionInputNeededSet -> {
+        val request = action.value.request
+        val id = sessionInputRequestId(request)
+        if (id == null) state else {
+            val list = state.inputNeeded ?: emptyList()
+            val idx = list.indexOfFirst { sessionInputRequestId(it) == id }
+            val updated = if (idx < 0) {
+                list + request
+            } else {
+                list.toMutableList().also { it[idx] = request }
+            }
+            state.copy(inputNeeded = updated, status = withInputNeededStatus(state.status, updated))
+        }
+    }
+
+    is StateActionSessionInputNeededRemoved -> {
+        val list = state.inputNeeded
+        if (list == null) state else {
+            val idx = list.indexOfFirst { sessionInputRequestId(it) == action.value.id }
+            if (idx < 0) state else {
+                val updated = list.toMutableList()
+                updated.removeAt(idx)
+                state.copy(
+                    inputNeeded = if (updated.isEmpty()) null else updated,
+                    status = withInputNeededStatus(state.status, updated),
+                )
+            }
         }
     }
 

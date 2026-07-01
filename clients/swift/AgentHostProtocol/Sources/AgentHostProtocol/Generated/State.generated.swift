@@ -147,6 +147,20 @@ public enum ChatInputResponseKind: String, Codable, Sendable {
     case cancel = "cancel"
 }
 
+/// Discriminant for the kinds of outstanding input a session can surface in
+/// {@link SessionState.inputNeeded}.
+///
+/// This is a general/typological union (not a lifecycle), so the discriminant is
+/// a `*Kind`.
+public enum SessionInputRequestKind: String, Codable, Sendable {
+    /// A user-facing elicitation mirrored from a chat's `inputRequests`.
+    case chatInput = "chatInput"
+    /// A tool call awaiting parameter- or result-confirmation.
+    case toolConfirmation = "toolConfirmation"
+    /// A running tool the session wants an active client to execute.
+    case toolClientExecution = "toolClientExecution"
+}
+
 /// How a turn ended.
 public enum TurnState: String, Codable, Sendable {
     case complete = "complete"
@@ -569,6 +583,10 @@ public struct AgentInfo: Codable, Sendable {
     /// resolved against the workspace, children are parsed) and propagated
     /// into the session's `customizations` list.
     public var customizations: [Customization]?
+    /// Static capabilities the agent advertises about itself. Clients use these
+    /// to gate features (multi-chat, fork) instead of switching on the provider
+    /// id.
+    public var capabilities: AgentCapabilities?
 
     public init(
         provider: String,
@@ -576,7 +594,8 @@ public struct AgentInfo: Codable, Sendable {
         description: String,
         models: [SessionModelInfo],
         protectedResources: [ProtectedResourceMetadata]? = nil,
-        customizations: [Customization]? = nil
+        customizations: [Customization]? = nil,
+        capabilities: AgentCapabilities? = nil
     ) {
         self.provider = provider
         self.displayName = displayName
@@ -584,6 +603,34 @@ public struct AgentInfo: Codable, Sendable {
         self.models = models
         self.protectedResources = protectedResources
         self.customizations = customizations
+        self.capabilities = capabilities
+    }
+}
+
+public struct AgentCapabilities: Codable, Sendable {
+    /// The agent can host more than one concurrent chat per session. When absent,
+    /// clients MUST NOT call `createChat` to open chats beyond the default one the
+    /// session starts with. An empty object `{}` advertises multi-chat without
+    /// forking; set {@link MultipleChatsCapability.fork} to also allow forking.
+    public var multipleChats: MultipleChatsCapability?
+
+    public init(
+        multipleChats: MultipleChatsCapability? = nil
+    ) {
+        self.multipleChats = multipleChats
+    }
+}
+
+public struct MultipleChatsCapability: Codable, Sendable {
+    /// The agent can fork a chat from a specific turn. When absent or `false`,
+    /// clients MUST NOT pass a {@link ChatForkSource} (`source`) to `createChat`.
+    /// Forking always implies multi-chat support.
+    public var fork: Bool?
+
+    public init(
+        fork: Bool? = nil
+    ) {
+        self.fork = fork
     }
 }
 
@@ -1008,6 +1055,21 @@ public struct SessionState: Codable, Sendable {
     /// before subscribing. See {@link Changeset} for the full shape and
     /// {@link /guide/changesets | Changesets} for an overview of the model.
     public var changesets: [Changeset]?
+    /// Outstanding input the session is blocked on, aggregated across every chat
+    /// so a client can discover and answer it from the session channel alone,
+    /// without subscribing to individual chats.
+    ///
+    /// Each entry is self-sufficient: it carries the owning chat's URI plus every
+    /// identifier the client needs to respond. A client answers by dispatching the
+    /// ordinary `chat/*` action to that chat's channel — see
+    /// {@link SessionInputRequest} for the per-variant response path. A present,
+    /// non-empty list implies {@link SessionStatus.InputNeeded} on
+    /// {@link SessionSummary.status}.
+    ///
+    /// Host-managed: the host upserts entries with `session/inputNeededSet` as
+    /// chats raise requests and removes them with `session/inputNeededRemoved`
+    /// once the underlying request resolves.
+    public var inputNeeded: [SessionInputRequest]?
     /// Additional provider-specific metadata for this session.
     ///
     /// Clients MAY look for well-known keys here to provide enhanced UI.
@@ -1032,6 +1094,7 @@ public struct SessionState: Codable, Sendable {
         case config
         case customizations
         case changesets
+        case inputNeeded
         case meta = "_meta"
     }
 
@@ -1052,6 +1115,7 @@ public struct SessionState: Codable, Sendable {
         config: SessionConfigState? = nil,
         customizations: [Customization]? = nil,
         changesets: [Changeset]? = nil,
+        inputNeeded: [SessionInputRequest]? = nil,
         meta: [String: AnyCodable]? = nil
     ) {
         self.provider = provider
@@ -1070,6 +1134,7 @@ public struct SessionState: Codable, Sendable {
         self.config = config
         self.customizations = customizations
         self.changesets = changesets
+        self.inputNeeded = inputNeeded
         self.meta = meta
     }
 }
@@ -1099,6 +1164,105 @@ public struct SessionActiveClient: Codable, Sendable {
         self.displayName = displayName
         self.tools = tools
         self.customizations = customizations
+    }
+}
+
+public struct SessionChatInputRequest: Codable, Sendable {
+    /// Stable key for this entry, unique within the session's
+    /// {@link SessionState.inputNeeded} list. The host derives it however it likes
+    /// (for example from the chat URI plus the underlying request or tool-call
+    /// id); consumers MUST treat it as opaque. It is the key for the
+    /// `session/inputNeededSet` / `session/inputNeededRemoved` upsert convention.
+    public var id: String
+    /// The chat the underlying request lives in. This is the channel a client
+    /// dispatches its response to — it does not need to have subscribed to that
+    /// chat first.
+    public var chat: String
+    public var kind: SessionInputRequestKind
+    /// The mirrored chat input request.
+    public var request: ChatInputRequest
+
+    public init(
+        id: String,
+        chat: String,
+        kind: SessionInputRequestKind,
+        request: ChatInputRequest
+    ) {
+        self.id = id
+        self.chat = chat
+        self.kind = kind
+        self.request = request
+    }
+}
+
+public struct SessionToolConfirmationRequest: Codable, Sendable {
+    /// Stable key for this entry, unique within the session's
+    /// {@link SessionState.inputNeeded} list. The host derives it however it likes
+    /// (for example from the chat URI plus the underlying request or tool-call
+    /// id); consumers MUST treat it as opaque. It is the key for the
+    /// `session/inputNeededSet` / `session/inputNeededRemoved` upsert convention.
+    public var id: String
+    /// The chat the underlying request lives in. This is the channel a client
+    /// dispatches its response to — it does not need to have subscribed to that
+    /// chat first.
+    public var chat: String
+    public var kind: SessionInputRequestKind
+    /// The turn the tool call belongs to.
+    public var turnId: String
+    /// The tool call awaiting confirmation.
+    public var toolCall: ToolCallConfirmationState
+
+    public init(
+        id: String,
+        chat: String,
+        kind: SessionInputRequestKind,
+        turnId: String,
+        toolCall: ToolCallConfirmationState
+    ) {
+        self.id = id
+        self.chat = chat
+        self.kind = kind
+        self.turnId = turnId
+        self.toolCall = toolCall
+    }
+}
+
+public struct SessionToolClientExecutionRequest: Codable, Sendable {
+    /// Stable key for this entry, unique within the session's
+    /// {@link SessionState.inputNeeded} list. The host derives it however it likes
+    /// (for example from the chat URI plus the underlying request or tool-call
+    /// id); consumers MUST treat it as opaque. It is the key for the
+    /// `session/inputNeededSet` / `session/inputNeededRemoved` upsert convention.
+    public var id: String
+    /// The chat the underlying request lives in. This is the channel a client
+    /// dispatches its response to — it does not need to have subscribed to that
+    /// chat first.
+    public var chat: String
+    public var kind: SessionInputRequestKind
+    /// The turn the tool call belongs to.
+    public var turnId: String
+    /// The `clientId` expected to execute the tool. Matches the `clientId` of the
+    /// tool call's client {@link ToolCallContributor}.
+    public var clientId: String
+    /// The running tool call the session wants the owning client to execute. The
+    /// host only ever populates this with a {@link ToolCallRunningState} (i.e. a
+    /// {@link ToolCallState} in `running` status).
+    public var toolCall: ToolCallState
+
+    public init(
+        id: String,
+        chat: String,
+        kind: SessionInputRequestKind,
+        turnId: String,
+        clientId: String,
+        toolCall: ToolCallState
+    ) {
+        self.id = id
+        self.chat = chat
+        self.kind = kind
+        self.turnId = turnId
+        self.clientId = clientId
+        self.toolCall = toolCall
     }
 }
 
@@ -4479,6 +4643,39 @@ public enum ToolCallState: Codable, Sendable {
     }
 }
 
+public enum ToolCallConfirmationState: Codable, Sendable {
+    case pendingConfirmation(ToolCallPendingConfirmationState)
+    case pendingResultConfirmation(ToolCallPendingResultConfirmationState)
+    /// Unknown or future discriminant; the raw payload is preserved
+    /// and re-encoded verbatim for forward-compatibility.
+    case unknown(AnyCodable)
+
+    private enum DiscriminantKey: String, CodingKey {
+        case discriminant = "status"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: DiscriminantKey.self)
+        let discriminant = try container.decode(String.self, forKey: .discriminant)
+        switch discriminant {
+        case "pending-confirmation":
+            self = .pendingConfirmation(try ToolCallPendingConfirmationState(from: decoder))
+        case "pending-result-confirmation":
+            self = .pendingResultConfirmation(try ToolCallPendingResultConfirmationState(from: decoder))
+        default:
+            self = .unknown(try AnyCodable(from: decoder))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        switch self {
+        case .pendingConfirmation(let value): try value.encode(to: encoder)
+        case .pendingResultConfirmation(let value): try value.encode(to: encoder)
+        case .unknown(let value): try value.encode(to: encoder)
+        }
+    }
+}
+
 public enum TerminalClaim: Codable, Sendable {
     case client(TerminalClientClaim)
     case session(TerminalSessionClaim)
@@ -4910,6 +5107,43 @@ public enum ToolCallContributor: Codable, Sendable {
         switch self {
         case .client(let value): try value.encode(to: encoder)
         case .mcp(let value): try value.encode(to: encoder)
+        }
+    }
+}
+
+public enum SessionInputRequest: Codable, Sendable {
+    case chatInput(SessionChatInputRequest)
+    case toolConfirmation(SessionToolConfirmationRequest)
+    case toolClientExecution(SessionToolClientExecutionRequest)
+    /// Unknown or future discriminant; the raw payload is preserved
+    /// and re-encoded verbatim for forward-compatibility.
+    case unknown(AnyCodable)
+
+    private enum DiscriminantKey: String, CodingKey {
+        case discriminant = "kind"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: DiscriminantKey.self)
+        let discriminant = try container.decode(String.self, forKey: .discriminant)
+        switch discriminant {
+        case "chatInput":
+            self = .chatInput(try SessionChatInputRequest(from: decoder))
+        case "toolConfirmation":
+            self = .toolConfirmation(try SessionToolConfirmationRequest(from: decoder))
+        case "toolClientExecution":
+            self = .toolClientExecution(try SessionToolClientExecutionRequest(from: decoder))
+        default:
+            self = .unknown(try AnyCodable(from: decoder))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        switch self {
+        case .chatInput(let value): try value.encode(to: encoder)
+        case .toolConfirmation(let value): try value.encode(to: encoder)
+        case .toolClientExecution(let value): try value.encode(to: encoder)
+        case .unknown(let value): try value.encode(to: encoder)
         }
     }
 }

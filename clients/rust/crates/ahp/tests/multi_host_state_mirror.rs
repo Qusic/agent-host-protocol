@@ -26,6 +26,7 @@ fn agent(provider: &str) -> AgentInfo {
         models: vec![],
         protected_resources: None,
         customizations: None,
+        capabilities: None,
     }
 }
 
@@ -61,6 +62,7 @@ fn session_state(title: &str, _resource: &str) -> SessionState {
         config: None,
         customizations: None,
         changesets: None,
+        input_needed: None,
         meta: None,
     }
 }

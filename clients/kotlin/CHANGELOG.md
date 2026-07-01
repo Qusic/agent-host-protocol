@@ -17,6 +17,19 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 
 ### Added
 
+- `SubscribeParams.delivery.maxLatencyMs` for clients to request a maximum
+  subscription delivery latency, including `0` for no intentional coalescing.
+- Optional `capabilities` field on `AgentInfo` (`AgentCapabilities` with a
+  nested `multipleChats` capability carrying `fork`) so clients gate multi-chat
+  and fork via advertised capabilities instead of provider-id switches.
+- `SessionState.inputNeeded` — a session-level aggregate of outstanding input
+  requests across all chats (`SessionInputRequest` sealed interface with
+  `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
+  `SessionToolClientExecutionRequest`), plus the `SessionInputNeededSetAction` /
+  `SessionInputNeededRemovedAction` actions and the `ToolCallConfirmationState`
+  union. The session reducer maintains the `SessionStatus.INPUT_NEEDED` activity
+  bit from the queue, clearing it (falling back to `IN_PROGRESS`) when the last
+  entry is removed.
 - Optional `intention` field on `ChatToolCallStartAction` and every tool-call
   lifecycle state.
 - Optional `enabled` field on the child customization types
