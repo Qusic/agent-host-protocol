@@ -30,6 +30,18 @@ RootState {
 
 The session list is **not** part of root state. Clients fetch it imperatively via [`listSessions`](/reference/root#listsessions) and patch it from `root/*` notifications described below.
 
+### Paginating the catalogue
+
+A large catalogue can be fetched incrementally. [`listSessions`](/reference/root#listsessions) accepts an optional `limit` (the maximum number of entries the client wants in the page — the server SHOULD respect it, but MAY return fewer and MAY impose its own upper cap) and an optional opaque `cursor`. The result carries the page in `items` plus an optional `nextCursor`:
+
+- To fetch the first page, omit `cursor`. Supply `limit` to bound the page size.
+- If the result includes a `nextCursor`, more entries exist — pass it back as `cursor` on the next call to fetch the following page.
+- A missing `nextCursor` signals the end of the catalogue.
+
+The cursor is **opaque and server-defined**: the server picks the ordering and keyset, exactly as `fetchTurns` exposes `before`/`hasMore` without dictating storage. Clients MUST NOT parse, modify, or persist a cursor across connections. An unrecognised cursor SHOULD be rejected with an `InvalidParams` error. The server SHOULD return most-recently-modified entries first, so the first page is the immediately useful one.
+
+Pagination is fully additive. A client that omits `limit`/`cursor` and ignores `nextCursor` sees the pre-pagination behaviour (subject to any server-imposed cap), and a server that does not paginate ignores the inputs and returns everything in one page. Pagination governs only the initial and backfill fetches — the `root/session*` notifications keep an already-loaded page live exactly as before.
+
 ## Methods and events on this channel
 
 This section lists wire methods that are interpreted in the context of

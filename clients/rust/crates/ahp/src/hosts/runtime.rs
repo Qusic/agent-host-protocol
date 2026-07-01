@@ -318,6 +318,8 @@ impl HostRuntime {
                 ListSessionsParams {
                     channel: ROOT_RESOURCE_URI.to_string(),
                     filter: None,
+                    limit: None,
+                    cursor: None,
                 },
             )
             .await;

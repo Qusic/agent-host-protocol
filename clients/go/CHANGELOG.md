@@ -22,6 +22,11 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 - Optional `capabilities` field on `AgentInfo` (`AgentCapabilities` with a
   nested `multipleChats` capability carrying `fork`) so clients gate multi-chat
   and fork via advertised capabilities instead of provider-id switches.
+- Cursor-based pagination for `listSessions`, via new shared `PaginatedParams`
+  (`Limit` + `Cursor`) and `PaginatedResult` (`NextCursor`) types:
+  `ListSessionsParams` and `ListSessionsResult` now carry these fields, letting
+  clients page through a large session catalogue. Fully additive — omitting the
+  fields preserves prior behaviour.
 - `SessionState.InputNeeded` — a session-level aggregate of outstanding input
   requests across all chats (`SessionInputRequest` union with
   `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and

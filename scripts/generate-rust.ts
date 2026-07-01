@@ -1787,6 +1787,8 @@ function checkExhaustiveness(project: Project): void {
     'URI',
     'JsonPrimitive',
     'BaseParams',
+    'PaginatedParams',              // base interface; flattened into each paginated command params struct
+    'PaginatedResult',              // base interface; flattened into each paginated command result struct
     'StringOrMarkdown',
     'ToolCallState',
     'StateAction',

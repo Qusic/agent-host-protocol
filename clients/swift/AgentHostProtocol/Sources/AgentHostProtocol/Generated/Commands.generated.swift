@@ -395,25 +395,45 @@ public struct DisposeChatParams: Codable, Sendable {
 public struct ListSessionsParams: Codable, Sendable {
     /// Channel URI this command targets.
     public var channel: String
+    /// Maximum number of entries to return in this page. The server SHOULD respect
+    /// this bound but MAY return fewer entries and MAY impose its own upper cap.
+    /// Omit to let the server choose the page size.
+    public var limit: Int?
+    /// Opaque pagination cursor from a previous {@link PaginatedResult.nextCursor}.
+    /// Omit to fetch the first page. Cursors are server-defined and MUST be treated
+    /// as opaque — do not parse, modify, or persist them across connections. An
+    /// unrecognised cursor SHOULD be rejected with an `InvalidParams` error.
+    public var cursor: String?
     /// Optional filter criteria
     public var filter: AnyCodable?
 
     public init(
         channel: String,
+        limit: Int? = nil,
+        cursor: String? = nil,
         filter: AnyCodable? = nil
     ) {
         self.channel = channel
+        self.limit = limit
+        self.cursor = cursor
         self.filter = filter
     }
 }
 
 public struct ListSessionsResult: Codable, Sendable {
-    /// The list of session summaries.
+    /// Opaque cursor for the next page. Present when more entries exist beyond the
+    /// returned page; absent signals the end of the collection. Pass it back as
+    /// {@link PaginatedParams.cursor} to fetch the following page.
+    public var nextCursor: String?
+    /// The list of session summaries. The server SHOULD order them
+    /// most-recently-modified first.
     public var items: [SessionSummary]
 
     public init(
+        nextCursor: String? = nil,
         items: [SessionSummary]
     ) {
+        self.nextCursor = nextCursor
         self.items = items
     }
 }

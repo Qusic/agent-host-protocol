@@ -1890,6 +1890,8 @@ function checkExhaustiveness(project: Project): void {
     'URI',
     'JsonPrimitive',
     'BaseParams',
+    'PaginatedParams',
+    'PaginatedResult',
     'StringOrMarkdown',
     'ToolCallState',
     'StateAction',

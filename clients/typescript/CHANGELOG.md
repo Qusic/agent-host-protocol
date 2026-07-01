@@ -28,6 +28,11 @@ hotfix escape hatch.
 - Optional `capabilities` field on `AgentInfo` (`AgentCapabilities` with a
   nested `multipleChats` capability carrying `fork`) so clients gate multi-chat
   and fork via advertised capabilities instead of provider-id switches.
+- Cursor-based pagination for `listSessions`, via new shared `PaginatedParams`
+  (`limit` + `cursor`) and `PaginatedResult` (`nextCursor`) types:
+  `ListSessionsParams` and `ListSessionsResult` now carry these fields, letting
+  clients page through a large session catalogue. Fully additive — omitting the
+  fields preserves prior behaviour.
 - `SessionState.inputNeeded` — a session-level aggregate of outstanding input
   requests across all chats (`SessionInputRequest` union with
   `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
