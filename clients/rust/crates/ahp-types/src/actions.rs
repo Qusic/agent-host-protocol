@@ -1574,7 +1574,7 @@ pub enum StateAction {
     #[serde(rename = "session/activeClientRemoved")]
     SessionActiveClientRemoved(SessionActiveClientRemovedAction),
     #[serde(rename = "session/inputNeededSet")]
-    SessionInputNeededSet(SessionInputNeededSetAction),
+    SessionInputNeededSet(Box<SessionInputNeededSetAction>),
     #[serde(rename = "session/inputNeededRemoved")]
     SessionInputNeededRemoved(SessionInputNeededRemovedAction),
     #[serde(rename = "chat/pendingMessageSet")]
