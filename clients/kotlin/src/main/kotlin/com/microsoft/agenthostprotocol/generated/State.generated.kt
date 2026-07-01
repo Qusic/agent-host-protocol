@@ -901,9 +901,9 @@ data class AgentInfo(
      */
     val customizations: List<Customization>? = null,
     /**
-     * Static capability flags the agent advertises about itself. Clients use
-     * these to gate features (multi-chat, fork, sub-agent teams) instead of
-     * switching on the provider id. Absent flags default to unsupported.
+     * Static capabilities the agent advertises about itself. Clients use these
+     * to gate features (multi-chat, fork) instead of switching on the provider
+     * id.
      */
     val capabilities: AgentCapabilities? = null
 )
@@ -911,13 +911,22 @@ data class AgentInfo(
 @Serializable
 data class AgentCapabilities(
     /**
-     * Agent can host more than one concurrent chat per session.
+     * The agent can host more than one concurrent chat per session. When absent,
+     * clients MUST NOT call `createChat` to open chats beyond the default one the
+     * session starts with. An empty object `{}` advertises multi-chat without
+     * forking; set {@link MultipleChatsCapability.fork} to also allow forking.
      */
-    val supportsMultipleChats: Boolean? = null,
+    val multipleChats: MultipleChatsCapability? = null
+)
+
+@Serializable
+data class MultipleChatsCapability(
     /**
-     * Agent can fork a chat from a turn.
+     * The agent can fork a chat from a specific turn. When absent or `false`,
+     * clients MUST NOT pass a {@link ChatForkSource} (`source`) to `createChat`.
+     * Forking always implies multi-chat support.
      */
-    val supportsFork: Boolean? = null
+    val fork: Boolean? = null
 )
 
 @Serializable

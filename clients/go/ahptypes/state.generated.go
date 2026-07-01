@@ -544,19 +544,31 @@ type AgentInfo struct {
 	// resolved against the workspace, children are parsed) and propagated
 	// into the session's `customizations` list.
 	Customizations []Customization `json:"customizations,omitempty"`
-	// Static capability flags the agent advertises about itself. Clients use
-	// these to gate features (multi-chat, fork, sub-agent teams) instead of
-	// switching on the provider id. Absent flags default to unsupported.
+	// Static capabilities the agent advertises about itself. Clients use these
+	// to gate features (multi-chat, fork) instead of switching on the provider
+	// id.
 	Capabilities *AgentCapabilities `json:"capabilities,omitempty"`
 }
 
-// Static capability flags an {@link AgentInfo} advertises. Each flag is opt-in
-// (absent -> unsupported).
+// Static capabilities an {@link AgentInfo} advertises. Modelled after MCP
+// capabilities: each field is opt-in and its presence (an empty object `{}`)
+// signals support, while absence means the feature is unsupported and the
+// corresponding client commands MUST NOT be used. Sub-fields carry
+// per-capability options.
 type AgentCapabilities struct {
-	// Agent can host more than one concurrent chat per session.
-	SupportsMultipleChats *bool `json:"supportsMultipleChats,omitempty"`
-	// Agent can fork a chat from a turn.
-	SupportsFork *bool `json:"supportsFork,omitempty"`
+	// The agent can host more than one concurrent chat per session. When absent,
+	// clients MUST NOT call `createChat` to open chats beyond the default one the
+	// session starts with. An empty object `{}` advertises multi-chat without
+	// forking; set {@link MultipleChatsCapability.fork} to also allow forking.
+	MultipleChats *MultipleChatsCapability `json:"multipleChats,omitempty"`
+}
+
+// Options for the {@link AgentCapabilities.multipleChats} capability.
+type MultipleChatsCapability struct {
+	// The agent can fork a chat from a specific turn. When absent or `false`,
+	// clients MUST NOT pass a {@link ChatForkSource} (`source`) to `createChat`.
+	// Forking always implies multi-chat support.
+	Fork *bool `json:"fork,omitempty"`
 }
 
 type SessionModelInfo struct {
