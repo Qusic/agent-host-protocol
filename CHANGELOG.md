@@ -40,6 +40,17 @@ changes accumulate. Track in-flight protocol changes via PRs touching
   extends `PaginatedResult`, letting clients fetch a large session catalogue
   incrementally. Fully additive — omitting the fields preserves today's
   behaviour.
+- `SubscribeParams.view.turns`, `ChatState.turnsNextCursor`, and the
+  `chat/turnsLoaded` action so clients can subscribe to a bounded tail of chat
+  history and page older turns into the reduced chat state on demand.
+
+### Changed
+
+- `fetchTurns` now accepts `cursor` from `ChatState.turnsNextCursor` and returns
+  an empty result after the host has loaded older turns into chat state, instead
+  of returning a detached `{ turns, hasMore }` page.
+- Generated clients now advertise only protocol `0.5.1`, since the `fetchTurns`
+  contract is not wire-compatible with `0.5.0`.
 
 ### Removed
 

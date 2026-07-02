@@ -35,7 +35,6 @@ export const PROTOCOL_VERSION = '0.5.1';
  */
 export const SUPPORTED_PROTOCOL_VERSIONS: readonly string[] = Object.freeze([
   '0.5.1',
-  '0.5.0',
 ]);
 
 // ─── SemVer Comparison ───────────────────────────────────────────────────────
@@ -125,6 +124,7 @@ export const ACTION_INTRODUCED_IN: { readonly [K in StateAction['type']]: string
   [ActionType.ChatInputAnswerChanged]: '0.4.0',
   [ActionType.ChatInputCompleted]: '0.4.0',
   [ActionType.ChatTruncated]: '0.4.0',
+  [ActionType.ChatTurnsLoaded]: '0.5.1',
   [ActionType.ChangesetStatusChanged]: '0.2.0',
   [ActionType.ChangesetFileSet]: '0.2.0',
   [ActionType.ChangesetFileRemoved]: '0.2.0',
