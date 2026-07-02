@@ -20,6 +20,10 @@ hotfix escape hatch.
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-07-02
+
+Implements AHP 0.5.1.
+
 ### Added
 
 - Optional `nonce` field on `ContentRef`.
