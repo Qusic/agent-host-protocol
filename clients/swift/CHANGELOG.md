@@ -19,6 +19,7 @@ the tag matches the version pinned in [`VERSION`](VERSION).
 
 ### Added
 
+- Optional `nonce` field on `ContentRef`.
 - `SubscribeParams.delivery.maxLatencyMs` and
   `AHPClient.subscribe(_:delivery:)` for clients to request a maximum
   subscription delivery latency, including `0` for no intentional coalescing.

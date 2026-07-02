@@ -17,6 +17,7 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 
 ### Added
 
+- Optional `nonce` field on `ContentRef`.
 - `SubscribeParams.delivery.maxLatencyMs` for clients to request a maximum
   subscription delivery latency, including `0` for no intentional coalescing.
 - Optional `capabilities` field on `AgentInfo` (`AgentCapabilities` with a

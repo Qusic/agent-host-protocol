@@ -1517,6 +1517,8 @@ type MessageResourceAttachment struct {
 	SizeHint *int64 `json:"sizeHint,omitempty"`
 	// Content MIME type
 	ContentType *string `json:"contentType,omitempty"`
+	// Content nonce
+	Nonce *string `json:"nonce,omitempty"`
 	// Discriminant
 	Type MessageAttachmentKind `json:"type"`
 	// Optional selection within the referenced textual resource.
@@ -1583,6 +1585,8 @@ type ContentRef struct {
 	SizeHint *int64 `json:"sizeHint,omitempty"`
 	// Content MIME type
 	ContentType *string `json:"contentType,omitempty"`
+	// Content nonce
+	Nonce *string `json:"nonce,omitempty"`
 }
 
 // A content part that's a reference to large content stored outside the state tree.
@@ -1593,6 +1597,8 @@ type ResourceResponsePart struct {
 	SizeHint *int64 `json:"sizeHint,omitempty"`
 	// Content MIME type
 	ContentType *string `json:"contentType,omitempty"`
+	// Content nonce
+	Nonce *string `json:"nonce,omitempty"`
 	// Discriminant
 	Kind ResponsePartKind `json:"kind"`
 }
@@ -1954,8 +1960,10 @@ type ToolResultResourceContent struct {
 	// Approximate size in bytes
 	SizeHint *int64 `json:"sizeHint,omitempty"`
 	// Content MIME type
-	ContentType *string               `json:"contentType,omitempty"`
-	Type        ToolResultContentType `json:"type"`
+	ContentType *string `json:"contentType,omitempty"`
+	// Content nonce
+	Nonce *string               `json:"nonce,omitempty"`
+	Type  ToolResultContentType `json:"type"`
 }
 
 // Describes a file modification performed by a tool.

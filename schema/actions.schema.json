@@ -2216,6 +2216,10 @@
         "contentType": {
           "type": "string",
           "description": "Content MIME type"
+        },
+        "nonce": {
+          "type": "string",
+          "description": "Content nonce"
         }
       },
       "required": [
@@ -4807,6 +4811,10 @@
           "type": "string",
           "description": "Content MIME type"
         },
+        "nonce": {
+          "type": "string",
+          "description": "Content nonce"
+        },
         "type": {
           "$ref": "#/$defs/MessageAttachmentKind.Resource",
           "description": "Discriminant"
@@ -4902,6 +4910,10 @@
         "contentType": {
           "type": "string",
           "description": "Content MIME type"
+        },
+        "nonce": {
+          "type": "string",
+          "description": "Content nonce"
         },
         "kind": {
           "$ref": "#/$defs/ResponsePartKind.ContentRef",
@@ -5628,6 +5640,10 @@
         "contentType": {
           "type": "string",
           "description": "Content MIME type"
+        },
+        "nonce": {
+          "type": "string",
+          "description": "Content nonce"
         },
         "type": {
           "$ref": "#/$defs/ToolResultContentType.Resource"

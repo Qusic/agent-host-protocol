@@ -17,6 +17,7 @@ matching `## [X.Y.Z]` heading is missing from this file.
 
 ### Added
 
+- Optional `nonce` field on `ContentRef`.
 - `SubscribeParams.delivery.max_latency_ms` and
   `Client::subscribe_with_delivery` for clients to request a maximum
   subscription delivery latency, including `0` for no intentional coalescing.
