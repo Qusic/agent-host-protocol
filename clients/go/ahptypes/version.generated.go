@@ -13,7 +13,6 @@ const ProtocolVersion = "0.5.1"
 // shared backing array.
 var supportedProtocolVersions = []string{
 	"0.5.1",
-	"0.5.0",
 }
 
 // SupportedProtocolVersions returns every protocol version this client

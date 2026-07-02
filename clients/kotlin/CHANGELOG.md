@@ -28,6 +28,9 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
   `ListSessionsParams` and `ListSessionsResult` now carry these fields, letting
   clients page through a large session catalogue. Fully additive — omitting the
   fields preserves prior behaviour.
+- `SubscribeParams.view.turns`, `ChatState.turnsNextCursor`, and the
+  `chat/turnsLoaded` action so clients can subscribe to a bounded tail of chat
+  history and page older turns into the reduced chat state on demand.
 - `SessionState.inputNeeded` — a session-level aggregate of outstanding input
   requests across all chats (`SessionInputRequest` sealed interface with
   `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
@@ -40,6 +43,14 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
   lifecycle state.
 - Optional `model` and `tools` fields on `AgentCustomization` for a custom
   agent's pinned model and tool allowlist.
+
+### Changed
+
+- `fetchTurns` now accepts `cursor` from `ChatState.turnsNextCursor` and returns
+  an empty result after the host has loaded older turns into chat state, instead
+  of returning a detached `{ turns, hasMore }` page.
+- Generated clients now advertise only protocol `0.5.1`, since the `fetchTurns`
+  contract is not wire-compatible with `0.5.0`.
 
 ### Removed
 

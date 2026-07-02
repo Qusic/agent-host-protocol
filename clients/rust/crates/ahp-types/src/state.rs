@@ -979,6 +979,14 @@ pub struct ChatState {
     pub working_directory: Option<Uri>,
     /// Completed turns
     pub turns: Vec<Turn>,
+    /// Cursor for loading older completed turns into this chat state.
+    ///
+    /// Presence means `turns` is a tail window and more historical turns are
+    /// available. Pass this opaque cursor to `fetchTurns`; the host MUST insert
+    /// the loaded turns into state and update or clear this cursor before
+    /// responding. Absence means the state contains all retained turns.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub turns_next_cursor: Option<String>,
     /// Currently in-progress turn
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub active_turn: Option<ActiveTurn>,
