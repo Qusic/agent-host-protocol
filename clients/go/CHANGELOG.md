@@ -14,6 +14,10 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-07-02
+
+Implements AHP 0.5.1.
+
 ### Added
 
 - Optional `Nonce` field on `ContentRef`.

@@ -23,8 +23,28 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 `NOTIFICATION_INTRODUCED_IN` maps in
 [`types/version/registry.ts`](types/version/registry.ts).
 
+## [0.5.1] — 2026-07-02
+
+Spec version: `0.5.1`
+
 ### Added
 
+- `SubscribeParams.delivery.maxLatencyMs` for clients to request a maximum
+  subscription delivery latency, including `0` for no intentional coalescing.
+- `SessionState.inputNeeded` — a session-level aggregate of outstanding input
+  requests across all chats, so a client can discover and answer elicitations,
+  tool confirmations, and client-tool execution requests from the session
+  channel without subscribing to individual chats. Each entry
+  (`SessionChatInputRequest`, `SessionToolConfirmationRequest`,
+  `SessionToolClientExecutionRequest`, unioned as `SessionInputRequest`) carries
+  the owning chat URI plus the identifiers needed to respond.
+- `session/inputNeededSet` and `session/inputNeededRemoved` actions for the host
+  to upsert and remove `SessionState.inputNeeded` entries. The session reducer
+  sets `SessionStatus.InputNeeded` while the queue is non-empty and clears it
+  (falling back to `InProgress`) once it empties, preserving orthogonal flags.
+- `ToolCallConfirmationState` union (`ToolCallPendingConfirmationState |
+  ToolCallPendingResultConfirmationState`) for the tool call carried by
+  `SessionToolConfirmationRequest`.
 - Optional `nonce` field on `ContentRef`.
 - Optional `intention` field on `chat/toolCallStart` and every `ToolCallState`
   variant, providing a human-readable description of what the invocation intends
@@ -57,29 +77,6 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 - `filter` field from `ListSessionsParams`. It was an untyped `object`
   placeholder with no defined semantics; it will be reintroduced with a concrete
   shape once session filtering/sorting is specified.
-
-## [0.5.1] — Unreleased
-
-Spec version: `0.5.1`
-
-### Added
-
-- `SubscribeParams.delivery.maxLatencyMs` for clients to request a maximum
-  subscription delivery latency, including `0` for no intentional coalescing.
-- `SessionState.inputNeeded` — a session-level aggregate of outstanding input
-  requests across all chats, so a client can discover and answer elicitations,
-  tool confirmations, and client-tool execution requests from the session
-  channel without subscribing to individual chats. Each entry
-  (`SessionChatInputRequest`, `SessionToolConfirmationRequest`,
-  `SessionToolClientExecutionRequest`, unioned as `SessionInputRequest`) carries
-  the owning chat URI plus the identifiers needed to respond.
-- `session/inputNeededSet` and `session/inputNeededRemoved` actions for the host
-  to upsert and remove `SessionState.inputNeeded` entries. The session reducer
-  sets `SessionStatus.InputNeeded` while the queue is non-empty and clears it
-  (falling back to `InProgress`) once it empties, preserving orthogonal flags.
-- `ToolCallConfirmationState` union (`ToolCallPendingConfirmationState |
-  ToolCallPendingResultConfirmationState`) for the tool call carried by
-  `SessionToolConfirmationRequest`.
 
 ## [0.5.0] — 2026-06-26
 
