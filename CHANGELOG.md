@@ -23,6 +23,10 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 `NOTIFICATION_INTRODUCED_IN` maps in
 [`types/version/registry.ts`](types/version/registry.ts).
 
+## [0.5.2] — Unreleased
+
+Spec version: `0.5.2`
+
 ## [0.5.1] — 2026-07-02
 
 Spec version: `0.5.1`
