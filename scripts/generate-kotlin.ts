@@ -1208,6 +1208,7 @@ const ACTION_VARIANTS: { type: string; caseName: string; tsInterface: string }[]
   { type: 'session/customizationRemoved', caseName: 'SessionCustomizationRemoved', tsInterface: 'SessionCustomizationRemovedAction' },
   { type: 'session/mcpServerStateChanged', caseName: 'SessionMcpServerStateChanged', tsInterface: 'SessionMcpServerStateChangedAction' },
   { type: 'chat/truncated', caseName: 'ChatTruncated', tsInterface: 'ChatTruncatedAction' },
+  { type: 'chat/turnsLoaded', caseName: 'ChatTurnsLoaded', tsInterface: 'ChatTurnsLoadedAction' },
   { type: 'session/configChanged', caseName: 'SessionConfigChanged', tsInterface: 'SessionConfigChangedAction' },
   { type: 'session/metaChanged', caseName: 'SessionMetaChanged', tsInterface: 'SessionMetaChangedAction' },
   { type: 'changeset/statusChanged', caseName: 'ChangesetStatusChanged', tsInterface: 'ChangesetStatusChangedAction' },
@@ -1398,7 +1399,7 @@ const COMMAND_STRUCTS = [
   'InitializeParams', 'InitializeResult',
   'ClientCapabilities',
   'ReconnectParams', 'ReconnectReplayResult', 'ReconnectSnapshotResult',
-  'SubscribeParams', 'SubscriptionDeliveryOptions', 'SubscribeResult',
+  'SubscribeParams', 'SubscribeView', 'SubscriptionDeliveryOptions', 'SubscribeResult',
   'SessionForkSource', 'CreateSessionParams', 'DisposeSessionParams',
   'ChatForkSource', 'CreateChatParams', 'DisposeChatParams',
   'ListSessionsParams', 'ListSessionsResult',
@@ -1871,6 +1872,8 @@ function checkExhaustiveness(project: Project): void {
     'URI',                          // type alias for string
     'JsonPrimitive',                // primitive JSON value alias; mapped to JsonElement
     'BaseParams',                    // marker base interface; flattened into each command params struct
+    'PaginatedParams',               // base interface; flattened into each paginated command params struct
+    'PaginatedResult',               // base interface; flattened into each paginated command result struct
     // PingParams shape is `interface PingParams extends BaseParams { channel: 'ahp-root://' }`
     // (i.e. a `BaseParams` with `channel` narrowed to a string literal). We don't
     // emit a dedicated data class because the only useful payload is the

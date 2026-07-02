@@ -979,6 +979,14 @@ pub struct ChatState {
     pub working_directory: Option<Uri>,
     /// Completed turns
     pub turns: Vec<Turn>,
+    /// Cursor for loading older completed turns into this chat state.
+    ///
+    /// Presence means `turns` is a tail window and more historical turns are
+    /// available. Pass this opaque cursor to `fetchTurns`; the host MUST insert
+    /// the loaded turns into state and update or clear this cursor before
+    /// responding. Absence means the state contains all retained turns.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub turns_next_cursor: Option<String>,
     /// Currently in-progress turn
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub active_turn: Option<ActiveTurn>,
@@ -1919,6 +1927,9 @@ pub struct MessageResourceAttachment {
     /// Content MIME type
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub content_type: Option<String>,
+    /// Content nonce
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub nonce: Option<String>,
     /// Optional selection within the referenced textual resource.
     ///
     /// Only meaningful for textual resources.
@@ -1992,6 +2003,9 @@ pub struct ContentRef {
     /// Content MIME type
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub content_type: Option<String>,
+    /// Content nonce
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub nonce: Option<String>,
 }
 
 /// A content part that's a reference to large content stored outside the state tree.
@@ -2006,6 +2020,9 @@ pub struct ResourceResponsePart {
     /// Content MIME type
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub content_type: Option<String>,
+    /// Content nonce
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub nonce: Option<String>,
 }
 
 /// A tool call represented as a response part.
@@ -2443,6 +2460,9 @@ pub struct ToolResultResourceContent {
     /// Content MIME type
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub content_type: Option<String>,
+    /// Content nonce
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub nonce: Option<String>,
 }
 
 /// Describes a file modification performed by a tool.

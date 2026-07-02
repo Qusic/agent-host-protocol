@@ -14,14 +14,45 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 
 ## [Unreleased]
 
+## [0.5.2] — Unreleased
+
+Implements AHP 0.5.2.
+
 ### Added
 
+- Optional `Enabled` field on the child customization types
+  (`AgentCustomization`, `SkillCustomization`, `PromptCustomization`,
+  `RuleCustomization`, `HookCustomization`).
+- `DisableUserInvocation` on `SkillCustomization`, plus `DisableModelInvocation`
+  and `DisableUserInvocation` on `AgentCustomization`.
+
+### Changed
+
+- The `session/customizationToggled` reducer now toggles any top-level
+  customization (`plugin`, `directory`, or top-level `mcpServer`) or an
+  individual child by `id`, setting that entry's `Enabled`.
+
+## [0.5.1] — 2026-07-02
+
+Implements AHP 0.5.1.
+
+### Added
+
+- Optional `Nonce` field on `ContentRef`.
 - `SubscribeParams.Delivery.MaxLatencyMs` and `Client.SubscribeWithDelivery`
   for clients to request a maximum subscription delivery latency, including
   `0` for no intentional coalescing.
 - Optional `capabilities` field on `AgentInfo` (`AgentCapabilities` with a
   nested `multipleChats` capability carrying `fork`) so clients gate multi-chat
   and fork via advertised capabilities instead of provider-id switches.
+- Cursor-based pagination for `listSessions`, via new shared `PaginatedParams`
+  (`Limit` + `Cursor`) and `PaginatedResult` (`NextCursor`) types:
+  `ListSessionsParams` and `ListSessionsResult` now carry these fields, letting
+  clients page through a large session catalogue. Fully additive — omitting the
+  fields preserves prior behaviour.
+- `SubscribeParams.View.Turns`, `ChatState.TurnsNextCursor`, and the
+  `chat/turnsLoaded` action so clients can subscribe to a bounded tail of chat
+  history and page older turns into the reduced chat state on demand.
 - `SessionState.InputNeeded` — a session-level aggregate of outstanding input
   requests across all chats (`SessionInputRequest` union with
   `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
@@ -33,18 +64,22 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
   when the last entry is removed.
 - Optional `Intention` field on `ChatToolCallStartAction` and every tool-call
   lifecycle state.
-- Optional `Enabled` field on the child customization types
-  (`AgentCustomization`, `SkillCustomization`, `PromptCustomization`,
-  `RuleCustomization`, `HookCustomization`).
-- `DisableUserInvocation` on `SkillCustomization`, plus `DisableModelInvocation`
-  and `DisableUserInvocation` on `AgentCustomization`.
 - Optional `Model` and `Tools` fields on `AgentCustomization` for a custom
   agent's pinned model and tool allowlist.
 
 ### Changed
 
-- The `session/customizationToggled` reducer now toggles a top-level container
-  **or** an individual child by `id`, setting that entry's `Enabled`.
+- `fetchTurns` now accepts `Cursor` from `ChatState.TurnsNextCursor` and returns
+  an empty result after the host has loaded older turns into chat state, instead
+  of returning a detached `{ turns, hasMore }` page.
+- Generated clients now advertise only protocol `0.5.1`, since the `fetchTurns`
+  contract is not wire-compatible with `0.5.0`.
+
+### Removed
+
+- `Filter` field from `ListSessionsParams`. It was an untyped placeholder with
+  no defined semantics; it will return with a concrete shape once session
+  filtering/sorting is specified.
 
 ### Fixed
 

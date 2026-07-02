@@ -18,6 +18,30 @@
         "channel"
       ]
     },
+    "PaginatedParams": {
+      "type": "object",
+      "description": "Cursor-based pagination inputs, mixed into the params of any list command\nthat can page a large result set (e.g. {@link ListSessionsParams |\n`listSessions`}). The paired output is {@link PaginatedResult}.\n\nPagination is **opaque and cursor-based**, mirroring the shape `fetchTurns`\nalready uses for chat history: the server owns the ordering and keyset, and\nthe client walks pages by echoing the cursor from the previous\n{@link PaginatedResult.nextCursor} back on the next request.\n\nThe contract every paginated command shares:\n\n- To fetch the first page, omit `cursor`. Supply `limit` to bound the page.\n- If the result carries a {@link PaginatedResult.nextCursor}, more entries\n  exist — pass it back as `cursor` to fetch the following page. A missing\n  `nextCursor` signals the end of the collection.\n- Cursors are **server-defined and opaque**: clients MUST NOT parse, modify,\n  or persist them across connections. An unrecognised cursor SHOULD be\n  rejected with an `InvalidParams` error.\n- Pagination is **fully additive**: a client that omits `limit`/`cursor` and\n  ignores `nextCursor` sees the pre-pagination behaviour (subject to any\n  server-imposed cap), and a server that does not paginate ignores the inputs\n  and returns everything in a single page.",
+      "properties": {
+        "limit": {
+          "type": "number",
+          "description": "Maximum number of entries to return in this page. The server SHOULD respect\nthis bound but MAY return fewer entries and MAY impose its own upper cap.\nOmit to let the server choose the page size."
+        },
+        "cursor": {
+          "type": "string",
+          "description": "Opaque pagination cursor from a previous {@link PaginatedResult.nextCursor}.\nOmit to fetch the first page. Cursors are server-defined and MUST be treated\nas opaque — do not parse, modify, or persist them across connections. An\nunrecognised cursor SHOULD be rejected with an `InvalidParams` error."
+        }
+      }
+    },
+    "PaginatedResult": {
+      "type": "object",
+      "description": "Cursor-based pagination output, extended by the result of any list command\nthat can page a large result set (e.g. {@link ListSessionsResult |\n`listSessions`}). See {@link PaginatedParams} for the full pagination\ncontract shared by every paginated command.",
+      "properties": {
+        "nextCursor": {
+          "type": "string",
+          "description": "Opaque cursor for the next page. Present when more entries exist beyond the\nreturned page; absent signals the end of the collection. Pass it back as\n{@link PaginatedParams.cursor} to fetch the following page."
+        }
+      }
+    },
     "InitializeParams": {
       "type": "object",
       "description": "Establishes a new connection and negotiates the protocol version.\nThis MUST be the first message sent by the client.",
@@ -222,11 +246,25 @@
         "delivery": {
           "$ref": "#/$defs/SubscriptionDeliveryOptions",
           "description": "Optional delivery preferences for this subscription.\n\nServers MAY use these preferences to buffer and coalesce high-frequency\nupdates while preserving the same reduced state. Omit this field for the\nserver's default delivery behavior."
+        },
+        "view": {
+          "$ref": "#/$defs/SubscribeView",
+          "description": "Optional client-requested shape for the returned snapshot.\n\nServers that do not understand a requested view ignore it and return their\ndefault snapshot. Clients MUST tolerate receiving more state than requested."
         }
       },
       "required": [
         "channel"
       ]
+    },
+    "SubscribeView": {
+      "type": "object",
+      "description": "Optional client-requested shape for a subscription snapshot.",
+      "properties": {
+        "turns": {
+          "type": "number",
+          "description": "Advisory number of most-recent completed turns to expose in a chat\nsnapshot.\n\nServers MAY return more or fewer turns than requested. When omitted, the\nhost MUST return all retained turns. When older turns remain available, the\nreturned {@link ChatState} carries `turnsNextCursor`; clients pass that\ncursor to `fetchTurns` to ask the host to page more turns into the chat\nstate."
+        }
+      }
     },
     "SubscriptionDeliveryOptions": {
       "type": "object",
@@ -692,7 +730,7 @@
     },
     "ListSessionsParams": {
       "type": "object",
-      "description": "Returns a list of session summaries. Used to populate session lists and sidebars.\n\nThe session list is **not** part of the state tree because it can be arbitrarily\nlarge. Clients fetch it imperatively and maintain a local cache updated by\n`root/sessionAdded` and `root/sessionRemoved` notifications.",
+      "description": "Returns a list of session summaries. Used to populate session lists and sidebars.\n\nThe session list is **not** part of the state tree because it can be arbitrarily\nlarge. Clients fetch it imperatively and maintain a local cache updated by\n`root/sessionAdded` and `root/sessionRemoved` notifications.\n\nA large catalogue can be fetched incrementally via the {@link PaginatedParams}\n`limit`/`cursor` inputs (see that type for the full pagination contract). The\nserver SHOULD return most-recently-modified entries first, so the first page\nis the immediately useful one. The `root/session*` notifications keep an\nalready-fetched page live; pagination governs only the initial and backfill\nfetches.",
       "properties": {
         "channel": {
           "type": "string",
@@ -700,9 +738,13 @@
             "ahp-root://"
           ]
         },
-        "filter": {
-          "type": "object",
-          "description": "Optional filter criteria"
+        "limit": {
+          "type": "number",
+          "description": "Maximum number of entries to return in this page. The server SHOULD respect\nthis bound but MAY return fewer entries and MAY impose its own upper cap.\nOmit to let the server choose the page size."
+        },
+        "cursor": {
+          "type": "string",
+          "description": "Opaque pagination cursor from a previous {@link PaginatedResult.nextCursor}.\nOmit to fetch the first page. Cursors are server-defined and MUST be treated\nas opaque — do not parse, modify, or persist them across connections. An\nunrecognised cursor SHOULD be rejected with an `InvalidParams` error."
         }
       },
       "required": [
@@ -713,12 +755,16 @@
       "type": "object",
       "description": "Result of the `listSessions` command.",
       "properties": {
+        "nextCursor": {
+          "type": "string",
+          "description": "Opaque cursor for the next page. Present when more entries exist beyond the\nreturned page; absent signals the end of the collection. Pass it back as\n{@link PaginatedParams.cursor} to fetch the following page."
+        },
         "items": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/SessionSummary"
           },
-          "description": "The list of session summaries."
+          "description": "The list of session summaries. The server SHOULD order them\nmost-recently-modified first."
         }
       },
       "required": [
@@ -917,19 +963,15 @@
     },
     "FetchTurnsParams": {
       "type": "object",
-      "description": "Fetches historical turns for a chat. Used for lazy loading of conversation\nhistory.",
+      "description": "Requests that the host load older historical turns into a chat state.\n\nThe command result does not carry turns. Instead, before responding, the host\nMUST dispatch `chat/turnsLoaded` to insert any loaded turns into the chat\nchannel's `turns` state, ahead of the already-loaded window, and update or\nclear `turnsNextCursor`.\n\nBefore applying any operation that references a turn outside the currently\nloaded window, the host MUST eagerly load enough older turns into state for\nthat operation to reduce against valid state.",
       "properties": {
         "channel": {
           "$ref": "#/$defs/URI",
           "description": "Chat URI"
         },
-        "before": {
+        "cursor": {
           "type": "string",
-          "description": "Turn ID to fetch before (exclusive). Omit to fetch from the most recent turn."
-        },
-        "limit": {
-          "type": "number",
-          "description": "Maximum number of turns to return. Server MAY impose its own upper bound."
+          "description": "Opaque cursor from `ChatState.turnsNextCursor`.\n\nThe host MUST reject unrecognised cursors with `InvalidParams`. Omit only\nwhen asking the host to opportunistically load its next older page for the\nchat, if any."
         }
       },
       "required": [
@@ -939,23 +981,7 @@
     "FetchTurnsResult": {
       "type": "object",
       "description": "Result of the `fetchTurns` command.",
-      "properties": {
-        "turns": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Turn"
-          },
-          "description": "The requested turns, ordered oldest-first"
-        },
-        "hasMore": {
-          "type": "boolean",
-          "description": "Whether more turns exist before the returned range"
-        }
-      },
-      "required": [
-        "turns",
-        "hasMore"
-      ]
+      "properties": {}
     },
     "CompletionsParams": {
       "type": "object",
@@ -1529,6 +1555,10 @@
         "contentType": {
           "type": "string",
           "description": "Content MIME type"
+        },
+        "nonce": {
+          "type": "string",
+          "description": "Content nonce"
         }
       },
       "required": [
@@ -3384,6 +3414,10 @@
           },
           "description": "Completed turns"
         },
+        "turnsNextCursor": {
+          "type": "string",
+          "description": "Cursor for loading older completed turns into this chat state.\n\nPresence means `turns` is a tail window and more historical turns are\navailable. Pass this opaque cursor to `fetchTurns`; the host MUST insert\nthe loaded turns into state and update or clear this cursor before\nresponding. Absence means the state contains all retained turns."
+        },
         "activeTurn": {
           "$ref": "#/$defs/ActiveTurn",
           "description": "Currently in-progress turn"
@@ -4190,6 +4224,10 @@
           "type": "string",
           "description": "Content MIME type"
         },
+        "nonce": {
+          "type": "string",
+          "description": "Content nonce"
+        },
         "type": {
           "$ref": "#/$defs/MessageAttachmentKind.Resource",
           "description": "Discriminant"
@@ -4285,6 +4323,10 @@
         "contentType": {
           "type": "string",
           "description": "Content MIME type"
+        },
+        "nonce": {
+          "type": "string",
+          "description": "Content nonce"
         },
         "kind": {
           "$ref": "#/$defs/ResponsePartKind.ContentRef",
@@ -5011,6 +5053,10 @@
         "contentType": {
           "type": "string",
           "description": "Content MIME type"
+        },
+        "nonce": {
+          "type": "string",
+          "description": "Content nonce"
         },
         "type": {
           "$ref": "#/$defs/ToolResultContentType.Resource"
@@ -6831,6 +6877,30 @@
       },
       "required": [
         "type"
+      ]
+    },
+    "ChatTurnsLoadedAction": {
+      "type": "object",
+      "description": "Loads older completed turns into this chat's state.\n\nHosts dispatch this before responding to `fetchTurns`, and before applying\nany operation that references a turn older than the currently loaded window.\n`turns` is ordered oldest-first and is prepended to the current `turns`\nwindow. `turnsNextCursor` replaces the state's cursor; omit it when all\nretained turns are now loaded.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ActionType.ChatTurnsLoaded"
+        },
+        "turns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Turn"
+          },
+          "description": "Older completed turns loaded into the state, ordered oldest-first."
+        },
+        "turnsNextCursor": {
+          "type": "string",
+          "description": "Opaque cursor for loading the next older page, if one remains."
+        }
+      },
+      "required": [
+        "type",
+        "turns"
       ]
     },
     "ChatPendingMessageSetAction": {

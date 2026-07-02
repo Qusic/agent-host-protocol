@@ -231,13 +231,38 @@ public struct SubscribeParams: Codable, Sendable {
     /// updates while preserving the same reduced state. Omit this field for the
     /// server's default delivery behavior.
     public var delivery: SubscriptionDeliveryOptions?
+    /// Optional client-requested shape for the returned snapshot.
+    ///
+    /// Servers that do not understand a requested view ignore it and return their
+    /// default snapshot. Clients MUST tolerate receiving more state than requested.
+    public var view: SubscribeView?
 
     public init(
         channel: String,
-        delivery: SubscriptionDeliveryOptions? = nil
+        delivery: SubscriptionDeliveryOptions? = nil,
+        view: SubscribeView? = nil
     ) {
         self.channel = channel
         self.delivery = delivery
+        self.view = view
+    }
+}
+
+public struct SubscribeView: Codable, Sendable {
+    /// Advisory number of most-recent completed turns to expose in a chat
+    /// snapshot.
+    ///
+    /// Servers MAY return more or fewer turns than requested. When omitted, the
+    /// host MUST return all retained turns. When older turns remain available, the
+    /// returned {@link ChatState} carries `turnsNextCursor`; clients pass that
+    /// cursor to `fetchTurns` to ask the host to page more turns into the chat
+    /// state.
+    public var turns: Int?
+
+    public init(
+        turns: Int? = nil
+    ) {
+        self.turns = turns
     }
 }
 
@@ -395,25 +420,41 @@ public struct DisposeChatParams: Codable, Sendable {
 public struct ListSessionsParams: Codable, Sendable {
     /// Channel URI this command targets.
     public var channel: String
-    /// Optional filter criteria
-    public var filter: AnyCodable?
+    /// Maximum number of entries to return in this page. The server SHOULD respect
+    /// this bound but MAY return fewer entries and MAY impose its own upper cap.
+    /// Omit to let the server choose the page size.
+    public var limit: Int?
+    /// Opaque pagination cursor from a previous {@link PaginatedResult.nextCursor}.
+    /// Omit to fetch the first page. Cursors are server-defined and MUST be treated
+    /// as opaque — do not parse, modify, or persist them across connections. An
+    /// unrecognised cursor SHOULD be rejected with an `InvalidParams` error.
+    public var cursor: String?
 
     public init(
         channel: String,
-        filter: AnyCodable? = nil
+        limit: Int? = nil,
+        cursor: String? = nil
     ) {
         self.channel = channel
-        self.filter = filter
+        self.limit = limit
+        self.cursor = cursor
     }
 }
 
 public struct ListSessionsResult: Codable, Sendable {
-    /// The list of session summaries.
+    /// Opaque cursor for the next page. Present when more entries exist beyond the
+    /// returned page; absent signals the end of the collection. Pass it back as
+    /// {@link PaginatedParams.cursor} to fetch the following page.
+    public var nextCursor: String?
+    /// The list of session summaries. The server SHOULD order them
+    /// most-recently-modified first.
     public var items: [SessionSummary]
 
     public init(
+        nextCursor: String? = nil,
         items: [SessionSummary]
     ) {
+        self.nextCursor = nextCursor
         self.items = items
     }
 }
@@ -816,34 +857,27 @@ public struct CreateResourceWatchResult: Codable, Sendable {
 public struct FetchTurnsParams: Codable, Sendable {
     /// Channel URI this command targets.
     public var channel: String
-    /// Turn ID to fetch before (exclusive). Omit to fetch from the most recent turn.
-    public var before: String?
-    /// Maximum number of turns to return. Server MAY impose its own upper bound.
-    public var limit: Int?
+    /// Opaque cursor from `ChatState.turnsNextCursor`.
+    ///
+    /// The host MUST reject unrecognised cursors with `InvalidParams`. Omit only
+    /// when asking the host to opportunistically load its next older page for the
+    /// chat, if any.
+    public var cursor: String?
 
     public init(
         channel: String,
-        before: String? = nil,
-        limit: Int? = nil
+        cursor: String? = nil
     ) {
         self.channel = channel
-        self.before = before
-        self.limit = limit
+        self.cursor = cursor
     }
 }
 
 public struct FetchTurnsResult: Codable, Sendable {
-    /// The requested turns, ordered oldest-first
-    public var turns: [Turn]
-    /// Whether more turns exist before the returned range
-    public var hasMore: Bool
 
     public init(
-        turns: [Turn],
-        hasMore: Bool
+
     ) {
-        self.turns = turns
-        self.hasMore = hasMore
     }
 }
 

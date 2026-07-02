@@ -629,7 +629,6 @@ export class HostRuntime {
           const res = await raceWithAbort(
             client.request('listSessions', {
               channel: ROOT_RESOURCE_URI as 'ahp-root://',
-              filter: undefined,
             }),
             cancelSignal,
           );

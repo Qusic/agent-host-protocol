@@ -241,6 +241,12 @@ pub struct SubscribeParams {
     /// server's default delivery behavior.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub delivery: Option<SubscriptionDeliveryOptions>,
+    /// Optional client-requested shape for the returned snapshot.
+    ///
+    /// Servers that do not understand a requested view ignore it and return their
+    /// default snapshot. Clients MUST tolerate receiving more state than requested.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub view: Option<SubscribeView>,
 }
 
 impl SubscribeParams {
@@ -249,6 +255,7 @@ impl SubscribeParams {
         Self {
             channel: channel.into(),
             delivery: None,
+            view: None,
         }
     }
 
@@ -257,8 +264,34 @@ impl SubscribeParams {
         Self {
             channel: channel.into(),
             delivery: Some(delivery),
+            view: None,
         }
     }
+
+    /// Create subscribe params with snapshot-shaping preferences.
+    pub fn with_view(channel: impl Into<Uri>, view: SubscribeView) -> Self {
+        Self {
+            channel: channel.into(),
+            delivery: None,
+            view: Some(view),
+        }
+    }
+}
+
+/// Optional client-requested shape for a subscription snapshot.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscribeView {
+    /// Advisory number of most-recent completed turns to expose in a chat
+    /// snapshot.
+    ///
+    /// Servers MAY return more or fewer turns than requested. When omitted, the
+    /// host MUST return all retained turns. When older turns remain available, the
+    /// returned {@link ChatState} carries `turnsNextCursor`; clients pass that
+    /// cursor to `fetchTurns` to ask the host to page more turns into the chat
+    /// state.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub turns: Option<i64>,
 }
 
 /// Advisory delivery preferences for a single subscription.
@@ -392,21 +425,42 @@ pub struct DisposeChatParams {
 /// The session list is **not** part of the state tree because it can be arbitrarily
 /// large. Clients fetch it imperatively and maintain a local cache updated by
 /// `root/sessionAdded` and `root/sessionRemoved` notifications.
+///
+/// A large catalogue can be fetched incrementally via the {@link PaginatedParams}
+/// `limit`/`cursor` inputs (see that type for the full pagination contract). The
+/// server SHOULD return most-recently-modified entries first, so the first page
+/// is the immediately useful one. The `root/session*` notifications keep an
+/// already-fetched page live; pagination governs only the initial and backfill
+/// fetches.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListSessionsParams {
     /// Channel URI this command targets.
     pub channel: Uri,
-    /// Optional filter criteria
+    /// Maximum number of entries to return in this page. The server SHOULD respect
+    /// this bound but MAY return fewer entries and MAY impose its own upper cap.
+    /// Omit to let the server choose the page size.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub filter: Option<AnyValue>,
+    pub limit: Option<i64>,
+    /// Opaque pagination cursor from a previous {@link PaginatedResult.nextCursor}.
+    /// Omit to fetch the first page. Cursors are server-defined and MUST be treated
+    /// as opaque — do not parse, modify, or persist them across connections. An
+    /// unrecognised cursor SHOULD be rejected with an `InvalidParams` error.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
 }
 
 /// Result of the `listSessions` command.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListSessionsResult {
-    /// The list of session summaries.
+    /// Opaque cursor for the next page. Present when more entries exist beyond the
+    /// returned page; absent signals the end of the collection. Pass it back as
+    /// {@link PaginatedParams.cursor} to fetch the following page.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
+    /// The list of session summaries. The server SHOULD order them
+    /// most-recently-modified first.
     pub items: Vec<SessionSummary>,
 }
 
@@ -805,30 +859,34 @@ pub struct CreateResourceWatchResult {
     pub channel: Uri,
 }
 
-/// Fetches historical turns for a chat. Used for lazy loading of conversation
-/// history.
+/// Requests that the host load older historical turns into a chat state.
+///
+/// The command result does not carry turns. Instead, before responding, the host
+/// MUST dispatch `chat/turnsLoaded` to insert any loaded turns into the chat
+/// channel's `turns` state, ahead of the already-loaded window, and update or
+/// clear `turnsNextCursor`.
+///
+/// Before applying any operation that references a turn outside the currently
+/// loaded window, the host MUST eagerly load enough older turns into state for
+/// that operation to reduce against valid state.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FetchTurnsParams {
     /// Channel URI this command targets.
     pub channel: Uri,
-    /// Turn ID to fetch before (exclusive). Omit to fetch from the most recent turn.
+    /// Opaque cursor from `ChatState.turnsNextCursor`.
+    ///
+    /// The host MUST reject unrecognised cursors with `InvalidParams`. Omit only
+    /// when asking the host to opportunistically load its next older page for the
+    /// chat, if any.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub before: Option<String>,
-    /// Maximum number of turns to return. Server MAY impose its own upper bound.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub limit: Option<i64>,
+    pub cursor: Option<String>,
 }
 
 /// Result of the `fetchTurns` command.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct FetchTurnsResult {
-    /// The requested turns, ordered oldest-first
-    pub turns: Vec<Turn>,
-    /// Whether more turns exist before the returned range
-    pub has_more: bool,
-}
+pub struct FetchTurnsResult {}
 
 /// Stop receiving updates for a channel.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

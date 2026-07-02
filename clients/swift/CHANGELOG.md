@@ -17,14 +17,45 @@ the tag matches the version pinned in [`VERSION`](VERSION).
 
 ## [Unreleased]
 
+## [0.5.2] — Unreleased
+
+Implements AHP 0.5.2.
+
 ### Added
 
+- Optional `enabled` field on the child customization types
+  (`AgentCustomization`, `SkillCustomization`, `PromptCustomization`,
+  `RuleCustomization`, `HookCustomization`).
+- `disableUserInvocation` on `SkillCustomization`, plus `disableModelInvocation`
+  and `disableUserInvocation` on `AgentCustomization`.
+
+### Changed
+
+- The `session/customizationToggled` reducer now toggles any top-level
+  customization (`plugin`, `directory`, or top-level `mcpServer`) or an
+  individual child by `id`, setting that entry's `enabled`.
+
+## [0.5.1] — 2026-07-02
+
+Implements AHP 0.5.1.
+
+### Added
+
+- Optional `nonce` field on `ContentRef`.
 - `SubscribeParams.delivery.maxLatencyMs` and
   `AHPClient.subscribe(_:delivery:)` for clients to request a maximum
   subscription delivery latency, including `0` for no intentional coalescing.
 - Optional `capabilities` field on `AgentInfo` (`AgentCapabilities` with a
   nested `multipleChats` capability carrying `fork`) so clients gate multi-chat
   and fork via advertised capabilities instead of provider-id switches.
+- Cursor-based pagination for `listSessions`, via new shared `PaginatedParams`
+  (`limit` + `cursor`) and `PaginatedResult` (`nextCursor`) types:
+  `ListSessionsParams` and `ListSessionsResult` now carry these fields, letting
+  clients page through a large session catalogue. Fully additive — omitting the
+  fields preserves prior behaviour.
+- `SubscribeParams.view.turns`, `ChatState.turnsNextCursor`, and the
+  `chat/turnsLoaded` action so clients can subscribe to a bounded tail of chat
+  history and page older turns into the reduced chat state on demand.
 - `SessionState.inputNeeded` — a session-level aggregate of outstanding input
   requests across all chats (`SessionInputRequest` enum with
   `SessionChatInputRequest`, `SessionToolConfirmationRequest`, and
@@ -35,18 +66,22 @@ the tag matches the version pinned in [`VERSION`](VERSION).
   clearing it (falling back to `.inProgress`) when the last entry is removed.
 - Optional `intention` field on `ChatToolCallStartAction` and every tool-call
   lifecycle state.
-- Optional `enabled` field on the child customization types
-  (`AgentCustomization`, `SkillCustomization`, `PromptCustomization`,
-  `RuleCustomization`, `HookCustomization`).
-- `disableUserInvocation` on `SkillCustomization`, plus `disableModelInvocation`
-  and `disableUserInvocation` on `AgentCustomization`.
 - Optional `model` and `tools` fields on `AgentCustomization` for a custom
   agent's pinned model and tool allowlist.
 
 ### Changed
 
-- The `session/customizationToggled` reducer now toggles a top-level container
-  **or** an individual child by `id`, setting that entry's `enabled`.
+- `fetchTurns` now accepts `cursor` from `ChatState.turnsNextCursor` and returns
+  an empty result after the host has loaded older turns into chat state, instead
+  of returning a detached `{ turns, hasMore }` page.
+- Generated clients now advertise only protocol `0.5.1`, since the `fetchTurns`
+  contract is not wire-compatible with `0.5.0`.
+
+### Removed
+
+- `filter` field from `ListSessionsParams`. It was an untyped placeholder with
+  no defined semantics; it will return with a concrete shape once session
+  filtering/sorting is specified.
 
 ### Fixed
 
