@@ -41,6 +41,9 @@ public struct HostHandle: Sendable {
     public let activeSessions: Int?
     /// Lightweight terminal listing from root state, when present.
     public let terminals: [TerminalInfo]?
+    /// Host-level configuration (schema + current values) from root state,
+    /// when the host exposes it. Mutated via `root/configChanged`.
+    public let config: RootConfigState?
     /// URIs the supervisor will (re-)subscribe to across reconnects.
     public let subscriptions: [String]
     /// Trigger characters from `InitializeResult.completionTriggerCharacters`.
@@ -67,6 +70,7 @@ public struct HostHandle: Sendable {
         agents: [AgentInfo],
         activeSessions: Int?,
         terminals: [TerminalInfo]?,
+        config: RootConfigState? = nil,
         subscriptions: [String],
         completionTriggerCharacters: [String],
         sessionSummaries: [SessionSummary],
@@ -84,6 +88,7 @@ public struct HostHandle: Sendable {
         self.agents = agents
         self.activeSessions = activeSessions
         self.terminals = terminals
+        self.config = config
         self.subscriptions = subscriptions
         self.completionTriggerCharacters = completionTriggerCharacters
         self.sessionSummaries = sessionSummaries

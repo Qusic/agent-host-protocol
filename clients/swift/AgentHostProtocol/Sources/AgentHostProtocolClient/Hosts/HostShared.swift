@@ -47,6 +47,7 @@ internal struct HostInternal {
             agents: rootState.agents,
             activeSessions: rootState.activeSessions,
             terminals: rootState.terminals,
+            config: rootState.config,
             subscriptions: subscriptions,
             completionTriggerCharacters: completionTriggerCharacters,
             sessionSummaries: summaries,
