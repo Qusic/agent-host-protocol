@@ -31,6 +31,12 @@ public struct HostConfig: Sendable {
     public var transportFactory: HostTransportFactory
     /// Reconnect behaviour after an unexpected drop.
     public var reconnectPolicy: ReconnectPolicy
+    /// Classifies a connect/handshake error the supervisor should NOT retry
+    /// (an unsupported protocol version, a required sign-in, …). Return a
+    /// user-facing reason to stop reconnecting and enter `.failed(reason:)`
+    /// — recoverable only through `reconnect()`; return `nil` to reconnect as
+    /// usual. Defaults to `nil`: every error is retried.
+    public var nonRetryableReason: (@Sendable (any Error) -> String?)?
     /// Whether the supervisor should seed `sessionSummaries` with `listSessions`
     /// after each successful connect. Defaults to `true` for multi-host views.
     public var refreshSessionSummariesOnConnect: Bool
@@ -52,6 +58,7 @@ public struct HostConfig: Sendable {
         self.clientConfig = .default
         self.transportFactory = transportFactory
         self.reconnectPolicy = .exponential
+        self.nonRetryableReason = nil
         self.refreshSessionSummariesOnConnect = true
         self.fanOutReconnectReplayActions = true
     }
@@ -82,6 +89,15 @@ public struct HostConfig: Sendable {
     public func withReconnectPolicy(_ policy: ReconnectPolicy) -> Self {
         var copy = self
         copy.reconnectPolicy = policy
+        return copy
+    }
+
+    /// Classify certain errors as non-retryable (see `nonRetryableReason`).
+    public func withNonRetryableReason(
+        _ classify: @escaping @Sendable (any Error) -> String?
+    ) -> Self {
+        var copy = self
+        copy.nonRetryableReason = classify
         return copy
     }
 

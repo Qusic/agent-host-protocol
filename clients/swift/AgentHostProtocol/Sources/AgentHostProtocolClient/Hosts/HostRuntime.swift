@@ -221,6 +221,23 @@ internal final class HostRuntime: Sendable {
                     )
                 }
             } catch {
+                // A non-retryable failure (unsupported protocol version, a
+                // required sign-in, …) would just spin the backoff, so surface
+                // it as terminal `.failed` and wait for a manual `reconnect()`.
+                if let reason = config.nonRetryableReason?(error) {
+                    await shared.update { $0.lastError = reason }
+                    await transition(to: .failed(reason: reason), error: reason)
+                    let outcome = await waitForManualReconnectOrShutdown(iter: &iter)
+                    switch outcome {
+                    case .shutdown: return
+                    case .manualReconnect(let reply):
+                        reply.resume()
+                        attempt = 0
+                        await transition(to: .connecting, error: nil)
+                        continue outer
+                    case .disconnected: return
+                    }
+                }
                 let reason = String(describing: error)
                 await shared.update { $0.lastError = reason }
                 // Failed connect attempt. `attempt` was just bumped at the
