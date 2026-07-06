@@ -54,12 +54,17 @@ public actor MultiHostStateMirror {
     public init() {}
 
     /// Convenience: apply a `HostSubscriptionEvent` produced by
-    /// `MultiHostClient.events()`. Action envelopes are routed through
-    /// the reducer; non-action events are dropped (they don't affect
-    /// reducer state).
+    /// `MultiHostClient.events()`. Action envelopes are routed through the
+    /// reducer; reconnect snapshots replace the channel's state; the remaining
+    /// events don't affect reducer state and are dropped.
     public func apply(event: HostSubscriptionEvent) {
-        if case .action(let envelope) = event.event {
+        switch event.event {
+        case .action(let envelope):
             apply(host: event.hostId, envelope: envelope)
+        case .snapshot(let snapshot):
+            applySnapshot(host: event.hostId, snapshot: snapshot)
+        case .sessionAdded, .sessionRemoved, .sessionSummaryChanged, .authRequired:
+            break
         }
     }
 

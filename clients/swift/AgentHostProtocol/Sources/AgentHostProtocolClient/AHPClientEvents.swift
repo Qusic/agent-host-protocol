@@ -6,11 +6,14 @@ import AgentHostProtocol
 /// One event delivered by a per-channel subscription.
 ///
 /// `action` envelopes carry the write-ahead mutation stream for a stateful
-/// channel; the remaining cases carry protocol-level signals the server
-/// broadcasts. Every case carries a `channel: String` on its associated
-/// params, which is how the client routes them to subscriptions.
+/// channel; `snapshot` carries a full replacement state for the channel,
+/// fanned out when a reconnect gap exceeds the server's replay buffer; the
+/// remaining cases carry protocol-level signals the server broadcasts. The
+/// client routes each event to its channel via the URI the runtime tags it
+/// with (`channel` on action envelopes, `resource` on snapshots).
 public enum SubscriptionEvent: Sendable {
     case action(ActionEnvelope)
+    case snapshot(Snapshot)
     case sessionAdded(SessionAddedParams)
     case sessionRemoved(SessionRemovedParams)
     case sessionSummaryChanged(SessionSummaryChangedParams)

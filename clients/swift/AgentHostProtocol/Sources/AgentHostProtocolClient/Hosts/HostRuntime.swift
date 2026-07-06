@@ -461,6 +461,18 @@ internal final class HostRuntime: Sendable {
                     priorSubscriptions.contains(uri) && !surviving.contains(uri)
                 }
             }
+            // The root snapshot is mirrored into `HostHandle` above and reaches
+            // consumers through the host-state stream. Non-root snapshots have
+            // no such mirror: fan them out so the per-resource listeners --
+            // which survive the reconnect and never re-subscribe -- can replace
+            // their now-stale state.
+            for snapshot in snapshotResult.snapshots where snapshot.resource != RootResourceURI {
+                await fanOut(HostSubscriptionEvent(
+                    hostId: config.id,
+                    resource: snapshot.resource,
+                    event: .snapshot(snapshot)
+                ))
+            }
         }
     }
 
@@ -624,6 +636,10 @@ internal final class HostRuntime: Sendable {
                 }
             }
         case .authRequired:
+            break
+        case .snapshot:
+            // Snapshots arrive only via `applyReconnectResult`, never on the
+            // live event path; nothing to mirror here.
             break
         }
         let hostEvent = HostSubscriptionEvent(
