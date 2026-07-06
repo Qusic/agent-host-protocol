@@ -3111,6 +3111,20 @@ data class AgentCustomization(
      * Absent when the customization covers the whole resource.
      */
     val range: TextRange? = null,
+    /**
+     * Whether this child is individually enabled. Absent means enabled, so a
+     * producer only needs to set it to surface a child that exists but is
+     * turned off on its own.
+     *
+     * This flag is independent of the parent container's: the **effective**
+     * enabled state of a child is
+     * `container.enabled && (child.enabled ?? true)`, so a disabled container
+     * disables every child regardless of each child's own flag.
+     *
+     * A child is turned on or off by id with
+     * {@link SessionCustomizationToggledAction | `session/customizationToggled`}.
+     */
+    val enabled: Boolean? = null,
     val type: CustomizationType,
     /**
      * Short description of what the agent specializes in and when to
@@ -3133,6 +3147,18 @@ data class AgentCustomization(
      * meaning distinct from absence.
      */
     val tools: List<String>? = null,
+    /**
+     * When `true`, the agent will not auto-delegate to this custom agent
+     * as a sub-agent; it can only be selected by the user. Absent or
+     * `false` means the agent may delegate to it.
+     */
+    val disableModelInvocation: Boolean? = null,
+    /**
+     * When `true`, the user cannot select this custom agent (for example,
+     * in a picker); it remains available for the agent to auto-delegate
+     * to. Absent or `false` means the user may select it.
+     */
+    val disableUserInvocation: Boolean? = null,
     /**
      * Additional provider-specific metadata for this custom agent.
      *
@@ -3175,6 +3201,20 @@ data class SkillCustomization(
      * Absent when the customization covers the whole resource.
      */
     val range: TextRange? = null,
+    /**
+     * Whether this child is individually enabled. Absent means enabled, so a
+     * producer only needs to set it to surface a child that exists but is
+     * turned off on its own.
+     *
+     * This flag is independent of the parent container's: the **effective**
+     * enabled state of a child is
+     * `container.enabled && (child.enabled ?? true)`, so a disabled container
+     * disables every child regardless of each child's own flag.
+     *
+     * A child is turned on or off by id with
+     * {@link SessionCustomizationToggledAction | `session/customizationToggled`}.
+     */
+    val enabled: Boolean? = null,
     val type: CustomizationType,
     /**
      * Short description used for help text and auto-invocation matching.
@@ -3186,7 +3226,13 @@ data class SkillCustomization(
      * auto-invoke it. Sourced from the command skill's frontmatter
      * `disable-model-invocation` flag.
      */
-    val disableModelInvocation: Boolean? = null
+    val disableModelInvocation: Boolean? = null,
+    /**
+     * When `true`, the user cannot directly invoke this skill (for example,
+     * as a slash command); it remains available for the agent to
+     * auto-invoke. Absent or `false` means the user may invoke it.
+     */
+    val disableUserInvocation: Boolean? = null
 )
 
 @Serializable
@@ -3222,6 +3268,20 @@ data class PromptCustomization(
      * Absent when the customization covers the whole resource.
      */
     val range: TextRange? = null,
+    /**
+     * Whether this child is individually enabled. Absent means enabled, so a
+     * producer only needs to set it to surface a child that exists but is
+     * turned off on its own.
+     *
+     * This flag is independent of the parent container's: the **effective**
+     * enabled state of a child is
+     * `container.enabled && (child.enabled ?? true)`, so a disabled container
+     * disables every child regardless of each child's own flag.
+     *
+     * A child is turned on or off by id with
+     * {@link SessionCustomizationToggledAction | `session/customizationToggled`}.
+     */
+    val enabled: Boolean? = null,
     val type: CustomizationType,
     /**
      * Short description of what the prompt does.
@@ -3262,6 +3322,20 @@ data class RuleCustomization(
      * Absent when the customization covers the whole resource.
      */
     val range: TextRange? = null,
+    /**
+     * Whether this child is individually enabled. Absent means enabled, so a
+     * producer only needs to set it to surface a child that exists but is
+     * turned off on its own.
+     *
+     * This flag is independent of the parent container's: the **effective**
+     * enabled state of a child is
+     * `container.enabled && (child.enabled ?? true)`, so a disabled container
+     * disables every child regardless of each child's own flag.
+     *
+     * A child is turned on or off by id with
+     * {@link SessionCustomizationToggledAction | `session/customizationToggled`}.
+     */
+    val enabled: Boolean? = null,
     val type: CustomizationType,
     /**
      * Description of what the rule enforces.
@@ -3313,6 +3387,20 @@ data class HookCustomization(
      * Absent when the customization covers the whole resource.
      */
     val range: TextRange? = null,
+    /**
+     * Whether this child is individually enabled. Absent means enabled, so a
+     * producer only needs to set it to surface a child that exists but is
+     * turned off on its own.
+     *
+     * This flag is independent of the parent container's: the **effective**
+     * enabled state of a child is
+     * `container.enabled && (child.enabled ?? true)`, so a disabled container
+     * disables every child regardless of each child's own flag.
+     *
+     * A child is turned on or off by id with
+     * {@link SessionCustomizationToggledAction | `session/customizationToggled`}.
+     */
+    val enabled: Boolean? = null,
     val type: CustomizationType
 )
 
