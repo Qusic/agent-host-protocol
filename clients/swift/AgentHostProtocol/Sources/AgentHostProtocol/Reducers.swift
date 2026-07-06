@@ -996,7 +996,10 @@ private func endTurn(
         guard case .toolCall(let tcPart) = part else { return part }
         let tc = tcPart.toolCall
         switch tc {
-        case .completed, .cancelled:
+        case .completed, .cancelled, .unknown:
+            // `.unknown` is a tool-call status this client doesn't model; it has
+            // no `baseFields`, so leave it untouched rather than force-completing
+            // it (calling `baseFields` on it traps).
             return part
         default:
             let base = tc.baseFields
