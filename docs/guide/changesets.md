@@ -50,7 +50,7 @@ unknown variables.
 | Variables in template                     | Meaning                                                                      |
 | ----------------------------------------- | ---------------------------------------------------------------------------- |
 | _(none)_                                  | A static, session-wide changeset. The template is itself a subscribable URI. |
-| `{turnId}`                                | Per-turn slice. Expand with a `Turn.id` from the session.                    |
+| `{turnId}`                                | Per-turn slice. Expand with a `Turn.id` from one of the session's chats.     |
 | `{originalTurnId}` and `{modifiedTurnId}` | Diff between two turns. Both must be present.                                |
 
 ### Changeset State

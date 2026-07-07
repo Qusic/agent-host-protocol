@@ -110,8 +110,8 @@ The server MUST include all replayed data in the response before returning. If t
   "result": {
     "type": "replay",
     "actions": [
-      { "channel": "ahp-session:/<uuid>", "action": { "type": "session/delta", ... }, "serverSeq": 43 },
-      { "channel": "ahp-session:/<uuid>", "action": { "type": "session/delta", ... }, "serverSeq": 44 }
+      { "channel": "ahp-chat:/<cid>", "action": { "type": "chat/delta", ... }, "serverSeq": 43 },
+      { "channel": "ahp-chat:/<cid>", "action": { "type": "chat/delta", ... }, "serverSeq": 44 }
     ],
     "missing": ["ahp-session:/<disposed-uuid>"]
   }
