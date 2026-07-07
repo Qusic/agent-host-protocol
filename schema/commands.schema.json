@@ -155,6 +155,10 @@
           },
           "description": "Characters that, when typed in a {@link Message} input, SHOULD cause\nthe client to issue a `completions` request with\n{@link CompletionItemKind.UserMessage}. Typically includes characters like\n`'@'` or `'/'`."
         },
+        "terminalCommandPrefix": {
+          "type": "string",
+          "description": "Prefix that the host recognizes at the start of a user {@link Message.text}\nas a shorthand for executing the remainder as a terminal command. Currently\nthe standardized convention is `\"!\"`; absence means the host does not\nadvertise support and clients SHOULD treat `!`-prefixed input as an\nordinary user message."
+        },
         "telemetry": {
           "$ref": "#/$defs/TelemetryCapabilities",
           "description": "OTLP telemetry channels the host emits, if any. Each populated field is\neither a literal `ahp-otlp:` channel URI or an RFC 6570 URI template a\nclient expands before subscribing (currently only the `logs` channel\ndefines a template variable, `{level}`, for subscriber-side severity\nfiltering). Clients MAY ignore signals they cannot process."

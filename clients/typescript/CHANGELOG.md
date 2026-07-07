@@ -20,6 +20,11 @@ hotfix escape hatch.
 
 ## [Unreleased]
 
+### Added
+
+- Optional `terminalCommandPrefix` on `InitializeResult` for hosts that support
+  interpreting `!`-prefixed user messages as terminal commands.
+
 ## [0.5.2] — Unreleased
 
 Implements AHP 0.5.2.

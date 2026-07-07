@@ -27,6 +27,8 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 
 - `ToolResultTerminalCompleteContent` for terminal-style completion metadata in tool
   results.
+- Optional `terminalCommandPrefix` marker on `InitializeResult` for hosts that
+  support interpreting `!`-prefixed user messages as terminal commands.
 - Optional `reviewed` field on `ChangesetFile`. Omitting it (or setting it to
   `undefined`) signals that the server does not support the file "review"
   functionality.

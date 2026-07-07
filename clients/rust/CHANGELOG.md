@@ -15,6 +15,11 @@ matching `## [X.Y.Z]` heading is missing from this file.
 
 ## [Unreleased]
 
+### Added
+
+- Optional `terminal_command_prefix` on `InitializeResult` for hosts that
+  support interpreting `!`-prefixed user messages as terminal commands.
+
 ## [0.5.2] — Unreleased
 
 Implements AHP 0.5.2.

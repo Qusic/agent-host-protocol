@@ -15,6 +15,11 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 
 ## [Unreleased]
 
+### Added
+
+- Optional `terminalCommandPrefix` on `InitializeResult` for hosts that support
+  interpreting `!`-prefixed user messages as terminal commands.
+
 ## [0.5.2] — Unreleased
 
 Implements AHP 0.5.2.
