@@ -23,6 +23,14 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 `NOTIFICATION_INTRODUCED_IN` maps in
 [`types/version/registry.ts`](types/version/registry.ts).
 
+### Added
+
+- Optional `reviewed` field on `ChangesetFile`. Omitting it (or setting it to
+  `undefined`) signals that the server does not support the file "review"
+  functionality.
+- `changeset/filesReviewedChanged` action for servers to update the `reviewed`
+  flag of one or more changeset files.
+
 ## [0.5.2] — Unreleased
 
 Spec version: `0.5.2`
@@ -48,6 +56,15 @@ Spec version: `0.5.2`
   (`plugin`, `directory`, or top-level `mcpServer`) or an individual child by
   `id` and sets that entry's `enabled`; the effective state of a child is
   `container.enabled && (child.enabled ?? true)`.
+
+### Fixed
+
+- The generated JSON Schema artifacts (`schema/*.json`) are now self-contained
+  and strict-`oneOf`-safe. The generator no longer emits an empty `{}` branch in
+  a union type alias's `oneOf` (which matched any value and defeated strict
+  `oneOf` validation), backfills the `enum`, enum-member, and type-alias `$ref`s
+  that were previously dangling across all five schema files, and renders `null`
+  members as `{ "type": "null" }` (#302).
 
 ## [0.5.1] — 2026-07-02
 
