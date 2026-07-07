@@ -57,6 +57,15 @@ Spec version: `0.5.2`
   `id` and sets that entry's `enabled`; the effective state of a child is
   `container.enabled && (child.enabled ?? true)`.
 
+### Fixed
+
+- The generated JSON Schema artifacts (`schema/*.json`) are now self-contained
+  and strict-`oneOf`-safe. The generator no longer emits an empty `{}` branch in
+  a union type alias's `oneOf` (which matched any value and defeated strict
+  `oneOf` validation), backfills the `enum`, enum-member, and type-alias `$ref`s
+  that were previously dangling across all five schema files, and renders `null`
+  members as `{ "type": "null" }` (#302).
+
 ## [0.5.1] — 2026-07-02
 
 Spec version: `0.5.1`
