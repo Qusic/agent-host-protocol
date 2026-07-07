@@ -5174,6 +5174,40 @@
         "title"
       ]
     },
+    "ToolResultShellExitContent": {
+      "type": "object",
+      "description": "Shell command exit metadata emitted by a shell tool.",
+      "properties": {
+        "type": {
+          "const": "shell_exit"
+        },
+        "shellId": {
+          "type": "string",
+          "description": "Shell id, as assigned by the runtime"
+        },
+        "exitCode": {
+          "type": "number",
+          "description": "Exit code from the completed shell command"
+        },
+        "cwd": {
+          "type": "string",
+          "description": "Working directory where the shell command was executed"
+        },
+        "outputPreview": {
+          "type": "string",
+          "description": "Output preview associated with the shell command, if available"
+        },
+        "outputTruncated": {
+          "type": "boolean",
+          "description": "Whether `outputPreview` is known to be incomplete or truncated"
+        }
+      },
+      "required": [
+        "type",
+        "shellId",
+        "exitCode"
+      ]
+    },
     "ToolResultSubagentContent": {
       "type": "object",
       "description": "A reference, embedded in a tool result, to a worker chat spawned by the tool\ncall (a sub-agent delegation), referenced by a chat URI (`ahp-chat:/...`).\n\nThis is the spawning tool call's forward view of the worker. The worker chat\nrecords the same edge in reverse via its {@link ChatOrigin} (`kind: 'tool'`),\nwhose `toolCallId` identifies the tool call that emitted this content.",
@@ -7352,7 +7386,7 @@
       "description": "Update the {@link ChangesetFile.reviewed} flag for one or more files,\nidentified by their {@link ChangesetFile.id}.\n\nDispatched by the server as the user marks files reviewed or unreviewed\n(e.g. toggling a single file, or a \"mark all as reviewed\" affordance).\nOnly servers that support the \"review\" functionality dispatch this; a\nserver that leaves {@link ChangesetFile.reviewed} `undefined` never does.\n\nThe reducer sets `reviewed` on every matching file and ignores any\n`fileIds` entry that does not correspond to a current file.",
       "properties": {
         "type": {
-          "$ref": "#/$defs/ActionType.ChangesetFilesReviewedChanged"
+          "const": "changeset/filesReviewedChanged"
         },
         "fileIds": {
           "type": "array",
@@ -7767,6 +7801,9 @@
         },
         {
           "$ref": "#/$defs/ChangesetFileRemovedAction"
+        },
+        {
+          "$ref": "#/$defs/ChangesetFilesReviewedChangedAction"
         },
         {
           "$ref": "#/$defs/ChangesetContentChangedAction"
@@ -8347,10 +8384,13 @@
           "$ref": "#/$defs/ToolResultTerminalContent"
         },
         {
+          "$ref": "#/$defs/ToolResultShellExitContent"
+        },
+        {
           "$ref": "#/$defs/ToolResultSubagentContent"
         }
       ],
-      "description": "Content block in a tool result.\n\nMirrors the content blocks in MCP `CallToolResult.content`, plus\n`ToolResultResourceContent` for lazy-loading large results,\n`ToolResultFileEditContent` for file edit diffs,\n`ToolResultTerminalContent` for live terminal output, and\n`ToolResultSubagentContent` for tool-spawned worker chats (AHP extensions)."
+      "description": "Content block in a tool result.\n\nMirrors the content blocks in MCP `CallToolResult.content`, plus\n`ToolResultResourceContent` for lazy-loading large results,\n`ToolResultFileEditContent` for file edit diffs,\n`ToolResultTerminalContent` for live terminal output,\n`ToolResultShellExitContent` for shell command exit metadata, and\n`ToolResultSubagentContent` for tool-spawned worker chats (AHP extensions)."
     },
     "ToolCallConfirmationReason": {
       "enum": [

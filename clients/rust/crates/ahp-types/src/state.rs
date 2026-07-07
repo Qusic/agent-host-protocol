@@ -381,6 +381,8 @@ pub enum ToolResultContentType {
     FileEdit,
     #[serde(rename = "terminal")]
     Terminal,
+    #[serde(rename = "shell_exit")]
+    ShellExit,
     #[serde(rename = "subagent")]
     Subagent,
 }
@@ -2493,6 +2495,25 @@ pub struct ToolResultTerminalContent {
     pub title: String,
 }
 
+/// Shell command exit metadata emitted by a shell tool.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolResultShellExitContent {
+    /// Shell id, as assigned by the runtime
+    pub shell_id: String,
+    /// Exit code from the completed shell command
+    pub exit_code: i64,
+    /// Working directory where the shell command was executed
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<String>,
+    /// Output preview associated with the shell command, if available
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_preview: Option<String>,
+    /// Whether `outputPreview` is known to be incomplete or truncated
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_truncated: Option<bool>,
+}
+
 /// A reference, embedded in a tool result, to a worker chat spawned by the tool
 /// call (a sub-agent delegation), referenced by a chat URI (`ahp-chat:/...`).
 ///
@@ -3894,6 +3915,8 @@ pub enum ToolResultContent {
     FileEdit(ToolResultFileEditContent),
     #[serde(rename = "terminal")]
     Terminal(ToolResultTerminalContent),
+    #[serde(rename = "shell_exit")]
+    ShellExit(ToolResultShellExitContent),
     #[serde(rename = "subagent")]
     Subagent(ToolResultSubagentContent),
     /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.

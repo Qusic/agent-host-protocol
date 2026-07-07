@@ -269,6 +269,7 @@ const (
 	ToolResultContentTypeResource         ToolResultContentType = "resource"
 	ToolResultContentTypeFileEdit         ToolResultContentType = "fileEdit"
 	ToolResultContentTypeTerminal         ToolResultContentType = "terminal"
+	ToolResultContentTypeShellExit        ToolResultContentType = "shell_exit"
 	ToolResultContentTypeSubagent         ToolResultContentType = "subagent"
 )
 
@@ -1996,6 +1997,21 @@ type ToolResultTerminalContent struct {
 	Title string `json:"title"`
 }
 
+// Shell command exit metadata emitted by a shell tool.
+type ToolResultShellExitContent struct {
+	Type ToolResultContentType `json:"type"`
+	// Shell id, as assigned by the runtime
+	ShellId string `json:"shellId"`
+	// Exit code from the completed shell command
+	ExitCode int64 `json:"exitCode"`
+	// Working directory where the shell command was executed
+	Cwd *string `json:"cwd,omitempty"`
+	// Output preview associated with the shell command, if available
+	OutputPreview *string `json:"outputPreview,omitempty"`
+	// Whether `outputPreview` is known to be incomplete or truncated
+	OutputTruncated *bool `json:"outputTruncated,omitempty"`
+}
+
 // A reference, embedded in a tool result, to a worker chat spawned by the tool
 // call (a sub-agent delegation), referenced by a chat URI (`ahp-chat:/...`).
 //
@@ -3657,6 +3673,7 @@ func (*ToolResultEmbeddedResourceContent) isToolResultContent() {}
 func (*ToolResultResourceContent) isToolResultContent()         {}
 func (*ToolResultFileEditContent) isToolResultContent()         {}
 func (*ToolResultTerminalContent) isToolResultContent()         {}
+func (*ToolResultShellExitContent) isToolResultContent()        {}
 func (*ToolResultSubagentContent) isToolResultContent()         {}
 
 // ToolResultContentUnknown carries an unrecognized ToolResultContent variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
@@ -3699,6 +3716,12 @@ func (u *ToolResultContent) UnmarshalJSON(data []byte) error {
 		u.Value = &value
 	case "terminal":
 		var value ToolResultTerminalContent
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	case "shell_exit":
+		var value ToolResultShellExitContent
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err
 		}

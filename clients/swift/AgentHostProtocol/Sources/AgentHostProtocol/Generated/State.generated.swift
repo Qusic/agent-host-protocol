@@ -249,6 +249,7 @@ public enum ToolResultContentType: String, Codable, Sendable {
     case resource = "resource"
     case fileEdit = "fileEdit"
     case terminal = "terminal"
+    case shellExit = "shell_exit"
     case subagent = "subagent"
 }
 
@@ -3021,6 +3022,36 @@ public struct ToolResultTerminalContent: Codable, Sendable {
     }
 }
 
+public struct ToolResultShellExitContent: Codable, Sendable {
+    public var type: ToolResultContentType
+    /// Shell id, as assigned by the runtime
+    public var shellId: String
+    /// Exit code from the completed shell command
+    public var exitCode: Int
+    /// Working directory where the shell command was executed
+    public var cwd: String?
+    /// Output preview associated with the shell command, if available
+    public var outputPreview: String?
+    /// Whether `outputPreview` is known to be incomplete or truncated
+    public var outputTruncated: Bool?
+
+    public init(
+        type: ToolResultContentType,
+        shellId: String,
+        exitCode: Int,
+        cwd: String? = nil,
+        outputPreview: String? = nil,
+        outputTruncated: Bool? = nil
+    ) {
+        self.type = type
+        self.shellId = shellId
+        self.exitCode = exitCode
+        self.cwd = cwd
+        self.outputPreview = outputPreview
+        self.outputTruncated = outputTruncated
+    }
+}
+
 public struct ToolResultSubagentContent: Codable, Sendable {
     public var type: ToolResultContentType
     /// Worker chat URI (subscribable for full chat state)
@@ -5189,6 +5220,7 @@ public enum ToolResultContent: Codable, Sendable {
     case resource(ToolResultResourceContent)
     case fileEdit(ToolResultFileEditContent)
     case terminal(ToolResultTerminalContent)
+    case shellExit(ToolResultShellExitContent)
     case subagent(ToolResultSubagentContent)
     /// Unknown or future tool result content type; the raw payload is preserved
     /// and re-encoded verbatim for forward-compatibility.
@@ -5212,6 +5244,8 @@ public enum ToolResultContent: Codable, Sendable {
                 self = .fileEdit(try ToolResultFileEditContent(from: decoder))
             case "terminal":
                 self = .terminal(try ToolResultTerminalContent(from: decoder))
+            case "shell_exit":
+                self = .shellExit(try ToolResultShellExitContent(from: decoder))
             case "subagent":
                 self = .subagent(try ToolResultSubagentContent(from: decoder))
             default:
@@ -5232,6 +5266,7 @@ public enum ToolResultContent: Codable, Sendable {
         case .resource(let v): try v.encode(to: encoder)
         case .fileEdit(let v): try v.encode(to: encoder)
         case .terminal(let v): try v.encode(to: encoder)
+        case .shellExit(let v): try v.encode(to: encoder)
         case .subagent(let v): try v.encode(to: encoder)
         case .unknown(let v): try v.encode(to: encoder)
         }
