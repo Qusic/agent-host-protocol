@@ -313,7 +313,6 @@ If the client receives a tool call for a tool it does not recognize (e.g. after 
 ```typescript
 dispatch({
   type: 'chat/toolCallConfirmed',
-  session: sessionUri,
   turnId,
   toolCallId,
   approved: false,

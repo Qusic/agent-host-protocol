@@ -33,9 +33,6 @@ Changeset {
    * `'turn'`, or `'compare-turns'`. Other values allowed.
    */
   changeKind: string
-  additions?: number
-  deletions?: number
-  files?: number
 }
 ```
 
@@ -108,7 +105,8 @@ ChangesetOperation {
   /**
    * Execution status of the operation. The server sets `'running'` while
    * an invocation is in flight, `'error'` (with `error`) when the most
-   * recent invocation failed, and `'idle'` otherwise.
+   * recent invocation failed, `'disabled'` when the operation cannot
+   * currently be invoked, and `'idle'` otherwise.
    */
   status: 'idle' | 'running' | 'error' | 'disabled'
   /** Present iff `status === 'error'`. */
