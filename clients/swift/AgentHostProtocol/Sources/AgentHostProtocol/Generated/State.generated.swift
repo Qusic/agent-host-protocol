@@ -249,7 +249,7 @@ public enum ToolResultContentType: String, Codable, Sendable {
     case resource = "resource"
     case fileEdit = "fileEdit"
     case terminal = "terminal"
-    case shellExit = "shell_exit"
+    case shellExit = "shellExit"
     case subagent = "subagent"
 }
 
@@ -3024,10 +3024,8 @@ public struct ToolResultTerminalContent: Codable, Sendable {
 
 public struct ToolResultShellExitContent: Codable, Sendable {
     public var type: ToolResultContentType
-    /// Shell id, as assigned by the runtime
-    public var shellId: String
-    /// Exit code from the completed shell command
-    public var exitCode: Int
+    /// Exit code from the completed shell command, if reported by the runtime
+    public var exitCode: Int?
     /// Working directory where the shell command was executed
     public var cwd: String?
     /// Output preview associated with the shell command, if available
@@ -3037,14 +3035,12 @@ public struct ToolResultShellExitContent: Codable, Sendable {
 
     public init(
         type: ToolResultContentType,
-        shellId: String,
-        exitCode: Int,
+        exitCode: Int? = nil,
         cwd: String? = nil,
         outputPreview: String? = nil,
         outputTruncated: Bool? = nil
     ) {
         self.type = type
-        self.shellId = shellId
         self.exitCode = exitCode
         self.cwd = cwd
         self.outputPreview = outputPreview
@@ -5244,7 +5240,7 @@ public enum ToolResultContent: Codable, Sendable {
                 self = .fileEdit(try ToolResultFileEditContent(from: decoder))
             case "terminal":
                 self = .terminal(try ToolResultTerminalContent(from: decoder))
-            case "shell_exit":
+            case "shellExit":
                 self = .shellExit(try ToolResultShellExitContent(from: decoder))
             case "subagent":
                 self = .subagent(try ToolResultSubagentContent(from: decoder))

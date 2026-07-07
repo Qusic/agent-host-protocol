@@ -381,7 +381,7 @@ pub enum ToolResultContentType {
     FileEdit,
     #[serde(rename = "terminal")]
     Terminal,
-    #[serde(rename = "shell_exit")]
+    #[serde(rename = "shellExit")]
     ShellExit,
     #[serde(rename = "subagent")]
     Subagent,
@@ -2496,16 +2496,15 @@ pub struct ToolResultTerminalContent {
 }
 
 /// Shell command exit metadata emitted by a shell tool.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolResultShellExitContent {
-    /// Shell id, as assigned by the runtime
-    pub shell_id: String,
-    /// Exit code from the completed shell command
-    pub exit_code: i64,
+    /// Exit code from the completed shell command, if reported by the runtime
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exit_code: Option<i64>,
     /// Working directory where the shell command was executed
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub cwd: Option<String>,
+    pub cwd: Option<Uri>,
     /// Output preview associated with the shell command, if available
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output_preview: Option<String>,
@@ -3915,7 +3914,7 @@ pub enum ToolResultContent {
     FileEdit(ToolResultFileEditContent),
     #[serde(rename = "terminal")]
     Terminal(ToolResultTerminalContent),
-    #[serde(rename = "shell_exit")]
+    #[serde(rename = "shellExit")]
     ShellExit(ToolResultShellExitContent),
     #[serde(rename = "subagent")]
     Subagent(ToolResultSubagentContent),

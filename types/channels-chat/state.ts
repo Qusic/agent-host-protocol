@@ -1173,7 +1173,7 @@ export const enum ToolResultContentType {
   Resource = 'resource',
   FileEdit = 'fileEdit',
   Terminal = 'terminal',
-  ShellExit = 'shell_exit',
+  ShellExit = 'shellExit',
   Subagent = 'subagent',
 }
 
@@ -1248,12 +1248,10 @@ export interface ToolResultTerminalContent {
  */
 export interface ToolResultShellExitContent {
   type: ToolResultContentType.ShellExit;
-  /** Shell id, as assigned by the runtime */
-  shellId: string;
-  /** Exit code from the completed shell command */
-  exitCode: number;
+  /** Exit code from the completed shell command, if reported by the runtime */
+  exitCode?: number;
   /** Working directory where the shell command was executed */
-  cwd?: string;
+  cwd?: URI;
   /** Output preview associated with the shell command, if available */
   outputPreview?: string;
   /** Whether `outputPreview` is known to be incomplete or truncated */

@@ -478,7 +478,7 @@ enum class ToolResultContentType {
     FILE_EDIT,
     @SerialName("terminal")
     TERMINAL,
-    @SerialName("shell_exit")
+    @SerialName("shellExit")
     SHELL_EXIT,
     @SerialName("subagent")
     SUBAGENT
@@ -2849,13 +2849,9 @@ data class ToolResultTerminalContent(
 data class ToolResultShellExitContent(
     val type: ToolResultContentType,
     /**
-     * Shell id, as assigned by the runtime
+     * Exit code from the completed shell command, if reported by the runtime
      */
-    val shellId: String,
-    /**
-     * Exit code from the completed shell command
-     */
-    val exitCode: Long,
+    val exitCode: Long? = null,
     /**
      * Working directory where the shell command was executed
      */
@@ -5079,7 +5075,7 @@ internal object ToolResultContentSerializer : KSerializer<ToolResultContent> {
             "resource" -> ToolResultContent.Resource(input.json.decodeFromJsonElement(ToolResultResourceContent.serializer(), element))
             "fileEdit" -> ToolResultContent.FileEdit(input.json.decodeFromJsonElement(ToolResultFileEditContent.serializer(), element))
             "terminal" -> ToolResultContent.Terminal(input.json.decodeFromJsonElement(ToolResultTerminalContent.serializer(), element))
-            "shell_exit" -> ToolResultContent.ShellExit(input.json.decodeFromJsonElement(ToolResultShellExitContent.serializer(), element))
+            "shellExit" -> ToolResultContent.ShellExit(input.json.decodeFromJsonElement(ToolResultShellExitContent.serializer(), element))
             "subagent" -> ToolResultContent.Subagent(input.json.decodeFromJsonElement(ToolResultSubagentContent.serializer(), element))
             else -> ToolResultContent.Unknown(obj)
         }

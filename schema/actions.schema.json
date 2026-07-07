@@ -5861,18 +5861,14 @@
       "description": "Shell command exit metadata emitted by a shell tool.",
       "properties": {
         "type": {
-          "const": "shell_exit"
-        },
-        "shellId": {
-          "type": "string",
-          "description": "Shell id, as assigned by the runtime"
+          "const": "shellExit"
         },
         "exitCode": {
           "type": "number",
-          "description": "Exit code from the completed shell command"
+          "description": "Exit code from the completed shell command, if reported by the runtime"
         },
         "cwd": {
-          "type": "string",
+          "$ref": "#/$defs/URI",
           "description": "Working directory where the shell command was executed"
         },
         "outputPreview": {
@@ -5885,9 +5881,7 @@
         }
       },
       "required": [
-        "type",
-        "shellId",
-        "exitCode"
+        "type"
       ]
     },
     "ToolResultSubagentContent": {

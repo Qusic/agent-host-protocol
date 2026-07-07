@@ -269,7 +269,7 @@ const (
 	ToolResultContentTypeResource         ToolResultContentType = "resource"
 	ToolResultContentTypeFileEdit         ToolResultContentType = "fileEdit"
 	ToolResultContentTypeTerminal         ToolResultContentType = "terminal"
-	ToolResultContentTypeShellExit        ToolResultContentType = "shell_exit"
+	ToolResultContentTypeShellExit        ToolResultContentType = "shellExit"
 	ToolResultContentTypeSubagent         ToolResultContentType = "subagent"
 )
 
@@ -2000,12 +2000,10 @@ type ToolResultTerminalContent struct {
 // Shell command exit metadata emitted by a shell tool.
 type ToolResultShellExitContent struct {
 	Type ToolResultContentType `json:"type"`
-	// Shell id, as assigned by the runtime
-	ShellId string `json:"shellId"`
-	// Exit code from the completed shell command
-	ExitCode int64 `json:"exitCode"`
+	// Exit code from the completed shell command, if reported by the runtime
+	ExitCode *int64 `json:"exitCode,omitempty"`
 	// Working directory where the shell command was executed
-	Cwd *string `json:"cwd,omitempty"`
+	Cwd *URI `json:"cwd,omitempty"`
 	// Output preview associated with the shell command, if available
 	OutputPreview *string `json:"outputPreview,omitempty"`
 	// Whether `outputPreview` is known to be incomplete or truncated
@@ -3720,7 +3718,7 @@ func (u *ToolResultContent) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.Value = &value
-	case "shell_exit":
+	case "shellExit":
 		var value ToolResultShellExitContent
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err

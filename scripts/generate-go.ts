@@ -884,7 +884,7 @@ const TOOL_RESULT_CONTENT_UNION: UnionConfig = {
     { variantName: 'Resource', innerType: 'ToolResultResourceContent', wireValue: 'resource' },
     { variantName: 'FileEdit', innerType: 'ToolResultFileEditContent', wireValue: 'fileEdit' },
     { variantName: 'Terminal', innerType: 'ToolResultTerminalContent', wireValue: 'terminal' },
-    { variantName: 'ShellExit', innerType: 'ToolResultShellExitContent', wireValue: 'shell_exit' },
+    { variantName: 'ShellExit', innerType: 'ToolResultShellExitContent', wireValue: 'shellExit' },
     { variantName: 'Subagent', innerType: 'ToolResultSubagentContent', wireValue: 'subagent' },
   ],
   unknown: true,
