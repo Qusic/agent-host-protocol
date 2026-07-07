@@ -1646,7 +1646,7 @@
       "description": "Update the {@link ChangesetFile.reviewed} flag for one or more files,\nidentified by their {@link ChangesetFile.id}.\n\nDispatched by the server as the user marks files reviewed or unreviewed\n(e.g. toggling a single file, or a \"mark all as reviewed\" affordance).\nOnly servers that support the \"review\" functionality dispatch this; a\nserver that leaves {@link ChangesetFile.reviewed} `undefined` never does.\n\nThe reducer sets `reviewed` on every matching file and ignores any\n`fileIds` entry that does not correspond to a current file.",
       "properties": {
         "type": {
-          "$ref": "#/$defs/ActionType.ChangesetFilesReviewedChanged"
+          "const": "changeset/filesReviewedChanged"
         },
         "fileIds": {
           "type": "array",
