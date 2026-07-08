@@ -19,6 +19,7 @@ matching `## [X.Y.Z]` heading is missing from this file.
 
 - Optional `terminal_command_prefix` on `InitializeResult` for hosts that
   support interpreting `!`-prefixed user messages as terminal commands.
+- Typed `resource*` convenience methods on `ahp::Client`: send wrappers (`resource_read`, `resource_write`, `resource_list`, `resource_copy`, `resource_delete`, `resource_move`, `resource_resolve`, `resource_mkdir`, `resource_request`, `create_resource_watch`) and inbound server-request handling via `set_server_request_handler` / `set_resource_request_handlers` (new `ServerRequestHandler`, `ServerRequestFuture`, and `ResourceRequestHandlers` types). Inbound server-initiated requests are now answered (previously dropped) — via the installed handler, or `MethodNotFound` when none is set.
 
 ## [0.5.2] — Unreleased
 
@@ -39,6 +40,11 @@ Implements AHP 0.5.2.
   functionality.
 - `changeset/filesReviewedChanged` action for servers to update the `reviewed`
   flag of one or more changeset files.
+- Optional `meta` (wire `_meta`) provider-metadata field on every customization
+  type, moved from `AgentCustomization` up to the shared customization base so
+  `PluginCustomization`, `ClientPluginCustomization`, `DirectoryCustomization`,
+  `SkillCustomization`, `PromptCustomization`, `RuleCustomization`,
+  `HookCustomization`, and `McpServerCustomization` all carry it.
 - Optional `server_info` on `InitializeResult` and `client_info` on
   `InitializeParams`, each an `Implementation` struct (`name`, optional
   `version`, optional `title`), identifying the implementation and build behind

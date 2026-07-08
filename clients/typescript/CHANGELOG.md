@@ -24,6 +24,7 @@ hotfix escape hatch.
 
 - Optional `terminalCommandPrefix` on `InitializeResult` for hosts that support
   interpreting `!`-prefixed user messages as terminal commands.
+- Typed `resource*` convenience methods on `AhpClient`: send wrappers (`resourceRead`, `resourceWrite`, `resourceList`, `resourceCopy`, `resourceDelete`, `resourceMove`, `resourceResolve`, `resourceMkdir`, `resourceRequest`, `createResourceWatch`) and typed inbound handling via `setResourceRequestHandlers` (new `ResourceRequestHandlers` type and `createResourceRequestHandler` helper).
 
 ## [0.5.2] — Unreleased
 
@@ -43,6 +44,11 @@ Implements AHP 0.5.2.
   functionality.
 - `changeset/filesReviewedChanged` action for servers to update the `reviewed`
   flag of one or more changeset files.
+- Optional `_meta` provider-metadata field on every customization type, moved
+  from `AgentCustomization` up to the shared customization base so
+  `PluginCustomization`, `ClientPluginCustomization`, `DirectoryCustomization`,
+  `SkillCustomization`, `PromptCustomization`, `RuleCustomization`,
+  `HookCustomization`, and `McpServerCustomization` all carry it.
 - Optional `serverInfo` on `InitializeResult` and `clientInfo` on
   `InitializeParams`, each an `Implementation` (`name`, optional `version`,
   optional `title`), identifying the implementation and build behind either side

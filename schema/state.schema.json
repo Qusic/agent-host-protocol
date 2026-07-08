@@ -1298,6 +1298,11 @@
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
+        },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this customization.\n\nMirrors the MCP `_meta` convention. Optional and opaque to the\nprotocol; producers and consumers agree on its contents\nout-of-band."
         }
       },
       "required": [
@@ -1391,6 +1396,11 @@
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
         },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this customization.\n\nMirrors the MCP `_meta` convention. Optional and opaque to the\nprotocol; producers and consumers agree on its contents\nout-of-band."
+        },
         "enabled": {
           "type": "boolean",
           "description": "Whether this container is currently enabled."
@@ -1444,6 +1454,11 @@
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
+        },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this customization.\n\nMirrors the MCP `_meta` convention. Optional and opaque to the\nprotocol; producers and consumers agree on its contents\nout-of-band."
         },
         "enabled": {
           "type": "boolean",
@@ -1506,6 +1521,11 @@
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
+        },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this customization.\n\nMirrors the MCP `_meta` convention. Optional and opaque to the\nprotocol; producers and consumers agree on its contents\nout-of-band."
         },
         "enabled": {
           "type": "boolean",
@@ -1572,6 +1592,11 @@
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
+        },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this customization.\n\nMirrors the MCP `_meta` convention. Optional and opaque to the\nprotocol; producers and consumers agree on its contents\nout-of-band."
         },
         "enabled": {
           "type": "boolean",
@@ -1641,6 +1666,11 @@
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
         },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this customization.\n\nMirrors the MCP `_meta` convention. Optional and opaque to the\nprotocol; producers and consumers agree on its contents\nout-of-band."
+        },
         "enabled": {
           "type": "boolean",
           "description": "Whether this child is individually enabled. Absent means enabled, so a\nproducer only needs to set it to surface a child that exists but is\nturned off on its own.\n\nThis flag is independent of the parent container's: the **effective**\nenabled state of a child is\n`container.enabled && (child.enabled ?? true)`, so a disabled container\ndisables every child regardless of each child's own flag.\n\nA child is turned on or off by id with\n{@link SessionCustomizationToggledAction | `session/customizationToggled`}."
@@ -1679,6 +1709,11 @@
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
         },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this customization.\n\nMirrors the MCP `_meta` convention. Optional and opaque to the\nprotocol; producers and consumers agree on its contents\nout-of-band."
+        },
         "enabled": {
           "type": "boolean",
           "description": "Whether this child is individually enabled. Absent means enabled, so a\nproducer only needs to set it to surface a child that exists but is\nturned off on its own.\n\nThis flag is independent of the parent container's: the **effective**\nenabled state of a child is\n`container.enabled && (child.enabled ?? true)`, so a disabled container\ndisables every child regardless of each child's own flag.\n\nA child is turned on or off by id with\n{@link SessionCustomizationToggledAction | `session/customizationToggled`}."
@@ -1708,11 +1743,6 @@
         "disableUserInvocation": {
           "type": "boolean",
           "description": "When `true`, the user cannot select this custom agent (for example,\nin a picker); it remains available for the agent to auto-delegate\nto. Absent or `false` means the user may select it."
-        },
-        "_meta": {
-          "type": "object",
-          "additionalProperties": {},
-          "description": "Additional provider-specific metadata for this custom agent.\n\nMirrors the MCP `_meta` convention."
         }
       },
       "required": [
@@ -1748,6 +1778,11 @@
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
+        },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this customization.\n\nMirrors the MCP `_meta` convention. Optional and opaque to the\nprotocol; producers and consumers agree on its contents\nout-of-band."
         },
         "enabled": {
           "type": "boolean",
@@ -1803,6 +1838,11 @@
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
         },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this customization.\n\nMirrors the MCP `_meta` convention. Optional and opaque to the\nprotocol; producers and consumers agree on its contents\nout-of-band."
+        },
         "enabled": {
           "type": "boolean",
           "description": "Whether this child is individually enabled. Absent means enabled, so a\nproducer only needs to set it to surface a child that exists but is\nturned off on its own.\n\nThis flag is independent of the parent container's: the **effective**\nenabled state of a child is\n`container.enabled && (child.enabled ?? true)`, so a disabled container\ndisables every child regardless of each child's own flag.\n\nA child is turned on or off by id with\n{@link SessionCustomizationToggledAction | `session/customizationToggled`}."
@@ -1848,6 +1888,11 @@
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
+        },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this customization.\n\nMirrors the MCP `_meta` convention. Optional and opaque to the\nprotocol; producers and consumers agree on its contents\nout-of-band."
         },
         "enabled": {
           "type": "boolean",
@@ -1906,6 +1951,11 @@
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
         },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this customization.\n\nMirrors the MCP `_meta` convention. Optional and opaque to the\nprotocol; producers and consumers agree on its contents\nout-of-band."
+        },
         "enabled": {
           "type": "boolean",
           "description": "Whether this child is individually enabled. Absent means enabled, so a\nproducer only needs to set it to surface a child that exists but is\nturned off on its own.\n\nThis flag is independent of the parent container's: the **effective**\nenabled state of a child is\n`container.enabled && (child.enabled ?? true)`, so a disabled container\ndisables every child regardless of each child's own flag.\n\nA child is turned on or off by id with\n{@link SessionCustomizationToggledAction | `session/customizationToggled`}."
@@ -1947,6 +1997,11 @@
         "range": {
           "$ref": "#/$defs/TextRange",
           "description": "Optional span within {@link CustomizationBase.uri | `uri`} when this\ncustomization is a subset of a larger file (for example, one entry\nin an inline `mcpServers` block of a `plugins.json` manifest).\nAbsent when the customization covers the whole resource."
+        },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this customization.\n\nMirrors the MCP `_meta` convention. Optional and opaque to the\nprotocol; producers and consumers agree on its contents\nout-of-band."
         },
         "type": {
           "const": "mcpServer"

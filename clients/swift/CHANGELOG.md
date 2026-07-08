@@ -21,6 +21,7 @@ the tag matches the version pinned in [`VERSION`](VERSION).
 
 - Optional `terminalCommandPrefix` on `InitializeResult` for hosts that support
   interpreting `!`-prefixed user messages as terminal commands.
+- Typed `resource*` convenience methods on `AHPClient`: send wrappers (`resourceRead`, `resourceWrite`, `resourceList`, `resourceCopy`, `resourceDelete`, `resourceMove`, `resourceResolve`, `resourceMkdir`, `resourceRequest`, `createResourceWatch`) and inbound server-request handling via `setServerRequestHandler(_:)` / `setResourceRequestHandlers(_:)` (new `ServerRequestHandler` typealias and `ResourceRequestHandlers` type). Inbound server-initiated requests are answered by the installed handler (still `MethodNotFound` when none is set).
 
 ## [0.5.2] — Unreleased
 
@@ -40,6 +41,11 @@ Implements AHP 0.5.2.
   functionality.
 - `changeset/filesReviewedChanged` action for servers to update the `reviewed`
   flag of one or more changeset files.
+- Optional `meta` (wire `_meta`) provider-metadata field on every customization
+  type, moved from `AgentCustomization` up to the shared customization base so
+  `PluginCustomization`, `ClientPluginCustomization`, `DirectoryCustomization`,
+  `SkillCustomization`, `PromptCustomization`, `RuleCustomization`,
+  `HookCustomization`, and `McpServerCustomization` all carry it.
 - Optional `serverInfo` on `InitializeResult` and `clientInfo` on
   `InitializeParams`, each an `Implementation` (`name`, optional `version`,
   optional `title`), identifying the implementation and build behind either side
