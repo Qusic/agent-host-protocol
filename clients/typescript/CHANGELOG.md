@@ -20,6 +20,10 @@ hotfix escape hatch.
 
 ## [Unreleased]
 
+### Added
+
+- Typed `resource*` convenience methods on `AhpClient`: send wrappers (`resourceRead`, `resourceWrite`, `resourceList`, `resourceCopy`, `resourceDelete`, `resourceMove`, `resourceResolve`, `resourceMkdir`, `resourceRequest`, `createResourceWatch`) and typed inbound handling via `setResourceRequestHandlers` (new `ResourceRequestHandlers` type and `createResourceRequestHandler` helper).
+
 ## [0.5.2] — Unreleased
 
 Implements AHP 0.5.2.

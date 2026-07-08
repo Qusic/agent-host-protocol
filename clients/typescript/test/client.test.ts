@@ -415,6 +415,105 @@ test('server-initiated request with a handler returns the handler result', async
   await client.shutdown();
 });
 
+test('resourceRead convenience wrapper sends a typed request and resolves the result', async () => {
+  const [c, s] = InMemoryTransport.pair();
+  const client = new AhpClient(c);
+  client.connect();
+
+  const readPromise = client.resourceRead({ uri: 'file:///workspace/hello.txt' });
+
+  const req = await readRequest(s);
+  assert.equal(req.method, 'resourceRead');
+  // The wrapper fills in the root channel for the caller.
+  assert.equal((req.params as { channel?: string }).channel, ROOT);
+  assert.equal((req.params as { uri: string }).uri, 'file:///workspace/hello.txt');
+
+  reply(s, req.id, { data: 'SGVsbG8=', encoding: 'base64', contentType: 'text/plain' });
+
+  const got = await readPromise;
+  assert.equal(got.data, 'SGVsbG8=');
+  assert.equal(got.encoding, 'base64');
+
+  await client.shutdown();
+});
+
+test('createResourceWatch wrapper returns the watch channel URI', async () => {
+  const [c, s] = InMemoryTransport.pair();
+  const client = new AhpClient(c);
+  client.connect();
+
+  const watchPromise = client.createResourceWatch({
+    uri: 'file:///workspace',
+    recursive: true,
+  });
+
+  const req = await readRequest(s);
+  assert.equal(req.method, 'createResourceWatch');
+  assert.equal((req.params as { channel?: string }).channel, ROOT);
+  assert.equal((req.params as { recursive?: boolean }).recursive, true);
+
+  reply(s, req.id, { channel: 'ahp-resource-watch:/abc' });
+
+  const got = await watchPromise;
+  assert.equal(got.channel, 'ahp-resource-watch:/abc');
+
+  await client.shutdown();
+});
+
+test('setResourceRequestHandlers routes an inbound request to the typed handler', async () => {
+  const [c, s] = InMemoryTransport.pair();
+  const client = new AhpClient(c);
+  client.setResourceRequestHandlers({
+    resourceRead: async params => {
+      assert.equal(params.uri, 'virtual://client/thing');
+      return { data: 'aGk=', encoding: 'base64' as never };
+    },
+  });
+  client.connect();
+
+  s.send(JSON.stringify({
+    jsonrpc: '2.0',
+    id: 9101,
+    method: 'resourceRead',
+    params: { channel: ROOT, uri: 'virtual://client/thing' },
+  }));
+
+  const frame = await s.recv();
+  assert.ok(frame);
+  if (frame.kind !== 'text') throw new Error('expected text frame');
+  const response = JSON.parse(frame.text);
+  assert.equal(response.id, 9101);
+  assert.deepEqual(response.result, { data: 'aGk=', encoding: 'base64' });
+
+  await client.shutdown();
+});
+
+test('setResourceRequestHandlers answers unregistered methods with MethodNotFound', async () => {
+  const [c, s] = InMemoryTransport.pair();
+  const client = new AhpClient(c);
+  // Only resourceRead is registered; resourceWrite should fall through.
+  client.setResourceRequestHandlers({
+    resourceRead: async () => ({ data: '', encoding: 'utf-8' as never }),
+  });
+  client.connect();
+
+  s.send(JSON.stringify({
+    jsonrpc: '2.0',
+    id: 9102,
+    method: 'resourceWrite',
+    params: { channel: ROOT, uri: 'file:///x', data: '', encoding: 'utf-8' },
+  }));
+
+  const frame = await s.recv();
+  assert.ok(frame);
+  if (frame.kind !== 'text') throw new Error('expected text frame');
+  const response = JSON.parse(frame.text);
+  assert.equal(response.id, 9102);
+  assert.equal(response.error.code, JsonRpcErrorCodes.MethodNotFound);
+
+  await client.shutdown();
+});
+
 test('post-shutdown operations throw ClientClosedError', async () => {
   const [c] = InMemoryTransport.pair();
   const client = new AhpClient(c, { requestTimeoutMs: 0 });

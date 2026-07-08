@@ -17,6 +17,10 @@ the tag matches the version pinned in [`VERSION`](VERSION).
 
 ## [Unreleased]
 
+### Added
+
+- Typed `resource*` convenience methods on `AHPClient`: send wrappers (`resourceRead`, `resourceWrite`, `resourceList`, `resourceCopy`, `resourceDelete`, `resourceMove`, `resourceResolve`, `resourceMkdir`, `resourceRequest`, `createResourceWatch`) and inbound server-request handling via `setServerRequestHandler(_:)` / `setResourceRequestHandlers(_:)` (new `ServerRequestHandler` typealias and `ResourceRequestHandlers` type). Inbound server-initiated requests are answered by the installed handler (still `MethodNotFound` when none is set).
+
 ## [0.5.2] — Unreleased
 
 Implements AHP 0.5.2.
