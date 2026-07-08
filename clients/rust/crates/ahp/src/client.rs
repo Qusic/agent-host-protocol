@@ -22,12 +22,12 @@
 //! transport closes, or the last [`Client`] handle is dropped.
 
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
 };
-use std::future::Future;
-use std::pin::Pin;
 use std::time::Duration;
 
 use ahp_types::actions::{ActionEnvelope, StateAction};
@@ -38,7 +38,8 @@ use ahp_types::commands::{
     ResourceMkdirParams, ResourceMkdirResult, ResourceMoveParams, ResourceMoveResult,
     ResourceReadParams, ResourceReadResult, ResourceRequestParams, ResourceRequestResult,
     ResourceResolveParams, ResourceResolveResult, ResourceWriteParams, ResourceWriteResult,
-    SubscribeParams, SubscribeResult, SubscribeView, SubscriptionDeliveryOptions, UnsubscribeParams,
+    SubscribeParams, SubscribeResult, SubscribeView, SubscriptionDeliveryOptions,
+    UnsubscribeParams,
 };
 use ahp_types::common::{Uri, ROOT_RESOURCE_URI};
 use ahp_types::errors::json_rpc_error_codes;
@@ -215,8 +216,7 @@ enum Outbound {
 // ─── Server-initiated request handling ───────────────────────────────────────
 
 /// Future returned by a [`ServerRequestHandler`].
-pub type ServerRequestFuture =
-    Pin<Box<dyn Future<Output = Result<Value, JsonRpcError>> + Send>>;
+pub type ServerRequestFuture = Pin<Box<dyn Future<Output = Result<Value, JsonRpcError>> + Send>>;
 
 /// Handler for inbound server-initiated requests.
 ///
@@ -228,8 +228,7 @@ pub type ServerRequestFuture =
 ///
 /// The closure receives the JSON-RPC method name and raw params, and resolves
 /// to the result value to return, or a [`JsonRpcError`] for an error response.
-pub type ServerRequestHandler =
-    Arc<dyn Fn(String, Value) -> ServerRequestFuture + Send + Sync>;
+pub type ServerRequestHandler = Arc<dyn Fn(String, Value) -> ServerRequestFuture + Send + Sync>;
 
 /// A single typed inbound `resource*` handler: decoded params in, typed result
 /// (or [`JsonRpcError`]) out.
@@ -663,7 +662,8 @@ impl Client {
         F: Fn(String, Value) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = Result<Value, JsonRpcError>> + Send + 'static,
     {
-        let handler: ServerRequestHandler = Arc::new(move |method, params| Box::pin(handler(method, params)));
+        let handler: ServerRequestHandler =
+            Arc::new(move |method, params| Box::pin(handler(method, params)));
         if let Ok(mut guard) = self.shared.server_request_handler.lock() {
             *guard = Some(handler);
         }
