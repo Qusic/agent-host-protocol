@@ -20,6 +20,8 @@ Implements AHP 0.5.2.
 
 ### Added
 
+- `ToolResultTerminalCompleteContent` for terminal-style completion metadata in tool
+  results.
 - Optional `Enabled` field on the child customization types
   (`AgentCustomization`, `SkillCustomization`, `PromptCustomization`,
   `RuleCustomization`, `HookCustomization`).

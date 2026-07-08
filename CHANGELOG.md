@@ -25,6 +25,8 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 
 ### Added
 
+- `ToolResultTerminalCompleteContent` for terminal-style completion metadata in tool
+  results.
 - Optional `reviewed` field on `ChangesetFile`. Omitting it (or setting it to
   `undefined`) signals that the server does not support the file "review"
   functionality.

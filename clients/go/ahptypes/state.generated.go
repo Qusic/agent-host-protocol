@@ -269,6 +269,7 @@ const (
 	ToolResultContentTypeResource         ToolResultContentType = "resource"
 	ToolResultContentTypeFileEdit         ToolResultContentType = "fileEdit"
 	ToolResultContentTypeTerminal         ToolResultContentType = "terminal"
+	ToolResultContentTypeTerminalComplete ToolResultContentType = "terminalComplete"
 	ToolResultContentTypeSubagent         ToolResultContentType = "subagent"
 )
 
@@ -1996,6 +1997,31 @@ type ToolResultTerminalContent struct {
 	Title string `json:"title"`
 }
 
+// Record of a command executed by a terminal-style tool (e.g. a shell tool),
+// appended to the tool result when the command exits.
+//
+// This records the command's exit, not the terminal's — the terminal may
+// keep running afterwards.
+//
+// When live output was exposed through a terminal channel (a
+// {@link ToolResultTerminalContent} block in the same tool result),
+// {@link resource} identifies that channel; otherwise this block stands alone
+// as the retained command result.
+type ToolResultTerminalCompleteContent struct {
+	Type ToolResultContentType `json:"type"`
+	// URI of the `ahp-terminal:` channel that carried live output for this
+	// command, if one was exposed.
+	Resource *URI `json:"resource,omitempty"`
+	// Exit code from the completed command, if reported by the runtime
+	ExitCode *int64 `json:"exitCode,omitempty"`
+	// Working directory where the command was executed
+	Cwd *URI `json:"cwd,omitempty"`
+	// Preview of the command's output, if available
+	Preview *string `json:"preview,omitempty"`
+	// Whether `preview` is known to be incomplete or truncated
+	Truncated *bool `json:"truncated,omitempty"`
+}
+
 // A reference, embedded in a tool result, to a worker chat spawned by the tool
 // call (a sub-agent delegation), referenced by a chat URI (`ahp-chat:/...`).
 //
@@ -3657,6 +3683,7 @@ func (*ToolResultEmbeddedResourceContent) isToolResultContent() {}
 func (*ToolResultResourceContent) isToolResultContent()         {}
 func (*ToolResultFileEditContent) isToolResultContent()         {}
 func (*ToolResultTerminalContent) isToolResultContent()         {}
+func (*ToolResultTerminalCompleteContent) isToolResultContent() {}
 func (*ToolResultSubagentContent) isToolResultContent()         {}
 
 // ToolResultContentUnknown carries an unrecognized ToolResultContent variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
@@ -3699,6 +3726,12 @@ func (u *ToolResultContent) UnmarshalJSON(data []byte) error {
 		u.Value = &value
 	case "terminal":
 		var value ToolResultTerminalContent
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	case "terminalComplete":
+		var value ToolResultTerminalCompleteContent
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err
 		}

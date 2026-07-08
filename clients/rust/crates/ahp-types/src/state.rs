@@ -381,6 +381,8 @@ pub enum ToolResultContentType {
     FileEdit,
     #[serde(rename = "terminal")]
     Terminal,
+    #[serde(rename = "terminalComplete")]
+    TerminalComplete,
     #[serde(rename = "subagent")]
     Subagent,
 }
@@ -2493,6 +2495,37 @@ pub struct ToolResultTerminalContent {
     pub title: String,
 }
 
+/// Record of a command executed by a terminal-style tool (e.g. a shell tool),
+/// appended to the tool result when the command exits.
+///
+/// This records the command's exit, not the terminal's — the terminal may
+/// keep running afterwards.
+///
+/// When live output was exposed through a terminal channel (a
+/// {@link ToolResultTerminalContent} block in the same tool result),
+/// {@link resource} identifies that channel; otherwise this block stands alone
+/// as the retained command result.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolResultTerminalCompleteContent {
+    /// URI of the `ahp-terminal:` channel that carried live output for this
+    /// command, if one was exposed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resource: Option<Uri>,
+    /// Exit code from the completed command, if reported by the runtime
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exit_code: Option<i64>,
+    /// Working directory where the command was executed
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<Uri>,
+    /// Preview of the command's output, if available
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preview: Option<String>,
+    /// Whether `preview` is known to be incomplete or truncated
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub truncated: Option<bool>,
+}
+
 /// A reference, embedded in a tool result, to a worker chat spawned by the tool
 /// call (a sub-agent delegation), referenced by a chat URI (`ahp-chat:/...`).
 ///
@@ -3894,6 +3927,8 @@ pub enum ToolResultContent {
     FileEdit(ToolResultFileEditContent),
     #[serde(rename = "terminal")]
     Terminal(ToolResultTerminalContent),
+    #[serde(rename = "terminalComplete")]
+    TerminalComplete(ToolResultTerminalCompleteContent),
     #[serde(rename = "subagent")]
     Subagent(ToolResultSubagentContent),
     /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.
