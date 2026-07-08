@@ -285,6 +285,8 @@ CompletionItem {
 
 Servers advertise the characters that should auto-trigger this request via `InitializeResult.completionTriggerCharacters` (e.g. `['@', '#']`). Clients MAY also issue `completions` calls in response to explicit user actions (such as a keyboard shortcut). When the user accepts an item, the client replaces `[rangeStart, rangeEnd)` in the input with `insertText` and associates the item's `attachment` with the resulting `Message`.
 
+Hosts that support the common terminal-command shorthand advertise `InitializeResult.terminalCommandPrefix` as `"!"`. Clients can use that marker to explain that messages beginning with `!` will be interpreted by the host as terminal commands; when the marker is absent, clients should treat `!`-prefixed text as an ordinary user message.
+
 ## Response Parts
 
 All response content — text, tool calls, reasoning, and content references — lives in a single `responseParts` array in stream order. This mirrors how LLM APIs (e.g. OpenAI) represent responses as a unified list of typed items.
