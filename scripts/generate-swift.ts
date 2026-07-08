@@ -578,7 +578,8 @@ const STATE_STRUCTS = [
   'ToolCallCancelledState', 'ConfirmationOption', 'ToolDefinition', 'ToolAnnotations',
   'ToolResultTextContent', 'ToolResultEmbeddedResourceContent',
   'ToolResultResourceContent', 'ToolResultFileEditContent',
-  'ToolResultTerminalContent', 'ToolResultSubagentContent',
+  'ToolResultTerminalContent', 'ToolResultTerminalCompleteContent',
+  'ToolResultSubagentContent',
   'CustomizationLoadingState', 'CustomizationLoadedState',
   'CustomizationDegradedState', 'CustomizationErrorState',
   'PluginCustomization', 'ClientPluginCustomization', 'DirectoryCustomization',
@@ -802,6 +803,7 @@ function generateToolResultContentUnion(): string {
     case resource(ToolResultResourceContent)
     case fileEdit(ToolResultFileEditContent)
     case terminal(ToolResultTerminalContent)
+    case terminalComplete(ToolResultTerminalCompleteContent)
     case subagent(ToolResultSubagentContent)
     /// Unknown or future tool result content type; the raw payload is preserved
     /// and re-encoded verbatim for forward-compatibility.
@@ -825,6 +827,8 @@ function generateToolResultContentUnion(): string {
                 self = .fileEdit(try ToolResultFileEditContent(from: decoder))
             case "terminal":
                 self = .terminal(try ToolResultTerminalContent(from: decoder))
+            case "terminalComplete":
+                self = .terminalComplete(try ToolResultTerminalCompleteContent(from: decoder))
             case "subagent":
                 self = .subagent(try ToolResultSubagentContent(from: decoder))
             default:
@@ -845,6 +849,7 @@ function generateToolResultContentUnion(): string {
         case .resource(let v): try v.encode(to: encoder)
         case .fileEdit(let v): try v.encode(to: encoder)
         case .terminal(let v): try v.encode(to: encoder)
+        case .terminalComplete(let v): try v.encode(to: encoder)
         case .subagent(let v): try v.encode(to: encoder)
         case .unknown(let v): try v.encode(to: encoder)
         }
@@ -1115,6 +1120,8 @@ const ACTION_VARIANTS: { type: string; caseName: string; tsInterface: string }[]
   { type: 'session/customizationUpdated', caseName: 'sessionCustomizationUpdated', tsInterface: 'SessionCustomizationUpdatedAction' },
   { type: 'session/customizationRemoved', caseName: 'sessionCustomizationRemoved', tsInterface: 'SessionCustomizationRemovedAction' },
   { type: 'session/mcpServerStateChanged', caseName: 'sessionMcpServerStateChanged', tsInterface: 'SessionMcpServerStateChangedAction' },
+  { type: 'session/mcpServerStartRequested', caseName: 'sessionMcpServerStartRequested', tsInterface: 'SessionMcpServerStartRequestedAction' },
+  { type: 'session/mcpServerStopRequested', caseName: 'sessionMcpServerStopRequested', tsInterface: 'SessionMcpServerStopRequestedAction' },
   { type: 'chat/truncated', caseName: 'chatTruncated', tsInterface: 'ChatTruncatedAction' },
   { type: 'chat/turnsLoaded', caseName: 'chatTurnsLoaded', tsInterface: 'ChatTurnsLoadedAction' },
   { type: 'session/configChanged', caseName: 'sessionConfigChanged', tsInterface: 'SessionConfigChangedAction' },
