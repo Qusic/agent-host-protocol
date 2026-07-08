@@ -2975,7 +2975,16 @@ data class PluginCustomization(
      * nothing.
      */
     val children: List<ChildCustomization>? = null,
-    val type: CustomizationType
+    val type: CustomizationType,
+    /**
+     * Version of the plugin, sourced from the
+     * [Open Plugins](https://open-plugins.com/) manifest's optional
+     * `version` field (semver, e.g. `"1.2.0"`). Absent when the manifest
+     * declares no version — the field is optional there — or the source
+     * has no version concept. Provenance / display only: the host neither
+     * parses nor enforces it.
+     */
+    val version: String? = null
 )
 
 @Serializable
@@ -3034,6 +3043,15 @@ data class ClientPluginCustomization(
      */
     val children: List<ChildCustomization>? = null,
     val type: CustomizationType,
+    /**
+     * Version of the plugin, sourced from the
+     * [Open Plugins](https://open-plugins.com/) manifest's optional
+     * `version` field (semver, e.g. `"1.2.0"`). Absent when the manifest
+     * declares no version — the field is optional there — or the source
+     * has no version concept. Provenance / display only: the host neither
+     * parses nor enforces it.
+     */
+    val version: String? = null,
     /**
      * Opaque version token used by the host to detect changes.
      */

@@ -32,6 +32,10 @@ changes accumulate. Track in-flight protocol changes via PRs touching
   functionality.
 - `changeset/filesReviewedChanged` action for servers to update the `reviewed`
   flag of one or more changeset files.
+- Optional `version` field on `PluginCustomization` (inherited by
+  `ClientPluginCustomization`), carrying the plugin's semver sourced from the
+  Open Plugins manifest's optional `version`. Provenance / display only; absent
+  when the manifest declares no version or the source has no version concept.
 
 ## [0.5.2] — Unreleased
 

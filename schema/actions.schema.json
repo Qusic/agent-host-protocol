@@ -3442,6 +3442,10 @@
         },
         "type": {
           "const": "plugin"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the plugin, sourced from the\n[Open Plugins](https://open-plugins.com/) manifest's optional\n`version` field (semver, e.g. `\"1.2.0\"`). Absent when the manifest\ndeclares no version — the field is optional there — or the source\nhas no version concept. Provenance / display only: the host neither\nparses nor enforces it."
         }
       },
       "required": [
@@ -3500,6 +3504,10 @@
         },
         "type": {
           "const": "plugin"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the plugin, sourced from the\n[Open Plugins](https://open-plugins.com/) manifest's optional\n`version` field (semver, e.g. `\"1.2.0\"`). Absent when the manifest\ndeclares no version — the field is optional there — or the source\nhas no version concept. Provenance / display only: the host neither\nparses nor enforces it."
         },
         "nonce": {
           "type": "string",

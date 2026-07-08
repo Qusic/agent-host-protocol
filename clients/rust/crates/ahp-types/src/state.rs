@@ -2617,6 +2617,14 @@ pub struct PluginCustomization {
     /// nothing.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub children: Option<Vec<ChildCustomization>>,
+    /// Version of the plugin, sourced from the
+    /// [Open Plugins](https://open-plugins.com/) manifest's optional
+    /// `version` field (semver, e.g. `"1.2.0"`). Absent when the manifest
+    /// declares no version — the field is optional there — or the source
+    /// has no version concept. Provenance / display only: the host neither
+    /// parses nor enforces it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
 }
 
 /// A {@link PluginCustomization} as published by a client. Extends the
@@ -2671,6 +2679,14 @@ pub struct ClientPluginCustomization {
     /// nothing.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub children: Option<Vec<ChildCustomization>>,
+    /// Version of the plugin, sourced from the
+    /// [Open Plugins](https://open-plugins.com/) manifest's optional
+    /// `version` field (semver, e.g. `"1.2.0"`). Absent when the manifest
+    /// declares no version — the field is optional there — or the source
+    /// has no version concept. Provenance / display only: the host neither
+    /// parses nor enforces it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
     /// Opaque version token used by the host to detect changes.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub nonce: Option<String>,

@@ -3164,6 +3164,13 @@ public struct PluginCustomization: Codable, Sendable {
     /// nothing.
     public var children: [ChildCustomization]?
     public var type: CustomizationType
+    /// Version of the plugin, sourced from the
+    /// [Open Plugins](https://open-plugins.com/) manifest's optional
+    /// `version` field (semver, e.g. `"1.2.0"`). Absent when the manifest
+    /// declares no version — the field is optional there — or the source
+    /// has no version concept. Provenance / display only: the host neither
+    /// parses nor enforces it.
+    public var version: String?
 
     public init(
         id: String,
@@ -3175,7 +3182,8 @@ public struct PluginCustomization: Codable, Sendable {
         clientId: String? = nil,
         load: CustomizationLoadState? = nil,
         children: [ChildCustomization]? = nil,
-        type: CustomizationType
+        type: CustomizationType,
+        version: String? = nil
     ) {
         self.id = id
         self.uri = uri
@@ -3187,6 +3195,7 @@ public struct PluginCustomization: Codable, Sendable {
         self.load = load
         self.children = children
         self.type = type
+        self.version = version
     }
 }
 
@@ -3227,6 +3236,13 @@ public struct ClientPluginCustomization: Codable, Sendable {
     /// nothing.
     public var children: [ChildCustomization]?
     public var type: CustomizationType
+    /// Version of the plugin, sourced from the
+    /// [Open Plugins](https://open-plugins.com/) manifest's optional
+    /// `version` field (semver, e.g. `"1.2.0"`). Absent when the manifest
+    /// declares no version — the field is optional there — or the source
+    /// has no version concept. Provenance / display only: the host neither
+    /// parses nor enforces it.
+    public var version: String?
     /// Opaque version token used by the host to detect changes.
     public var nonce: String?
 
@@ -3241,6 +3257,7 @@ public struct ClientPluginCustomization: Codable, Sendable {
         load: CustomizationLoadState? = nil,
         children: [ChildCustomization]? = nil,
         type: CustomizationType,
+        version: String? = nil,
         nonce: String? = nil
     ) {
         self.id = id
@@ -3253,6 +3270,7 @@ public struct ClientPluginCustomization: Codable, Sendable {
         self.load = load
         self.children = children
         self.type = type
+        self.version = version
         self.nonce = nonce
     }
 }

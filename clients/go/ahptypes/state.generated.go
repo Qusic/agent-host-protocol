@@ -2102,6 +2102,13 @@ type PluginCustomization struct {
 	// nothing.
 	Children []ChildCustomization `json:"children,omitempty"`
 	Type     CustomizationType    `json:"type"`
+	// Version of the plugin, sourced from the
+	// [Open Plugins](https://open-plugins.com/) manifest's optional
+	// `version` field (semver, e.g. `"1.2.0"`). Absent when the manifest
+	// declares no version — the field is optional there — or the source
+	// has no version concept. Provenance / display only: the host neither
+	// parses nor enforces it.
+	Version *string `json:"version,omitempty"`
 }
 
 // A {@link PluginCustomization} as published by a client. Extends the
@@ -2150,6 +2157,13 @@ type ClientPluginCustomization struct {
 	// nothing.
 	Children []ChildCustomization `json:"children,omitempty"`
 	Type     CustomizationType    `json:"type"`
+	// Version of the plugin, sourced from the
+	// [Open Plugins](https://open-plugins.com/) manifest's optional
+	// `version` field (semver, e.g. `"1.2.0"`). Absent when the manifest
+	// declares no version — the field is optional there — or the source
+	// has no version concept. Provenance / display only: the host neither
+	// parses nor enforces it.
+	Version *string `json:"version,omitempty"`
 	// Opaque version token used by the host to detect changes.
 	Nonce *string `json:"nonce,omitempty"`
 }
