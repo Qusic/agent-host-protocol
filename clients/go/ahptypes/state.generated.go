@@ -1989,9 +1989,6 @@ type ToolResultFileEditContent struct {
 //
 // Clients can subscribe to the terminal's URI to stream its output in real
 // time, providing live feedback while a tool is executing.
-//
-// The referenced channel is not necessarily PTY-backed; clients MUST NOT
-// assume input, resize, or VT rendering semantics are available.
 type ToolResultTerminalContent struct {
 	Type ToolResultContentType `json:"type"`
 	// Terminal URI (subscribable for full terminal state)
@@ -2003,10 +2000,8 @@ type ToolResultTerminalContent struct {
 // Record of a command executed by a terminal-style tool (e.g. a shell tool),
 // appended to the tool result when the command exits.
 //
-// This can summarize either an interactive terminal/PTY-backed command or a
-// non-interactive shell child process, and records the command's exit, not
-// the terminal's — the backing terminal or shell process may keep running
-// afterwards.
+// This records the command's exit, not the terminal's — the terminal may
+// keep running afterwards.
 //
 // When live output was exposed through a terminal channel (a
 // {@link ToolResultTerminalContent} block in the same tool result),
@@ -2014,9 +2009,8 @@ type ToolResultTerminalContent struct {
 // as the retained command result.
 type ToolResultTerminalCompleteContent struct {
 	Type ToolResultContentType `json:"type"`
-	// Terminal channel URI that carried live output for this command, if one
-	// was exposed. Clients that subscribe to this channel SHOULD NOT assume a
-	// PTY-backed terminal with input or resize support.
+	// URI of the `ahp-terminal:` channel that carried live output for this
+	// command, if one was exposed.
 	Resource *URI `json:"resource,omitempty"`
 	// Exit code from the completed command, if reported by the runtime
 	ExitCode *int64 `json:"exitCode,omitempty"`

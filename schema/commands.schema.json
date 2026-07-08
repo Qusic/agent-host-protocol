@@ -5154,7 +5154,7 @@
     },
     "ToolResultTerminalContent": {
       "type": "object",
-      "description": "A reference to a terminal whose output is relevant to this tool result.\n\nClients can subscribe to the terminal's URI to stream its output in real\ntime, providing live feedback while a tool is executing.\n\nThe referenced channel is not necessarily PTY-backed; clients MUST NOT\nassume input, resize, or VT rendering semantics are available.",
+      "description": "A reference to a terminal whose output is relevant to this tool result.\n\nClients can subscribe to the terminal's URI to stream its output in real\ntime, providing live feedback while a tool is executing.",
       "properties": {
         "type": {
           "const": "terminal"
@@ -5176,14 +5176,14 @@
     },
     "ToolResultTerminalCompleteContent": {
       "type": "object",
-      "description": "Record of a command executed by a terminal-style tool (e.g. a shell tool),\nappended to the tool result when the command exits.\n\nThis can summarize either an interactive terminal/PTY-backed command or a\nnon-interactive shell child process, and records the command's exit, not\nthe terminal's — the backing terminal or shell process may keep running\nafterwards.\n\nWhen live output was exposed through a terminal channel (a\n{@link ToolResultTerminalContent} block in the same tool result),\n{@link resource} identifies that channel; otherwise this block stands alone\nas the retained command result.",
+      "description": "Record of a command executed by a terminal-style tool (e.g. a shell tool),\nappended to the tool result when the command exits.\n\nThis records the command's exit, not the terminal's — the terminal may\nkeep running afterwards.\n\nWhen live output was exposed through a terminal channel (a\n{@link ToolResultTerminalContent} block in the same tool result),\n{@link resource} identifies that channel; otherwise this block stands alone\nas the retained command result.",
       "properties": {
         "type": {
           "const": "terminalComplete"
         },
         "resource": {
           "$ref": "#/$defs/URI",
-          "description": "Terminal channel URI that carried live output for this command, if one\nwas exposed. Clients that subscribe to this channel SHOULD NOT assume a\nPTY-backed terminal with input or resize support."
+          "description": "URI of the `ahp-terminal:` channel that carried live output for this\ncommand, if one was exposed."
         },
         "exitCode": {
           "type": "number",

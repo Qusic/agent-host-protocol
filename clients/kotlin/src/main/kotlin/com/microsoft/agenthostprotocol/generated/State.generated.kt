@@ -2849,9 +2849,8 @@ data class ToolResultTerminalContent(
 data class ToolResultTerminalCompleteContent(
     val type: ToolResultContentType,
     /**
-     * Terminal channel URI that carried live output for this command, if one
-     * was exposed. Clients that subscribe to this channel SHOULD NOT assume a
-     * PTY-backed terminal with input or resize support.
+     * URI of the `ahp-terminal:` channel that carried live output for this
+     * command, if one was exposed.
      */
     val resource: String? = null,
     /**
