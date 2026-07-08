@@ -37,6 +37,9 @@ Implements AHP 0.5.2.
   `version`, optional `title`), identifying the implementation and build behind
   either side of the handshake. Informational only — MUST NOT be used for
   feature detection.
+- Optional `version` field on `PluginCustomization` (inherited by
+  `ClientPluginCustomization`), carrying the plugin's semver sourced from the
+  Open Plugins manifest. Provenance / display only.
 
 ### Changed
 
