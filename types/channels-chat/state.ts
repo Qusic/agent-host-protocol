@@ -1173,7 +1173,7 @@ export const enum ToolResultContentType {
   Resource = 'resource',
   FileEdit = 'fileEdit',
   Terminal = 'terminal',
-  ShellExit = 'shellExit',
+  TerminalComplete = 'terminalComplete',
   Subagent = 'subagent',
 }
 
@@ -1231,6 +1231,9 @@ export interface ToolResultFileEditContent extends FileEdit {
  * Clients can subscribe to the terminal's URI to stream its output in real
  * time, providing live feedback while a tool is executing.
  *
+ * The referenced channel is not necessarily PTY-backed; clients MUST NOT
+ * assume input, resize, or VT rendering semantics are available.
+ *
  * @category Tool Result Content
  */
 export interface ToolResultTerminalContent {
@@ -1242,17 +1245,35 @@ export interface ToolResultTerminalContent {
 }
 
 /**
- * Shell command exit metadata emitted by a shell tool.
+ * Record of a command executed by a terminal-style tool (e.g. a shell tool),
+ * appended to the tool result when the command exits.
+ *
+ * This can summarize either an interactive terminal/PTY-backed command or a
+ * non-interactive shell child process, and records the command's exit, not
+ * the terminal's — the backing terminal or shell process may keep running
+ * afterwards.
+ *
+ * When live output was exposed through a terminal channel (a
+ * {@link ToolResultTerminalContent} block in the same tool result),
+ * {@link resource} identifies that channel; otherwise this block stands alone
+ * as the retained command result.
  *
  * @category Tool Result Content
  */
-export interface ToolResultShellExitContent {
-  type: ToolResultContentType.ShellExit;
-  /** Exit code from the completed shell command, if reported by the runtime */
+export interface ToolResultTerminalCompleteContent {
+  type: ToolResultContentType.TerminalComplete;
+  /**
+   * Terminal channel URI that carried live output for this command, if one
+   * was exposed. Those that subscribe to the
+   * channel SHOULD NOT assume a PTY-backed terminal with input or resize
+   * support.
+   */
+  resource?: URI;
+  /** Exit code from the completed command, if reported by the runtime */
   exitCode?: number;
-  /** Working directory where the shell command was executed */
+  /** Working directory where the command was executed */
   cwd?: URI;
-  /** Preview associated with the shell command, if available */
+  /** Preview of the command's output, if available */
   preview?: string;
   /** Whether `preview` is known to be incomplete or truncated */
   truncated?: boolean;
@@ -1287,7 +1308,7 @@ export interface ToolResultSubagentContent {
  * `ToolResultResourceContent` for lazy-loading large results,
  * `ToolResultFileEditContent` for file edit diffs,
  * `ToolResultTerminalContent` for live terminal output,
- * `ToolResultShellExitContent` for shell command exit metadata, and
+ * `ToolResultTerminalCompleteContent` for terminal-style completion metadata, and
  * `ToolResultSubagentContent` for tool-spawned worker chats (AHP extensions).
  *
  * @category Tool Result Content
@@ -1298,5 +1319,5 @@ export type ToolResultContent =
   | ToolResultResourceContent
   | ToolResultFileEditContent
   | ToolResultTerminalContent
-  | ToolResultShellExitContent
+  | ToolResultTerminalCompleteContent
   | ToolResultSubagentContent;

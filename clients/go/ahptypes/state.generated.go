@@ -269,7 +269,7 @@ const (
 	ToolResultContentTypeResource         ToolResultContentType = "resource"
 	ToolResultContentTypeFileEdit         ToolResultContentType = "fileEdit"
 	ToolResultContentTypeTerminal         ToolResultContentType = "terminal"
-	ToolResultContentTypeShellExit        ToolResultContentType = "shellExit"
+	ToolResultContentTypeTerminalComplete ToolResultContentType = "terminalComplete"
 	ToolResultContentTypeSubagent         ToolResultContentType = "subagent"
 )
 
@@ -1989,6 +1989,9 @@ type ToolResultFileEditContent struct {
 //
 // Clients can subscribe to the terminal's URI to stream its output in real
 // time, providing live feedback while a tool is executing.
+//
+// The referenced channel is not necessarily PTY-backed; clients MUST NOT
+// assume input, resize, or VT rendering semantics are available.
 type ToolResultTerminalContent struct {
 	Type ToolResultContentType `json:"type"`
 	// Terminal URI (subscribable for full terminal state)
@@ -1997,14 +2000,30 @@ type ToolResultTerminalContent struct {
 	Title string `json:"title"`
 }
 
-// Shell command exit metadata emitted by a shell tool.
-type ToolResultShellExitContent struct {
+// Record of a command executed by a terminal-style tool (e.g. a shell tool),
+// appended to the tool result when the command exits.
+//
+// This can summarize either an interactive terminal/PTY-backed command or a
+// non-interactive shell child process, and records the command's exit, not
+// the terminal's — the backing terminal or shell process may keep running
+// afterwards.
+//
+// When live output was exposed through a terminal channel (a
+// {@link ToolResultTerminalContent} block in the same tool result),
+// {@link resource} identifies that channel; otherwise this block stands alone
+// as the retained command result.
+type ToolResultTerminalCompleteContent struct {
 	Type ToolResultContentType `json:"type"`
-	// Exit code from the completed shell command, if reported by the runtime
+	// Terminal channel URI that carried live output for this command, if one
+	// was exposed. Those that subscribe to the
+	// channel SHOULD NOT assume a PTY-backed terminal with input or resize
+	// support.
+	Resource *URI `json:"resource,omitempty"`
+	// Exit code from the completed command, if reported by the runtime
 	ExitCode *int64 `json:"exitCode,omitempty"`
-	// Working directory where the shell command was executed
+	// Working directory where the command was executed
 	Cwd *URI `json:"cwd,omitempty"`
-	// Preview associated with the shell command, if available
+	// Preview of the command's output, if available
 	Preview *string `json:"preview,omitempty"`
 	// Whether `preview` is known to be incomplete or truncated
 	Truncated *bool `json:"truncated,omitempty"`
@@ -3671,7 +3690,7 @@ func (*ToolResultEmbeddedResourceContent) isToolResultContent() {}
 func (*ToolResultResourceContent) isToolResultContent()         {}
 func (*ToolResultFileEditContent) isToolResultContent()         {}
 func (*ToolResultTerminalContent) isToolResultContent()         {}
-func (*ToolResultShellExitContent) isToolResultContent()        {}
+func (*ToolResultTerminalCompleteContent) isToolResultContent() {}
 func (*ToolResultSubagentContent) isToolResultContent()         {}
 
 // ToolResultContentUnknown carries an unrecognized ToolResultContent variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
@@ -3718,8 +3737,8 @@ func (u *ToolResultContent) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.Value = &value
-	case "shellExit":
-		var value ToolResultShellExitContent
+	case "terminalComplete":
+		var value ToolResultTerminalCompleteContent
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err
 		}

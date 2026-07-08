@@ -381,8 +381,8 @@ pub enum ToolResultContentType {
     FileEdit,
     #[serde(rename = "terminal")]
     Terminal,
-    #[serde(rename = "shellExit")]
-    ShellExit,
+    #[serde(rename = "terminalComplete")]
+    TerminalComplete,
     #[serde(rename = "subagent")]
     Subagent,
 }
@@ -2486,6 +2486,9 @@ pub struct ToolResultFileEditContent {
 ///
 /// Clients can subscribe to the terminal's URI to stream its output in real
 /// time, providing live feedback while a tool is executing.
+///
+/// The referenced channel is not necessarily PTY-backed; clients MUST NOT
+/// assume input, resize, or VT rendering semantics are available.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolResultTerminalContent {
@@ -2495,17 +2498,34 @@ pub struct ToolResultTerminalContent {
     pub title: String,
 }
 
-/// Shell command exit metadata emitted by a shell tool.
+/// Record of a command executed by a terminal-style tool (e.g. a shell tool),
+/// appended to the tool result when the command exits.
+///
+/// This can summarize either an interactive terminal/PTY-backed command or a
+/// non-interactive shell child process, and records the command's exit, not
+/// the terminal's — the backing terminal or shell process may keep running
+/// afterwards.
+///
+/// When live output was exposed through a terminal channel (a
+/// {@link ToolResultTerminalContent} block in the same tool result),
+/// {@link resource} identifies that channel; otherwise this block stands alone
+/// as the retained command result.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct ToolResultShellExitContent {
-    /// Exit code from the completed shell command, if reported by the runtime
+pub struct ToolResultTerminalCompleteContent {
+    /// Terminal channel URI that carried live output for this command, if one
+    /// was exposed. Those that subscribe to the
+    /// channel SHOULD NOT assume a PTY-backed terminal with input or resize
+    /// support.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resource: Option<Uri>,
+    /// Exit code from the completed command, if reported by the runtime
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exit_code: Option<i64>,
-    /// Working directory where the shell command was executed
+    /// Working directory where the command was executed
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cwd: Option<Uri>,
-    /// Preview associated with the shell command, if available
+    /// Preview of the command's output, if available
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub preview: Option<String>,
     /// Whether `preview` is known to be incomplete or truncated
@@ -3914,8 +3934,8 @@ pub enum ToolResultContent {
     FileEdit(ToolResultFileEditContent),
     #[serde(rename = "terminal")]
     Terminal(ToolResultTerminalContent),
-    #[serde(rename = "shellExit")]
-    ShellExit(ToolResultShellExitContent),
+    #[serde(rename = "terminalComplete")]
+    TerminalComplete(ToolResultTerminalCompleteContent),
     #[serde(rename = "subagent")]
     Subagent(ToolResultSubagentContent),
     /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.

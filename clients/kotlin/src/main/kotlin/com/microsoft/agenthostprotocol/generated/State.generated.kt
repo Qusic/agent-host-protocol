@@ -478,8 +478,8 @@ enum class ToolResultContentType {
     FILE_EDIT,
     @SerialName("terminal")
     TERMINAL,
-    @SerialName("shellExit")
-    SHELL_EXIT,
+    @SerialName("terminalComplete")
+    TERMINAL_COMPLETE,
     @SerialName("subagent")
     SUBAGENT
 }
@@ -2846,18 +2846,25 @@ data class ToolResultTerminalContent(
 )
 
 @Serializable
-data class ToolResultShellExitContent(
+data class ToolResultTerminalCompleteContent(
     val type: ToolResultContentType,
     /**
-     * Exit code from the completed shell command, if reported by the runtime
+     * Terminal channel URI that carried live output for this command, if one
+     * was exposed. Those that subscribe to the
+     * channel SHOULD NOT assume a PTY-backed terminal with input or resize
+     * support.
+     */
+    val resource: String? = null,
+    /**
+     * Exit code from the completed command, if reported by the runtime
      */
     val exitCode: Long? = null,
     /**
-     * Working directory where the shell command was executed
+     * Working directory where the command was executed
      */
     val cwd: String? = null,
     /**
-     * Preview associated with the shell command, if available
+     * Preview of the command's output, if available
      */
     val preview: String? = null,
     /**
@@ -5045,7 +5052,7 @@ sealed interface ToolResultContent {
     @JvmInline value class Resource(val value: ToolResultResourceContent) : ToolResultContent
     @JvmInline value class FileEdit(val value: ToolResultFileEditContent) : ToolResultContent
     @JvmInline value class Terminal(val value: ToolResultTerminalContent) : ToolResultContent
-    @JvmInline value class ShellExit(val value: ToolResultShellExitContent) : ToolResultContent
+    @JvmInline value class TerminalComplete(val value: ToolResultTerminalCompleteContent) : ToolResultContent
     @JvmInline value class Subagent(val value: ToolResultSubagentContent) : ToolResultContent
 
     /**
@@ -5075,7 +5082,7 @@ internal object ToolResultContentSerializer : KSerializer<ToolResultContent> {
             "resource" -> ToolResultContent.Resource(input.json.decodeFromJsonElement(ToolResultResourceContent.serializer(), element))
             "fileEdit" -> ToolResultContent.FileEdit(input.json.decodeFromJsonElement(ToolResultFileEditContent.serializer(), element))
             "terminal" -> ToolResultContent.Terminal(input.json.decodeFromJsonElement(ToolResultTerminalContent.serializer(), element))
-            "shellExit" -> ToolResultContent.ShellExit(input.json.decodeFromJsonElement(ToolResultShellExitContent.serializer(), element))
+            "terminalComplete" -> ToolResultContent.TerminalComplete(input.json.decodeFromJsonElement(ToolResultTerminalCompleteContent.serializer(), element))
             "subagent" -> ToolResultContent.Subagent(input.json.decodeFromJsonElement(ToolResultSubagentContent.serializer(), element))
             else -> ToolResultContent.Unknown(obj)
         }
@@ -5090,7 +5097,7 @@ internal object ToolResultContentSerializer : KSerializer<ToolResultContent> {
             is ToolResultContent.Resource -> output.json.encodeToJsonElement(ToolResultResourceContent.serializer(), value.value)
             is ToolResultContent.FileEdit -> output.json.encodeToJsonElement(ToolResultFileEditContent.serializer(), value.value)
             is ToolResultContent.Terminal -> output.json.encodeToJsonElement(ToolResultTerminalContent.serializer(), value.value)
-            is ToolResultContent.ShellExit -> output.json.encodeToJsonElement(ToolResultShellExitContent.serializer(), value.value)
+            is ToolResultContent.TerminalComplete -> output.json.encodeToJsonElement(ToolResultTerminalCompleteContent.serializer(), value.value)
             is ToolResultContent.Subagent -> output.json.encodeToJsonElement(ToolResultSubagentContent.serializer(), value.value)
             is ToolResultContent.Unknown -> value.raw
         }

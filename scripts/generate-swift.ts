@@ -578,7 +578,7 @@ const STATE_STRUCTS = [
   'ToolCallCancelledState', 'ConfirmationOption', 'ToolDefinition', 'ToolAnnotations',
   'ToolResultTextContent', 'ToolResultEmbeddedResourceContent',
   'ToolResultResourceContent', 'ToolResultFileEditContent',
-  'ToolResultTerminalContent', 'ToolResultShellExitContent',
+  'ToolResultTerminalContent', 'ToolResultTerminalCompleteContent',
   'ToolResultSubagentContent',
   'CustomizationLoadingState', 'CustomizationLoadedState',
   'CustomizationDegradedState', 'CustomizationErrorState',
@@ -803,7 +803,7 @@ function generateToolResultContentUnion(): string {
     case resource(ToolResultResourceContent)
     case fileEdit(ToolResultFileEditContent)
     case terminal(ToolResultTerminalContent)
-    case shellExit(ToolResultShellExitContent)
+    case terminalComplete(ToolResultTerminalCompleteContent)
     case subagent(ToolResultSubagentContent)
     /// Unknown or future tool result content type; the raw payload is preserved
     /// and re-encoded verbatim for forward-compatibility.
@@ -827,8 +827,8 @@ function generateToolResultContentUnion(): string {
                 self = .fileEdit(try ToolResultFileEditContent(from: decoder))
             case "terminal":
                 self = .terminal(try ToolResultTerminalContent(from: decoder))
-            case "shellExit":
-                self = .shellExit(try ToolResultShellExitContent(from: decoder))
+            case "terminalComplete":
+                self = .terminalComplete(try ToolResultTerminalCompleteContent(from: decoder))
             case "subagent":
                 self = .subagent(try ToolResultSubagentContent(from: decoder))
             default:
@@ -849,7 +849,7 @@ function generateToolResultContentUnion(): string {
         case .resource(let v): try v.encode(to: encoder)
         case .fileEdit(let v): try v.encode(to: encoder)
         case .terminal(let v): try v.encode(to: encoder)
-        case .shellExit(let v): try v.encode(to: encoder)
+        case .terminalComplete(let v): try v.encode(to: encoder)
         case .subagent(let v): try v.encode(to: encoder)
         case .unknown(let v): try v.encode(to: encoder)
         }
