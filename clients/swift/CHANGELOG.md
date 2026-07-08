@@ -42,6 +42,10 @@ Implements AHP 0.5.2.
 - Optional `version` field on `PluginCustomization` (inherited by
   `ClientPluginCustomization`), carrying the plugin's semver sourced from the
   Open Plugins manifest. Provenance / display only.
+- `session/mcpServerStartRequested` and `session/mcpServerStopRequested`
+  actions for clients to ask the host to start or stop MCP servers; stopping
+  moves an `authRequired` server to `stopped` so it no longer waits on
+  authentication.
 
 ### Changed
 
