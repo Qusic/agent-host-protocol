@@ -28,6 +28,7 @@ import type {
   StateAction,
 } from '../src/types/common/actions.js';
 import { ActionType } from '../src/types/common/actions.js';
+import { ContentEncoding } from '../src/types/common/commands.js';
 import type {
   DispatchActionParams,
   InitializeParams,
@@ -466,7 +467,7 @@ test('setResourceRequestHandlers routes an inbound request to the typed handler'
   client.setResourceRequestHandlers({
     resourceRead: async params => {
       assert.equal(params.uri, 'virtual://client/thing');
-      return { data: 'aGk=', encoding: 'base64' as never };
+      return { data: 'aGk=', encoding: ContentEncoding.Base64 };
     },
   });
   client.connect();
@@ -493,7 +494,7 @@ test('setResourceRequestHandlers answers unregistered methods with MethodNotFoun
   const client = new AhpClient(c);
   // Only resourceRead is registered; resourceWrite should fall through.
   client.setResourceRequestHandlers({
-    resourceRead: async () => ({ data: '', encoding: 'utf-8' as never }),
+    resourceRead: async () => ({ data: '', encoding: ContentEncoding.Utf8 }),
   });
   client.connect();
 
