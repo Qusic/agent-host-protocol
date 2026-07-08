@@ -4138,7 +4138,7 @@
         },
         "resource": {
           "$ref": "#/$defs/URI",
-          "description": "Terminal channel URI that carried live output for this command, if one\nwas exposed. Those that subscribe to the\nchannel SHOULD NOT assume a PTY-backed terminal with input or resize\nsupport."
+          "description": "Terminal channel URI that carried live output for this command, if one\nwas exposed. Clients that subscribe to this channel SHOULD NOT assume a\nPTY-backed terminal with input or resize support."
         },
         "exitCode": {
           "type": "number",

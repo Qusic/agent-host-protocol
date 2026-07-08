@@ -3025,9 +3025,8 @@ public struct ToolResultTerminalContent: Codable, Sendable {
 public struct ToolResultTerminalCompleteContent: Codable, Sendable {
     public var type: ToolResultContentType
     /// Terminal channel URI that carried live output for this command, if one
-    /// was exposed. Those that subscribe to the
-    /// channel SHOULD NOT assume a PTY-backed terminal with input or resize
-    /// support.
+    /// was exposed. Clients that subscribe to this channel SHOULD NOT assume a
+    /// PTY-backed terminal with input or resize support.
     public var resource: String?
     /// Exit code from the completed command, if reported by the runtime
     public var exitCode: Int?

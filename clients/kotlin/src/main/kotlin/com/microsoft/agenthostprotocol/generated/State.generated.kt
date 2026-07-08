@@ -2850,9 +2850,8 @@ data class ToolResultTerminalCompleteContent(
     val type: ToolResultContentType,
     /**
      * Terminal channel URI that carried live output for this command, if one
-     * was exposed. Those that subscribe to the
-     * channel SHOULD NOT assume a PTY-backed terminal with input or resize
-     * support.
+     * was exposed. Clients that subscribe to this channel SHOULD NOT assume a
+     * PTY-backed terminal with input or resize support.
      */
     val resource: String? = null,
     /**

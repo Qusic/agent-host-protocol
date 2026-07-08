@@ -1264,9 +1264,8 @@ export interface ToolResultTerminalCompleteContent {
   type: ToolResultContentType.TerminalComplete;
   /**
    * Terminal channel URI that carried live output for this command, if one
-   * was exposed. Those that subscribe to the
-   * channel SHOULD NOT assume a PTY-backed terminal with input or resize
-   * support.
+   * was exposed. Clients that subscribe to this channel SHOULD NOT assume a
+   * PTY-backed terminal with input or resize support.
    */
   resource?: URI;
   /** Exit code from the completed command, if reported by the runtime */

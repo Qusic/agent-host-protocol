@@ -2514,9 +2514,8 @@ pub struct ToolResultTerminalContent {
 #[serde(rename_all = "camelCase")]
 pub struct ToolResultTerminalCompleteContent {
     /// Terminal channel URI that carried live output for this command, if one
-    /// was exposed. Those that subscribe to the
-    /// channel SHOULD NOT assume a PTY-backed terminal with input or resize
-    /// support.
+    /// was exposed. Clients that subscribe to this channel SHOULD NOT assume a
+    /// PTY-backed terminal with input or resize support.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resource: Option<Uri>,
     /// Exit code from the completed command, if reported by the runtime
