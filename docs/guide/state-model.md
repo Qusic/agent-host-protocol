@@ -318,6 +318,12 @@ ContentRef {
   contentType?: string
 }
 
+// Harness-authored notification surfaced in the stream (e.g. "subagent finished")
+SystemNotificationResponsePart {
+  kind: 'systemNotification'
+  content: StringOrMarkdown
+}
+
 // Durable record of a resolved input request (see Input Requests below)
 InputRequestResponsePart {
   kind: 'inputRequest'
