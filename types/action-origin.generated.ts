@@ -24,6 +24,8 @@ import type {
   SessionCustomizationUpdatedAction,
   SessionCustomizationRemovedAction,
   SessionMcpServerStateChangedAction,
+  SessionMcpServerStartRequestedAction,
+  SessionMcpServerStopRequestedAction,
   SessionIsReadChangedAction,
   SessionIsArchivedChangedAction,
   SessionActivityChangedAction,
@@ -125,6 +127,8 @@ export type SessionAction =
   | SessionCustomizationUpdatedAction
   | SessionCustomizationRemovedAction
   | SessionMcpServerStateChangedAction
+  | SessionMcpServerStartRequestedAction
+  | SessionMcpServerStopRequestedAction
   | SessionIsReadChangedAction
   | SessionIsArchivedChangedAction
   | SessionActivityChangedAction
@@ -139,6 +143,8 @@ export type ClientSessionAction =
   | SessionActiveClientSetAction
   | SessionActiveClientRemovedAction
   | SessionCustomizationToggledAction
+  | SessionMcpServerStartRequestedAction
+  | SessionMcpServerStopRequestedAction
   | SessionIsReadChangedAction
   | SessionIsArchivedChangedAction
   | SessionConfigChangedAction
@@ -355,6 +361,8 @@ export const IS_CLIENT_DISPATCHABLE: { readonly [K in StateAction['type']]: bool
   [ActionType.SessionCustomizationUpdated]: false,
   [ActionType.SessionCustomizationRemoved]: false,
   [ActionType.SessionMcpServerStateChanged]: false,
+  [ActionType.SessionMcpServerStartRequested]: true,
+  [ActionType.SessionMcpServerStopRequested]: true,
   [ActionType.SessionIsReadChanged]: true,
   [ActionType.SessionIsArchivedChanged]: true,
   [ActionType.SessionActivityChanged]: false,
