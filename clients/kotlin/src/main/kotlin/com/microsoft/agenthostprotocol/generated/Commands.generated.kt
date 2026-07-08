@@ -190,8 +190,7 @@ data class InitializeResult(
      * Prefix that the host recognizes at the start of a user {@link Message.text}
      * as a shorthand for executing the remainder as a terminal command. Currently
      * the standardized convention is `"!"`; absence means the host does not
-     * advertise support and clients SHOULD treat `!`-prefixed input as an
-     * ordinary user message.
+     * support command prefixes.
      */
     val terminalCommandPrefix: String? = null,
     /**

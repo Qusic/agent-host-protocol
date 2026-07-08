@@ -134,8 +134,7 @@ public struct InitializeResult: Codable, Sendable {
     /// Prefix that the host recognizes at the start of a user {@link Message.text}
     /// as a shorthand for executing the remainder as a terminal command. Currently
     /// the standardized convention is `"!"`; absence means the host does not
-    /// advertise support and clients SHOULD treat `!`-prefixed input as an
-    /// ordinary user message.
+    /// support command prefixes.
     public var terminalCommandPrefix: String?
     /// OTLP telemetry channels the host emits, if any. Each populated field is
     /// either a literal `ahp-otlp:` channel URI or an RFC 6570 URI template a

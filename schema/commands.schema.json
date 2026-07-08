@@ -157,7 +157,7 @@
         },
         "terminalCommandPrefix": {
           "type": "string",
-          "description": "Prefix that the host recognizes at the start of a user {@link Message.text}\nas a shorthand for executing the remainder as a terminal command. Currently\nthe standardized convention is `\"!\"`; absence means the host does not\nadvertise support and clients SHOULD treat `!`-prefixed input as an\nordinary user message."
+          "description": "Prefix that the host recognizes at the start of a user {@link Message.text}\nas a shorthand for executing the remainder as a terminal command. Currently\nthe standardized convention is `\"!\"`; absence means the host does not\nsupport command prefixes."
         },
         "telemetry": {
           "$ref": "#/$defs/TelemetryCapabilities",
