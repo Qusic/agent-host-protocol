@@ -2061,6 +2061,12 @@ type PluginCustomization struct {
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
 	Range *TextRange `json:"range,omitempty"`
+	// Additional provider-specific metadata for this customization.
+	//
+	// Mirrors the MCP `_meta` convention. Optional and opaque to the
+	// protocol; producers and consumers agree on its contents
+	// out-of-band.
+	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 	// Whether this container is currently enabled.
 	Enabled bool `json:"enabled"`
 	// `clientId` of the client that contributed this container. Absent for
@@ -2109,6 +2115,12 @@ type ClientPluginCustomization struct {
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
 	Range *TextRange `json:"range,omitempty"`
+	// Additional provider-specific metadata for this customization.
+	//
+	// Mirrors the MCP `_meta` convention. Optional and opaque to the
+	// protocol; producers and consumers agree on its contents
+	// out-of-band.
+	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 	// Whether this container is currently enabled.
 	Enabled bool `json:"enabled"`
 	// `clientId` of the client that contributed this container. Absent for
@@ -2159,6 +2171,12 @@ type DirectoryCustomization struct {
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
 	Range *TextRange `json:"range,omitempty"`
+	// Additional provider-specific metadata for this customization.
+	//
+	// Mirrors the MCP `_meta` convention. Optional and opaque to the
+	// protocol; producers and consumers agree on its contents
+	// out-of-band.
+	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 	// Whether this container is currently enabled.
 	Enabled bool `json:"enabled"`
 	// `clientId` of the client that contributed this container. Absent for
@@ -2207,6 +2225,12 @@ type AgentCustomization struct {
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
 	Range *TextRange `json:"range,omitempty"`
+	// Additional provider-specific metadata for this customization.
+	//
+	// Mirrors the MCP `_meta` convention. Optional and opaque to the
+	// protocol; producers and consumers agree on its contents
+	// out-of-band.
+	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 	// Whether this child is individually enabled. Absent means enabled, so a
 	// producer only needs to set it to surface a child that exists but is
 	// turned off on its own.
@@ -2243,10 +2267,6 @@ type AgentCustomization struct {
 	// in a picker); it remains available for the agent to auto-delegate
 	// to. Absent or `false` means the user may select it.
 	DisableUserInvocation *bool `json:"disableUserInvocation,omitempty"`
-	// Additional provider-specific metadata for this custom agent.
-	//
-	// Mirrors the MCP `_meta` convention.
-	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 }
 
 // A skill contributed by a plugin or directory.
@@ -2277,6 +2297,12 @@ type SkillCustomization struct {
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
 	Range *TextRange `json:"range,omitempty"`
+	// Additional provider-specific metadata for this customization.
+	//
+	// Mirrors the MCP `_meta` convention. Optional and opaque to the
+	// protocol; producers and consumers agree on its contents
+	// out-of-band.
+	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 	// Whether this child is individually enabled. Absent means enabled, so a
 	// producer only needs to set it to surface a child that exists but is
 	// turned off on its own.
@@ -2326,6 +2352,12 @@ type PromptCustomization struct {
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
 	Range *TextRange `json:"range,omitempty"`
+	// Additional provider-specific metadata for this customization.
+	//
+	// Mirrors the MCP `_meta` convention. Optional and opaque to the
+	// protocol; producers and consumers agree on its contents
+	// out-of-band.
+	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 	// Whether this child is individually enabled. Absent means enabled, so a
 	// producer only needs to set it to surface a child that exists but is
 	// turned off on its own.
@@ -2374,6 +2406,12 @@ type RuleCustomization struct {
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
 	Range *TextRange `json:"range,omitempty"`
+	// Additional provider-specific metadata for this customization.
+	//
+	// Mirrors the MCP `_meta` convention. Optional and opaque to the
+	// protocol; producers and consumers agree on its contents
+	// out-of-band.
+	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 	// Whether this child is individually enabled. Absent means enabled, so a
 	// producer only needs to set it to surface a child that exists but is
 	// turned off on its own.
@@ -2421,6 +2459,12 @@ type HookCustomization struct {
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
 	Range *TextRange `json:"range,omitempty"`
+	// Additional provider-specific metadata for this customization.
+	//
+	// Mirrors the MCP `_meta` convention. Optional and opaque to the
+	// protocol; producers and consumers agree on its contents
+	// out-of-band.
+	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 	// Whether this child is individually enabled. Absent means enabled, so a
 	// producer only needs to set it to surface a child that exists but is
 	// turned off on its own.
@@ -2465,8 +2509,14 @@ type McpServerCustomization struct {
 	// customization is a subset of a larger file (for example, one entry
 	// in an inline `mcpServers` block of a `plugins.json` manifest).
 	// Absent when the customization covers the whole resource.
-	Range *TextRange        `json:"range,omitempty"`
-	Type  CustomizationType `json:"type"`
+	Range *TextRange `json:"range,omitempty"`
+	// Additional provider-specific metadata for this customization.
+	//
+	// Mirrors the MCP `_meta` convention. Optional and opaque to the
+	// protocol; producers and consumers agree on its contents
+	// out-of-band.
+	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
+	Type CustomizationType          `json:"type"`
 	// Whether this MCP server is currently enabled.
 	Enabled bool `json:"enabled"`
 	// Current lifecycle state of the MCP server.

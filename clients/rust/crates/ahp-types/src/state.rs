@@ -2567,6 +2567,13 @@ pub struct PluginCustomization {
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Additional provider-specific metadata for this customization.
+    ///
+    /// Mirrors the MCP `_meta` convention. Optional and opaque to the
+    /// protocol; producers and consumers agree on its contents
+    /// out-of-band.
+    #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
+    pub meta: Option<JsonObject>,
     /// Whether this container is currently enabled.
     pub enabled: bool,
     /// `clientId` of the client that contributed this container. Absent for
@@ -2621,6 +2628,13 @@ pub struct ClientPluginCustomization {
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Additional provider-specific metadata for this customization.
+    ///
+    /// Mirrors the MCP `_meta` convention. Optional and opaque to the
+    /// protocol; producers and consumers agree on its contents
+    /// out-of-band.
+    #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
+    pub meta: Option<JsonObject>,
     /// Whether this container is currently enabled.
     pub enabled: bool,
     /// `clientId` of the client that contributed this container. Absent for
@@ -2678,6 +2692,13 @@ pub struct DirectoryCustomization {
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Additional provider-specific metadata for this customization.
+    ///
+    /// Mirrors the MCP `_meta` convention. Optional and opaque to the
+    /// protocol; producers and consumers agree on its contents
+    /// out-of-band.
+    #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
+    pub meta: Option<JsonObject>,
     /// Whether this container is currently enabled.
     pub enabled: bool,
     /// `clientId` of the client that contributed this container. Absent for
@@ -2732,6 +2753,13 @@ pub struct AgentCustomization {
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Additional provider-specific metadata for this customization.
+    ///
+    /// Mirrors the MCP `_meta` convention. Optional and opaque to the
+    /// protocol; producers and consumers agree on its contents
+    /// out-of-band.
+    #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
+    pub meta: Option<JsonObject>,
     /// Whether this child is individually enabled. Absent means enabled, so a
     /// producer only needs to set it to surface a child that exists but is
     /// turned off on its own.
@@ -2773,11 +2801,6 @@ pub struct AgentCustomization {
     /// to. Absent or `false` means the user may select it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub disable_user_invocation: Option<bool>,
-    /// Additional provider-specific metadata for this custom agent.
-    ///
-    /// Mirrors the MCP `_meta` convention.
-    #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
-    pub meta: Option<JsonObject>,
 }
 
 /// A skill contributed by a plugin or directory.
@@ -2812,6 +2835,13 @@ pub struct SkillCustomization {
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Additional provider-specific metadata for this customization.
+    ///
+    /// Mirrors the MCP `_meta` convention. Optional and opaque to the
+    /// protocol; producers and consumers agree on its contents
+    /// out-of-band.
+    #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
+    pub meta: Option<JsonObject>,
     /// Whether this child is individually enabled. Absent means enabled, so a
     /// producer only needs to set it to surface a child that exists but is
     /// turned off on its own.
@@ -2868,6 +2898,13 @@ pub struct PromptCustomization {
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Additional provider-specific metadata for this customization.
+    ///
+    /// Mirrors the MCP `_meta` convention. Optional and opaque to the
+    /// protocol; producers and consumers agree on its contents
+    /// out-of-band.
+    #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
+    pub meta: Option<JsonObject>,
     /// Whether this child is individually enabled. Absent means enabled, so a
     /// producer only needs to set it to surface a child that exists but is
     /// turned off on its own.
@@ -2921,6 +2958,13 @@ pub struct RuleCustomization {
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Additional provider-specific metadata for this customization.
+    ///
+    /// Mirrors the MCP `_meta` convention. Optional and opaque to the
+    /// protocol; producers and consumers agree on its contents
+    /// out-of-band.
+    #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
+    pub meta: Option<JsonObject>,
     /// Whether this child is individually enabled. Absent means enabled, so a
     /// producer only needs to set it to surface a child that exists but is
     /// turned off on its own.
@@ -2975,6 +3019,13 @@ pub struct HookCustomization {
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Additional provider-specific metadata for this customization.
+    ///
+    /// Mirrors the MCP `_meta` convention. Optional and opaque to the
+    /// protocol; producers and consumers agree on its contents
+    /// out-of-band.
+    #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
+    pub meta: Option<JsonObject>,
     /// Whether this child is individually enabled. Absent means enabled, so a
     /// producer only needs to set it to surface a child that exists but is
     /// turned off on its own.
@@ -3024,6 +3075,13 @@ pub struct McpServerCustomization {
     /// Absent when the customization covers the whole resource.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range: Option<TextRange>,
+    /// Additional provider-specific metadata for this customization.
+    ///
+    /// Mirrors the MCP `_meta` convention. Optional and opaque to the
+    /// protocol; producers and consumers agree on its contents
+    /// out-of-band.
+    #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
+    pub meta: Option<JsonObject>,
     /// Whether this MCP server is currently enabled.
     pub enabled: bool,
     /// Current lifecycle state of the MCP server.

@@ -30,6 +30,13 @@ changes accumulate. Track in-flight protocol changes via PRs touching
   functionality.
 - `changeset/filesReviewedChanged` action for servers to update the `reviewed`
   flag of one or more changeset files.
+- Hoisted the optional `_meta` provider-metadata slot from `AgentCustomization`
+  up to the shared `CustomizationBase`, so every customization type
+  (`PluginCustomization`, `ClientPluginCustomization`, `DirectoryCustomization`,
+  `SkillCustomization`, `PromptCustomization`, `RuleCustomization`,
+  `HookCustomization`, and `McpServerCustomization`) now carries the same
+  provider-specific escape hatch. Wire-compatible: `AgentCustomization` still
+  exposes `_meta`, now by inheritance.
 
 ## [0.5.2] — Unreleased
 

@@ -30,6 +30,11 @@ Implements AHP 0.5.2.
   functionality.
 - `changeset/filesReviewedChanged` action for servers to update the `Reviewed`
   flag of one or more changeset files.
+- Optional `Meta` (wire `_meta`) provider-metadata field on every customization
+  type, moved from `AgentCustomization` up to the shared customization base so
+  `PluginCustomization`, `ClientPluginCustomization`, `DirectoryCustomization`,
+  `SkillCustomization`, `PromptCustomization`, `RuleCustomization`,
+  `HookCustomization`, and `McpServerCustomization` all carry it.
 - Optional `ServerInfo` on `InitializeResult` and `ClientInfo` on
   `InitializeParams`, each an `Implementation` struct (`Name`, optional
   `Version`, optional `Title`), identifying the implementation and build behind
