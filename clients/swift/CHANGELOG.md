@@ -19,8 +19,6 @@ the tag matches the version pinned in [`VERSION`](VERSION).
 
 ### Added
 
-- Optional `terminalCommandPrefix` on `InitializeResult` for hosts that support
-  interpreting `!`-prefixed user messages as terminal commands.
 - Typed `resource*` convenience methods on `AHPClient`: send wrappers (`resourceRead`, `resourceWrite`, `resourceList`, `resourceCopy`, `resourceDelete`, `resourceMove`, `resourceResolve`, `resourceMkdir`, `resourceRequest`, `createResourceWatch`) and inbound server-request handling via `setServerRequestHandler(_:)` / `setResourceRequestHandlers(_:)` (new `ServerRequestHandler` typealias and `ResourceRequestHandlers` type). Inbound server-initiated requests are answered by the installed handler (still `MethodNotFound` when none is set).
 
 ## [0.5.2] — Unreleased
@@ -50,6 +48,8 @@ Implements AHP 0.5.2.
   `InitializeParams`, each an `Implementation` (`name`, optional `version`,
   optional `title`), identifying the implementation and build behind either side
   of the handshake. Informational only — MUST NOT be used for feature detection.
+- Optional `terminalCommandPrefix` on `InitializeResult` for hosts that support
+  interpreting `!`-prefixed user messages as terminal commands.
 - Optional `version` field on `PluginCustomization` (inherited by
   `ClientPluginCustomization`), carrying the plugin's semver sourced from the
   Open Plugins manifest. Provenance / display only.

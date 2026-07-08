@@ -27,8 +27,6 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 
 - `ToolResultTerminalCompleteContent` for terminal-style completion metadata in tool
   results.
-- Optional `terminalCommandPrefix` marker on `InitializeResult` for hosts that
-  support interpreting `!`-prefixed user messages as terminal commands.
 - Optional `reviewed` field on `ChangesetFile`. Omitting it (or setting it to
   `undefined`) signals that the server does not support the file "review"
   functionality.
@@ -68,6 +66,8 @@ Spec version: `0.5.2`
   optional `title`), so either side of the handshake can identify its
   implementation and build. Informational only — mirrors LSP/MCP and MUST NOT
   be used for feature detection.
+- Optional `terminalCommandPrefix` marker on `InitializeResult` for hosts that
+  support interpreting `!`-prefixed user messages as terminal commands.
 
 ### Changed
 

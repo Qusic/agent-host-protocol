@@ -22,8 +22,6 @@ hotfix escape hatch.
 
 ### Added
 
-- Optional `terminalCommandPrefix` on `InitializeResult` for hosts that support
-  interpreting `!`-prefixed user messages as terminal commands.
 - Typed `resource*` convenience methods on `AhpClient`: send wrappers (`resourceRead`, `resourceWrite`, `resourceList`, `resourceCopy`, `resourceDelete`, `resourceMove`, `resourceResolve`, `resourceMkdir`, `resourceRequest`, `createResourceWatch`) and typed inbound handling via `setResourceRequestHandlers` (new `ResourceRequestHandlers` type and `createResourceRequestHandler` helper).
 
 ## [0.5.2] — Unreleased
@@ -53,6 +51,8 @@ Implements AHP 0.5.2.
   `InitializeParams`, each an `Implementation` (`name`, optional `version`,
   optional `title`), identifying the implementation and build behind either side
   of the handshake. Informational only — MUST NOT be used for feature detection.
+- Optional `terminalCommandPrefix` on `InitializeResult` for hosts that support
+  interpreting `!`-prefixed user messages as terminal commands.
 - Optional `version` field on `PluginCustomization` (inherited by
   `ClientPluginCustomization`), carrying the plugin's semver sourced from the
   Open Plugins manifest. Provenance / display only.

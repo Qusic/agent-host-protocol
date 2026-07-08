@@ -15,11 +15,6 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 
 ## [Unreleased]
 
-### Added
-
-- Optional `terminalCommandPrefix` on `InitializeResult` for hosts that support
-  interpreting `!`-prefixed user messages as terminal commands.
-
 ## [0.5.2] — Unreleased
 
 Implements AHP 0.5.2.
@@ -47,6 +42,8 @@ Implements AHP 0.5.2.
   `InitializeParams`, each an `Implementation` (`name`, optional `version`,
   optional `title`), identifying the implementation and build behind either side
   of the handshake. Informational only — MUST NOT be used for feature detection.
+- Optional `terminalCommandPrefix` on `InitializeResult` for hosts that support
+  interpreting `!`-prefixed user messages as terminal commands.
 - Optional `version` field on `PluginCustomization` (inherited by
   `ClientPluginCustomization`), carrying the plugin's semver sourced from the
   Open Plugins manifest. Provenance / display only.

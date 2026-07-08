@@ -16,8 +16,6 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 
 ### Added
 
-- Optional `TerminalCommandPrefix` on `InitializeResult` for hosts that support
-  interpreting `!`-prefixed user messages as terminal commands.
 - Typed `resource*` convenience methods on `ahp.Client`: send wrappers (`ResourceRead`, `ResourceWrite`, `ResourceList`, `ResourceCopy`, `ResourceDelete`, `ResourceMove`, `ResourceResolve`, `ResourceMkdir`, `ResourceRequest`, `CreateResourceWatch`) and inbound server-request handling via `SetServerRequestHandler` / `SetResourceRequestHandlers` (new `ServerRequestHandler` and `ResourceRequestHandlers` types). Inbound server-initiated requests are now answered (previously dropped) — via the installed handler, or `MethodNotFound` when none is set.
 
 ## [0.5.2] — Unreleased
@@ -48,6 +46,8 @@ Implements AHP 0.5.2.
   `Version`, optional `Title`), identifying the implementation and build behind
   either side of the handshake. Informational only — MUST NOT be used for
   feature detection.
+- Optional `TerminalCommandPrefix` on `InitializeResult` for hosts that support
+  interpreting `!`-prefixed user messages as terminal commands.
 - Optional `Version` field on `PluginCustomization` (inherited by
   `ClientPluginCustomization`), carrying the plugin's semver sourced from the
   Open Plugins manifest. Provenance / display only.
