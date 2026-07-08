@@ -2857,13 +2857,13 @@ data class ToolResultShellExitContent(
      */
     val cwd: String? = null,
     /**
-     * Output preview associated with the shell command, if available
+     * Preview associated with the shell command, if available
      */
-    val outputPreview: String? = null,
+    val preview: String? = null,
     /**
-     * Whether `outputPreview` is known to be incomplete or truncated
+     * Whether `preview` is known to be incomplete or truncated
      */
-    val outputTruncated: Boolean? = null
+    val truncated: Boolean? = null
 )
 
 @Serializable

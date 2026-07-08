@@ -2505,12 +2505,12 @@ pub struct ToolResultShellExitContent {
     /// Working directory where the shell command was executed
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cwd: Option<Uri>,
-    /// Output preview associated with the shell command, if available
+    /// Preview associated with the shell command, if available
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub output_preview: Option<String>,
-    /// Whether `outputPreview` is known to be incomplete or truncated
+    pub preview: Option<String>,
+    /// Whether `preview` is known to be incomplete or truncated
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub output_truncated: Option<bool>,
+    pub truncated: Option<bool>,
 }
 
 /// A reference, embedded in a tool result, to a worker chat spawned by the tool

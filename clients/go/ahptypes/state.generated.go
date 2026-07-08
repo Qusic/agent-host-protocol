@@ -2004,10 +2004,10 @@ type ToolResultShellExitContent struct {
 	ExitCode *int64 `json:"exitCode,omitempty"`
 	// Working directory where the shell command was executed
 	Cwd *URI `json:"cwd,omitempty"`
-	// Output preview associated with the shell command, if available
-	OutputPreview *string `json:"outputPreview,omitempty"`
-	// Whether `outputPreview` is known to be incomplete or truncated
-	OutputTruncated *bool `json:"outputTruncated,omitempty"`
+	// Preview associated with the shell command, if available
+	Preview *string `json:"preview,omitempty"`
+	// Whether `preview` is known to be incomplete or truncated
+	Truncated *bool `json:"truncated,omitempty"`
 }
 
 // A reference, embedded in a tool result, to a worker chat spawned by the tool

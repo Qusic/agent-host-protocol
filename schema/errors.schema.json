@@ -3984,13 +3984,13 @@
           "$ref": "#/$defs/URI",
           "description": "Working directory where the shell command was executed"
         },
-        "outputPreview": {
+        "preview": {
           "type": "string",
-          "description": "Output preview associated with the shell command, if available"
+          "description": "Preview associated with the shell command, if available"
         },
-        "outputTruncated": {
+        "truncated": {
           "type": "boolean",
-          "description": "Whether `outputPreview` is known to be incomplete or truncated"
+          "description": "Whether `preview` is known to be incomplete or truncated"
         }
       },
       "required": [

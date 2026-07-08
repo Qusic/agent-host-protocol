@@ -1252,10 +1252,10 @@ export interface ToolResultShellExitContent {
   exitCode?: number;
   /** Working directory where the shell command was executed */
   cwd?: URI;
-  /** Output preview associated with the shell command, if available */
-  outputPreview?: string;
-  /** Whether `outputPreview` is known to be incomplete or truncated */
-  outputTruncated?: boolean;
+  /** Preview associated with the shell command, if available */
+  preview?: string;
+  /** Whether `preview` is known to be incomplete or truncated */
+  truncated?: boolean;
 }
 
 /**

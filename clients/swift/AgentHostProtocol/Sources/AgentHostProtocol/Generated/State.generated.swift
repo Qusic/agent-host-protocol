@@ -3028,23 +3028,23 @@ public struct ToolResultShellExitContent: Codable, Sendable {
     public var exitCode: Int?
     /// Working directory where the shell command was executed
     public var cwd: String?
-    /// Output preview associated with the shell command, if available
-    public var outputPreview: String?
-    /// Whether `outputPreview` is known to be incomplete or truncated
-    public var outputTruncated: Bool?
+    /// Preview associated with the shell command, if available
+    public var preview: String?
+    /// Whether `preview` is known to be incomplete or truncated
+    public var truncated: Bool?
 
     public init(
         type: ToolResultContentType,
         exitCode: Int? = nil,
         cwd: String? = nil,
-        outputPreview: String? = nil,
-        outputTruncated: Bool? = nil
+        preview: String? = nil,
+        truncated: Bool? = nil
     ) {
         self.type = type
         self.exitCode = exitCode
         self.cwd = cwd
-        self.outputPreview = outputPreview
-        self.outputTruncated = outputTruncated
+        self.preview = preview
+        self.truncated = truncated
     }
 }
 
