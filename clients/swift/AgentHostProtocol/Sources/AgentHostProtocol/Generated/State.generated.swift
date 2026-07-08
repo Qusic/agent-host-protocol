@@ -249,6 +249,7 @@ public enum ToolResultContentType: String, Codable, Sendable {
     case resource = "resource"
     case fileEdit = "fileEdit"
     case terminal = "terminal"
+    case terminalComplete = "terminalComplete"
     case subagent = "subagent"
 }
 
@@ -3021,6 +3022,37 @@ public struct ToolResultTerminalContent: Codable, Sendable {
     }
 }
 
+public struct ToolResultTerminalCompleteContent: Codable, Sendable {
+    public var type: ToolResultContentType
+    /// URI of the `ahp-terminal:` channel that carried live output for this
+    /// command, if one was exposed.
+    public var resource: String?
+    /// Exit code from the completed command, if reported by the runtime
+    public var exitCode: Int?
+    /// Working directory where the command was executed
+    public var cwd: String?
+    /// Preview of the command's output, if available
+    public var preview: String?
+    /// Whether `preview` is known to be incomplete or truncated
+    public var truncated: Bool?
+
+    public init(
+        type: ToolResultContentType,
+        resource: String? = nil,
+        exitCode: Int? = nil,
+        cwd: String? = nil,
+        preview: String? = nil,
+        truncated: Bool? = nil
+    ) {
+        self.type = type
+        self.resource = resource
+        self.exitCode = exitCode
+        self.cwd = cwd
+        self.preview = preview
+        self.truncated = truncated
+    }
+}
+
 public struct ToolResultSubagentContent: Codable, Sendable {
     public var type: ToolResultContentType
     /// Worker chat URI (subscribable for full chat state)
@@ -3132,6 +3164,13 @@ public struct PluginCustomization: Codable, Sendable {
     /// nothing.
     public var children: [ChildCustomization]?
     public var type: CustomizationType
+    /// Version of the plugin, sourced from the
+    /// [Open Plugins](https://open-plugins.com/) manifest's optional
+    /// `version` field (semver, e.g. `"1.2.0"`). Absent when the manifest
+    /// declares no version — the field is optional there — or the source
+    /// has no version concept. Provenance / display only: the host neither
+    /// parses nor enforces it.
+    public var version: String?
 
     public init(
         id: String,
@@ -3143,7 +3182,8 @@ public struct PluginCustomization: Codable, Sendable {
         clientId: String? = nil,
         load: CustomizationLoadState? = nil,
         children: [ChildCustomization]? = nil,
-        type: CustomizationType
+        type: CustomizationType,
+        version: String? = nil
     ) {
         self.id = id
         self.uri = uri
@@ -3155,6 +3195,7 @@ public struct PluginCustomization: Codable, Sendable {
         self.load = load
         self.children = children
         self.type = type
+        self.version = version
     }
 }
 
@@ -3195,6 +3236,13 @@ public struct ClientPluginCustomization: Codable, Sendable {
     /// nothing.
     public var children: [ChildCustomization]?
     public var type: CustomizationType
+    /// Version of the plugin, sourced from the
+    /// [Open Plugins](https://open-plugins.com/) manifest's optional
+    /// `version` field (semver, e.g. `"1.2.0"`). Absent when the manifest
+    /// declares no version — the field is optional there — or the source
+    /// has no version concept. Provenance / display only: the host neither
+    /// parses nor enforces it.
+    public var version: String?
     /// Opaque version token used by the host to detect changes.
     public var nonce: String?
 
@@ -3209,6 +3257,7 @@ public struct ClientPluginCustomization: Codable, Sendable {
         load: CustomizationLoadState? = nil,
         children: [ChildCustomization]? = nil,
         type: CustomizationType,
+        version: String? = nil,
         nonce: String? = nil
     ) {
         self.id = id
@@ -3221,6 +3270,7 @@ public struct ClientPluginCustomization: Codable, Sendable {
         self.load = load
         self.children = children
         self.type = type
+        self.version = version
         self.nonce = nonce
     }
 }
@@ -5189,6 +5239,7 @@ public enum ToolResultContent: Codable, Sendable {
     case resource(ToolResultResourceContent)
     case fileEdit(ToolResultFileEditContent)
     case terminal(ToolResultTerminalContent)
+    case terminalComplete(ToolResultTerminalCompleteContent)
     case subagent(ToolResultSubagentContent)
     /// Unknown or future tool result content type; the raw payload is preserved
     /// and re-encoded verbatim for forward-compatibility.
@@ -5212,6 +5263,8 @@ public enum ToolResultContent: Codable, Sendable {
                 self = .fileEdit(try ToolResultFileEditContent(from: decoder))
             case "terminal":
                 self = .terminal(try ToolResultTerminalContent(from: decoder))
+            case "terminalComplete":
+                self = .terminalComplete(try ToolResultTerminalCompleteContent(from: decoder))
             case "subagent":
                 self = .subagent(try ToolResultSubagentContent(from: decoder))
             default:
@@ -5232,6 +5285,7 @@ public enum ToolResultContent: Codable, Sendable {
         case .resource(let v): try v.encode(to: encoder)
         case .fileEdit(let v): try v.encode(to: encoder)
         case .terminal(let v): try v.encode(to: encoder)
+        case .terminalComplete(let v): try v.encode(to: encoder)
         case .subagent(let v): try v.encode(to: encoder)
         case .unknown(let v): try v.encode(to: encoder)
         }
