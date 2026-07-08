@@ -317,6 +317,13 @@ ContentRef {
   sizeHint?: number
   contentType?: string
 }
+
+// Durable record of a resolved input request (see Input Requests below)
+InputRequestResponsePart {
+  kind: 'inputRequest'
+  request: ChatInputRequest   // the resolved request, with its final answers
+  response: ChatInputResponseKind  // 'accept' | 'decline' | 'cancel'
+}
 ```
 
 Text content uses a **create-then-append** pattern: the server first emits a `chat/responsePart` action to create a new markdown (or reasoning) part with an `id`, then streams text into it via `chat/delta` (or `chat/reasoning`) actions targeting that `partId`. This pattern is extensible to future streaming content types.

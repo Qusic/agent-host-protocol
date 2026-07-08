@@ -740,6 +740,7 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: str
   { name: 'ToolCallResponsePart', omitDiscriminants: true },
   { name: 'ReasoningResponsePart', omitDiscriminants: true },
   { name: 'SystemNotificationResponsePart', omitDiscriminants: true },
+  { name: 'InputRequestResponsePart', omitDiscriminants: true },
   { name: 'ToolCallResult' },
   { name: 'ConfirmationOption' },
   { name: 'ToolCallStreamingState', omitDiscriminants: true },
@@ -812,6 +813,7 @@ const RESPONSE_PART_UNION: UnionConfig = {
     { variantName: 'ToolCall', innerType: 'ToolCallResponsePart', wireValue: 'toolCall', boxed: true },
     { variantName: 'Reasoning', innerType: 'ReasoningResponsePart', wireValue: 'reasoning' },
     { variantName: 'SystemNotification', innerType: 'SystemNotificationResponsePart', wireValue: 'systemNotification' },
+    { variantName: 'InputRequest', innerType: 'InputRequestResponsePart', wireValue: 'inputRequest' },
   ],
   unknown: true,
 };

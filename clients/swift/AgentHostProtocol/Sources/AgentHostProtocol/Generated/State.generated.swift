@@ -201,6 +201,7 @@ public enum ResponsePartKind: String, Codable, Sendable {
     case toolCall = "toolCall"
     case reasoning = "reasoning"
     case systemNotification = "systemNotification"
+    case inputRequest = "inputRequest"
 }
 
 /// Status of a tool call in the lifecycle state machine.
@@ -2297,6 +2298,26 @@ public struct SystemNotificationResponsePart: Codable, Sendable {
     ) {
         self.kind = kind
         self.content = content
+    }
+}
+
+public struct InputRequestResponsePart: Codable, Sendable {
+    /// Discriminant
+    public var kind: ResponsePartKind
+    /// The resolved request, carrying its `id`, `message`, `url`, `questions`,
+    /// and the final `answers` synced/submitted at completion.
+    public var request: ChatInputRequest
+    /// How the request was resolved: `accept`, `decline`, or `cancel`.
+    public var response: ChatInputResponseKind
+
+    public init(
+        kind: ResponsePartKind,
+        request: ChatInputRequest,
+        response: ChatInputResponseKind
+    ) {
+        self.kind = kind
+        self.request = request
+        self.response = response
     }
 }
 
@@ -4640,6 +4661,7 @@ public enum ResponsePart: Codable, Sendable {
     case toolCall(ToolCallResponsePart)
     case reasoning(ReasoningResponsePart)
     case systemNotification(SystemNotificationResponsePart)
+    case inputRequest(InputRequestResponsePart)
     /// Unknown or future discriminant; the raw payload is preserved
     /// and re-encoded verbatim for forward-compatibility.
     case unknown(AnyCodable)
@@ -4662,6 +4684,8 @@ public enum ResponsePart: Codable, Sendable {
             self = .reasoning(try ReasoningResponsePart(from: decoder))
         case "systemNotification":
             self = .systemNotification(try SystemNotificationResponsePart(from: decoder))
+        case "inputRequest":
+            self = .inputRequest(try InputRequestResponsePart(from: decoder))
         default:
             self = .unknown(try AnyCodable(from: decoder))
         }
@@ -4674,6 +4698,7 @@ public enum ResponsePart: Codable, Sendable {
         case .toolCall(let value): try value.encode(to: encoder)
         case .reasoning(let value): try value.encode(to: encoder)
         case .systemNotification(let value): try value.encode(to: encoder)
+        case .inputRequest(let value): try value.encode(to: encoder)
         case .unknown(let value): try value.encode(to: encoder)
         }
     }

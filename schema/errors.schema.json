@@ -3211,6 +3211,29 @@
         "content"
       ]
     },
+    "InputRequestResponsePart": {
+      "type": "object",
+      "description": "A resolved input request (elicitation) recorded in the turn transcript.\n\nWhile an input request is open it lives in {@link ChatState.inputRequests}\nas live, interactive state (see {@link ChatInputRequest}). When the request\ncompletes via `chat/inputCompleted`, the reducer removes it from\n`inputRequests` and appends this part to the active turn so the decision\nsurvives in history. This mirrors how a tool-call confirmation persists in\nits {@link ToolCallResponsePart} (via `confirmed` / `selectedOption` on the\nterminal {@link ToolCallState}): the live surface drives in-flight UX, the\nterminal outcome is durable and backfillable via `fetchTurns`.\n\nNo part is recorded when an outstanding request is *abandoned* (the turn\ncompletes, is cancelled, errors, or is truncated) rather than *completed*.",
+      "properties": {
+        "kind": {
+          "const": "inputRequest",
+          "description": "Discriminant"
+        },
+        "request": {
+          "$ref": "#/$defs/ChatInputRequest",
+          "description": "The resolved request, carrying its `id`, `message`, `url`, `questions`,\nand the final `answers` synced/submitted at completion."
+        },
+        "response": {
+          "$ref": "#/$defs/ChatInputResponseKind",
+          "description": "How the request was resolved: `accept`, `decline`, or `cancel`."
+        }
+      },
+      "required": [
+        "kind",
+        "request",
+        "response"
+      ]
+    },
     "SystemNotificationResponsePart": {
       "type": "object",
       "description": "A system notification surfaced as part of the response stream.\n\nSystem notifications are messages authored by the agent harness\nthat need to be visible to both the agent (for situational awareness) and\nthe user (for transcript continuity). Examples include \"background subagent\nX completed\" or \"task Y was cancelled\".",
@@ -6174,6 +6197,9 @@
         },
         {
           "$ref": "#/$defs/SystemNotificationResponsePart"
+        },
+        {
+          "$ref": "#/$defs/InputRequestResponsePart"
         }
       ]
     },
@@ -6212,6 +6238,15 @@
         }
       ],
       "description": "An attachment associated with a {@link Message}."
+    },
+    "ChatInputResponseKind": {
+      "enum": [
+        "accept",
+        "decline",
+        "cancel"
+      ],
+      "type": "string",
+      "description": "How a client completed an input request."
     },
     "StringOrMarkdown": {
       "oneOf": [
@@ -8588,15 +8623,6 @@
       ],
       "type": "string",
       "description": "Discriminant for pending message kinds."
-    },
-    "ChatInputResponseKind": {
-      "enum": [
-        "accept",
-        "decline",
-        "cancel"
-      ],
-      "type": "string",
-      "description": "How a client completed an input request."
     }
   }
 }
