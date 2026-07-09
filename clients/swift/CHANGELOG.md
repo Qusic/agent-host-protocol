@@ -15,18 +15,13 @@ prefix). The `publish-swift.yml` workflow refuses to publish a `vX.Y.Z` tag
 whose matching `## [X.Y.Z]` heading is missing from this file, and verifies
 the tag matches the version pinned in [`VERSION`](VERSION).
 
-## [Unreleased]
-
-### Added
-
-- Typed `resource*` convenience methods on `AHPClient`: send wrappers (`resourceRead`, `resourceWrite`, `resourceList`, `resourceCopy`, `resourceDelete`, `resourceMove`, `resourceResolve`, `resourceMkdir`, `resourceRequest`, `createResourceWatch`) and inbound server-request handling via `setServerRequestHandler(_:)` / `setResourceRequestHandlers(_:)` (new `ServerRequestHandler` typealias and `ResourceRequestHandlers` type). Inbound server-initiated requests are answered by the installed handler (still `MethodNotFound` when none is set).
-
-## [0.5.2] — Unreleased
+## [0.5.2] — 2026-07-09
 
 Implements AHP 0.5.2.
 
 ### Added
 
+- Typed `resource*` convenience methods on `AHPClient`: send wrappers (`resourceRead`, `resourceWrite`, `resourceList`, `resourceCopy`, `resourceDelete`, `resourceMove`, `resourceResolve`, `resourceMkdir`, `resourceRequest`, `createResourceWatch`) and inbound server-request handling via `setServerRequestHandler(_:)` / `setResourceRequestHandlers(_:)` (new `ServerRequestHandler` typealias and `ResourceRequestHandlers` type). Inbound server-initiated requests are answered by the installed handler (still `MethodNotFound` when none is set).
 - `ToolResultTerminalCompleteContent` for terminal-style completion metadata in tool
   results.
 - Optional `enabled` field on the child customization types

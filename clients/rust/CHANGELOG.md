@@ -13,18 +13,13 @@ and the package follows [SemVer](https://semver.org).
 The `publish-rust.yml` workflow refuses to publish a `rust/vX.Y.Z` tag whose
 matching `## [X.Y.Z]` heading is missing from this file.
 
-## [Unreleased]
-
-### Added
-
-- Typed `resource*` convenience methods on `ahp::Client`: send wrappers (`resource_read`, `resource_write`, `resource_list`, `resource_copy`, `resource_delete`, `resource_move`, `resource_resolve`, `resource_mkdir`, `resource_request`, `create_resource_watch`) and inbound server-request handling via `set_server_request_handler` / `set_resource_request_handlers` (new `ServerRequestHandler`, `ServerRequestFuture`, and `ResourceRequestHandlers` types). Inbound server-initiated requests are now answered (previously dropped) — via the installed handler, or `MethodNotFound` when none is set.
-
-## [0.5.2] — Unreleased
+## [0.5.2] — 2026-07-09
 
 Implements AHP 0.5.2.
 
 ### Added
 
+- Typed `resource*` convenience methods on `ahp::Client`: send wrappers (`resource_read`, `resource_write`, `resource_list`, `resource_copy`, `resource_delete`, `resource_move`, `resource_resolve`, `resource_mkdir`, `resource_request`, `create_resource_watch`) and inbound server-request handling via `set_server_request_handler` / `set_resource_request_handlers` (new `ServerRequestHandler`, `ServerRequestFuture`, and `ResourceRequestHandlers` types). Inbound server-initiated requests are now answered (previously dropped) — via the installed handler, or `MethodNotFound` when none is set.
 - `ToolResultTerminalCompleteContent` for terminal-style completion metadata in tool
   results.
 - Optional `enabled` field on the child customization types
