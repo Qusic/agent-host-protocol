@@ -76,6 +76,11 @@ public actor NWConnectionWebSocketTransport: AHPTransport, AHPKeepAliveTransport
 
     private static let handshakeGUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
     private static let headerDelimiter = Data([13, 10, 13, 10])
+    /// Upper bound on a single frame's declared length and on the accumulated
+    /// payload of a fragmented message. Bounds memory against a peer that
+    /// declares a huge frame rather than buffering it unconditionally; well
+    /// above any legitimate AHP message.
+    private static let maxMessageBytes = 64 * 1024 * 1024
 
     private let url: URL
     private let headers: [String: String]
@@ -464,6 +469,9 @@ public actor NWConnectionWebSocketTransport: AHPTransport, AHPKeepAliveTransport
         switch frame.opcode {
         case 0x0:
             guard let opcode = fragmentedOpcode else { throw NativeWebSocketError.malformedFrame }
+            guard fragmentedPayload.count + frame.payload.count <= Self.maxMessageBytes else {
+                throw NativeWebSocketError.unsupportedFrameLength(UInt64(fragmentedPayload.count) + UInt64(frame.payload.count))
+            }
             fragmentedPayload.append(frame.payload)
             if frame.fin {
                 let completePayload = fragmentedPayload
@@ -541,7 +549,7 @@ public actor NWConnectionWebSocketTransport: AHPTransport, AHPKeepAliveTransport
             break
         }
 
-        guard payloadLength <= UInt64(Int.max) else {
+        guard payloadLength <= UInt64(Self.maxMessageBytes) else {
             throw NativeWebSocketError.unsupportedFrameLength(payloadLength)
         }
 
