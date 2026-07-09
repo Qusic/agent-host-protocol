@@ -392,7 +392,9 @@ enum class ResponsePartKind {
     @SerialName("reasoning")
     REASONING,
     @SerialName("systemNotification")
-    SYSTEM_NOTIFICATION
+    SYSTEM_NOTIFICATION,
+    @SerialName("inputRequest")
+    INPUT_REQUEST
 }
 
 /**
@@ -2288,6 +2290,23 @@ data class SystemNotificationResponsePart(
      * The text of the system notification
      */
     val content: StringOrMarkdown
+)
+
+@Serializable
+data class InputRequestResponsePart(
+    /**
+     * Discriminant
+     */
+    val kind: ResponsePartKind,
+    /**
+     * The resolved request, carrying its `id`, `message`, `url`, `questions`,
+     * and the final `answers` synced/submitted at completion.
+     */
+    val request: ChatInputRequest,
+    /**
+     * How the request was resolved: `accept`, `decline`, or `cancel`.
+     */
+    val response: ChatInputResponseKind
 )
 
 @Serializable
@@ -4307,6 +4326,8 @@ value class ResponsePartToolCall(val value: ToolCallResponsePart) : ResponsePart
 value class ResponsePartReasoning(val value: ReasoningResponsePart) : ResponsePart
 @JvmInline
 value class ResponsePartSystemNotification(val value: SystemNotificationResponsePart) : ResponsePart
+@JvmInline
+value class ResponsePartInputRequest(val value: InputRequestResponsePart) : ResponsePart
 /**
  * Forward-compat catch-all for unknown ResponsePart discriminators.
  *
@@ -4336,6 +4357,7 @@ internal object ResponsePartSerializer : KSerializer<ResponsePart> {
             "toolCall" -> ResponsePartToolCall(input.json.decodeFromJsonElement(ToolCallResponsePart.serializer(), element))
             "reasoning" -> ResponsePartReasoning(input.json.decodeFromJsonElement(ReasoningResponsePart.serializer(), element))
             "systemNotification" -> ResponsePartSystemNotification(input.json.decodeFromJsonElement(SystemNotificationResponsePart.serializer(), element))
+            "inputRequest" -> ResponsePartInputRequest(input.json.decodeFromJsonElement(InputRequestResponsePart.serializer(), element))
             else -> ResponsePartUnknown(obj)
         }
     }
@@ -4349,6 +4371,7 @@ internal object ResponsePartSerializer : KSerializer<ResponsePart> {
             is ResponsePartToolCall -> output.json.encodeToJsonElement(ToolCallResponsePart.serializer(), value.value)
             is ResponsePartReasoning -> output.json.encodeToJsonElement(ReasoningResponsePart.serializer(), value.value)
             is ResponsePartSystemNotification -> output.json.encodeToJsonElement(SystemNotificationResponsePart.serializer(), value.value)
+            is ResponsePartInputRequest -> output.json.encodeToJsonElement(InputRequestResponsePart.serializer(), value.value)
             is ResponsePartUnknown -> value.raw
         }
         output.encodeJsonElement(element)

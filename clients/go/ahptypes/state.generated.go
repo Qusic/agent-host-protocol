@@ -209,6 +209,7 @@ const (
 	ResponsePartKindToolCall           ResponsePartKind = "toolCall"
 	ResponsePartKindReasoning          ResponsePartKind = "reasoning"
 	ResponsePartKindSystemNotification ResponsePartKind = "systemNotification"
+	ResponsePartKindInputRequest       ResponsePartKind = "inputRequest"
 )
 
 // Status of a tool call in the lifecycle state machine.
@@ -1644,6 +1645,29 @@ type SystemNotificationResponsePart struct {
 	Kind ResponsePartKind `json:"kind"`
 	// The text of the system notification
 	Content StringOrMarkdown `json:"content"`
+}
+
+// A resolved input request (elicitation) recorded in the turn transcript.
+//
+// While an input request is open it lives in {@link ChatState.inputRequests}
+// as live, interactive state (see {@link ChatInputRequest}). When the request
+// completes via `chat/inputCompleted`, the reducer removes it from
+// `inputRequests` and appends this part to the active turn so the decision
+// survives in history. This mirrors how a tool-call confirmation persists in
+// its {@link ToolCallResponsePart} (via `confirmed` / `selectedOption` on the
+// terminal {@link ToolCallState}): the live surface drives in-flight UX, the
+// terminal outcome is durable and backfillable via `fetchTurns`.
+//
+// No part is recorded when an outstanding request is *abandoned* (the turn
+// completes, is cancelled, errors, or is truncated) rather than *completed*.
+type InputRequestResponsePart struct {
+	// Discriminant
+	Kind ResponsePartKind `json:"kind"`
+	// The resolved request, carrying its `id`, `message`, `url`, `questions`,
+	// and the final `answers` synced/submitted at completion.
+	Request ChatInputRequest `json:"request"`
+	// How the request was resolved: `accept`, `decline`, or `cancel`.
+	Response ChatInputResponseKind `json:"response"`
 }
 
 // Tool execution result details, available after execution completes.
@@ -3164,6 +3188,7 @@ func (*ResourceResponsePart) isResponsePart()           {}
 func (*ToolCallResponsePart) isResponsePart()           {}
 func (*ReasoningResponsePart) isResponsePart()          {}
 func (*SystemNotificationResponsePart) isResponsePart() {}
+func (*InputRequestResponsePart) isResponsePart()       {}
 
 // ResponsePartUnknown carries an unrecognized ResponsePart variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
 type ResponsePartUnknown struct {
@@ -3205,6 +3230,12 @@ func (u *ResponsePart) UnmarshalJSON(data []byte) error {
 		u.Value = &value
 	case "systemNotification":
 		var value SystemNotificationResponsePart
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	case "inputRequest":
+		var value InputRequestResponsePart
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err
 		}

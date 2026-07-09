@@ -306,6 +306,8 @@ pub enum ResponsePartKind {
     Reasoning,
     #[serde(rename = "systemNotification")]
     SystemNotification,
+    #[serde(rename = "inputRequest")]
+    InputRequest,
 }
 
 /// Status of a tool call in the lifecycle state machine.
@@ -2060,6 +2062,29 @@ pub struct ReasoningResponsePart {
 pub struct SystemNotificationResponsePart {
     /// The text of the system notification
     pub content: StringOrMarkdown,
+}
+
+/// A resolved input request (elicitation) recorded in the turn transcript.
+///
+/// While an input request is open it lives in {@link ChatState.inputRequests}
+/// as live, interactive state (see {@link ChatInputRequest}). When the request
+/// completes via `chat/inputCompleted`, the reducer removes it from
+/// `inputRequests` and appends this part to the active turn so the decision
+/// survives in history. This mirrors how a tool-call confirmation persists in
+/// its {@link ToolCallResponsePart} (via `confirmed` / `selectedOption` on the
+/// terminal {@link ToolCallState}): the live surface drives in-flight UX, the
+/// terminal outcome is durable and backfillable via `fetchTurns`.
+///
+/// No part is recorded when an outstanding request is *abandoned* (the turn
+/// completes, is cancelled, errors, or is truncated) rather than *completed*.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InputRequestResponsePart {
+    /// The resolved request, carrying its `id`, `message`, `url`, `questions`,
+    /// and the final `answers` synced/submitted at completion.
+    pub request: ChatInputRequest,
+    /// How the request was resolved: `accept`, `decline`, or `cancel`.
+    pub response: ChatInputResponseKind,
 }
 
 /// Tool execution result details, available after execution completes.
@@ -3859,6 +3884,8 @@ pub enum ResponsePart {
     Reasoning(ReasoningResponsePart),
     #[serde(rename = "systemNotification")]
     SystemNotification(SystemNotificationResponsePart),
+    #[serde(rename = "inputRequest")]
+    InputRequest(InputRequestResponsePart),
     /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.
     /// Reducers treat this as a no-op.
     #[serde(untagged)]

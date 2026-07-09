@@ -66,6 +66,14 @@ Spec version: `0.5.2`
   optional `title`), so either side of the handshake can identify its
   implementation and build. Informational only — mirrors LSP/MCP and MUST NOT
   be used for feature detection.
+- `InputRequestResponsePart` (`kind: 'inputRequest'`) — a new `ResponsePart`
+  variant that records a resolved input request in a turn's transcript. On
+  `chat/inputCompleted`, the reducer now appends this part (embedding the
+  resolved `ChatInputRequest` with its final `answers` and the `response`:
+  `accept`, `decline`, or `cancel`) to the active turn's `responseParts`, so an
+  elicitation's outcome persists durably, mirroring how a resolved tool-call
+  confirmation is retained. Requests abandoned by turn end, cancel, error, or
+  truncation still record nothing (#324).
 - Optional `terminalCommandPrefix` marker on `InitializeResult` for hosts that
   support interpreting `!`-prefixed user messages as terminal commands.
 

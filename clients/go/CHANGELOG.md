@@ -55,6 +55,12 @@ Implements AHP 0.5.2.
   actions for clients to ask the host to start or stop MCP servers; stopping
   moves an `authRequired` server to `stopped` so it no longer waits on
   authentication.
+- `InputRequestResponsePart` and the `ResponsePartKindInputRequest` discriminant.
+  The reducer now records a resolved input request in the active turn's
+  `ResponseParts` on `ChatInputCompletedAction` — embedding the resolved
+  `ChatInputRequest` (final `Answers`) and the `Response` (`accept`, `decline`,
+  or `cancel`) — so the outcome persists after the live request is removed.
+  Abandoned requests still record nothing (#324).
 
 ### Changed
 
