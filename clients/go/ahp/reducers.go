@@ -1422,9 +1422,9 @@ func ApplyActionToChangeset(state *ahptypes.ChangesetState, action ahptypes.Stat
 		}
 		return ReduceOutcomeNoOp
 
-	case *ahptypes.ChangesetFilesReviewedChangedAction:
-		ids := make(map[string]struct{}, len(a.FileIds))
-		for _, id := range a.FileIds {
+	case *ahptypes.ChangesetFilesReviewChangedAction:
+		ids := make(map[string]struct{}, len(a.Files))
+		for _, id := range a.Files {
 			ids[id] = struct{}{}
 		}
 		changed := false

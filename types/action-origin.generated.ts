@@ -60,7 +60,7 @@ import type {
   ChangesetStatusChangedAction,
   ChangesetFileSetAction,
   ChangesetFileRemovedAction,
-  ChangesetFilesReviewedChangedAction,
+  ChangesetFilesReviewChangedAction,
   ChangesetContentChangedAction,
   ChangesetOperationsChangedAction,
   ChangesetOperationStatusChangedAction,
@@ -271,7 +271,7 @@ export type ChangesetAction =
   | ChangesetStatusChangedAction
   | ChangesetFileSetAction
   | ChangesetFileRemovedAction
-  | ChangesetFilesReviewedChangedAction
+  | ChangesetFilesReviewChangedAction
   | ChangesetContentChangedAction
   | ChangesetOperationsChangedAction
   | ChangesetOperationStatusChangedAction
@@ -280,7 +280,7 @@ export type ChangesetAction =
 
 /** Union of changeset actions that clients may dispatch. */
 export type ClientChangesetAction =
-  never
+  | ChangesetFilesReviewChangedAction
 ;
 
 /** Union of changeset actions that only the server may produce. */
@@ -288,7 +288,6 @@ export type ServerChangesetAction =
   | ChangesetStatusChangedAction
   | ChangesetFileSetAction
   | ChangesetFileRemovedAction
-  | ChangesetFilesReviewedChangedAction
   | ChangesetContentChangedAction
   | ChangesetOperationsChangedAction
   | ChangesetOperationStatusChangedAction
@@ -397,7 +396,7 @@ export const IS_CLIENT_DISPATCHABLE: { readonly [K in StateAction['type']]: bool
   [ActionType.ChangesetStatusChanged]: false,
   [ActionType.ChangesetFileSet]: false,
   [ActionType.ChangesetFileRemoved]: false,
-  [ActionType.ChangesetFilesReviewedChanged]: false,
+  [ActionType.ChangesetFilesReviewChanged]: true,
   [ActionType.ChangesetContentChanged]: false,
   [ActionType.ChangesetOperationsChanged]: false,
   [ActionType.ChangesetOperationStatusChanged]: false,

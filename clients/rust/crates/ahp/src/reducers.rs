@@ -1532,8 +1532,8 @@ pub fn apply_action_to_changeset(
             state.files.remove(idx);
             ReduceOutcome::Applied
         }
-        StateAction::ChangesetFilesReviewedChanged(a) => {
-            let ids: std::collections::HashSet<&String> = a.file_ids.iter().collect();
+        StateAction::ChangesetFilesReviewChanged(a) => {
+            let ids: std::collections::HashSet<&String> = a.files.iter().collect();
             let mut changed = false;
             for file in state.files.iter_mut() {
                 if !ids.contains(&file.id) || file.reviewed == Some(a.reviewed) {

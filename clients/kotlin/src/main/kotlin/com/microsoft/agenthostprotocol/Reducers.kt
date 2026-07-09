@@ -1394,8 +1394,8 @@ public fun changesetReducer(state: ChangesetState, action: StateAction): Changes
         }
     }
 
-    is StateActionChangesetFilesReviewedChanged -> {
-        val ids = action.value.fileIds.toSet()
+    is StateActionChangesetFilesReviewChanged -> {
+        val ids = action.value.files.toSet()
         var changed = false
         val next = state.files.map { file ->
             if (file.id !in ids || file.reviewed == action.value.reviewed) {
