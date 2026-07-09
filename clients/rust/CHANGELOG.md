@@ -13,6 +13,8 @@ and the package follows [SemVer](https://semver.org).
 The `publish-rust.yml` workflow refuses to publish a `rust/vX.Y.Z` tag whose
 matching `## [X.Y.Z]` heading is missing from this file.
 
+## [Unreleased]
+
 ## [0.5.2] — 2026-07-09
 
 Implements AHP 0.5.2.

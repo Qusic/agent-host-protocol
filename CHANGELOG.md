@@ -15,6 +15,18 @@ at the time of release. The `publish-spec.yml` workflow refuses to publish a
 `spec/vX.Y.Z` tag whose matching `## [X.Y.Z]` heading is missing from this
 file.
 
+## [Unreleased]
+
+The next spec release will be cut from `main` once breaking or notable additive
+changes accumulate. Track in-flight protocol changes via PRs touching
+[`types/`](types/) and the per-symbol `ACTION_INTRODUCED_IN` /
+`NOTIFICATION_INTRODUCED_IN` maps in
+[`types/version/registry.ts`](types/version/registry.ts).
+
+## [0.6.0] — Unreleased
+
+Spec version: `0.6.0`
+
 ## [0.5.2] — 2026-07-09
 
 Spec version: `0.5.2`
