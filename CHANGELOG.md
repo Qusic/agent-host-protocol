@@ -32,6 +32,13 @@ changes accumulate. Track in-flight protocol changes via PRs touching
   functionality.
 - `changeset/filesReviewedChanged` action for servers to update the `reviewed`
   flag of one or more changeset files.
+- Hoisted the optional `_meta` provider-metadata slot from `AgentCustomization`
+  up to the shared `CustomizationBase`, so every customization type
+  (`PluginCustomization`, `ClientPluginCustomization`, `DirectoryCustomization`,
+  `SkillCustomization`, `PromptCustomization`, `RuleCustomization`,
+  `HookCustomization`, and `McpServerCustomization`) now carries the same
+  provider-specific escape hatch. Wire-compatible: `AgentCustomization` still
+  exposes `_meta`, now by inheritance.
 - Optional `version` field on `PluginCustomization` (inherited by
   `ClientPluginCustomization`), carrying the plugin's semver sourced from the
   Open Plugins manifest's optional `version`. Provenance / display only; absent
@@ -67,6 +74,8 @@ Spec version: `0.5.2`
   elicitation's outcome persists durably, mirroring how a resolved tool-call
   confirmation is retained. Requests abandoned by turn end, cancel, error, or
   truncation still record nothing (#324).
+- Optional `terminalCommandPrefix` marker on `InitializeResult` for hosts that
+  support interpreting `!`-prefixed user messages as terminal commands.
 
 ### Changed
 

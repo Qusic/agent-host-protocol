@@ -38,11 +38,18 @@ Implements AHP 0.5.2.
   functionality.
 - `changeset/filesReviewedChanged` action for servers to update the `reviewed`
   flag of one or more changeset files.
+- Optional `meta` (wire `_meta`) provider-metadata field on every customization
+  type, moved from `AgentCustomization` up to the shared customization base so
+  `PluginCustomization`, `ClientPluginCustomization`, `DirectoryCustomization`,
+  `SkillCustomization`, `PromptCustomization`, `RuleCustomization`,
+  `HookCustomization`, and `McpServerCustomization` all carry it.
 - Optional `server_info` on `InitializeResult` and `client_info` on
   `InitializeParams`, each an `Implementation` struct (`name`, optional
   `version`, optional `title`), identifying the implementation and build behind
   either side of the handshake. Informational only — MUST NOT be used for
   feature detection.
+- Optional `terminal_command_prefix` on `InitializeResult` for hosts that
+  support interpreting `!`-prefixed user messages as terminal commands.
 - Optional `version` field on `PluginCustomization` (inherited by
   `ClientPluginCustomization`), carrying the plugin's semver sourced from the
   Open Plugins manifest. Provenance / display only.

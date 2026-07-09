@@ -2973,6 +2973,15 @@ data class PluginCustomization(
      */
     val range: TextRange? = null,
     /**
+     * Additional provider-specific metadata for this customization.
+     *
+     * Mirrors the MCP `_meta` convention. Optional and opaque to the
+     * protocol; producers and consumers agree on its contents
+     * out-of-band.
+     */
+    @SerialName("_meta")
+    val meta: Map<String, JsonElement>? = null,
+    /**
      * Whether this container is currently enabled.
      */
     val enabled: Boolean,
@@ -3039,6 +3048,15 @@ data class ClientPluginCustomization(
      * Absent when the customization covers the whole resource.
      */
     val range: TextRange? = null,
+    /**
+     * Additional provider-specific metadata for this customization.
+     *
+     * Mirrors the MCP `_meta` convention. Optional and opaque to the
+     * protocol; producers and consumers agree on its contents
+     * out-of-band.
+     */
+    @SerialName("_meta")
+    val meta: Map<String, JsonElement>? = null,
     /**
      * Whether this container is currently enabled.
      */
@@ -3111,6 +3129,15 @@ data class DirectoryCustomization(
      */
     val range: TextRange? = null,
     /**
+     * Additional provider-specific metadata for this customization.
+     *
+     * Mirrors the MCP `_meta` convention. Optional and opaque to the
+     * protocol; producers and consumers agree on its contents
+     * out-of-band.
+     */
+    @SerialName("_meta")
+    val meta: Map<String, JsonElement>? = null,
+    /**
      * Whether this container is currently enabled.
      */
     val enabled: Boolean,
@@ -3177,6 +3204,15 @@ data class AgentCustomization(
      */
     val range: TextRange? = null,
     /**
+     * Additional provider-specific metadata for this customization.
+     *
+     * Mirrors the MCP `_meta` convention. Optional and opaque to the
+     * protocol; producers and consumers agree on its contents
+     * out-of-band.
+     */
+    @SerialName("_meta")
+    val meta: Map<String, JsonElement>? = null,
+    /**
      * Whether this child is individually enabled. Absent means enabled, so a
      * producer only needs to set it to surface a child that exists but is
      * turned off on its own.
@@ -3223,14 +3259,7 @@ data class AgentCustomization(
      * in a picker); it remains available for the agent to auto-delegate
      * to. Absent or `false` means the user may select it.
      */
-    val disableUserInvocation: Boolean? = null,
-    /**
-     * Additional provider-specific metadata for this custom agent.
-     *
-     * Mirrors the MCP `_meta` convention.
-     */
-    @SerialName("_meta")
-    val meta: Map<String, JsonElement>? = null
+    val disableUserInvocation: Boolean? = null
 )
 
 @Serializable
@@ -3266,6 +3295,15 @@ data class SkillCustomization(
      * Absent when the customization covers the whole resource.
      */
     val range: TextRange? = null,
+    /**
+     * Additional provider-specific metadata for this customization.
+     *
+     * Mirrors the MCP `_meta` convention. Optional and opaque to the
+     * protocol; producers and consumers agree on its contents
+     * out-of-band.
+     */
+    @SerialName("_meta")
+    val meta: Map<String, JsonElement>? = null,
     /**
      * Whether this child is individually enabled. Absent means enabled, so a
      * producer only needs to set it to surface a child that exists but is
@@ -3334,6 +3372,15 @@ data class PromptCustomization(
      */
     val range: TextRange? = null,
     /**
+     * Additional provider-specific metadata for this customization.
+     *
+     * Mirrors the MCP `_meta` convention. Optional and opaque to the
+     * protocol; producers and consumers agree on its contents
+     * out-of-band.
+     */
+    @SerialName("_meta")
+    val meta: Map<String, JsonElement>? = null,
+    /**
      * Whether this child is individually enabled. Absent means enabled, so a
      * producer only needs to set it to surface a child that exists but is
      * turned off on its own.
@@ -3387,6 +3434,15 @@ data class RuleCustomization(
      * Absent when the customization covers the whole resource.
      */
     val range: TextRange? = null,
+    /**
+     * Additional provider-specific metadata for this customization.
+     *
+     * Mirrors the MCP `_meta` convention. Optional and opaque to the
+     * protocol; producers and consumers agree on its contents
+     * out-of-band.
+     */
+    @SerialName("_meta")
+    val meta: Map<String, JsonElement>? = null,
     /**
      * Whether this child is individually enabled. Absent means enabled, so a
      * producer only needs to set it to surface a child that exists but is
@@ -3453,6 +3509,15 @@ data class HookCustomization(
      */
     val range: TextRange? = null,
     /**
+     * Additional provider-specific metadata for this customization.
+     *
+     * Mirrors the MCP `_meta` convention. Optional and opaque to the
+     * protocol; producers and consumers agree on its contents
+     * out-of-band.
+     */
+    @SerialName("_meta")
+    val meta: Map<String, JsonElement>? = null,
+    /**
      * Whether this child is individually enabled. Absent means enabled, so a
      * producer only needs to set it to surface a child that exists but is
      * turned off on its own.
@@ -3502,6 +3567,15 @@ data class McpServerCustomization(
      * Absent when the customization covers the whole resource.
      */
     val range: TextRange? = null,
+    /**
+     * Additional provider-specific metadata for this customization.
+     *
+     * Mirrors the MCP `_meta` convention. Optional and opaque to the
+     * protocol; producers and consumers agree on its contents
+     * out-of-band.
+     */
+    @SerialName("_meta")
+    val meta: Map<String, JsonElement>? = null,
     val type: CustomizationType,
     /**
      * Whether this MCP server is currently enabled.
