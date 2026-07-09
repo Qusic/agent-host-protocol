@@ -23,10 +23,25 @@ changes accumulate. Track in-flight protocol changes via PRs touching
 `NOTIFICATION_INTRODUCED_IN` maps in
 [`types/version/registry.ts`](types/version/registry.ts).
 
+## [0.6.0] — Unreleased
+
+Spec version: `0.6.0`
+
+## [0.5.2] — 2026-07-09
+
+Spec version: `0.5.2`
+
 ### Added
 
 - `ToolResultTerminalCompleteContent` for terminal-style completion metadata in tool
   results.
+- Optional `enabled` flag on the child customizations (`AgentCustomization`,
+  `SkillCustomization`, `PromptCustomization`, `RuleCustomization`,
+  `HookCustomization`) so an individual child can be turned off independently of
+  its container; absent means enabled.
+- `disableUserInvocation` on `SkillCustomization`, plus `disableModelInvocation`
+  and `disableUserInvocation` on `AgentCustomization`, giving custom agents and
+  skills a symmetric user/model invocation matrix.
 - Optional `reviewed` field on `ChangesetFile`. Omitting it (or setting it to
   `undefined`) signals that the server does not support the file "review"
   functionality.
@@ -39,28 +54,6 @@ changes accumulate. Track in-flight protocol changes via PRs touching
   `HookCustomization`, and `McpServerCustomization`) now carries the same
   provider-specific escape hatch. Wire-compatible: `AgentCustomization` still
   exposes `_meta`, now by inheritance.
-- Optional `version` field on `PluginCustomization` (inherited by
-  `ClientPluginCustomization`), carrying the plugin's semver sourced from the
-  Open Plugins manifest's optional `version`. Provenance / display only; absent
-  when the manifest declares no version or the source has no version concept.
-- `session/mcpServerStartRequested` and `session/mcpServerStopRequested`
-  actions for clients to ask the host to start or stop MCP servers; stopping
-  moves an `authRequired` server to `stopped` so it no longer waits on
-  authentication.
-
-## [0.5.2] — Unreleased
-
-Spec version: `0.5.2`
-
-### Added
-
-- Optional `enabled` flag on the child customizations (`AgentCustomization`,
-  `SkillCustomization`, `PromptCustomization`, `RuleCustomization`,
-  `HookCustomization`) so an individual child can be turned off independently of
-  its container; absent means enabled.
-- `disableUserInvocation` on `SkillCustomization`, plus `disableModelInvocation`
-  and `disableUserInvocation` on `AgentCustomization`, giving custom agents and
-  skills a symmetric user/model invocation matrix.
 - Optional `serverInfo` on `InitializeResult` and `clientInfo` on
   `InitializeParams`, each an `Implementation` (`name`, optional `version`,
   optional `title`), so either side of the handshake can identify its
@@ -76,6 +69,14 @@ Spec version: `0.5.2`
   truncation still record nothing (#324).
 - Optional `terminalCommandPrefix` marker on `InitializeResult` for hosts that
   support interpreting `!`-prefixed user messages as terminal commands.
+- Optional `version` field on `PluginCustomization` (inherited by
+  `ClientPluginCustomization`), carrying the plugin's semver sourced from the
+  Open Plugins manifest's optional `version`. Provenance / display only; absent
+  when the manifest declares no version or the source has no version concept.
+- `session/mcpServerStartRequested` and `session/mcpServerStopRequested`
+  actions for clients to ask the host to start or stop MCP servers; stopping
+  moves an `authRequired` server to `stopped` so it no longer waits on
+  authentication.
 
 ### Changed
 

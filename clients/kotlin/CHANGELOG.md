@@ -15,7 +15,7 @@ versions (`*-SNAPSHOT`) are explicitly rejected by the publish pipeline; bump
 
 ## [Unreleased]
 
-## [0.5.2] — Unreleased
+## [0.5.2] — 2026-07-09
 
 Implements AHP 0.5.2.
 

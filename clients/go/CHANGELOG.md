@@ -14,16 +14,13 @@ tag whose matching `## [X.Y.Z]` heading is missing from this file.
 
 ## [Unreleased]
 
-### Added
-
-- Typed `resource*` convenience methods on `ahp.Client`: send wrappers (`ResourceRead`, `ResourceWrite`, `ResourceList`, `ResourceCopy`, `ResourceDelete`, `ResourceMove`, `ResourceResolve`, `ResourceMkdir`, `ResourceRequest`, `CreateResourceWatch`) and inbound server-request handling via `SetServerRequestHandler` / `SetResourceRequestHandlers` (new `ServerRequestHandler` and `ResourceRequestHandlers` types). Inbound server-initiated requests are now answered (previously dropped) — via the installed handler, or `MethodNotFound` when none is set.
-
-## [0.5.2] — Unreleased
+## [0.5.2] — 2026-07-09
 
 Implements AHP 0.5.2.
 
 ### Added
 
+- Typed `resource*` convenience methods on `ahp.Client`: send wrappers (`ResourceRead`, `ResourceWrite`, `ResourceList`, `ResourceCopy`, `ResourceDelete`, `ResourceMove`, `ResourceResolve`, `ResourceMkdir`, `ResourceRequest`, `CreateResourceWatch`) and inbound server-request handling via `SetServerRequestHandler` / `SetResourceRequestHandlers` (new `ServerRequestHandler` and `ResourceRequestHandlers` types). Inbound server-initiated requests are now answered (previously dropped) — via the installed handler, or `MethodNotFound` when none is set.
 - `ToolResultTerminalCompleteContent` for terminal-style completion metadata in tool
   results.
 - Optional `Enabled` field on the child customization types
