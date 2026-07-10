@@ -61,7 +61,7 @@ public enum ActionType: String, Codable, Sendable {
     case changesetStatusChanged = "changeset/statusChanged"
     case changesetFileSet = "changeset/fileSet"
     case changesetFileRemoved = "changeset/fileRemoved"
-    case changesetFilesReviewedChanged = "changeset/filesReviewedChanged"
+    case changesetFilesReviewChanged = "changeset/filesReviewChanged"
     case changesetContentChanged = "changeset/contentChanged"
     case changesetOperationsChanged = "changeset/operationsChanged"
     case changesetOperationStatusChanged = "changeset/operationStatusChanged"
@@ -1384,20 +1384,20 @@ public struct ChangesetFileRemovedAction: Codable, Sendable {
     }
 }
 
-public struct ChangesetFilesReviewedChangedAction: Codable, Sendable {
+public struct ChangesetFilesReviewChangedAction: Codable, Sendable {
     public var type: ActionType
-    /// The {@link ChangesetFile.id}s whose reviewed state changed.
-    public var fileIds: [String]
-    /// The new reviewed state to apply to each listed file.
+    /// The {@link ChangesetFile.id | ids} of the files whose review state changed.
+    public var files: [String]
+    /// New review state applied to every listed file: `true` once reviewed, `false` to clear it.
     public var reviewed: Bool
 
     public init(
         type: ActionType,
-        fileIds: [String],
+        files: [String],
         reviewed: Bool
     ) {
         self.type = type
-        self.fileIds = fileIds
+        self.files = files
         self.reviewed = reviewed
     }
 }
@@ -1894,7 +1894,7 @@ public enum StateAction: Codable, Sendable {
     case changesetStatusChanged(ChangesetStatusChangedAction)
     case changesetFileSet(ChangesetFileSetAction)
     case changesetFileRemoved(ChangesetFileRemovedAction)
-    case changesetFilesReviewedChanged(ChangesetFilesReviewedChangedAction)
+    case changesetFilesReviewChanged(ChangesetFilesReviewChangedAction)
     case changesetContentChanged(ChangesetContentChangedAction)
     case changesetOperationsChanged(ChangesetOperationsChangedAction)
     case changesetOperationStatusChanged(ChangesetOperationStatusChangedAction)
@@ -2040,8 +2040,8 @@ public enum StateAction: Codable, Sendable {
             self = .changesetFileSet(try ChangesetFileSetAction(from: decoder))
         case "changeset/fileRemoved":
             self = .changesetFileRemoved(try ChangesetFileRemovedAction(from: decoder))
-        case "changeset/filesReviewedChanged":
-            self = .changesetFilesReviewedChanged(try ChangesetFilesReviewedChangedAction(from: decoder))
+        case "changeset/filesReviewChanged":
+            self = .changesetFilesReviewChanged(try ChangesetFilesReviewChangedAction(from: decoder))
         case "changeset/contentChanged":
             self = .changesetContentChanged(try ChangesetContentChangedAction(from: decoder))
         case "changeset/operationsChanged":
@@ -2150,7 +2150,7 @@ public enum StateAction: Codable, Sendable {
         case .changesetStatusChanged(let v): try v.encode(to: encoder)
         case .changesetFileSet(let v): try v.encode(to: encoder)
         case .changesetFileRemoved(let v): try v.encode(to: encoder)
-        case .changesetFilesReviewedChanged(let v): try v.encode(to: encoder)
+        case .changesetFilesReviewChanged(let v): try v.encode(to: encoder)
         case .changesetContentChanged(let v): try v.encode(to: encoder)
         case .changesetOperationsChanged(let v): try v.encode(to: encoder)
         case .changesetOperationStatusChanged(let v): try v.encode(to: encoder)
