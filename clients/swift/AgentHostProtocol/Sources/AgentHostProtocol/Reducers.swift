@@ -28,8 +28,21 @@ private func parseTimestamp(_ value: String) -> Date? {
         ?? iso8601TimestampFormatterWithoutFractionalSeconds.date(from: value)
 }
 
-private func timestampMilliseconds(_ date: Date) -> Int {
-    Int(floor(date.timeIntervalSince1970 * 1000))
+private func parseTimestampMilliseconds(_ value: String) -> Int? {
+    guard parseTimestamp(value) != nil else { return nil }
+
+    var normalized = value
+    if let decimal = value.firstIndex(of: "."),
+       let timezone = value[decimal...].firstIndex(where: { $0 == "Z" || $0 == "+" || $0 == "-" }) {
+        let fractionStart = value.index(after: decimal)
+        let fraction = value[fractionStart..<timezone]
+        let milliseconds = String(fraction.prefix(3))
+            .padding(toLength: 3, withPad: "0", startingAt: 0)
+        normalized = String(value[..<fractionStart]) + milliseconds + String(value[timezone...])
+    }
+
+    guard let date = parseTimestamp(normalized) else { return nil }
+    return Int((date.timeIntervalSince1970 * 1000).rounded())
 }
 
 // MARK: - Status Bitset Helpers
@@ -116,7 +129,7 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
     // ── Turn Lifecycle ────────────────────────────────────────────────────
 
     case .chatTurnStarted(let a):
-        guard parseTimestamp(a.startedAt) != nil else { return state }
+        guard parseTimestampMilliseconds(a.startedAt) != nil else { return state }
         var next = state
         next.modifiedAt = a.startedAt
         next.activeTurn = ActiveTurn(
@@ -909,7 +922,7 @@ private func endTurn(
     terminalStatus: SessionStatus? = nil,
     error: ErrorInfo? = nil
 ) -> ChatState {
-    guard let ended = parseTimestamp(endedAt) else { return state }
+    guard let endedMilliseconds = parseTimestampMilliseconds(endedAt) else { return state }
     guard let activeTurn = state.activeTurn, activeTurn.id == turnId else {
         return state
     }
@@ -959,9 +972,8 @@ private func endTurn(
         }
     }
 
-    let endedMilliseconds = timestampMilliseconds(ended)
-    let duration = parseTimestamp(activeTurn.startedAt)
-        .map { max(0, endedMilliseconds - timestampMilliseconds($0)) }
+    let duration = parseTimestampMilliseconds(activeTurn.startedAt)
+        .map { max(0, endedMilliseconds - $0) }
     let turn = Turn(
         id: activeTurn.id,
         startedAt: activeTurn.startedAt,
