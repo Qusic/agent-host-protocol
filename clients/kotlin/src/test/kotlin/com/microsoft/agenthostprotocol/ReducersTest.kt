@@ -209,7 +209,7 @@ class ReducersTest {
     }
 
     @Test
-    fun `turn start timestamp flows through to reducer outputs`() {
+    fun `turn start stores producer timestamp while modifiedAt uses local clock`() {
         val chatResult = chatReducer(
             newChat(),
             StateActionChatTurnStarted(
@@ -221,7 +221,8 @@ class ReducersTest {
                 ),
             ),
         )
-        assertEquals("1970-01-01T00:00:12.345Z", chatResult.modifiedAt)
+        assertEquals("1970-01-01T00:00:09.999Z", chatResult.modifiedAt)
+        assertEquals("1970-01-01T00:00:12.345Z", chatResult.activeTurn?.startedAt)
     }
 
     @Test

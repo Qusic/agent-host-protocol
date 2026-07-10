@@ -716,8 +716,11 @@ public struct ChatTurnCompleteAction: Codable, Sendable {
     public var type: ActionType
     /// Turn identifier
     public var turnId: String
-    /// ISO 8601 timestamp when this turn completed.
-    public var endedAt: String
+    /// Elapsed turn duration in milliseconds, measured by the producer's own
+    /// clock. Clients MUST NOT derive this by subtracting timestamps — cross-
+    /// client clocks may differ — and MUST treat it as opaque, producer-supplied
+    /// data.
+    public var duration: Int
     /// Additional provider-specific metadata for this action.
     ///
     /// Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -730,19 +733,19 @@ public struct ChatTurnCompleteAction: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case type
         case turnId
-        case endedAt
+        case duration
         case meta = "_meta"
     }
 
     public init(
         type: ActionType,
         turnId: String,
-        endedAt: String,
+        duration: Int,
         meta: [String: AnyCodable]? = nil
     ) {
         self.type = type
         self.turnId = turnId
-        self.endedAt = endedAt
+        self.duration = duration
         self.meta = meta
     }
 }
@@ -751,8 +754,11 @@ public struct ChatTurnCancelledAction: Codable, Sendable {
     public var type: ActionType
     /// Turn identifier
     public var turnId: String
-    /// ISO 8601 timestamp when this turn was cancelled.
-    public var endedAt: String
+    /// Elapsed turn duration in milliseconds, measured by the producer's own
+    /// clock. Clients MUST NOT derive this by subtracting timestamps — cross-
+    /// client clocks may differ — and MUST treat it as opaque, producer-supplied
+    /// data.
+    public var duration: Int
     /// Additional provider-specific metadata for this action.
     ///
     /// Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -765,19 +771,19 @@ public struct ChatTurnCancelledAction: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case type
         case turnId
-        case endedAt
+        case duration
         case meta = "_meta"
     }
 
     public init(
         type: ActionType,
         turnId: String,
-        endedAt: String,
+        duration: Int,
         meta: [String: AnyCodable]? = nil
     ) {
         self.type = type
         self.turnId = turnId
-        self.endedAt = endedAt
+        self.duration = duration
         self.meta = meta
     }
 }
@@ -786,8 +792,11 @@ public struct ChatErrorAction: Codable, Sendable {
     public var type: ActionType
     /// Turn identifier
     public var turnId: String
-    /// ISO 8601 timestamp when this turn failed.
-    public var endedAt: String
+    /// Elapsed turn duration in milliseconds, measured by the producer's own
+    /// clock. Clients MUST NOT derive this by subtracting timestamps — cross-
+    /// client clocks may differ — and MUST treat it as opaque, producer-supplied
+    /// data.
+    public var duration: Int
     /// Error details
     public var error: ErrorInfo
     /// Additional provider-specific metadata for this action.
@@ -802,7 +811,7 @@ public struct ChatErrorAction: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case type
         case turnId
-        case endedAt
+        case duration
         case error
         case meta = "_meta"
     }
@@ -810,13 +819,13 @@ public struct ChatErrorAction: Codable, Sendable {
     public init(
         type: ActionType,
         turnId: String,
-        endedAt: String,
+        duration: Int,
         error: ErrorInfo,
         meta: [String: AnyCodable]? = nil
     ) {
         self.type = type
         self.turnId = turnId
-        self.endedAt = endedAt
+        self.duration = duration
         self.error = error
         self.meta = meta
     }

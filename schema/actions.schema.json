@@ -1094,9 +1094,9 @@
           "type": "string",
           "description": "Turn identifier"
         },
-        "endedAt": {
-          "type": "string",
-          "description": "ISO 8601 timestamp when this turn completed."
+        "duration": {
+          "type": "number",
+          "description": "Elapsed turn duration in milliseconds, measured by the producer's own\nclock. Clients MUST NOT derive this by subtracting timestamps — cross-\nclient clocks may differ — and MUST treat it as opaque, producer-supplied\ndata."
         },
         "_meta": {
           "type": "object",
@@ -1107,7 +1107,7 @@
       "required": [
         "type",
         "turnId",
-        "endedAt"
+        "duration"
       ]
     },
     "ChatTurnCancelledAction": {
@@ -1121,9 +1121,9 @@
           "type": "string",
           "description": "Turn identifier"
         },
-        "endedAt": {
-          "type": "string",
-          "description": "ISO 8601 timestamp when this turn was cancelled."
+        "duration": {
+          "type": "number",
+          "description": "Elapsed turn duration in milliseconds, measured by the producer's own\nclock. Clients MUST NOT derive this by subtracting timestamps — cross-\nclient clocks may differ — and MUST treat it as opaque, producer-supplied\ndata."
         },
         "_meta": {
           "type": "object",
@@ -1134,7 +1134,7 @@
       "required": [
         "type",
         "turnId",
-        "endedAt"
+        "duration"
       ]
     },
     "ChatErrorAction": {
@@ -1148,9 +1148,9 @@
           "type": "string",
           "description": "Turn identifier"
         },
-        "endedAt": {
-          "type": "string",
-          "description": "ISO 8601 timestamp when this turn failed."
+        "duration": {
+          "type": "number",
+          "description": "Elapsed turn duration in milliseconds, measured by the producer's own\nclock. Clients MUST NOT derive this by subtracting timestamps — cross-\nclient clocks may differ — and MUST treat it as opaque, producer-supplied\ndata."
         },
         "error": {
           "$ref": "#/$defs/ErrorInfo",
@@ -1165,7 +1165,7 @@
       "required": [
         "type",
         "turnId",
-        "endedAt",
+        "duration",
         "error"
       ]
     },

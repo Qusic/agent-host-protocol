@@ -462,8 +462,11 @@ type ChatTurnCompleteAction struct {
 	Type ActionType `json:"type"`
 	// Turn identifier
 	TurnId string `json:"turnId"`
-	// ISO 8601 timestamp when this turn completed.
-	EndedAt string `json:"endedAt"`
+	// Elapsed turn duration in milliseconds, measured by the producer's own
+	// clock. Clients MUST NOT derive this by subtracting timestamps — cross-
+	// client clocks may differ — and MUST treat it as opaque, producer-supplied
+	// data.
+	Duration int64 `json:"duration"`
 	// Additional provider-specific metadata for this action.
 	//
 	// Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -479,8 +482,11 @@ type ChatTurnCancelledAction struct {
 	Type ActionType `json:"type"`
 	// Turn identifier
 	TurnId string `json:"turnId"`
-	// ISO 8601 timestamp when this turn was cancelled.
-	EndedAt string `json:"endedAt"`
+	// Elapsed turn duration in milliseconds, measured by the producer's own
+	// clock. Clients MUST NOT derive this by subtracting timestamps — cross-
+	// client clocks may differ — and MUST treat it as opaque, producer-supplied
+	// data.
+	Duration int64 `json:"duration"`
 	// Additional provider-specific metadata for this action.
 	//
 	// Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -496,8 +502,11 @@ type ChatErrorAction struct {
 	Type ActionType `json:"type"`
 	// Turn identifier
 	TurnId string `json:"turnId"`
-	// ISO 8601 timestamp when this turn failed.
-	EndedAt string `json:"endedAt"`
+	// Elapsed turn duration in milliseconds, measured by the producer's own
+	// clock. Clients MUST NOT derive this by subtracting timestamps — cross-
+	// client clocks may differ — and MUST treat it as opaque, producer-supplied
+	// data.
+	Duration int64 `json:"duration"`
 	// Error details
 	Error ErrorInfo `json:"error"`
 	// Additional provider-specific metadata for this action.

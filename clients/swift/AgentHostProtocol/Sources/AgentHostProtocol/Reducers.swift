@@ -17,34 +17,6 @@ private let iso8601TimestampFormatter: ISO8601DateFormatter = {
     return formatter
 }()
 
-private let iso8601TimestampFormatterWithoutFractionalSeconds: ISO8601DateFormatter = {
-    let formatter = ISO8601DateFormatter()
-    formatter.formatOptions = [.withInternetDateTime]
-    return formatter
-}()
-
-private func parseTimestamp(_ value: String) -> Date? {
-    iso8601TimestampFormatter.date(from: value)
-        ?? iso8601TimestampFormatterWithoutFractionalSeconds.date(from: value)
-}
-
-private func parseTimestampMilliseconds(_ value: String) -> Int? {
-    guard parseTimestamp(value) != nil else { return nil }
-
-    var normalized = value
-    if let decimal = value.firstIndex(of: "."),
-       let timezone = value[decimal...].firstIndex(where: { $0 == "Z" || $0 == "+" || $0 == "-" }) {
-        let fractionStart = value.index(after: decimal)
-        let fraction = value[fractionStart..<timezone]
-        let milliseconds = String(fraction.prefix(3))
-            .padding(toLength: 3, withPad: "0", startingAt: 0)
-        normalized = String(value[..<fractionStart]) + milliseconds + String(value[timezone...])
-    }
-
-    guard let date = parseTimestamp(normalized) else { return nil }
-    return Int((date.timeIntervalSince1970 * 1000).rounded())
-}
-
 // MARK: - Status Bitset Helpers
 
 /// Bitmask covering the mutually-exclusive activity bits (bits 0–4).
@@ -129,9 +101,8 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
     // ── Turn Lifecycle ────────────────────────────────────────────────────
 
     case .chatTurnStarted(let a):
-        guard parseTimestampMilliseconds(a.startedAt) != nil else { return state }
         var next = state
-        next.modifiedAt = a.startedAt
+        next.modifiedAt = currentTimestamp()
         next.activeTurn = ActiveTurn(
             id: a.turnId,
             startedAt: a.startedAt,
@@ -168,13 +139,13 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
         return next
 
     case .chatTurnComplete(let a):
-        return endTurn(state: state, turnId: a.turnId, endedAt: a.endedAt, turnState: .complete)
+        return endTurn(state: state, turnId: a.turnId, duration: a.duration, turnState: .complete)
 
     case .chatTurnCancelled(let a):
-        return endTurn(state: state, turnId: a.turnId, endedAt: a.endedAt, turnState: .cancelled)
+        return endTurn(state: state, turnId: a.turnId, duration: a.duration, turnState: .cancelled)
 
     case .chatError(let a):
-        return endTurn(state: state, turnId: a.turnId, endedAt: a.endedAt, turnState: .error, terminalStatus: .error, error: a.error)
+        return endTurn(state: state, turnId: a.turnId, duration: a.duration, turnState: .error, terminalStatus: .error, error: a.error)
 
     case .chatActivityChanged(let a):
         var next = state
@@ -917,12 +888,11 @@ private func upsertInputRequest(state: ChatState, request: ChatInputRequest) -> 
 private func endTurn(
     state: ChatState,
     turnId: String,
-    endedAt: String,
+    duration: Int,
     turnState: TurnState,
     terminalStatus: SessionStatus? = nil,
     error: ErrorInfo? = nil
 ) -> ChatState {
-    guard let endedMilliseconds = parseTimestampMilliseconds(endedAt) else { return state }
     guard let activeTurn = state.activeTurn, activeTurn.id == turnId else {
         return state
     }
@@ -972,12 +942,12 @@ private func endTurn(
         }
     }
 
-    let duration = parseTimestampMilliseconds(activeTurn.startedAt)
-        .map { max(0, endedMilliseconds - $0) }
+    // Defensive clamp: `duration` is producer-supplied and opaque to this
+    // reducer, but a negative value would be nonsensical to display.
     let turn = Turn(
         id: activeTurn.id,
         startedAt: activeTurn.startedAt,
-        duration: duration,
+        duration: max(0, duration),
         message: activeTurn.message,
         responseParts: responseParts,
         usage: activeTurn.usage,
@@ -990,7 +960,7 @@ private func endTurn(
     next.activeTurn = nil
     next.inputRequests = nil
     next.status = chatSummaryStatus(next, terminalStatus: terminalStatus)
-    next.modifiedAt = endedAt
+    next.modifiedAt = currentTimestamp()
     return next
 }
 

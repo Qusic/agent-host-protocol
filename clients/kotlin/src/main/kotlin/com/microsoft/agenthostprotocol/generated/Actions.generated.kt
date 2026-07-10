@@ -614,9 +614,12 @@ data class ChatTurnCompleteAction(
      */
     val turnId: String,
     /**
-     * ISO 8601 timestamp when this turn completed.
+     * Elapsed turn duration in milliseconds, measured by the producer's own
+     * clock. Clients MUST NOT derive this by subtracting timestamps — cross-
+     * client clocks may differ — and MUST treat it as opaque, producer-supplied
+     * data.
      */
-    val endedAt: String,
+    val duration: Long,
     /**
      * Additional provider-specific metadata for this action.
      *
@@ -638,9 +641,12 @@ data class ChatTurnCancelledAction(
      */
     val turnId: String,
     /**
-     * ISO 8601 timestamp when this turn was cancelled.
+     * Elapsed turn duration in milliseconds, measured by the producer's own
+     * clock. Clients MUST NOT derive this by subtracting timestamps — cross-
+     * client clocks may differ — and MUST treat it as opaque, producer-supplied
+     * data.
      */
-    val endedAt: String,
+    val duration: Long,
     /**
      * Additional provider-specific metadata for this action.
      *
@@ -662,9 +668,12 @@ data class ChatErrorAction(
      */
     val turnId: String,
     /**
-     * ISO 8601 timestamp when this turn failed.
+     * Elapsed turn duration in milliseconds, measured by the producer's own
+     * clock. Clients MUST NOT derive this by subtracting timestamps — cross-
+     * client clocks may differ — and MUST treat it as opaque, producer-supplied
+     * data.
      */
-    val endedAt: String,
+    val duration: Long,
     /**
      * Error details
      */

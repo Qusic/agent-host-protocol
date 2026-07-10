@@ -103,6 +103,10 @@ final class ReducersTests: XCTestCase {
     // MARK: - Timestamp Behavior
 
     func testChatTurnStartedUpdatesModifiedAt() {
+        let originalProvider = currentTimestampProvider
+        currentTimestampProvider = { 9_999 }
+        defer { currentTimestampProvider = originalProvider }
+
         let state = ChatState(
             resource: C,
             title: "Test Chat",
@@ -117,7 +121,8 @@ final class ReducersTests: XCTestCase {
                 message: Message(text: "Hello", origin: MessageOrigin(kind: .user))
             ))
         )
-        XCTAssertEqual(next.modifiedAt, "2026-07-09T20:00:00.000Z")
+        XCTAssertEqual(next.modifiedAt, "1970-01-01T00:00:09.999Z")
+        XCTAssertEqual(next.activeTurn?.startedAt, "2026-07-09T20:00:00.000Z")
     }
 
     func testTitleChangedUpdatesTitle() {

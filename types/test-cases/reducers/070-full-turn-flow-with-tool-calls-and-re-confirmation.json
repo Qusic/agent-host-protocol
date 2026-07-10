@@ -139,7 +139,7 @@
     {
       "type": "chat/turnComplete",
       "turnId": "t1",
-      "endedAt": "1970-01-01T00:00:09.999Z"
+      "duration": 8999
     }
   ],
   "expected": {

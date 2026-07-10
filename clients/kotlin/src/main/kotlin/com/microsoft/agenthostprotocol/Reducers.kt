@@ -82,11 +82,6 @@ public var currentTimestampProvider: () -> Long = { System.currentTimeMillis() }
 
 private fun nowIsoString(): String = Instant.ofEpochMilli(currentTimestampProvider()).toString()
 
-private fun parseTimestampMillis(value: String): Long? {
-    val millis = runCatching { Instant.parse(value).toEpochMilli() }.getOrNull() ?: return null
-    return millis.takeIf { it in -8_640_000_000_000_000L..8_640_000_000_000_000L }
-}
-
 // ─── Status Bitset Helpers ──────────────────────────────────────────────────
 
 /** Bitmask covering the mutually-exclusive activity bits (bits 0–4). */
@@ -337,12 +332,11 @@ private fun updateResponsePart(
 private fun endTurn(
     state: ChatState,
     turnId: String,
-    endedAt: String,
+    duration: Long,
     turnState: TurnState,
     terminalStatus: SessionStatus? = null,
     error: ErrorInfo? = null,
 ): ChatState {
-    val ended = parseTimestampMillis(endedAt) ?: return state
     val active = state.activeTurn ?: return state
     if (active.id != turnId) return state
 
@@ -393,12 +387,12 @@ private fun endTurn(
         )
     }
 
-    val duration = parseTimestampMillis(active.startedAt)
-        ?.let { started -> maxOf(0L, ended - started) }
+    // Defensive clamp: `duration` is producer-supplied and opaque to this
+    // reducer, but a negative value would be nonsensical to display.
     val turn = Turn(
         id = active.id,
         startedAt = active.startedAt,
-        duration = duration,
+        duration = maxOf(0L, duration),
         message = active.message,
         responseParts = finalizedParts,
         usage = active.usage,
@@ -410,7 +404,7 @@ private fun endTurn(
         turns = state.turns + turn,
         activeTurn = null,
         inputRequests = null,
-        modifiedAt = endedAt,
+        modifiedAt = nowIsoString(),
     )
     return withoutTurn.copy(status = chatSummaryStatus(withoutTurn, terminalStatus))
 }
@@ -755,36 +749,32 @@ public fun chatReducer(state: ChatState, action: StateAction): ChatState = when 
 
     is StateActionChatTurnStarted -> {
         val a = action.value
-        if (parseTimestampMillis(a.startedAt) == null) {
-            state
+        val withTurn = state.copy(
+            activeTurn = ActiveTurn(
+                id = a.turnId,
+                startedAt = a.startedAt,
+                message = a.message,
+                responseParts = emptyList(),
+                usage = null,
+            ),
+        )
+        val withStatus = withTurn.copy(
+            status = withStatusFlag(chatSummaryStatus(withTurn), SessionStatus.IS_READ, false),
+            modifiedAt = nowIsoString(),
+        )
+        if (a.queuedMessageId == null) {
+            withStatus
         } else {
-            val withTurn = state.copy(
-                activeTurn = ActiveTurn(
-                    id = a.turnId,
-                    startedAt = a.startedAt,
-                    message = a.message,
-                    responseParts = emptyList(),
-                    usage = null,
-                ),
-            )
-            val withStatus = withTurn.copy(
-                status = withStatusFlag(chatSummaryStatus(withTurn), SessionStatus.IS_READ, false),
-                modifiedAt = a.startedAt,
-            )
-            if (a.queuedMessageId == null) {
-                withStatus
-            } else {
-                var next = withStatus
-                if (next.steeringMessage?.id == a.queuedMessageId) {
-                    next = next.copy(steeringMessage = null)
-                }
-                val queued = next.queuedMessages
-                if (queued != null) {
-                    val filtered = queued.filter { it.id != a.queuedMessageId }
-                    next = next.copy(queuedMessages = filtered.ifEmpty { null })
-                }
-                next
+            var next = withStatus
+            if (next.steeringMessage?.id == a.queuedMessageId) {
+                next = next.copy(steeringMessage = null)
             }
+            val queued = next.queuedMessages
+            if (queued != null) {
+                val filtered = queued.filter { it.id != a.queuedMessageId }
+                next = next.copy(queuedMessages = filtered.ifEmpty { null })
+            }
+            next
         }
     }
 
@@ -812,13 +802,13 @@ public fun chatReducer(state: ChatState, action: StateAction): ChatState = when 
     }
 
     is StateActionChatTurnComplete ->
-        endTurn(state, action.value.turnId, action.value.endedAt, TurnState.COMPLETE)
+        endTurn(state, action.value.turnId, action.value.duration, TurnState.COMPLETE)
 
     is StateActionChatTurnCancelled ->
-        endTurn(state, action.value.turnId, action.value.endedAt, TurnState.CANCELLED)
+        endTurn(state, action.value.turnId, action.value.duration, TurnState.CANCELLED)
 
     is StateActionChatError ->
-        endTurn(state, action.value.turnId, action.value.endedAt, TurnState.ERROR, SessionStatus.ERROR, action.value.error)
+        endTurn(state, action.value.turnId, action.value.duration, TurnState.ERROR, SessionStatus.ERROR, action.value.error)
 
     is StateActionChatActivityChanged ->
         state.copy(activity = action.value.activity)

@@ -41,9 +41,9 @@ func main() {
 			Content: "there!",
 		}},
 		{Value: &ahptypes.ChatTurnCompleteAction{
-			Type:    ahptypes.ActionTypeChatTurnComplete,
-			TurnId:  "t1",
-			EndedAt: "2026-07-09T20:00:01.000Z",
+			Type:     ahptypes.ActionTypeChatTurnComplete,
+			TurnId:   "t1",
+			Duration: 1000,
 		}},
 	}
 

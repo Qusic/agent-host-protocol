@@ -117,7 +117,7 @@ function endTurn(
   state: ChatState,
   turnId: string,
   turnState: TurnState,
-  endedAt: string,
+  duration: number,
   terminalStatus?: SessionStatus.Error,
   error?: { errorType: string; message: string; stack?: string },
 ): ChatState {
@@ -147,15 +147,12 @@ function endTurn(
     };
   });
 
-  const startedAt = Date.parse(active.startedAt);
-  const completedAt = Date.parse(endedAt);
-  const duration = Number.isFinite(startedAt) && Number.isFinite(completedAt)
-    ? Math.max(0, completedAt - startedAt)
-    : undefined;
   const turn: Turn = {
     id: active.id,
     startedAt: active.startedAt,
-    duration,
+    // Defensive clamp: the duration is producer-supplied and opaque to this
+    // reducer, but a negative value would be nonsensical to display.
+    duration: Math.max(0, duration),
     message: active.message,
     responseParts,
     usage: active.usage,
@@ -167,7 +164,7 @@ function endTurn(
     ...state,
     turns: [...state.turns, turn],
     activeTurn: undefined,
-    modifiedAt: endedAt,
+    modifiedAt: new Date(Date.now()).toISOString(),
   };
   delete next.inputRequests;
   return {
@@ -272,36 +269,6 @@ function updateResponsePart(
 
 // ─── Chat Reducer ────────────────────────────────────────────────────────────
 
-function isValidTimestamp(value: string): boolean {
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(?:Z|[+-](\d{2}):(\d{2}))$/.exec(value);
-  if (!match) {
-    return false;
-  }
-
-  const [, yearText, monthText, dayText, hourText, minuteText, secondText, offsetHourText, offsetMinuteText] = match;
-  const year = Number(yearText);
-  const month = Number(monthText);
-  const day = Number(dayText);
-  const hour = Number(hourText);
-  const minute = Number(minuteText);
-  const second = Number(secondText);
-  const offsetHour = offsetHourText === undefined ? 0 : Number(offsetHourText);
-  const offsetMinute = offsetMinuteText === undefined ? 0 : Number(offsetMinuteText);
-  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
-  return month >= 1
-    && month <= 12
-    && day >= 1
-    && day <= daysInMonth[month - 1]
-    && hour <= 23
-    && minute <= 59
-    && second <= 59
-    && offsetHour <= 23
-    && offsetMinute <= 59
-    && Number.isFinite(Date.parse(value));
-}
-
 /**
  * Pure reducer for chat state. Handles all {@link ChatAction} variants.
  */
@@ -310,10 +277,6 @@ export function chatReducer(state: ChatState, action: ChatAction, log?: (msg: st
     // ── Turn Lifecycle ────────────────────────────────────────────────────
 
     case ActionType.ChatTurnStarted: {
-      if (!isValidTimestamp(action.startedAt)) {
-        log?.(`Ignoring ChatTurnStarted with invalid startedAt: ${action.startedAt}`);
-        return state;
-      }
       let next: ChatState = {
         ...state,
         activeTurn: {
@@ -327,7 +290,7 @@ export function chatReducer(state: ChatState, action: ChatAction, log?: (msg: st
       next = {
         ...next,
         status: withStatusFlag(summaryStatus(next), SessionStatus.IsRead, false),
-        modifiedAt: action.startedAt,
+        modifiedAt: new Date(Date.now()).toISOString(),
       };
 
       // If this turn was auto-started from a pending message, remove it
@@ -365,25 +328,13 @@ export function chatReducer(state: ChatState, action: ChatAction, log?: (msg: st
       };
 
     case ActionType.ChatTurnComplete:
-      if (!isValidTimestamp(action.endedAt)) {
-        log?.(`Ignoring ChatTurnComplete with invalid endedAt: ${action.endedAt}`);
-        return state;
-      }
-      return endTurn(state, action.turnId, TurnState.Complete, action.endedAt);
+      return endTurn(state, action.turnId, TurnState.Complete, action.duration);
 
     case ActionType.ChatTurnCancelled:
-      if (!isValidTimestamp(action.endedAt)) {
-        log?.(`Ignoring ChatTurnCancelled with invalid endedAt: ${action.endedAt}`);
-        return state;
-      }
-      return endTurn(state, action.turnId, TurnState.Cancelled, action.endedAt);
+      return endTurn(state, action.turnId, TurnState.Cancelled, action.duration);
 
     case ActionType.ChatError:
-      if (!isValidTimestamp(action.endedAt)) {
-        log?.(`Ignoring ChatError with invalid endedAt: ${action.endedAt}`);
-        return state;
-      }
-      return endTurn(state, action.turnId, TurnState.Error, action.endedAt, SessionStatus.Error, action.error);
+      return endTurn(state, action.turnId, TurnState.Error, action.duration, SessionStatus.Error, action.error);
 
     case ActionType.ChatActivityChanged:
       return { ...state, activity: action.activity };
