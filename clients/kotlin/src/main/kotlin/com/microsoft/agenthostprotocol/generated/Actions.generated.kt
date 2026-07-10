@@ -291,6 +291,10 @@ data class ChatTurnStartedAction(
      */
     val turnId: String,
     /**
+     * ISO 8601 timestamp when this turn started.
+     */
+    val startedAt: String,
+    /**
      * The new message
      */
     val message: Message,
@@ -610,6 +614,10 @@ data class ChatTurnCompleteAction(
      */
     val turnId: String,
     /**
+     * ISO 8601 timestamp when this turn completed.
+     */
+    val endedAt: String,
+    /**
      * Additional provider-specific metadata for this action.
      *
      * Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -630,6 +638,10 @@ data class ChatTurnCancelledAction(
      */
     val turnId: String,
     /**
+     * ISO 8601 timestamp when this turn was cancelled.
+     */
+    val endedAt: String,
+    /**
      * Additional provider-specific metadata for this action.
      *
      * Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -649,6 +661,10 @@ data class ChatErrorAction(
      * Turn identifier
      */
     val turnId: String,
+    /**
+     * ISO 8601 timestamp when this turn failed.
+     */
+    val endedAt: String,
     /**
      * Error details
      */

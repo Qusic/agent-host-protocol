@@ -1474,6 +1474,12 @@ pub struct SessionConfigState {
 pub struct Turn {
     /// Turn identifier
     pub id: String,
+    /// ISO 8601 timestamp when this turn started.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub started_at: Option<String>,
+    /// Turn duration in milliseconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration: Option<i64>,
     /// The message that initiated the turn
     pub message: Message,
     /// All response content in stream order: text, tool calls, reasoning, and content refs.
@@ -1497,6 +1503,8 @@ pub struct Turn {
 pub struct ActiveTurn {
     /// Turn identifier
     pub id: String,
+    /// ISO 8601 timestamp when this turn started.
+    pub started_at: String,
     /// The message that initiated the turn
     pub message: Message,
     /// All response content in stream order: text, tool calls, reasoning, and content refs.

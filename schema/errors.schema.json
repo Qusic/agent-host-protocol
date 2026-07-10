@@ -2858,6 +2858,14 @@
           "type": "string",
           "description": "Turn identifier"
         },
+        "startedAt": {
+          "type": "string",
+          "description": "ISO 8601 timestamp when this turn started."
+        },
+        "duration": {
+          "type": "number",
+          "description": "Turn duration in milliseconds."
+        },
         "message": {
           "$ref": "#/$defs/Message",
           "description": "The message that initiated the turn"
@@ -2898,6 +2906,10 @@
           "type": "string",
           "description": "Turn identifier"
         },
+        "startedAt": {
+          "type": "string",
+          "description": "ISO 8601 timestamp when this turn started."
+        },
         "message": {
           "$ref": "#/$defs/Message",
           "description": "The message that initiated the turn"
@@ -2916,6 +2928,7 @@
       },
       "required": [
         "id",
+        "startedAt",
         "message",
         "responseParts",
         "usage"
@@ -7393,6 +7406,10 @@
           "type": "string",
           "description": "Turn identifier"
         },
+        "startedAt": {
+          "type": "string",
+          "description": "ISO 8601 timestamp when this turn started."
+        },
         "message": {
           "$ref": "#/$defs/Message",
           "description": "The new message"
@@ -7410,6 +7427,7 @@
       "required": [
         "type",
         "turnId",
+        "startedAt",
         "message"
       ]
     },
@@ -7745,6 +7763,10 @@
           "type": "string",
           "description": "Turn identifier"
         },
+        "endedAt": {
+          "type": "string",
+          "description": "ISO 8601 timestamp when this turn completed."
+        },
         "_meta": {
           "type": "object",
           "additionalProperties": {},
@@ -7753,7 +7775,8 @@
       },
       "required": [
         "type",
-        "turnId"
+        "turnId",
+        "endedAt"
       ]
     },
     "ChatTurnCancelledAction": {
@@ -7767,6 +7790,10 @@
           "type": "string",
           "description": "Turn identifier"
         },
+        "endedAt": {
+          "type": "string",
+          "description": "ISO 8601 timestamp when this turn was cancelled."
+        },
         "_meta": {
           "type": "object",
           "additionalProperties": {},
@@ -7775,7 +7802,8 @@
       },
       "required": [
         "type",
-        "turnId"
+        "turnId",
+        "endedAt"
       ]
     },
     "ChatErrorAction": {
@@ -7788,6 +7816,10 @@
         "turnId": {
           "type": "string",
           "description": "Turn identifier"
+        },
+        "endedAt": {
+          "type": "string",
+          "description": "ISO 8601 timestamp when this turn failed."
         },
         "error": {
           "$ref": "#/$defs/ErrorInfo",
@@ -7802,6 +7834,7 @@
       "required": [
         "type",
         "turnId",
+        "endedAt",
         "error"
       ]
     },

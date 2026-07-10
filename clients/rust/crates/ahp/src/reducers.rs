@@ -68,6 +68,7 @@ use ahp_types::state::{
     ToolCallResponsePart, ToolCallRunningState, ToolCallState, ToolCallStreamingState, Turn,
     TurnState,
 };
+use chrono::{DateTime, FixedOffset};
 
 /// What happened when an action was applied.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -275,13 +276,21 @@ fn touch_chat_modified(state: &mut ChatState) {
     state.modified_at = now_iso();
 }
 
+fn parse_timestamp(value: &str) -> Option<DateTime<FixedOffset>> {
+    DateTime::parse_from_rfc3339(value).ok()
+}
+
 fn end_turn(
     state: &mut ChatState,
     turn_id: &str,
+    ended_at: &str,
     turn_state: TurnState,
     terminal_status: Option<SessionStatus>,
     error: Option<ErrorInfo>,
 ) -> ReduceOutcome {
+    let Some(ended) = parse_timestamp(ended_at) else {
+        return ReduceOutcome::NoOp;
+    };
     let Some(active) = state.active_turn.as_ref() else {
         return ReduceOutcome::NoOp;
     };
@@ -344,8 +353,16 @@ fn end_turn(
         })
         .collect();
 
+    let duration = parse_timestamp(&active.started_at).and_then(|started| {
+        ended
+            .timestamp_millis()
+            .checked_sub(started.timestamp_millis())
+            .map(|duration| duration.max(0))
+    });
     let turn = Turn {
         id: active.id,
+        started_at: Some(active.started_at),
+        duration,
         message: active.message,
         response_parts,
         usage: active.usage,
@@ -355,7 +372,7 @@ fn end_turn(
 
     state.turns.push(turn);
     state.input_requests = None;
-    touch_chat_modified(state);
+    state.modified_at = ended_at.to_owned();
     state.status = summary_status(state, terminal_status);
     ReduceOutcome::Applied
 }
@@ -874,15 +891,26 @@ pub fn apply_action_to_chat(state: &mut ChatState, action: &StateAction) -> Redu
             active.response_parts.push(a.part.clone());
             ReduceOutcome::Applied
         }
-        StateAction::ChatTurnComplete(a) => {
-            end_turn(state, &a.turn_id, TurnState::Complete, None, None)
-        }
-        StateAction::ChatTurnCancelled(a) => {
-            end_turn(state, &a.turn_id, TurnState::Cancelled, None, None)
-        }
+        StateAction::ChatTurnComplete(a) => end_turn(
+            state,
+            &a.turn_id,
+            &a.ended_at,
+            TurnState::Complete,
+            None,
+            None,
+        ),
+        StateAction::ChatTurnCancelled(a) => end_turn(
+            state,
+            &a.turn_id,
+            &a.ended_at,
+            TurnState::Cancelled,
+            None,
+            None,
+        ),
         StateAction::ChatError(a) => end_turn(
             state,
             &a.turn_id,
+            &a.ended_at,
             TurnState::Error,
             Some(SessionStatus::Error),
             Some(a.error.clone()),
@@ -1095,14 +1123,18 @@ pub fn apply_action_to_chat(state: &mut ChatState, action: &StateAction) -> Redu
 }
 
 fn apply_turn_started(state: &mut ChatState, a: &ChatTurnStartedAction) -> ReduceOutcome {
+    if parse_timestamp(&a.started_at).is_none() {
+        return ReduceOutcome::NoOp;
+    }
     state.active_turn = Some(ActiveTurn {
         id: a.turn_id.clone(),
+        started_at: a.started_at.clone(),
         message: a.message.clone(),
         response_parts: Vec::new(),
         usage: None,
     });
     state.status = summary_status(state, None);
-    touch_chat_modified(state);
+    state.modified_at = a.started_at.clone();
     state.status = with_status_flag(state.status, SessionStatus::IsRead, false);
 
     if let Some(qmid) = &a.queued_message_id {
@@ -1767,6 +1799,7 @@ mod tests {
         let mut s = empty_chat("copilot:/s1/chat/1");
         let action = StateAction::ChatTurnStarted(ChatTurnStartedAction {
             turn_id: "t1".into(),
+            started_at: "2026-07-09T20:00:00.000Z".into(),
             message: user_message("hi"),
             queued_message_id: None,
             meta: None,
@@ -1784,6 +1817,7 @@ mod tests {
         let mut s = empty_chat("copilot:/s1/chat/1");
         s.active_turn = Some(ActiveTurn {
             id: "t1".into(),
+            started_at: "2026-07-09T20:00:00.000Z".into(),
             message: user_message("hi"),
             response_parts: vec![ResponsePart::Markdown(MarkdownResponsePart {
                 id: "p1".into(),
@@ -1809,6 +1843,7 @@ mod tests {
         let mut s = empty_chat("copilot:/s1/chat/1");
         s.active_turn = Some(ActiveTurn {
             id: "t1".into(),
+            started_at: "2026-07-09T20:00:00.000Z".into(),
             message: user_message("hi"),
             response_parts: Vec::new(),
             usage: None,
@@ -1816,6 +1851,7 @@ mod tests {
         s.status = SessionStatus::InProgress.bits();
         let a = StateAction::ChatTurnComplete(ahp_types::actions::ChatTurnCompleteAction {
             turn_id: "t1".into(),
+            ended_at: "2026-07-09T20:00:01.000Z".into(),
             meta: None,
         });
         assert_eq!(apply_action_to_chat(&mut s, &a), ReduceOutcome::Applied);
@@ -1885,6 +1921,7 @@ mod tests {
         // A chat-scoped action is out of scope for the session reducer.
         let turn = StateAction::ChatTurnComplete(ahp_types::actions::ChatTurnCompleteAction {
             turn_id: "t1".into(),
+            ended_at: "2026-07-09T20:00:01.000Z".into(),
             meta: None,
         });
         assert_eq!(

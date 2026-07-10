@@ -3018,6 +3018,14 @@
           "type": "string",
           "description": "Turn identifier"
         },
+        "startedAt": {
+          "type": "string",
+          "description": "ISO 8601 timestamp when this turn started."
+        },
+        "duration": {
+          "type": "number",
+          "description": "Turn duration in milliseconds."
+        },
         "message": {
           "$ref": "#/$defs/Message",
           "description": "The message that initiated the turn"
@@ -3058,6 +3066,10 @@
           "type": "string",
           "description": "Turn identifier"
         },
+        "startedAt": {
+          "type": "string",
+          "description": "ISO 8601 timestamp when this turn started."
+        },
         "message": {
           "$ref": "#/$defs/Message",
           "description": "The message that initiated the turn"
@@ -3076,6 +3088,7 @@
       },
       "required": [
         "id",
+        "startedAt",
         "message",
         "responseParts",
         "usage"

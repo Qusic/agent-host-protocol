@@ -321,6 +321,8 @@ pub struct SessionDefaultChatChangedAction {
 pub struct ChatTurnStartedAction {
     /// Turn identifier
     pub turn_id: String,
+    /// ISO 8601 timestamp when this turn started.
+    pub started_at: String,
     /// The new message
     pub message: Message,
     /// If this turn was auto-started from a queued message, the ID of that message
@@ -613,6 +615,8 @@ pub struct ChatToolCallContentChangedAction {
 pub struct ChatTurnCompleteAction {
     /// Turn identifier
     pub turn_id: String,
+    /// ISO 8601 timestamp when this turn completed.
+    pub ended_at: String,
     /// Additional provider-specific metadata for this action.
     ///
     /// Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -630,6 +634,8 @@ pub struct ChatTurnCompleteAction {
 pub struct ChatTurnCancelledAction {
     /// Turn identifier
     pub turn_id: String,
+    /// ISO 8601 timestamp when this turn was cancelled.
+    pub ended_at: String,
     /// Additional provider-specific metadata for this action.
     ///
     /// Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -647,6 +653,8 @@ pub struct ChatTurnCancelledAction {
 pub struct ChatErrorAction {
     /// Turn identifier
     pub turn_id: String,
+    /// ISO 8601 timestamp when this turn failed.
+    pub ended_at: String,
     /// Error details
     pub error: ErrorInfo,
     /// Additional provider-specific metadata for this action.

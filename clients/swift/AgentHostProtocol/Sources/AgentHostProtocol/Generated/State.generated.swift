@@ -1412,6 +1412,10 @@ public struct SessionConfigState: Codable, Sendable {
 public struct Turn: Codable, Sendable {
     /// Turn identifier
     public var id: String
+    /// ISO 8601 timestamp when this turn started.
+    public var startedAt: String?
+    /// Turn duration in milliseconds.
+    public var duration: Int?
     /// The message that initiated the turn
     public var message: Message
     /// All response content in stream order: text, tool calls, reasoning, and content refs.
@@ -1428,6 +1432,8 @@ public struct Turn: Codable, Sendable {
 
     public init(
         id: String,
+        startedAt: String? = nil,
+        duration: Int? = nil,
         message: Message,
         responseParts: [ResponsePart],
         usage: UsageInfo? = nil,
@@ -1435,6 +1441,8 @@ public struct Turn: Codable, Sendable {
         error: ErrorInfo? = nil
     ) {
         self.id = id
+        self.startedAt = startedAt
+        self.duration = duration
         self.message = message
         self.responseParts = responseParts
         self.usage = usage
@@ -1446,6 +1454,8 @@ public struct Turn: Codable, Sendable {
 public struct ActiveTurn: Codable, Sendable {
     /// Turn identifier
     public var id: String
+    /// ISO 8601 timestamp when this turn started.
+    public var startedAt: String
     /// The message that initiated the turn
     public var message: Message
     /// All response content in stream order: text, tool calls, reasoning, and content refs.
@@ -1457,11 +1467,13 @@ public struct ActiveTurn: Codable, Sendable {
 
     public init(
         id: String,
+        startedAt: String,
         message: Message,
         responseParts: [ResponsePart],
         usage: UsageInfo? = nil
     ) {
         self.id = id
+        self.startedAt = startedAt
         self.message = message
         self.responseParts = responseParts
         self.usage = usage

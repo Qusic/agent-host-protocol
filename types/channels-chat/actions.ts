@@ -65,6 +65,8 @@ export interface ChatTurnStartedAction {
   type: ActionType.ChatTurnStarted;
   /** Turn identifier */
   turnId: string;
+  /** ISO 8601 timestamp when this turn started. */
+  startedAt: string;
   /** The new message */
   message: Message;
   /** If this turn was auto-started from a queued message, the ID of that message */
@@ -343,6 +345,8 @@ export interface ChatTurnCompleteAction {
   type: ActionType.ChatTurnComplete;
   /** Turn identifier */
   turnId: string;
+  /** ISO 8601 timestamp when this turn completed. */
+  endedAt: string;
   /**
    * Additional provider-specific metadata for this action.
    *
@@ -366,6 +370,8 @@ export interface ChatTurnCancelledAction {
   type: ActionType.ChatTurnCancelled;
   /** Turn identifier */
   turnId: string;
+  /** ISO 8601 timestamp when this turn was cancelled. */
+  endedAt: string;
   /**
    * Additional provider-specific metadata for this action.
    *
@@ -388,6 +394,8 @@ export interface ChatErrorAction {
   type: ActionType.ChatError;
   /** Turn identifier */
   turnId: string;
+  /** ISO 8601 timestamp when this turn failed. */
+  endedAt: string;
   /** Error details */
   error: ErrorInfo;
   /**

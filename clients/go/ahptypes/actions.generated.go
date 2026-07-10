@@ -212,6 +212,8 @@ type ChatTurnStartedAction struct {
 	Type ActionType `json:"type"`
 	// Turn identifier
 	TurnId string `json:"turnId"`
+	// ISO 8601 timestamp when this turn started.
+	StartedAt string `json:"startedAt"`
 	// The new message
 	Message Message `json:"message"`
 	// If this turn was auto-started from a queued message, the ID of that message
@@ -460,6 +462,8 @@ type ChatTurnCompleteAction struct {
 	Type ActionType `json:"type"`
 	// Turn identifier
 	TurnId string `json:"turnId"`
+	// ISO 8601 timestamp when this turn completed.
+	EndedAt string `json:"endedAt"`
 	// Additional provider-specific metadata for this action.
 	//
 	// Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -475,6 +479,8 @@ type ChatTurnCancelledAction struct {
 	Type ActionType `json:"type"`
 	// Turn identifier
 	TurnId string `json:"turnId"`
+	// ISO 8601 timestamp when this turn was cancelled.
+	EndedAt string `json:"endedAt"`
 	// Additional provider-specific metadata for this action.
 	//
 	// Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -490,6 +496,8 @@ type ChatErrorAction struct {
 	Type ActionType `json:"type"`
 	// Turn identifier
 	TurnId string `json:"turnId"`
+	// ISO 8601 timestamp when this turn failed.
+	EndedAt string `json:"endedAt"`
 	// Error details
 	Error ErrorInfo `json:"error"`
 	// Additional provider-specific metadata for this action.

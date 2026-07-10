@@ -17,6 +17,21 @@ private let iso8601TimestampFormatter: ISO8601DateFormatter = {
     return formatter
 }()
 
+private let iso8601TimestampFormatterWithoutFractionalSeconds: ISO8601DateFormatter = {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime]
+    return formatter
+}()
+
+private func parseTimestamp(_ value: String) -> Date? {
+    iso8601TimestampFormatter.date(from: value)
+        ?? iso8601TimestampFormatterWithoutFractionalSeconds.date(from: value)
+}
+
+private func timestampMilliseconds(_ date: Date) -> Int {
+    Int(floor(date.timeIntervalSince1970 * 1000))
+}
+
 // MARK: - Status Bitset Helpers
 
 /// Bitmask covering the mutually-exclusive activity bits (bits 0–4).
@@ -101,10 +116,12 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
     // ── Turn Lifecycle ────────────────────────────────────────────────────
 
     case .chatTurnStarted(let a):
+        guard parseTimestamp(a.startedAt) != nil else { return state }
         var next = state
-        next.modifiedAt = currentTimestamp()
+        next.modifiedAt = a.startedAt
         next.activeTurn = ActiveTurn(
             id: a.turnId,
+            startedAt: a.startedAt,
             message: a.message,
             responseParts: [],
             usage: nil
@@ -138,13 +155,13 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
         return next
 
     case .chatTurnComplete(let a):
-        return endTurn(state: state, turnId: a.turnId, turnState: .complete)
+        return endTurn(state: state, turnId: a.turnId, endedAt: a.endedAt, turnState: .complete)
 
     case .chatTurnCancelled(let a):
-        return endTurn(state: state, turnId: a.turnId, turnState: .cancelled)
+        return endTurn(state: state, turnId: a.turnId, endedAt: a.endedAt, turnState: .cancelled)
 
     case .chatError(let a):
-        return endTurn(state: state, turnId: a.turnId, turnState: .error, terminalStatus: .error, error: a.error)
+        return endTurn(state: state, turnId: a.turnId, endedAt: a.endedAt, turnState: .error, terminalStatus: .error, error: a.error)
 
     case .chatActivityChanged(let a):
         var next = state
@@ -887,10 +904,12 @@ private func upsertInputRequest(state: ChatState, request: ChatInputRequest) -> 
 private func endTurn(
     state: ChatState,
     turnId: String,
+    endedAt: String,
     turnState: TurnState,
     terminalStatus: SessionStatus? = nil,
     error: ErrorInfo? = nil
 ) -> ChatState {
+    guard let ended = parseTimestamp(endedAt) else { return state }
     guard let activeTurn = state.activeTurn, activeTurn.id == turnId else {
         return state
     }
@@ -940,8 +959,13 @@ private func endTurn(
         }
     }
 
+    let endedMilliseconds = timestampMilliseconds(ended)
+    let duration = parseTimestamp(activeTurn.startedAt)
+        .map { max(0, endedMilliseconds - timestampMilliseconds($0)) }
     let turn = Turn(
         id: activeTurn.id,
+        startedAt: activeTurn.startedAt,
+        duration: duration,
         message: activeTurn.message,
         responseParts: responseParts,
         usage: activeTurn.usage,
@@ -954,7 +978,7 @@ private func endTurn(
     next.activeTurn = nil
     next.inputRequests = nil
     next.status = chatSummaryStatus(next, terminalStatus: terminalStatus)
-    next.modifiedAt = currentTimestamp()
+    next.modifiedAt = endedAt
     return next
 }
 

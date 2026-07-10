@@ -46,6 +46,7 @@ final class ReducersTests: XCTestCase {
             turns: [],
             activeTurn: ActiveTurn(
                 id: T,
+                startedAt: "2026-07-09T20:00:00.000Z",
                 message: Message(text: "Hello", origin: MessageOrigin(kind: .user)),
                 responseParts: [],
                 usage: nil
@@ -88,7 +89,8 @@ final class ReducersTests: XCTestCase {
 
     func testClientDispatchableReturnsTrue() {
         let action: StateAction = .chatTurnStarted(ChatTurnStartedAction(
-            type: .chatTurnStarted, turnId: T, message: Message(text: "Hello", origin: MessageOrigin(kind: .user))
+            type: .chatTurnStarted, turnId: T, startedAt: "2026-07-09T20:00:00.000Z",
+            message: Message(text: "Hello", origin: MessageOrigin(kind: .user))
         ))
         XCTAssertTrue(isClientDispatchable(action))
     }
@@ -111,10 +113,11 @@ final class ReducersTests: XCTestCase {
         let next = chatReducer(
             state: state,
             action: .chatTurnStarted(ChatTurnStartedAction(
-                type: .chatTurnStarted, turnId: T, message: Message(text: "Hello", origin: MessageOrigin(kind: .user))
+                type: .chatTurnStarted, turnId: T, startedAt: "2026-07-09T20:00:00.000Z",
+                message: Message(text: "Hello", origin: MessageOrigin(kind: .user))
             ))
         )
-        XCTAssertGreaterThan(next.modifiedAt, state.modifiedAt)
+        XCTAssertEqual(next.modifiedAt, "2026-07-09T20:00:00.000Z")
     }
 
     func testTitleChangedUpdatesTitle() {

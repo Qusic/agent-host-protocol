@@ -1,11 +1,11 @@
 {
-  "description": "session/error finalizes turn with error",
+  "description": "chat/turnComplete clamps a negative turn duration to zero",
   "reducer": "chat",
   "initial": {
     "turns": [],
     "activeTurn": {
       "id": "turn-1",
-      "startedAt": "1970-01-01T00:00:01.000Z",
+      "startedAt": "1970-01-01T00:00:10.000Z",
       "message": {
         "text": "Hello",
         "origin": {
@@ -18,25 +18,21 @@
     "resource": "copilot:/test-session",
     "title": "Test Session",
     "status": 8,
-    "modifiedAt": "1970-01-01T00:00:02.000Z"
+    "modifiedAt": "1970-01-01T00:00:10.000Z"
   },
   "actions": [
     {
-      "type": "chat/error",
+      "type": "chat/turnComplete",
       "turnId": "turn-1",
-      "endedAt": "1970-01-01T00:00:09.999Z",
-      "error": {
-        "errorType": "runtime",
-        "message": "Something broke"
-      }
+      "endedAt": "1970-01-01T00:00:09.000Z"
     }
   ],
   "expected": {
     "turns": [
       {
         "id": "turn-1",
-        "startedAt": "1970-01-01T00:00:01.000Z",
-        "duration": 8999,
+        "startedAt": "1970-01-01T00:00:10.000Z",
+        "duration": 0,
         "message": {
           "text": "Hello",
           "origin": {
@@ -45,17 +41,14 @@
         },
         "responseParts": [],
         "usage": null,
-        "state": "error",
-        "error": {
-          "errorType": "runtime",
-          "message": "Something broke"
-        }
+        "state": "complete",
+        "error": null
       }
     ],
     "activeTurn": null,
     "resource": "copilot:/test-session",
     "title": "Test Session",
-    "status": 2,
-    "modifiedAt": "1970-01-01T00:00:09.999Z"
+    "status": 1,
+    "modifiedAt": "1970-01-01T00:00:09.000Z"
   }
 }

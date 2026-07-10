@@ -1,0 +1,4 @@
+{
+  "type": "added",
+  "message": "Turn lifecycle actions now carry timestamps, and completed turns expose their start time and duration."
+}

@@ -246,6 +246,8 @@ public struct ChatTurnStartedAction: Codable, Sendable {
     public var type: ActionType
     /// Turn identifier
     public var turnId: String
+    /// ISO 8601 timestamp when this turn started.
+    public var startedAt: String
     /// The new message
     public var message: Message
     /// If this turn was auto-started from a queued message, the ID of that message
@@ -262,6 +264,7 @@ public struct ChatTurnStartedAction: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case type
         case turnId
+        case startedAt
         case message
         case queuedMessageId
         case meta = "_meta"
@@ -270,12 +273,14 @@ public struct ChatTurnStartedAction: Codable, Sendable {
     public init(
         type: ActionType,
         turnId: String,
+        startedAt: String,
         message: Message,
         queuedMessageId: String? = nil,
         meta: [String: AnyCodable]? = nil
     ) {
         self.type = type
         self.turnId = turnId
+        self.startedAt = startedAt
         self.message = message
         self.queuedMessageId = queuedMessageId
         self.meta = meta
@@ -711,6 +716,8 @@ public struct ChatTurnCompleteAction: Codable, Sendable {
     public var type: ActionType
     /// Turn identifier
     public var turnId: String
+    /// ISO 8601 timestamp when this turn completed.
+    public var endedAt: String
     /// Additional provider-specific metadata for this action.
     ///
     /// Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -723,16 +730,19 @@ public struct ChatTurnCompleteAction: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case type
         case turnId
+        case endedAt
         case meta = "_meta"
     }
 
     public init(
         type: ActionType,
         turnId: String,
+        endedAt: String,
         meta: [String: AnyCodable]? = nil
     ) {
         self.type = type
         self.turnId = turnId
+        self.endedAt = endedAt
         self.meta = meta
     }
 }
@@ -741,6 +751,8 @@ public struct ChatTurnCancelledAction: Codable, Sendable {
     public var type: ActionType
     /// Turn identifier
     public var turnId: String
+    /// ISO 8601 timestamp when this turn was cancelled.
+    public var endedAt: String
     /// Additional provider-specific metadata for this action.
     ///
     /// Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -753,16 +765,19 @@ public struct ChatTurnCancelledAction: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case type
         case turnId
+        case endedAt
         case meta = "_meta"
     }
 
     public init(
         type: ActionType,
         turnId: String,
+        endedAt: String,
         meta: [String: AnyCodable]? = nil
     ) {
         self.type = type
         self.turnId = turnId
+        self.endedAt = endedAt
         self.meta = meta
     }
 }
@@ -771,6 +786,8 @@ public struct ChatErrorAction: Codable, Sendable {
     public var type: ActionType
     /// Turn identifier
     public var turnId: String
+    /// ISO 8601 timestamp when this turn failed.
+    public var endedAt: String
     /// Error details
     public var error: ErrorInfo
     /// Additional provider-specific metadata for this action.
@@ -785,6 +802,7 @@ public struct ChatErrorAction: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case type
         case turnId
+        case endedAt
         case error
         case meta = "_meta"
     }
@@ -792,11 +810,13 @@ public struct ChatErrorAction: Codable, Sendable {
     public init(
         type: ActionType,
         turnId: String,
+        endedAt: String,
         error: ErrorInfo,
         meta: [String: AnyCodable]? = nil
     ) {
         self.type = type
         self.turnId = turnId
+        self.endedAt = endedAt
         self.error = error
         self.meta = meta
     }
