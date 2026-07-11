@@ -105,6 +105,7 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
         next.modifiedAt = currentTimestamp()
         next.activeTurn = ActiveTurn(
             id: a.turnId,
+            startedAt: a.startedAt,
             message: a.message,
             responseParts: [],
             usage: nil
@@ -138,13 +139,13 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
         return next
 
     case .chatTurnComplete(let a):
-        return endTurn(state: state, turnId: a.turnId, turnState: .complete)
+        return endTurn(state: state, turnId: a.turnId, duration: a.duration, turnState: .complete)
 
     case .chatTurnCancelled(let a):
-        return endTurn(state: state, turnId: a.turnId, turnState: .cancelled)
+        return endTurn(state: state, turnId: a.turnId, duration: a.duration, turnState: .cancelled)
 
     case .chatError(let a):
-        return endTurn(state: state, turnId: a.turnId, turnState: .error, terminalStatus: .error, error: a.error)
+        return endTurn(state: state, turnId: a.turnId, duration: a.duration, turnState: .error, terminalStatus: .error, error: a.error)
 
     case .chatActivityChanged(let a):
         var next = state
@@ -887,6 +888,7 @@ private func upsertInputRequest(state: ChatState, request: ChatInputRequest) -> 
 private func endTurn(
     state: ChatState,
     turnId: String,
+    duration: Int,
     turnState: TurnState,
     terminalStatus: SessionStatus? = nil,
     error: ErrorInfo? = nil
@@ -940,8 +942,12 @@ private func endTurn(
         }
     }
 
+    // Defensive clamp: `duration` is producer-supplied and opaque to this
+    // reducer, but a negative value would be nonsensical to display.
     let turn = Turn(
         id: activeTurn.id,
+        startedAt: activeTurn.startedAt,
+        duration: max(0, duration),
         message: activeTurn.message,
         responseParts: responseParts,
         usage: activeTurn.usage,

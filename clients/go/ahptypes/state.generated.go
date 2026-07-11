@@ -1148,6 +1148,10 @@ type SessionConfigState struct {
 type Turn struct {
 	// Turn identifier
 	Id string `json:"id"`
+	// ISO 8601 timestamp when this turn started.
+	StartedAt *string `json:"startedAt,omitempty"`
+	// Turn duration in milliseconds.
+	Duration *int64 `json:"duration,omitempty"`
 	// The message that initiated the turn
 	Message Message `json:"message"`
 	// All response content in stream order: text, tool calls, reasoning, and content refs.
@@ -1167,6 +1171,8 @@ type Turn struct {
 type ActiveTurn struct {
 	// Turn identifier
 	Id string `json:"id"`
+	// ISO 8601 timestamp when this turn started.
+	StartedAt string `json:"startedAt"`
 	// The message that initiated the turn
 	Message Message `json:"message"`
 	// All response content in stream order: text, tool calls, reasoning, and content refs.

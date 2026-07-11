@@ -321,6 +321,8 @@ pub struct SessionDefaultChatChangedAction {
 pub struct ChatTurnStartedAction {
     /// Turn identifier
     pub turn_id: String,
+    /// ISO 8601 timestamp when this turn started.
+    pub started_at: String,
     /// The new message
     pub message: Message,
     /// If this turn was auto-started from a queued message, the ID of that message
@@ -613,6 +615,11 @@ pub struct ChatToolCallContentChangedAction {
 pub struct ChatTurnCompleteAction {
     /// Turn identifier
     pub turn_id: String,
+    /// Elapsed turn duration in milliseconds, measured by the producer's own
+    /// clock. Clients MUST NOT derive this by subtracting timestamps — cross-
+    /// client clocks may differ — and MUST treat it as opaque, producer-supplied
+    /// data.
+    pub duration: i64,
     /// Additional provider-specific metadata for this action.
     ///
     /// Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -630,6 +637,11 @@ pub struct ChatTurnCompleteAction {
 pub struct ChatTurnCancelledAction {
     /// Turn identifier
     pub turn_id: String,
+    /// Elapsed turn duration in milliseconds, measured by the producer's own
+    /// clock. Clients MUST NOT derive this by subtracting timestamps — cross-
+    /// client clocks may differ — and MUST treat it as opaque, producer-supplied
+    /// data.
+    pub duration: i64,
     /// Additional provider-specific metadata for this action.
     ///
     /// Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -647,6 +659,11 @@ pub struct ChatTurnCancelledAction {
 pub struct ChatErrorAction {
     /// Turn identifier
     pub turn_id: String,
+    /// Elapsed turn duration in milliseconds, measured by the producer's own
+    /// clock. Clients MUST NOT derive this by subtracting timestamps — cross-
+    /// client clocks may differ — and MUST treat it as opaque, producer-supplied
+    /// data.
+    pub duration: i64,
     /// Error details
     pub error: ErrorInfo,
     /// Additional provider-specific metadata for this action.

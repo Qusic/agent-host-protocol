@@ -291,6 +291,10 @@ data class ChatTurnStartedAction(
      */
     val turnId: String,
     /**
+     * ISO 8601 timestamp when this turn started.
+     */
+    val startedAt: String,
+    /**
      * The new message
      */
     val message: Message,
@@ -610,6 +614,13 @@ data class ChatTurnCompleteAction(
      */
     val turnId: String,
     /**
+     * Elapsed turn duration in milliseconds, measured by the producer's own
+     * clock. Clients MUST NOT derive this by subtracting timestamps — cross-
+     * client clocks may differ — and MUST treat it as opaque, producer-supplied
+     * data.
+     */
+    val duration: Long,
+    /**
      * Additional provider-specific metadata for this action.
      *
      * Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -630,6 +641,13 @@ data class ChatTurnCancelledAction(
      */
     val turnId: String,
     /**
+     * Elapsed turn duration in milliseconds, measured by the producer's own
+     * clock. Clients MUST NOT derive this by subtracting timestamps — cross-
+     * client clocks may differ — and MUST treat it as opaque, producer-supplied
+     * data.
+     */
+    val duration: Long,
+    /**
      * Additional provider-specific metadata for this action.
      *
      * Clients MAY look for well-known keys here to provide enhanced UI, and
@@ -649,6 +667,13 @@ data class ChatErrorAction(
      * Turn identifier
      */
     val turnId: String,
+    /**
+     * Elapsed turn duration in milliseconds, measured by the producer's own
+     * clock. Clients MUST NOT derive this by subtracting timestamps — cross-
+     * client clocks may differ — and MUST treat it as opaque, producer-supplied
+     * data.
+     */
+    val duration: Long,
     /**
      * Error details
      */

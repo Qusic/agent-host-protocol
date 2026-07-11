@@ -4067,6 +4067,14 @@
           "type": "string",
           "description": "Turn identifier"
         },
+        "startedAt": {
+          "type": "string",
+          "description": "ISO 8601 timestamp when this turn started."
+        },
+        "duration": {
+          "type": "number",
+          "description": "Turn duration in milliseconds."
+        },
         "message": {
           "$ref": "#/$defs/Message",
           "description": "The message that initiated the turn"
@@ -4107,6 +4115,10 @@
           "type": "string",
           "description": "Turn identifier"
         },
+        "startedAt": {
+          "type": "string",
+          "description": "ISO 8601 timestamp when this turn started."
+        },
         "message": {
           "$ref": "#/$defs/Message",
           "description": "The message that initiated the turn"
@@ -4125,6 +4137,7 @@
       },
       "required": [
         "id",
+        "startedAt",
         "message",
         "responseParts",
         "usage"
@@ -6497,6 +6510,10 @@
           "type": "string",
           "description": "Turn identifier"
         },
+        "startedAt": {
+          "type": "string",
+          "description": "ISO 8601 timestamp when this turn started."
+        },
         "message": {
           "$ref": "#/$defs/Message",
           "description": "The new message"
@@ -6514,6 +6531,7 @@
       "required": [
         "type",
         "turnId",
+        "startedAt",
         "message"
       ]
     },
@@ -6937,6 +6955,10 @@
           "type": "string",
           "description": "Turn identifier"
         },
+        "duration": {
+          "type": "number",
+          "description": "Elapsed turn duration in milliseconds, measured by the producer's own\nclock. Clients MUST NOT derive this by subtracting timestamps — cross-\nclient clocks may differ — and MUST treat it as opaque, producer-supplied\ndata."
+        },
         "_meta": {
           "type": "object",
           "additionalProperties": {},
@@ -6945,7 +6967,8 @@
       },
       "required": [
         "type",
-        "turnId"
+        "turnId",
+        "duration"
       ]
     },
     "ChatTurnCancelledAction": {
@@ -6959,6 +6982,10 @@
           "type": "string",
           "description": "Turn identifier"
         },
+        "duration": {
+          "type": "number",
+          "description": "Elapsed turn duration in milliseconds, measured by the producer's own\nclock. Clients MUST NOT derive this by subtracting timestamps — cross-\nclient clocks may differ — and MUST treat it as opaque, producer-supplied\ndata."
+        },
         "_meta": {
           "type": "object",
           "additionalProperties": {},
@@ -6967,7 +6994,8 @@
       },
       "required": [
         "type",
-        "turnId"
+        "turnId",
+        "duration"
       ]
     },
     "ChatErrorAction": {
@@ -6980,6 +7008,10 @@
         "turnId": {
           "type": "string",
           "description": "Turn identifier"
+        },
+        "duration": {
+          "type": "number",
+          "description": "Elapsed turn duration in milliseconds, measured by the producer's own\nclock. Clients MUST NOT derive this by subtracting timestamps — cross-\nclient clocks may differ — and MUST treat it as opaque, producer-supplied\ndata."
         },
         "error": {
           "$ref": "#/$defs/ErrorInfo",
@@ -6994,6 +7026,7 @@
       "required": [
         "type",
         "turnId",
+        "duration",
         "error"
       ]
     },

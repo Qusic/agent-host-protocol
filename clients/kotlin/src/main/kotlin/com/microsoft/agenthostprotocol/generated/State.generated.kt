@@ -1577,6 +1577,14 @@ data class Turn(
      */
     val id: String,
     /**
+     * ISO 8601 timestamp when this turn started.
+     */
+    val startedAt: String? = null,
+    /**
+     * Turn duration in milliseconds.
+     */
+    val duration: Long? = null,
+    /**
      * The message that initiated the turn
      */
     val message: Message,
@@ -1607,6 +1615,10 @@ data class ActiveTurn(
      * Turn identifier
      */
     val id: String,
+    /**
+     * ISO 8601 timestamp when this turn started.
+     */
+    val startedAt: String,
     /**
      * The message that initiated the turn
      */
