@@ -225,6 +225,11 @@ public enum ToolCallConfirmationReason: String, Codable, Sendable {
     case setting = "setting"
 }
 
+/// Identifies a model judge as the source of a confirmation requirement.
+public enum ToolCallJudgeConfirmationReasonKind: String, Codable, Sendable {
+    case judge = "judge"
+}
+
 /// Why a tool call was cancelled.
 public enum ToolCallCancellationReason: String, Codable, Sendable {
     case denied = "denied"
@@ -2462,6 +2467,8 @@ public struct ToolCallPendingConfirmationState: Codable, Sendable {
     public var status: ToolCallStatus
     /// Short title for the confirmation prompt (e.g. `"Run in terminal"`, `"Write file"`)
     public var confirmationTitle: StringOrMarkdown?
+    /// Why the tool requires user confirmation.
+    public var confirmationReason: ToolCallJudgeConfirmationReason?
     /// File edits that this tool call will perform, for preview before confirmation
     public var edits: AnyCodable?
     /// Whether the agent host allows the client to edit the tool's input parameters before confirming
@@ -2483,6 +2490,7 @@ public struct ToolCallPendingConfirmationState: Codable, Sendable {
         case toolInput
         case status
         case confirmationTitle
+        case confirmationReason
         case edits
         case editable
         case options
@@ -2499,6 +2507,7 @@ public struct ToolCallPendingConfirmationState: Codable, Sendable {
         toolInput: String? = nil,
         status: ToolCallStatus,
         confirmationTitle: StringOrMarkdown? = nil,
+        confirmationReason: ToolCallJudgeConfirmationReason? = nil,
         edits: AnyCodable? = nil,
         editable: Bool? = nil,
         options: [ConfirmationOption]? = nil
@@ -2513,6 +2522,7 @@ public struct ToolCallPendingConfirmationState: Codable, Sendable {
         self.toolInput = toolInput
         self.status = status
         self.confirmationTitle = confirmationTitle
+        self.confirmationReason = confirmationReason
         self.edits = edits
         self.editable = editable
         self.options = options
@@ -2864,6 +2874,19 @@ public struct ToolCallCancelledState: Codable, Sendable {
         self.reasonMessage = reasonMessage
         self.userSuggestion = userSuggestion
         self.selectedOption = selectedOption
+    }
+}
+
+public struct ToolCallJudgeConfirmationReason: Codable, Sendable {
+    public var kind: ToolCallJudgeConfirmationReasonKind
+    public var reason: String
+
+    public init(
+        kind: ToolCallJudgeConfirmationReasonKind,
+        reason: String
+    ) {
+        self.kind = kind
+        self.reason = reason
     }
 }
 

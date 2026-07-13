@@ -434,6 +434,15 @@ enum class ToolCallConfirmationReason {
 }
 
 /**
+ * Identifies a model judge as the source of a confirmation requirement.
+ */
+@Serializable
+enum class ToolCallJudgeConfirmationReasonKind {
+    @SerialName("judge")
+    JUDGE
+}
+
+/**
  * Why a tool call was cancelled.
  */
 @Serializable
@@ -2447,6 +2456,10 @@ data class ToolCallPendingConfirmationState(
      */
     val confirmationTitle: StringOrMarkdown? = null,
     /**
+     * Why the tool requires user confirmation.
+     */
+    val confirmationReason: ToolCallJudgeConfirmationReason? = null,
+    /**
      * File edits that this tool call will perform, for preview before confirmation
      */
     val edits: JsonElement? = null,
@@ -2724,6 +2737,12 @@ data class ToolCallCancelledState(
      * The confirmation option the user selected, if confirmation options were provided
      */
     val selectedOption: ConfirmationOption? = null
+)
+
+@Serializable
+data class ToolCallJudgeConfirmationReason(
+    val kind: ToolCallJudgeConfirmationReasonKind,
+    val reason: String
 )
 
 @Serializable

@@ -219,6 +219,7 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
                 toolInput: a.toolInput,
                 status: .pendingConfirmation,
                 confirmationTitle: a.confirmationTitle,
+                confirmationReason: a.confirmationReason,
                 edits: a.edits,
                 editable: a.editable,
                 options: a.options

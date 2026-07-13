@@ -472,6 +472,10 @@ data class ChatToolCallReadyAction(
      */
     val confirmationTitle: StringOrMarkdown? = null,
     /**
+     * Why the tool requires user confirmation.
+     */
+    val confirmationReason: ToolCallJudgeConfirmationReason? = null,
+    /**
      * File edits that this tool call will perform, for preview before confirmation
      */
     val edits: JsonElement? = null,

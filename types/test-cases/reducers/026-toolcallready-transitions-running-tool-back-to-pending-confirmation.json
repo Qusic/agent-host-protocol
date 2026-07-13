@@ -74,6 +74,7 @@
             "invocationMessage": "Run: rm -rf /tmp/test",
             "toolInput": null,
             "confirmationTitle": null,
+            "confirmationReason": null,
             "edits": null,
             "editable": null
           }

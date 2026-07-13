@@ -33,6 +33,10 @@
       "turnId": "turn-1",
       "toolCallId": "tc-1",
       "invocationMessage": "Run: echo hello",
+      "confirmationReason": {
+        "kind": "judge",
+        "reason": "The command can modify the workspace."
+      },
       "options": [
         {
           "id": "approve-once",
@@ -86,6 +90,10 @@
             "invocationMessage": "Run: echo hello",
             "toolInput": null,
             "confirmationTitle": null,
+            "confirmationReason": {
+              "kind": "judge",
+              "reason": "The command can modify the workspace."
+            },
             "edits": null,
             "editable": null,
             "options": [

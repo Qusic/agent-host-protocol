@@ -342,6 +342,13 @@ pub enum ToolCallConfirmationReason {
     Setting,
 }
 
+/// Identifies a model judge as the source of a confirmation requirement.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ToolCallJudgeConfirmationReasonKind {
+    #[serde(rename = "judge")]
+    Judge,
+}
+
 /// Why a tool call was cancelled.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ToolCallCancellationReason {
@@ -2127,6 +2134,14 @@ pub struct ToolCallResult {
     pub error: Option<AnyValue>,
 }
 
+/// A model judge's explanation for requiring user confirmation.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolCallJudgeConfirmationReason {
+    pub kind: ToolCallJudgeConfirmationReasonKind,
+    pub reason: String,
+}
+
 /// A confirmation option that the server offers for a tool call awaiting
 /// approval. Allows richer choices beyond simple approve/deny — for example,
 /// "Approve in this Session" or "Deny with reason."
@@ -2211,6 +2226,9 @@ pub struct ToolCallPendingConfirmationState {
     /// Short title for the confirmation prompt (e.g. `"Run in terminal"`, `"Write file"`)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confirmation_title: Option<StringOrMarkdown>,
+    /// Why the tool requires user confirmation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confirmation_reason: Option<ToolCallJudgeConfirmationReason>,
     /// File edits that this tool call will perform, for preview before confirmation
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub edits: Option<AnyValue>,

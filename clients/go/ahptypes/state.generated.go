@@ -237,6 +237,13 @@ const (
 	ToolCallConfirmationReasonSetting    ToolCallConfirmationReason = "setting"
 )
 
+// Identifies a model judge as the source of a confirmation requirement.
+type ToolCallJudgeConfirmationReasonKind string
+
+const (
+	ToolCallJudgeConfirmationReasonKindJudge ToolCallJudgeConfirmationReasonKind = "judge"
+)
+
 // Why a tool call was cancelled.
 type ToolCallCancellationReason string
 
@@ -1702,6 +1709,12 @@ type ToolCallResult struct {
 	Error *json.RawMessage `json:"error,omitempty"`
 }
 
+// A model judge's explanation for requiring user confirmation.
+type ToolCallJudgeConfirmationReason struct {
+	Kind   ToolCallJudgeConfirmationReasonKind `json:"kind"`
+	Reason string                              `json:"reason"`
+}
+
 // A confirmation option that the server offers for a tool call awaiting
 // approval. Allows richer choices beyond simple approve/deny — for example,
 // "Approve in this Session" or "Deny with reason."
@@ -1771,6 +1784,8 @@ type ToolCallPendingConfirmationState struct {
 	Status    ToolCallStatus `json:"status"`
 	// Short title for the confirmation prompt (e.g. `"Run in terminal"`, `"Write file"`)
 	ConfirmationTitle *StringOrMarkdown `json:"confirmationTitle,omitempty"`
+	// Why the tool requires user confirmation.
+	ConfirmationReason *ToolCallJudgeConfirmationReason `json:"confirmationReason,omitempty"`
 	// File edits that this tool call will perform, for preview before confirmation
 	Edits *json.RawMessage `json:"edits,omitempty"`
 	// Whether the agent host allows the client to edit the tool's input parameters before confirming

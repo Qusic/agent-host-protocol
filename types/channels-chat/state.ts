@@ -935,6 +935,25 @@ export const enum ToolCallConfirmationReason {
 }
 
 /**
+ * Identifies a model judge as the source of a confirmation requirement.
+ *
+ * @category Tool Call Types
+ */
+export const enum ToolCallJudgeConfirmationReasonKind {
+  Judge = 'judge',
+}
+
+/**
+ * A model judge's explanation for requiring user confirmation.
+ *
+ * @category Tool Call Types
+ */
+export interface ToolCallJudgeConfirmationReason {
+  kind: ToolCallJudgeConfirmationReasonKind.Judge;
+  reason: string;
+}
+
+/**
  * Why a tool call was cancelled.
  *
  * @category Tool Call Types
@@ -1100,6 +1119,8 @@ export interface ToolCallPendingConfirmationState extends ToolCallBase, ToolCall
   status: ToolCallStatus.PendingConfirmation;
   /** Short title for the confirmation prompt (e.g. `"Run in terminal"`, `"Write file"`) */
   confirmationTitle?: StringOrMarkdown;
+  /** Why the tool requires user confirmation. */
+  confirmationReason?: ToolCallJudgeConfirmationReason;
   /** File edits that this tool call will perform, for preview before confirmation */
   edits?: { items: FileEdit[] };
   /** Whether the agent host allows the client to edit the tool's input parameters before confirming */

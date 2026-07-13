@@ -4534,6 +4534,22 @@
         "content"
       ]
     },
+    "ToolCallJudgeConfirmationReason": {
+      "type": "object",
+      "description": "A model judge's explanation for requiring user confirmation.",
+      "properties": {
+        "kind": {
+          "const": "judge"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "reason"
+      ]
+    },
     "ConfirmationOption": {
       "type": "object",
       "description": "A confirmation option that the server offers for a tool call awaiting\napproval. Allows richer choices beyond simple approve/deny — for example,\n\"Approve in this Session\" or \"Deny with reason.\"",
@@ -4782,6 +4798,10 @@
         "confirmationTitle": {
           "$ref": "#/$defs/StringOrMarkdown",
           "description": "Short title for the confirmation prompt (e.g. `\"Run in terminal\"`, `\"Write file\"`)"
+        },
+        "confirmationReason": {
+          "$ref": "#/$defs/ToolCallJudgeConfirmationReason",
+          "description": "Why the tool requires user confirmation."
         },
         "edits": {
           "type": "object",
@@ -6706,6 +6726,10 @@
         "confirmationTitle": {
           "$ref": "#/$defs/StringOrMarkdown",
           "description": "Short title for the confirmation prompt (e.g. `\"Run in terminal\"`, `\"Write file\"`)"
+        },
+        "confirmationReason": {
+          "$ref": "#/$defs/ToolCallJudgeConfirmationReason",
+          "description": "Why the tool requires user confirmation."
         },
         "edits": {
           "type": "object",

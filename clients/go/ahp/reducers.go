@@ -1009,19 +1009,20 @@ func applyToolCallReady(state *ahptypes.ChatState, a *ahptypes.ChatToolCallReady
 				}}
 			}
 			return ahptypes.ToolCallState{Value: &ahptypes.ToolCallPendingConfirmationState{
-				Status:            ahptypes.ToolCallStatusPendingConfirmation,
-				ToolCallId:        common.id,
-				ToolName:          common.name,
-				DisplayName:       common.displayName,
-				Intention:         common.intention,
-				Contributor:       common.contributor,
-				Meta:              common.meta,
-				InvocationMessage: a.InvocationMessage,
-				ToolInput:         a.ToolInput,
-				ConfirmationTitle: a.ConfirmationTitle,
-				Edits:             a.Edits,
-				Editable:          a.Editable,
-				Options:           a.Options,
+				Status:             ahptypes.ToolCallStatusPendingConfirmation,
+				ToolCallId:         common.id,
+				ToolName:           common.name,
+				DisplayName:        common.displayName,
+				Intention:          common.intention,
+				Contributor:        common.contributor,
+				Meta:               common.meta,
+				InvocationMessage:  a.InvocationMessage,
+				ToolInput:          a.ToolInput,
+				ConfirmationTitle:  a.ConfirmationTitle,
+				ConfirmationReason: a.ConfirmationReason,
+				Edits:              a.Edits,
+				Editable:           a.Editable,
+				Options:            a.Options,
 			}}
 		}
 		return tc

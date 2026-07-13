@@ -1184,6 +1184,7 @@ fn apply_tool_call_ready(state: &mut ChatState, a: &ChatToolCallReadyAction) -> 
                         invocation_message: a.invocation_message.clone(),
                         tool_input: a.tool_input.clone(),
                         confirmation_title: a.confirmation_title.clone(),
+                        confirmation_reason: a.confirmation_reason.clone(),
                         edits: a.edits.clone(),
                         editable: a.editable,
                         options: a.options.clone(),

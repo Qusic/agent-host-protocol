@@ -892,6 +892,7 @@ public fun chatReducer(state: ChatState, action: StateAction): ChatState = when 
                                 toolInput = a.toolInput,
                                 status = ToolCallStatus.PENDING_CONFIRMATION,
                                 confirmationTitle = a.confirmationTitle,
+                                confirmationReason = a.confirmationReason,
                                 edits = a.edits,
                                 editable = a.editable,
                                 options = a.options,
