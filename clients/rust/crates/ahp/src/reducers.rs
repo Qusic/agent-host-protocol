@@ -1188,12 +1188,27 @@ fn apply_tool_call_ready(state: &mut ChatState, a: &ChatToolCallReadyAction) -> 
                         contributor: base.contributor,
                         meta,
                         invocation_message: a.invocation_message.clone(),
-                        tool_input: a.tool_input.clone().or_else(|| pending.as_ref().and_then(|p| p.tool_input.clone())),
-                        confirmation_title: a.confirmation_title.clone().or_else(|| pending.as_ref().and_then(|p| p.confirmation_title.clone())),
-                        confirmation_reason: a.confirmation_reason.clone().or_else(|| pending.as_ref().and_then(|p| p.confirmation_reason.clone())),
-                        edits: a.edits.clone().or_else(|| pending.as_ref().and_then(|p| p.edits.clone())),
-                        editable: a.editable.or_else(|| pending.as_ref().and_then(|p| p.editable)),
-                        options: a.options.clone().or_else(|| pending.as_ref().and_then(|p| p.options.clone())),
+                        tool_input: a
+                            .tool_input
+                            .clone()
+                            .or_else(|| pending.as_ref().and_then(|p| p.tool_input.clone())),
+                        confirmation_title: a.confirmation_title.clone().or_else(|| {
+                            pending.as_ref().and_then(|p| p.confirmation_title.clone())
+                        }),
+                        confirmation_reason: a.confirmation_reason.clone().or_else(|| {
+                            pending.as_ref().and_then(|p| p.confirmation_reason.clone())
+                        }),
+                        edits: a
+                            .edits
+                            .clone()
+                            .or_else(|| pending.as_ref().and_then(|p| p.edits.clone())),
+                        editable: a
+                            .editable
+                            .or_else(|| pending.as_ref().and_then(|p| p.editable)),
+                        options: a
+                            .options
+                            .clone()
+                            .or_else(|| pending.as_ref().and_then(|p| p.options.clone())),
                     })
                 }
             }
