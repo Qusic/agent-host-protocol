@@ -1157,8 +1157,14 @@ fn apply_tool_call_ready(state: &mut ChatState, a: &ChatToolCallReadyAction) -> 
     update_tool_call(state, &a.turn_id, &a.tool_call_id, |tc| {
         let base = tool_call_meta(&tc);
         let meta = a.meta.clone().or(base.meta);
+        let pending = match &tc {
+            ToolCallState::PendingConfirmation(value) => Some(value.clone()),
+            _ => None,
+        };
         match tc {
-            ToolCallState::Streaming(_) | ToolCallState::Running(_) => {
+            ToolCallState::Streaming(_)
+            | ToolCallState::Running(_)
+            | ToolCallState::PendingConfirmation(_) => {
                 if let Some(confirmed) = a.confirmed {
                     ToolCallState::Running(ToolCallRunningState {
                         tool_call_id: base.tool_call_id,
@@ -1182,11 +1188,28 @@ fn apply_tool_call_ready(state: &mut ChatState, a: &ChatToolCallReadyAction) -> 
                         contributor: base.contributor,
                         meta,
                         invocation_message: a.invocation_message.clone(),
-                        tool_input: a.tool_input.clone(),
-                        confirmation_title: a.confirmation_title.clone(),
-                        edits: a.edits.clone(),
-                        editable: a.editable,
-                        options: a.options.clone(),
+                        tool_input: a
+                            .tool_input
+                            .clone()
+                            .or_else(|| pending.as_ref().and_then(|p| p.tool_input.clone())),
+                        confirmation_title: a.confirmation_title.clone().or_else(|| {
+                            pending.as_ref().and_then(|p| p.confirmation_title.clone())
+                        }),
+                        risk_assessment: a
+                            .risk_assessment
+                            .clone()
+                            .or_else(|| pending.as_ref().and_then(|p| p.risk_assessment.clone())),
+                        edits: a
+                            .edits
+                            .clone()
+                            .or_else(|| pending.as_ref().and_then(|p| p.edits.clone())),
+                        editable: a
+                            .editable
+                            .or_else(|| pending.as_ref().and_then(|p| p.editable)),
+                        options: a
+                            .options
+                            .clone()
+                            .or_else(|| pending.as_ref().and_then(|p| p.options.clone())),
                     })
                 }
             }

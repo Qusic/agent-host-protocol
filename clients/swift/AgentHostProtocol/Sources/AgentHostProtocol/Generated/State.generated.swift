@@ -225,6 +225,17 @@ public enum ToolCallConfirmationReason: String, Codable, Sendable {
     case setting = "setting"
 }
 
+/// Identifies a model judge as the source of a confirmation requirement.
+public enum ToolCallRiskAssessmentKind: String, Codable, Sendable {
+    case judge = "judge"
+}
+
+/// Lifecycle status of an asynchronous model-judge confirmation decision.
+public enum ToolCallRiskAssessmentStatus: String, Codable, Sendable {
+    case loading = "loading"
+    case complete = "complete"
+}
+
 /// Why a tool call was cancelled.
 public enum ToolCallCancellationReason: String, Codable, Sendable {
     case denied = "denied"
@@ -2462,6 +2473,8 @@ public struct ToolCallPendingConfirmationState: Codable, Sendable {
     public var status: ToolCallStatus
     /// Short title for the confirmation prompt (e.g. `"Run in terminal"`, `"Write file"`)
     public var confirmationTitle: StringOrMarkdown?
+    /// Risk assessment that informed the confirmation requirement.
+    public var riskAssessment: ToolCallRiskAssessment?
     /// File edits that this tool call will perform, for preview before confirmation
     public var edits: AnyCodable?
     /// Whether the agent host allows the client to edit the tool's input parameters before confirming
@@ -2483,6 +2496,7 @@ public struct ToolCallPendingConfirmationState: Codable, Sendable {
         case toolInput
         case status
         case confirmationTitle
+        case riskAssessment
         case edits
         case editable
         case options
@@ -2499,6 +2513,7 @@ public struct ToolCallPendingConfirmationState: Codable, Sendable {
         toolInput: String? = nil,
         status: ToolCallStatus,
         confirmationTitle: StringOrMarkdown? = nil,
+        riskAssessment: ToolCallRiskAssessment? = nil,
         edits: AnyCodable? = nil,
         editable: Bool? = nil,
         options: [ConfirmationOption]? = nil
@@ -2513,6 +2528,7 @@ public struct ToolCallPendingConfirmationState: Codable, Sendable {
         self.toolInput = toolInput
         self.status = status
         self.confirmationTitle = confirmationTitle
+        self.riskAssessment = riskAssessment
         self.edits = edits
         self.editable = editable
         self.options = options
@@ -2864,6 +2880,39 @@ public struct ToolCallCancelledState: Codable, Sendable {
         self.reasonMessage = reasonMessage
         self.userSuggestion = userSuggestion
         self.selectedOption = selectedOption
+    }
+}
+
+public struct ToolCallRiskAssessmentLoadingState: Codable, Sendable {
+    public var kind: ToolCallRiskAssessmentKind
+    public var status: ToolCallRiskAssessmentStatus
+
+    public init(
+        kind: ToolCallRiskAssessmentKind,
+        status: ToolCallRiskAssessmentStatus
+    ) {
+        self.kind = kind
+        self.status = status
+    }
+}
+
+public struct ToolCallRiskAssessmentCompleteState: Codable, Sendable {
+    public var kind: ToolCallRiskAssessmentKind
+    public var status: ToolCallRiskAssessmentStatus
+    public var reason: StringOrMarkdown
+    /// The judge's normalized safety score, where `0` is unsafe and `1` is safe.
+    public var safety: Double
+
+    public init(
+        kind: ToolCallRiskAssessmentKind,
+        status: ToolCallRiskAssessmentStatus,
+        reason: StringOrMarkdown,
+        safety: Double
+    ) {
+        self.kind = kind
+        self.status = status
+        self.reason = reason
+        self.safety = safety
     }
 }
 
@@ -5461,6 +5510,39 @@ public enum ToolCallContributor: Codable, Sendable {
         switch self {
         case .client(let value): try value.encode(to: encoder)
         case .mcp(let value): try value.encode(to: encoder)
+        }
+    }
+}
+
+public enum ToolCallRiskAssessment: Codable, Sendable {
+    case loading(ToolCallRiskAssessmentLoadingState)
+    case complete(ToolCallRiskAssessmentCompleteState)
+    /// Unknown or future discriminant; the raw payload is preserved
+    /// and re-encoded verbatim for forward-compatibility.
+    case unknown(AnyCodable)
+
+    private enum DiscriminantKey: String, CodingKey {
+        case discriminant = "status"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: DiscriminantKey.self)
+        let discriminant = try container.decode(String.self, forKey: .discriminant)
+        switch discriminant {
+        case "loading":
+            self = .loading(try ToolCallRiskAssessmentLoadingState(from: decoder))
+        case "complete":
+            self = .complete(try ToolCallRiskAssessmentCompleteState(from: decoder))
+        default:
+            self = .unknown(try AnyCodable(from: decoder))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        switch self {
+        case .loading(let value): try value.encode(to: encoder)
+        case .complete(let value): try value.encode(to: encoder)
+        case .unknown(let value): try value.encode(to: encoder)
         }
     }
 }

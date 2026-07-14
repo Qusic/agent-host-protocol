@@ -33,6 +33,12 @@
       "turnId": "turn-1",
       "toolCallId": "tc-1",
       "invocationMessage": "Run: echo hello",
+      "riskAssessment": {
+        "kind": "judge",
+        "status": "complete",
+        "reason": "The command can modify the workspace.",
+        "safety": 0.25
+      },
       "options": [
         {
           "id": "approve-once",
@@ -86,6 +92,12 @@
             "invocationMessage": "Run: echo hello",
             "toolInput": null,
             "confirmationTitle": null,
+            "riskAssessment": {
+              "kind": "judge",
+              "status": "complete",
+              "reason": "The command can modify the workspace.",
+              "safety": 0.25
+            },
             "edits": null,
             "editable": null,
             "options": [

@@ -472,6 +472,10 @@ data class ChatToolCallReadyAction(
      */
     val confirmationTitle: StringOrMarkdown? = null,
     /**
+     * Risk assessment that informed the confirmation requirement.
+     */
+    val riskAssessment: ToolCallRiskAssessment? = null,
+    /**
      * File edits that this tool call will perform, for preview before confirmation
      */
     val edits: JsonElement? = null,

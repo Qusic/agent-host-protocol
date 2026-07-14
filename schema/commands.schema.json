@@ -4534,6 +4534,58 @@
         "content"
       ]
     },
+    "ToolCallRiskAssessmentBase": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ToolCallRiskAssessmentKind"
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    },
+    "ToolCallRiskAssessmentLoadingState": {
+      "type": "object",
+      "description": "The model judge is still evaluating the tool call.",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ToolCallRiskAssessmentKind"
+        },
+        "status": {
+          "const": "loading"
+        }
+      },
+      "required": [
+        "kind",
+        "status"
+      ]
+    },
+    "ToolCallRiskAssessmentCompleteState": {
+      "type": "object",
+      "description": "The model judge has completed its evaluation.",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ToolCallRiskAssessmentKind"
+        },
+        "status": {
+          "const": "complete"
+        },
+        "reason": {
+          "$ref": "#/$defs/StringOrMarkdown"
+        },
+        "safety": {
+          "type": "number",
+          "description": "The judge's normalized safety score, where `0` is unsafe and `1` is safe."
+        }
+      },
+      "required": [
+        "kind",
+        "status",
+        "reason",
+        "safety"
+      ]
+    },
     "ConfirmationOption": {
       "type": "object",
       "description": "A confirmation option that the server offers for a tool call awaiting\napproval. Allows richer choices beyond simple approve/deny — for example,\n\"Approve in this Session\" or \"Deny with reason.\"",
@@ -4782,6 +4834,10 @@
         "confirmationTitle": {
           "$ref": "#/$defs/StringOrMarkdown",
           "description": "Short title for the confirmation prompt (e.g. `\"Run in terminal\"`, `\"Write file\"`)"
+        },
+        "riskAssessment": {
+          "$ref": "#/$defs/ToolCallRiskAssessment",
+          "description": "Risk assessment that informed the confirmation requirement."
         },
         "edits": {
           "type": "object",
@@ -6707,6 +6763,10 @@
           "$ref": "#/$defs/StringOrMarkdown",
           "description": "Short title for the confirmation prompt (e.g. `\"Run in terminal\"`, `\"Write file\"`)"
         },
+        "riskAssessment": {
+          "$ref": "#/$defs/ToolCallRiskAssessment",
+          "description": "Risk assessment that informed the confirmation requirement."
+        },
         "edits": {
           "type": "object",
           "properties": {
@@ -8541,6 +8601,13 @@
       "type": "string",
       "description": "How a client completed an input request."
     },
+    "ToolCallRiskAssessmentKind": {
+      "enum": [
+        "judge"
+      ],
+      "type": "string",
+      "description": "Identifies a model judge as the source of a confirmation requirement."
+    },
     "ConfirmationOptionKind": {
       "enum": [
         "approve",
@@ -8584,6 +8651,16 @@
         }
       ],
       "description": "Content block in a tool result.\n\nMirrors the content blocks in MCP `CallToolResult.content`, plus\n`ToolResultResourceContent` for lazy-loading large results,\n`ToolResultFileEditContent` for file edit diffs,\n`ToolResultTerminalContent` for live terminal output,\n`ToolResultTerminalCompleteContent` for terminal-style completion metadata, and\n`ToolResultSubagentContent` for tool-spawned worker chats (AHP extensions)."
+    },
+    "ToolCallRiskAssessment": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ToolCallRiskAssessmentLoadingState"
+        },
+        {
+          "$ref": "#/$defs/ToolCallRiskAssessmentCompleteState"
+        }
+      ]
     },
     "ToolCallConfirmationReason": {
       "enum": [

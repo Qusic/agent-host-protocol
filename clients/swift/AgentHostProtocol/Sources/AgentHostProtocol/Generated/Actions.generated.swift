@@ -480,6 +480,8 @@ public struct ChatToolCallReadyAction: Codable, Sendable {
     public var toolInput: String?
     /// Short title for the confirmation prompt (e.g. `"Run in terminal"`, `"Write file"`)
     public var confirmationTitle: StringOrMarkdown?
+    /// Risk assessment that informed the confirmation requirement.
+    public var riskAssessment: ToolCallRiskAssessment?
     /// File edits that this tool call will perform, for preview before confirmation
     public var edits: AnyCodable?
     /// Whether the agent host allows the client to edit the tool's input parameters before confirming
@@ -500,6 +502,7 @@ public struct ChatToolCallReadyAction: Codable, Sendable {
         case invocationMessage
         case toolInput
         case confirmationTitle
+        case riskAssessment
         case edits
         case editable
         case confirmed
@@ -514,6 +517,7 @@ public struct ChatToolCallReadyAction: Codable, Sendable {
         invocationMessage: StringOrMarkdown,
         toolInput: String? = nil,
         confirmationTitle: StringOrMarkdown? = nil,
+        riskAssessment: ToolCallRiskAssessment? = nil,
         edits: AnyCodable? = nil,
         editable: Bool? = nil,
         confirmed: ToolCallConfirmationReason? = nil,
@@ -526,6 +530,7 @@ public struct ChatToolCallReadyAction: Codable, Sendable {
         self.invocationMessage = invocationMessage
         self.toolInput = toolInput
         self.confirmationTitle = confirmationTitle
+        self.riskAssessment = riskAssessment
         self.edits = edits
         self.editable = editable
         self.confirmed = confirmed

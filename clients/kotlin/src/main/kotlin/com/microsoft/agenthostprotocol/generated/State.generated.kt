@@ -434,6 +434,26 @@ enum class ToolCallConfirmationReason {
 }
 
 /**
+ * Identifies a model judge as the source of a confirmation requirement.
+ */
+@Serializable
+enum class ToolCallRiskAssessmentKind {
+    @SerialName("judge")
+    JUDGE
+}
+
+/**
+ * Lifecycle status of an asynchronous model-judge confirmation decision.
+ */
+@Serializable
+enum class ToolCallRiskAssessmentStatus {
+    @SerialName("loading")
+    LOADING,
+    @SerialName("complete")
+    COMPLETE
+}
+
+/**
  * Why a tool call was cancelled.
  */
 @Serializable
@@ -2447,6 +2467,10 @@ data class ToolCallPendingConfirmationState(
      */
     val confirmationTitle: StringOrMarkdown? = null,
     /**
+     * Risk assessment that informed the confirmation requirement.
+     */
+    val riskAssessment: ToolCallRiskAssessment? = null,
+    /**
      * File edits that this tool call will perform, for preview before confirmation
      */
     val edits: JsonElement? = null,
@@ -2724,6 +2748,23 @@ data class ToolCallCancelledState(
      * The confirmation option the user selected, if confirmation options were provided
      */
     val selectedOption: ConfirmationOption? = null
+)
+
+@Serializable
+data class ToolCallRiskAssessmentLoadingState(
+    val kind: ToolCallRiskAssessmentKind,
+    val status: ToolCallRiskAssessmentStatus
+)
+
+@Serializable
+data class ToolCallRiskAssessmentCompleteState(
+    val kind: ToolCallRiskAssessmentKind,
+    val status: ToolCallRiskAssessmentStatus,
+    val reason: StringOrMarkdown,
+    /**
+     * The judge's normalized safety score, where `0` is unsafe and `1` is safe.
+     */
+    val safety: Double
 )
 
 @Serializable
@@ -5158,6 +5199,55 @@ internal object ToolCallContributorSerializer : KSerializer<ToolCallContributor>
             is ToolCallContributorClient -> output.json.encodeToJsonElement(ToolCallClientContributor.serializer(), value.value)
             is ToolCallContributorMcp -> output.json.encodeToJsonElement(ToolCallMcpContributor.serializer(), value.value)
             is ToolCallContributorUnknown -> value.raw
+        }
+        output.encodeJsonElement(element)
+    }
+}
+
+@Serializable(with = ToolCallRiskAssessmentSerializer::class)
+sealed interface ToolCallRiskAssessment
+
+@JvmInline
+value class ToolCallRiskAssessmentLoading(val value: ToolCallRiskAssessmentLoadingState) : ToolCallRiskAssessment
+@JvmInline
+value class ToolCallRiskAssessmentComplete(val value: ToolCallRiskAssessmentCompleteState) : ToolCallRiskAssessment
+/**
+ * Forward-compat catch-all for unknown ToolCallRiskAssessment discriminators.
+ *
+ * Older clients may receive newer wire variants they don't recognise; capturing
+ * the raw `JsonObject` lets such payloads round-trip through the client unchanged.
+ * Reducers handle this variant conservatively on a per-union basis (typically
+ * as a no-op, but see `Reducers.kt` for the exact treatment).
+ */
+@JvmInline
+value class ToolCallRiskAssessmentUnknown(val raw: JsonObject) : ToolCallRiskAssessment
+
+internal object ToolCallRiskAssessmentSerializer : KSerializer<ToolCallRiskAssessment> {
+    override val descriptor: SerialDescriptor =
+        buildClassSerialDescriptor("ToolCallRiskAssessment")
+
+    override fun deserialize(decoder: Decoder): ToolCallRiskAssessment {
+        val input = decoder as? JsonDecoder
+            ?: error("ToolCallRiskAssessment can only be deserialized from JSON")
+        val element = input.decodeJsonElement()
+        val obj = element as? JsonObject
+            ?: error("Expected JsonObject for ToolCallRiskAssessment")
+        val discriminant = (obj["status"] as? JsonPrimitive)?.content
+            ?: return ToolCallRiskAssessmentUnknown(obj)
+        return when (discriminant) {
+            "loading" -> ToolCallRiskAssessmentLoading(input.json.decodeFromJsonElement(ToolCallRiskAssessmentLoadingState.serializer(), element))
+            "complete" -> ToolCallRiskAssessmentComplete(input.json.decodeFromJsonElement(ToolCallRiskAssessmentCompleteState.serializer(), element))
+            else -> ToolCallRiskAssessmentUnknown(obj)
+        }
+    }
+
+    override fun serialize(encoder: Encoder, value: ToolCallRiskAssessment) {
+        val output = encoder as? JsonEncoder
+            ?: error("ToolCallRiskAssessment can only be serialized to JSON")
+        val element: JsonElement = when (value) {
+            is ToolCallRiskAssessmentLoading -> output.json.encodeToJsonElement(ToolCallRiskAssessmentLoadingState.serializer(), value.value)
+            is ToolCallRiskAssessmentComplete -> output.json.encodeToJsonElement(ToolCallRiskAssessmentCompleteState.serializer(), value.value)
+            is ToolCallRiskAssessmentUnknown -> value.raw
         }
         output.encodeJsonElement(element)
     }

@@ -1,5 +1,5 @@
 {
-  "description": "toolCallReady transitions running tool back to pending-confirmation",
+  "description": "toolCallReady stores a loading risk assessment",
   "reducer": "chat",
   "initial": {
     "turns": [],
@@ -32,17 +32,10 @@
       "type": "chat/toolCallReady",
       "turnId": "turn-1",
       "toolCallId": "tc-1",
-      "invocationMessage": "Run",
-      "confirmed": "not-needed"
-    },
-    {
-      "type": "chat/toolCallReady",
-      "turnId": "turn-1",
-      "toolCallId": "tc-1",
-      "invocationMessage": "Run: rm -rf /tmp/test",
-      "_meta": {
-        "permissionKind": "shell",
-        "fullCommandText": "rm -rf /tmp/test"
+      "invocationMessage": "Checking command safety",
+      "riskAssessment": {
+        "kind": "judge",
+        "status": "loading"
       }
     }
   ],
@@ -67,14 +60,14 @@
             "displayName": "Run Command",
             "intention": null,
             "contributor": null,
-            "_meta": {
-              "permissionKind": "shell",
-              "fullCommandText": "rm -rf /tmp/test"
-            },
-            "invocationMessage": "Run: rm -rf /tmp/test",
+            "_meta": null,
+            "invocationMessage": "Checking command safety",
             "toolInput": null,
             "confirmationTitle": null,
-            "riskAssessment": null,
+            "riskAssessment": {
+              "kind": "judge",
+              "status": "loading"
+            },
             "edits": null,
             "editable": null
           }

@@ -342,6 +342,22 @@ pub enum ToolCallConfirmationReason {
     Setting,
 }
 
+/// Identifies a model judge as the source of a confirmation requirement.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ToolCallRiskAssessmentKind {
+    #[serde(rename = "judge")]
+    Judge,
+}
+
+/// Lifecycle status of an asynchronous model-judge confirmation decision.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ToolCallRiskAssessmentStatus {
+    #[serde(rename = "loading")]
+    Loading,
+    #[serde(rename = "complete")]
+    Complete,
+}
+
 /// Why a tool call was cancelled.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ToolCallCancellationReason {
@@ -2127,6 +2143,23 @@ pub struct ToolCallResult {
     pub error: Option<AnyValue>,
 }
 
+/// The model judge is still evaluating the tool call.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolCallRiskAssessmentLoadingState {
+    pub kind: ToolCallRiskAssessmentKind,
+}
+
+/// The model judge has completed its evaluation.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolCallRiskAssessmentCompleteState {
+    pub kind: ToolCallRiskAssessmentKind,
+    pub reason: StringOrMarkdown,
+    /// The judge's normalized safety score, where `0` is unsafe and `1` is safe.
+    pub safety: f64,
+}
+
 /// A confirmation option that the server offers for a tool call awaiting
 /// approval. Allows richer choices beyond simple approve/deny — for example,
 /// "Approve in this Session" or "Deny with reason."
@@ -2211,6 +2244,9 @@ pub struct ToolCallPendingConfirmationState {
     /// Short title for the confirmation prompt (e.g. `"Run in terminal"`, `"Write file"`)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confirmation_title: Option<StringOrMarkdown>,
+    /// Risk assessment that informed the confirmation requirement.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub risk_assessment: Option<ToolCallRiskAssessment>,
     /// File edits that this tool call will perform, for preview before confirmation
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub edits: Option<AnyValue>,
@@ -4197,6 +4233,20 @@ pub enum ToolCallContributor {
     Client(ToolCallClientContributor),
     #[serde(rename = "mcp")]
     Mcp(ToolCallMcpContributor),
+    /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.
+    /// Reducers treat this as a no-op.
+    #[serde(untagged)]
+    Unknown(serde_json::Value),
+}
+
+/// Asynchronous model-judge confirmation rationale.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "status")]
+pub enum ToolCallRiskAssessment {
+    #[serde(rename = "loading")]
+    Loading(ToolCallRiskAssessmentLoadingState),
+    #[serde(rename = "complete")]
+    Complete(ToolCallRiskAssessmentCompleteState),
     /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.
     /// Reducers treat this as a no-op.
     #[serde(untagged)]

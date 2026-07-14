@@ -1,5 +1,5 @@
 {
-  "description": "toolCallReady transitions running tool back to pending-confirmation",
+  "description": "toolCallReady updates pending-confirmation tool calls",
   "reducer": "chat",
   "initial": {
     "turns": [],
@@ -12,38 +12,36 @@
           "kind": "user"
         }
       },
-      "responseParts": [],
+      "responseParts": [
+        {
+          "kind": "toolCall",
+          "toolCall": {
+            "status": "pending-confirmation",
+            "toolCallId": "tc-1",
+            "toolName": "bash",
+            "displayName": "Run Command",
+            "intention": null,
+            "contributor": null,
+            "_meta": null,
+            "invocationMessage": "Run",
+            "toolInput": null,
+            "confirmationTitle": null
+          }
+        }
+      ],
       "usage": null
     },
     "resource": "copilot:/test-session",
     "title": "Test Session",
-    "status": 8,
+    "status": 24,
     "modifiedAt": "1970-01-01T00:00:02.000Z"
   },
   "actions": [
     {
-      "type": "chat/toolCallStart",
-      "turnId": "turn-1",
-      "toolCallId": "tc-1",
-      "toolName": "bash",
-      "displayName": "Run Command"
-    },
-    {
       "type": "chat/toolCallReady",
       "turnId": "turn-1",
       "toolCallId": "tc-1",
-      "invocationMessage": "Run",
-      "confirmed": "not-needed"
-    },
-    {
-      "type": "chat/toolCallReady",
-      "turnId": "turn-1",
-      "toolCallId": "tc-1",
-      "invocationMessage": "Run: rm -rf /tmp/test",
-      "_meta": {
-        "permissionKind": "shell",
-        "fullCommandText": "rm -rf /tmp/test"
-      }
+      "invocationMessage": "Run again"
     }
   ],
   "expected": {
@@ -67,11 +65,8 @@
             "displayName": "Run Command",
             "intention": null,
             "contributor": null,
-            "_meta": {
-              "permissionKind": "shell",
-              "fullCommandText": "rm -rf /tmp/test"
-            },
-            "invocationMessage": "Run: rm -rf /tmp/test",
+            "_meta": null,
+            "invocationMessage": "Run again",
             "toolInput": null,
             "confirmationTitle": null,
             "riskAssessment": null,

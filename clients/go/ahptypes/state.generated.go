@@ -237,6 +237,21 @@ const (
 	ToolCallConfirmationReasonSetting    ToolCallConfirmationReason = "setting"
 )
 
+// Identifies a model judge as the source of a confirmation requirement.
+type ToolCallRiskAssessmentKind string
+
+const (
+	ToolCallRiskAssessmentKindJudge ToolCallRiskAssessmentKind = "judge"
+)
+
+// Lifecycle status of an asynchronous model-judge confirmation decision.
+type ToolCallRiskAssessmentStatus string
+
+const (
+	ToolCallRiskAssessmentStatusLoading  ToolCallRiskAssessmentStatus = "loading"
+	ToolCallRiskAssessmentStatusComplete ToolCallRiskAssessmentStatus = "complete"
+)
+
 // Why a tool call was cancelled.
 type ToolCallCancellationReason string
 
@@ -1702,6 +1717,21 @@ type ToolCallResult struct {
 	Error *json.RawMessage `json:"error,omitempty"`
 }
 
+// The model judge is still evaluating the tool call.
+type ToolCallRiskAssessmentLoadingState struct {
+	Kind   ToolCallRiskAssessmentKind   `json:"kind"`
+	Status ToolCallRiskAssessmentStatus `json:"status"`
+}
+
+// The model judge has completed its evaluation.
+type ToolCallRiskAssessmentCompleteState struct {
+	Kind   ToolCallRiskAssessmentKind   `json:"kind"`
+	Status ToolCallRiskAssessmentStatus `json:"status"`
+	Reason StringOrMarkdown             `json:"reason"`
+	// The judge's normalized safety score, where `0` is unsafe and `1` is safe.
+	Safety float64 `json:"safety"`
+}
+
 // A confirmation option that the server offers for a tool call awaiting
 // approval. Allows richer choices beyond simple approve/deny — for example,
 // "Approve in this Session" or "Deny with reason."
@@ -1771,6 +1801,8 @@ type ToolCallPendingConfirmationState struct {
 	Status    ToolCallStatus `json:"status"`
 	// Short title for the confirmation prompt (e.g. `"Run in terminal"`, `"Write file"`)
 	ConfirmationTitle *StringOrMarkdown `json:"confirmationTitle,omitempty"`
+	// Risk assessment that informed the confirmation requirement.
+	RiskAssessment *ToolCallRiskAssessment `json:"riskAssessment,omitempty"`
 	// File edits that this tool call will perform, for preview before confirmation
 	Edits *json.RawMessage `json:"edits,omitempty"`
 	// Whether the agent host allows the client to edit the tool's input parameters before confirming
@@ -4342,6 +4374,66 @@ func (u *ToolCallContributor) UnmarshalJSON(data []byte) error {
 // MarshalJSON encodes the active variant back to JSON.
 func (u ToolCallContributor) MarshalJSON() ([]byte, error) {
 	if unk, ok := u.Value.(*ToolCallContributorUnknown); ok {
+		if len(unk.Raw) == 0 {
+			return []byte("null"), nil
+		}
+		return unk.Raw, nil
+	}
+	if u.Value == nil {
+		return []byte("null"), nil
+	}
+	return json.Marshal(u.Value)
+}
+
+// ToolCallRiskAssessment is an asynchronous model-judge risk assessment.
+type ToolCallRiskAssessment struct {
+	Value isToolCallRiskAssessment
+}
+
+// isToolCallRiskAssessment is the marker interface implemented by every
+// concrete variant of ToolCallRiskAssessment.
+type isToolCallRiskAssessment interface{ isToolCallRiskAssessment() }
+
+func (*ToolCallRiskAssessmentLoadingState) isToolCallRiskAssessment()  {}
+func (*ToolCallRiskAssessmentCompleteState) isToolCallRiskAssessment() {}
+
+// ToolCallRiskAssessmentUnknown carries an unrecognized ToolCallRiskAssessment variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
+type ToolCallRiskAssessmentUnknown struct {
+	Raw json.RawMessage
+}
+
+func (*ToolCallRiskAssessmentUnknown) isToolCallRiskAssessment() {}
+
+// UnmarshalJSON decodes the variant indicated by the "status" discriminator.
+func (u *ToolCallRiskAssessment) UnmarshalJSON(data []byte) error {
+	disc, _, err := readDiscriminator(data, "status")
+	if err != nil {
+		return err
+	}
+	switch disc {
+	case "loading":
+		var value ToolCallRiskAssessmentLoadingState
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	case "complete":
+		var value ToolCallRiskAssessmentCompleteState
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	default:
+		raw := make(json.RawMessage, len(data))
+		copy(raw, data)
+		u.Value = &ToolCallRiskAssessmentUnknown{Raw: raw}
+	}
+	return nil
+}
+
+// MarshalJSON encodes the active variant back to JSON.
+func (u ToolCallRiskAssessment) MarshalJSON() ([]byte, error) {
+	if unk, ok := u.Value.(*ToolCallRiskAssessmentUnknown); ok {
 		if len(unk.Raw) == 0 {
 			return []byte("null"), nil
 		}

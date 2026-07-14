@@ -1,5 +1,5 @@
 {
-  "description": "toolCallReady ignores non-streaming/non-running tool calls",
+  "description": "toolCallReady completes a risk assessment without clearing confirmation context",
   "reducer": "chat",
   "initial": {
     "turns": [],
@@ -23,9 +23,24 @@
             "intention": null,
             "contributor": null,
             "_meta": null,
-            "invocationMessage": "Run",
-            "toolInput": null,
-            "confirmationTitle": null
+            "invocationMessage": "Checking command safety",
+            "toolInput": "rm -rf /tmp/test",
+            "confirmationTitle": "Run in terminal",
+            "riskAssessment": {
+              "kind": "judge",
+              "status": "loading"
+            },
+            "edits": {
+              "items": []
+            },
+            "editable": true,
+            "options": [
+              {
+                "id": "approve",
+                "label": "Approve",
+                "kind": "approve"
+              }
+            ]
           }
         }
       ],
@@ -41,7 +56,13 @@
       "type": "chat/toolCallReady",
       "turnId": "turn-1",
       "toolCallId": "tc-1",
-      "invocationMessage": "Run again"
+      "invocationMessage": "Run: rm -rf /tmp/test",
+      "riskAssessment": {
+        "kind": "judge",
+        "status": "complete",
+        "reason": "The command deletes files.",
+        "safety": 0.0
+      }
     }
   ],
   "expected": {
@@ -66,9 +87,26 @@
             "intention": null,
             "contributor": null,
             "_meta": null,
-            "invocationMessage": "Run",
-            "toolInput": null,
-            "confirmationTitle": null
+            "invocationMessage": "Run: rm -rf /tmp/test",
+            "toolInput": "rm -rf /tmp/test",
+            "confirmationTitle": "Run in terminal",
+            "riskAssessment": {
+              "kind": "judge",
+              "status": "complete",
+              "reason": "The command deletes files.",
+              "safety": 0.0
+            },
+            "edits": {
+              "items": []
+            },
+            "editable": true,
+            "options": [
+              {
+                "id": "approve",
+                "label": "Approve",
+                "kind": "approve"
+              }
+            ]
           }
         }
       ],

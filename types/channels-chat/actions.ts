@@ -16,6 +16,7 @@ import type {
   ChatInputResponseKind,
   ConfirmationOption,
   ToolCallContributor,
+  ToolCallRiskAssessment,
   Turn,
 } from './state.js';
 import {
@@ -203,6 +204,8 @@ export interface ChatToolCallReadyAction extends ToolCallActionBase {
   toolInput?: string;
   /** Short title for the confirmation prompt (e.g. `"Run in terminal"`, `"Write file"`) */
   confirmationTitle?: StringOrMarkdown;
+  /** Risk assessment that informed the confirmation requirement. */
+  riskAssessment?: ToolCallRiskAssessment;
   /** File edits that this tool call will perform, for preview before confirmation */
   edits?: { items: FileEdit[] };
   /** Whether the agent host allows the client to edit the tool's input parameters before confirming */

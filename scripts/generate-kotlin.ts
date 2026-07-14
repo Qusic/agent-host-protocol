@@ -791,7 +791,9 @@ const STATE_ENUMS = [
   'ChatOriginKind', 'ChatInteractivity', 'ChatInputAnswerState', 'ChatInputAnswerValueKind', 'ChatInputQuestionKind',
   'ChatInputResponseKind', 'SessionInputRequestKind',
   'TurnState', 'MessageKind', 'MessageAttachmentKind', 'ResponsePartKind', 'ToolCallStatus',
-  'ToolCallConfirmationReason', 'ToolCallCancellationReason', 'ConfirmationOptionKind',
+  'ToolCallConfirmationReason', 'ToolCallRiskAssessmentKind',
+  'ToolCallRiskAssessmentStatus',
+  'ToolCallCancellationReason', 'ConfirmationOptionKind',
   'ToolCallContributorKind',
   'ToolResultContentType', 'CustomizationType', 'CustomizationLoadStatus', 'TerminalClaimKind',
   'McpServerStatus', 'McpAuthRequiredReason',
@@ -825,7 +827,9 @@ const STATE_STRUCTS = [
   'ToolCallResult', 'ToolCallStreamingState',
   'ToolCallPendingConfirmationState', 'ToolCallRunningState',
   'ToolCallPendingResultConfirmationState', 'ToolCallCompletedState',
-  'ToolCallCancelledState', 'ConfirmationOption', 'ToolDefinition', 'ToolAnnotations',
+  'ToolCallCancelledState', 'ToolCallRiskAssessmentLoadingState',
+  'ToolCallRiskAssessmentCompleteState', 'ConfirmationOption',
+  'ToolDefinition', 'ToolAnnotations',
   'ToolResultTextContent', 'ToolResultEmbeddedResourceContent',
   'ToolResultResourceContent', 'ToolResultFileEditContent',
   'ToolResultTerminalContent', 'ToolResultTerminalCompleteContent',
@@ -1075,6 +1079,16 @@ const TOOL_CALL_CONTRIBUTOR_UNION: UnionConfig = {
   unknown: true,
 };
 
+const TOOL_CALL_RISK_ASSESSMENT_UNION: UnionConfig = {
+  name: 'ToolCallRiskAssessment',
+  discriminantField: 'status',
+  variants: [
+    { caseName: 'Loading', structName: 'ToolCallRiskAssessmentLoadingState', discriminantValue: 'loading' },
+    { caseName: 'Complete', structName: 'ToolCallRiskAssessmentCompleteState', discriminantValue: 'complete' },
+  ],
+  unknown: true,
+};
+
 const SESSION_INPUT_REQUEST_UNION: UnionConfig = {
   name: 'SessionInputRequest',
   discriminantField: 'kind',
@@ -1152,6 +1166,8 @@ function generateStateFile(project: Project): string {
   lines.push(generateDiscriminatedUnion(MCP_SERVER_STATUS_UNION));
   lines.push('');
   lines.push(generateDiscriminatedUnion(TOOL_CALL_CONTRIBUTOR_UNION));
+  lines.push('');
+  lines.push(generateDiscriminatedUnion(TOOL_CALL_RISK_ASSESSMENT_UNION));
   lines.push('');
   lines.push(generateDiscriminatedUnion(SESSION_INPUT_REQUEST_UNION));
   lines.push('');
@@ -1918,6 +1934,7 @@ function checkExhaustiveness(project: Project): void {
     'ChildCustomization',           // CHILD_CUSTOMIZATION_UNION discriminated union
     'McpServerState',              // MCP_SERVER_STATUS_UNION discriminated union
     'ToolCallContributor',          // TOOL_CALL_CONTRIBUTOR_UNION discriminated union
+    'ToolCallRiskAssessment',       // TOOL_CALL_RISK_ASSESSMENT_UNION discriminated union
     'SessionInputRequest',          // SESSION_INPUT_REQUEST_UNION discriminated union
     'ToolCallConfirmationState',    // TOOL_CALL_CONFIRMATION_STATE_UNION discriminated union
     'ChildCustomizationType',       // TS subset alias of CustomizationType; consumers reuse CustomizationType

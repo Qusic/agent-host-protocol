@@ -541,7 +541,9 @@ const STATE_ENUMS = [
   'ChatOriginKind', 'ChatInteractivity', 'ChatInputAnswerState', 'ChatInputAnswerValueKind', 'ChatInputQuestionKind',
   'ChatInputResponseKind', 'SessionInputRequestKind',
   'TurnState', 'MessageKind', 'MessageAttachmentKind', 'ResponsePartKind', 'ToolCallStatus',
-  'ToolCallConfirmationReason', 'ToolCallCancellationReason', 'ConfirmationOptionKind',
+  'ToolCallConfirmationReason', 'ToolCallRiskAssessmentKind',
+  'ToolCallRiskAssessmentStatus',
+  'ToolCallCancellationReason', 'ConfirmationOptionKind',
   'ToolCallContributorKind',
   'ToolResultContentType', 'CustomizationType', 'CustomizationLoadStatus', 'TerminalClaimKind',
   'McpServerStatus', 'McpAuthRequiredReason',
@@ -575,7 +577,9 @@ const STATE_STRUCTS = [
   'ToolCallResult', 'ToolCallStreamingState',
   'ToolCallPendingConfirmationState', 'ToolCallRunningState',
   'ToolCallPendingResultConfirmationState', 'ToolCallCompletedState',
-  'ToolCallCancelledState', 'ConfirmationOption', 'ToolDefinition', 'ToolAnnotations',
+  'ToolCallCancelledState', 'ToolCallRiskAssessmentLoadingState',
+  'ToolCallRiskAssessmentCompleteState', 'ConfirmationOption',
+  'ToolDefinition', 'ToolAnnotations',
   'ToolResultTextContent', 'ToolResultEmbeddedResourceContent',
   'ToolResultResourceContent', 'ToolResultFileEditContent',
   'ToolResultTerminalContent', 'ToolResultTerminalCompleteContent',
@@ -782,6 +786,16 @@ const TOOL_CALL_CONTRIBUTOR_UNION: UnionConfig = {
   variants: [
     { caseName: 'client', structName: 'ToolCallClientContributor', discriminantValue: 'client' },
     { caseName: 'mcp', structName: 'ToolCallMcpContributor', discriminantValue: 'mcp' },
+  ],
+};
+
+const TOOL_CALL_RISK_ASSESSMENT_UNION: UnionConfig = {
+  name: 'ToolCallRiskAssessment',
+  discriminantField: 'status',
+  allowUnknown: true,
+  variants: [
+    { caseName: 'loading', structName: 'ToolCallRiskAssessmentLoadingState', discriminantValue: 'loading' },
+    { caseName: 'complete', structName: 'ToolCallRiskAssessmentCompleteState', discriminantValue: 'complete' },
   ],
 };
 
@@ -1060,6 +1074,8 @@ function generateStateFile(project: Project): string {
   lines.push(generateDiscriminatedUnion(MCP_SERVER_STATUS_UNION));
   lines.push('');
   lines.push(generateDiscriminatedUnion(TOOL_CALL_CONTRIBUTOR_UNION));
+  lines.push('');
+  lines.push(generateDiscriminatedUnion(TOOL_CALL_RISK_ASSESSMENT_UNION));
   lines.push('');
   lines.push(generateDiscriminatedUnion(SESSION_INPUT_REQUEST_UNION));
   lines.push('');
@@ -1940,6 +1956,7 @@ function checkExhaustiveness(project: Project): void {
     'CustomizationLoadState',       // CUSTOMIZATION_LOAD_STATE_UNION discriminated union
     'McpServerState',              // MCP_SERVER_STATUS_UNION discriminated union
     'ToolCallContributor',          // TOOL_CALL_CONTRIBUTOR_UNION discriminated union
+    'ToolCallRiskAssessment',       // TOOL_CALL_RISK_ASSESSMENT_UNION discriminated union
     'SessionInputRequest',          // SESSION_INPUT_REQUEST_UNION discriminated union
     'ToolCallConfirmationState',    // TOOL_CALL_CONFIRMATION_STATE_UNION discriminated union
     'AuthRequiredErrorData',        // emitted by generateErrorsFile()
