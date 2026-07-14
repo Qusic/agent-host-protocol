@@ -52,9 +52,10 @@ use std::collections::{HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use ahp_types::actions::{
-    ChatInputAnswerChangedAction, ChatToolCallCompleteAction, ChatToolCallConfirmedAction,
-    ChatToolCallContentChangedAction, ChatToolCallDeltaAction, ChatToolCallReadyAction,
-    ChatToolCallResultConfirmedAction, ChatTurnStartedAction, StateAction,
+    ChatInputAnswerChangedAction, ChatToolCallAuthRequiredAction, ChatToolCallAuthResolvedAction,
+    ChatToolCallCompleteAction, ChatToolCallConfirmedAction, ChatToolCallContentChangedAction,
+    ChatToolCallDeltaAction, ChatToolCallReadyAction, ChatToolCallResultConfirmedAction,
+    ChatTurnStartedAction, StateAction,
 };
 use ahp_types::state::{
     ActiveTurn, AnnotationsState, ChangesetOperationStatus, ChangesetState, ChangesetStatus,
@@ -62,11 +63,11 @@ use ahp_types::state::{
     InputRequestResponsePart, McpServerStartingState, McpServerState, McpServerStoppedState,
     PendingMessage, PendingMessageKind, ResourceWatchState, ResponsePart, RootState,
     SessionInputRequest, SessionLifecycle, SessionState, SessionStatus, TerminalCommandPart,
-    TerminalContentPart, TerminalState, TerminalUnclassifiedPart, ToolCallCancellationReason,
-    ToolCallCancelledState, ToolCallCompletedState, ToolCallConfirmationReason,
-    ToolCallContributor, ToolCallPendingConfirmationState, ToolCallPendingResultConfirmationState,
-    ToolCallResponsePart, ToolCallRunningState, ToolCallState, ToolCallStreamingState, Turn,
-    TurnState,
+    TerminalContentPart, TerminalState, TerminalUnclassifiedPart, ToolCallAuthRequiredState,
+    ToolCallCancellationReason, ToolCallCancelledState, ToolCallCompletedState,
+    ToolCallConfirmationReason, ToolCallContributor, ToolCallPendingConfirmationState,
+    ToolCallPendingResultConfirmationState, ToolCallResponsePart, ToolCallRunningState,
+    ToolCallState, ToolCallStatus, ToolCallStreamingState, Turn, TurnState,
 };
 
 /// What happened when an action was applied.
@@ -162,6 +163,14 @@ fn tool_call_meta(tc: &ToolCallState) -> ToolCallBase {
             contributor: s.contributor.clone(),
             meta: s.meta.clone(),
         },
+        ToolCallState::AuthRequired(s) => ToolCallBase {
+            tool_call_id: s.tool_call_id.clone(),
+            tool_name: s.tool_name.clone(),
+            display_name: s.display_name.clone(),
+            intention: s.intention.clone(),
+            contributor: s.contributor.clone(),
+            meta: s.meta.clone(),
+        },
         ToolCallState::PendingResultConfirmation(s) => ToolCallBase {
             tool_call_id: s.tool_call_id.clone(),
             tool_name: s.tool_name.clone(),
@@ -202,6 +211,7 @@ fn tool_call_id(tc: &ToolCallState) -> &str {
         ToolCallState::Streaming(s) => &s.tool_call_id,
         ToolCallState::PendingConfirmation(s) => &s.tool_call_id,
         ToolCallState::Running(s) => &s.tool_call_id,
+        ToolCallState::AuthRequired(s) => &s.tool_call_id,
         ToolCallState::PendingResultConfirmation(s) => &s.tool_call_id,
         ToolCallState::Completed(s) => &s.tool_call_id,
         ToolCallState::Cancelled(s) => &s.tool_call_id,
@@ -209,14 +219,16 @@ fn tool_call_id(tc: &ToolCallState) -> &str {
     }
 }
 
-fn has_pending_tool_call_confirmation(state: &ChatState) -> bool {
+fn has_blocking_tool_call(state: &ChatState) -> bool {
     let Some(active) = &state.active_turn else {
         return false;
     };
     active.response_parts.iter().any(|part| match part {
         ResponsePart::ToolCall(tc) => matches!(
             tc.tool_call,
-            ToolCallState::PendingConfirmation(_) | ToolCallState::PendingResultConfirmation(_)
+            ToolCallState::PendingConfirmation(_)
+                | ToolCallState::PendingResultConfirmation(_)
+                | ToolCallState::AuthRequired(_)
         ),
         _ => false,
     })
@@ -256,7 +268,7 @@ fn summary_status(state: &ChatState, terminal: Option<SessionStatus>) -> u32 {
         .as_ref()
         .map(|r| !r.is_empty())
         .unwrap_or(false)
-        || has_pending_tool_call_confirmation(state)
+        || has_blocking_tool_call(state)
     {
         SessionStatus::InputNeeded.bits()
     } else if state.active_turn.is_some() {
@@ -309,6 +321,7 @@ fn end_turn(
                             }
                             ToolCallState::PendingConfirmation(s) => s.invocation_message.clone(),
                             ToolCallState::Running(s) => s.invocation_message.clone(),
+                            ToolCallState::AuthRequired(s) => s.invocation_message.clone(),
                             ToolCallState::PendingResultConfirmation(s) => {
                                 s.invocation_message.clone()
                             }
@@ -318,6 +331,7 @@ fn end_turn(
                             ToolCallState::Streaming(_) => None,
                             ToolCallState::PendingConfirmation(s) => s.tool_input.clone(),
                             ToolCallState::Running(s) => s.tool_input.clone(),
+                            ToolCallState::AuthRequired(s) => s.tool_input.clone(),
                             ToolCallState::PendingResultConfirmation(s) => s.tool_input.clone(),
                             _ => None,
                         };
@@ -399,7 +413,8 @@ fn session_input_request_id(r: &SessionInputRequest) -> Option<&str> {
         SessionInputRequest::ChatInput(x) => Some(x.id.as_str()),
         SessionInputRequest::ToolConfirmation(x) => Some(x.id.as_str()),
         SessionInputRequest::ToolClientExecution(x) => Some(x.id.as_str()),
-        SessionInputRequest::Unknown(_) => None,
+        SessionInputRequest::ToolAuthentication(x) => Some(x.id.as_str()),
+        SessionInputRequest::Unknown(v) => v.get("id").and_then(serde_json::Value::as_str),
     }
 }
 
@@ -960,6 +975,20 @@ pub fn apply_action_to_chat(state: &mut ChatState, action: &StateAction) -> Redu
             res
         }
         StateAction::ChatToolCallContentChanged(a) => apply_tool_call_content_changed(state, a),
+        StateAction::ChatToolCallAuthRequired(a) => {
+            let res = apply_tool_call_auth_required(state, a);
+            if res == ReduceOutcome::Applied {
+                refresh_summary_status(state);
+            }
+            res
+        }
+        StateAction::ChatToolCallAuthResolved(a) => {
+            let res = apply_tool_call_auth_resolved(state, a);
+            if res == ReduceOutcome::Applied {
+                refresh_summary_status(state);
+            }
+            res
+        }
         StateAction::ChatUsage(a) => {
             let Some(active) = state.active_turn.as_mut() else {
                 return ReduceOutcome::NoOp;
@@ -1285,22 +1314,57 @@ fn apply_tool_call_complete(
     update_tool_call(state, &a.turn_id, &a.tool_call_id, |tc| {
         let base = tool_call_meta(&tc);
         let meta = a.meta.clone().or(base.meta);
-        let (invocation_message, tool_input, confirmed, selected_option) = match tc {
+        let (
+            invocation_message,
+            tool_input,
+            confirmed,
+            selected_option,
+            pre_auth_content,
+            from_auth_required,
+        ) = match tc {
             ToolCallState::Running(s) => (
                 s.invocation_message,
                 s.tool_input,
                 s.confirmed,
                 s.selected_option,
+                None,
+                false,
             ),
             ToolCallState::PendingConfirmation(s) => (
                 s.invocation_message,
                 s.tool_input,
                 ToolCallConfirmationReason::NotNeeded,
                 None,
+                None,
+                false,
             ),
+            // A client MAY cancel an auth-required MCP tool call by dispatching a
+            // failed completion instead of authenticating. A successful completion
+            // is invalid here — execution never resumed after the auth challenge —
+            // and is ignored, leaving the call in auth-required. Any partial content
+            // produced before the call paused for auth is preserved unless the
+            // dispatched result supplies its own content.
+            ToolCallState::AuthRequired(s) => {
+                if a.result.success {
+                    return ToolCallState::AuthRequired(s);
+                }
+                (
+                    s.invocation_message,
+                    s.tool_input,
+                    s.confirmed,
+                    s.selected_option,
+                    s.content,
+                    true,
+                )
+            }
             other => return other,
         };
-        if a.requires_result_confirmation.unwrap_or(false) {
+        let content = a.result.content.clone().or(pre_auth_content);
+        // Cancelling from auth-required always completes terminally: the pending
+        // auth challenge isn't a "pending result" the client can review, so
+        // requires_result_confirmation is ignored for this path — it must never
+        // enter pending-result-confirmation.
+        if a.requires_result_confirmation.unwrap_or(false) && !from_auth_required {
             ToolCallState::PendingResultConfirmation(ToolCallPendingResultConfirmationState {
                 tool_call_id: base.tool_call_id,
                 tool_name: base.tool_name,
@@ -1312,7 +1376,7 @@ fn apply_tool_call_complete(
                 tool_input,
                 success: a.result.success,
                 past_tense_message: a.result.past_tense_message.clone(),
-                content: a.result.content.clone(),
+                content,
                 structured_content: a.result.structured_content.clone(),
                 error: a.result.error.clone(),
                 confirmed,
@@ -1330,7 +1394,7 @@ fn apply_tool_call_complete(
                 tool_input,
                 success: a.result.success,
                 past_tense_message: a.result.past_tense_message.clone(),
-                content: a.result.content.clone(),
+                content,
                 structured_content: a.result.structured_content.clone(),
                 error: a.result.error.clone(),
                 confirmed,
@@ -1398,6 +1462,65 @@ fn apply_tool_call_content_changed(
             ToolCallState::Running(s)
         }
         other => other,
+    })
+}
+
+fn apply_tool_call_auth_required(
+    state: &mut ChatState,
+    a: &ChatToolCallAuthRequiredAction,
+) -> ReduceOutcome {
+    update_tool_call(state, &a.turn_id, &a.tool_call_id, |tc| {
+        let base = tool_call_meta(&tc);
+        let meta = a.meta.clone().or(base.meta);
+        match tc {
+            ToolCallState::Running(s) => {
+                if !matches!(s.contributor, Some(ToolCallContributor::Mcp(_))) {
+                    return ToolCallState::Running(s);
+                }
+                ToolCallState::AuthRequired(ToolCallAuthRequiredState {
+                    tool_call_id: base.tool_call_id,
+                    tool_name: base.tool_name,
+                    display_name: base.display_name,
+                    intention: base.intention,
+                    contributor: s.contributor,
+                    meta,
+                    invocation_message: s.invocation_message,
+                    tool_input: s.tool_input,
+                    confirmed: s.confirmed,
+                    selected_option: s.selected_option,
+                    status: ToolCallStatus::AuthRequired,
+                    auth: a.auth.clone(),
+                    content: s.content,
+                })
+            }
+            other => other,
+        }
+    })
+}
+
+fn apply_tool_call_auth_resolved(
+    state: &mut ChatState,
+    a: &ChatToolCallAuthResolvedAction,
+) -> ReduceOutcome {
+    update_tool_call(state, &a.turn_id, &a.tool_call_id, |tc| {
+        let base = tool_call_meta(&tc);
+        let meta = a.meta.clone().or(base.meta);
+        match tc {
+            ToolCallState::AuthRequired(s) => ToolCallState::Running(ToolCallRunningState {
+                tool_call_id: base.tool_call_id,
+                tool_name: base.tool_name,
+                display_name: base.display_name,
+                intention: base.intention,
+                contributor: s.contributor,
+                meta,
+                invocation_message: s.invocation_message,
+                tool_input: s.tool_input,
+                confirmed: s.confirmed,
+                selected_option: s.selected_option,
+                content: s.content,
+            }),
+            other => other,
+        }
     })
 }
 

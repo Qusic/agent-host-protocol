@@ -87,7 +87,7 @@ Different agents MAY require authentication with different providers. For exampl
 
 ## Token Delivery
 
-Clients push Bearer tokens to the server using the [`authenticate`](/reference/common#authenticate) command. The `resource` field MUST match a `resource` value from the agent's `protectedResources` metadata:
+Clients push Bearer tokens to the server using the [`authenticate`](/reference/common#authenticate) command. The `resource` field MUST match a `resource` value the server has itself advertised — either statically via the agent's `protectedResources` metadata, or dynamically via a live MCP authentication challenge (`McpServerAuthRequiredState.resource` or, for a single blocked tool call, `ToolCallAuthRequiredState.auth.resource` — see [MCP Servers](/guide/mcp#authentication)):
 
 ```jsonc
 // Client → Server
@@ -98,7 +98,8 @@ Clients push Bearer tokens to the server using the [`authenticate`](/reference/c
   "params": {
     "channel": "ahp-root://",
     "resource": "https://api.github.com",
-    "token": "gho_xxxxxxxxxxxx"
+    "token": "gho_xxxxxxxxxxxx",
+    "scopes": ["read:user", "user:email"]
   }
 }
 
@@ -109,6 +110,8 @@ Clients push Bearer tokens to the server using the [`authenticate`](/reference/c
   "result": {}
 }
 ```
+
+`scopes` is optional and lets the client tell the server which OAuth scopes the pushed token actually grants — useful when resolving a `requiredScopes` challenge (from a live `McpServerAuthRequiredState` or `ToolCallAuthRequiredState.auth`) without the server needing to decode an opaque token.
 
 If the token is invalid or the resource is unrecognized, the server MUST return a JSON-RPC error (e.g. `AuthRequired` `-32007` or `InvalidParams` `-32602`).
 

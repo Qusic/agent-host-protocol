@@ -705,6 +705,7 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: str
   { name: 'SessionChatInputRequest', omitDiscriminants: true },
   { name: 'SessionToolConfirmationRequest', omitDiscriminants: true },
   { name: 'SessionToolClientExecutionRequest', omitDiscriminants: true },
+  { name: 'SessionToolAuthenticationRequest', omitDiscriminants: true },
   { name: 'SessionSummary' },
   { name: 'ChangesSummary' },
   { name: 'ProjectInfo' },
@@ -750,6 +751,7 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: str
   { name: 'ToolCallStreamingState', omitDiscriminants: true },
   { name: 'ToolCallPendingConfirmationState', omitDiscriminants: true },
   { name: 'ToolCallRunningState', omitDiscriminants: true },
+  { name: 'ToolCallAuthRequiredState' },
   { name: 'ToolCallPendingResultConfirmationState', omitDiscriminants: true },
   { name: 'ToolCallCompletedState', omitDiscriminants: true },
   { name: 'ToolCallCancelledState', omitDiscriminants: true },
@@ -782,6 +784,7 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; rustName?: str
   { name: 'McpServerAuthRequiredState', omitDiscriminants: true },
   { name: 'McpServerErrorState', omitDiscriminants: true },
   { name: 'McpServerStoppedState', omitDiscriminants: true },
+  { name: 'McpAuthRequirement' },
   { name: 'ToolCallClientContributor', omitDiscriminants: true },
   { name: 'ToolCallMcpContributor', omitDiscriminants: true },
   { name: 'FileEdit' },
@@ -831,6 +834,7 @@ const TOOL_CALL_STATE_UNION: UnionConfig = {
     { variantName: 'Streaming', innerType: 'ToolCallStreamingState', wireValue: 'streaming' },
     { variantName: 'PendingConfirmation', innerType: 'ToolCallPendingConfirmationState', wireValue: 'pending-confirmation' },
     { variantName: 'Running', innerType: 'ToolCallRunningState', wireValue: 'running' },
+    { variantName: 'AuthRequired', innerType: 'ToolCallAuthRequiredState', wireValue: 'auth-required' },
     { variantName: 'PendingResultConfirmation', innerType: 'ToolCallPendingResultConfirmationState', wireValue: 'pending-result-confirmation' },
     { variantName: 'Completed', innerType: 'ToolCallCompletedState', wireValue: 'completed' },
     { variantName: 'Cancelled', innerType: 'ToolCallCancelledState', wireValue: 'cancelled' },
@@ -1030,6 +1034,7 @@ const SESSION_INPUT_REQUEST_UNION: UnionConfig = {
     { variantName: 'ChatInput', innerType: 'SessionChatInputRequest', wireValue: 'chatInput' },
     { variantName: 'ToolConfirmation', innerType: 'SessionToolConfirmationRequest', wireValue: 'toolConfirmation' },
     { variantName: 'ToolClientExecution', innerType: 'SessionToolClientExecutionRequest', wireValue: 'toolClientExecution' },
+    { variantName: 'ToolAuthentication', innerType: 'SessionToolAuthenticationRequest', wireValue: 'toolAuthentication' },
   ],
   unknown: true,
 };
@@ -1193,6 +1198,8 @@ const ACTION_VARIANTS: {
   { type: 'chat/toolCallComplete', variantName: 'ChatToolCallComplete', tsInterface: 'ChatToolCallCompleteAction' },
   { type: 'chat/toolCallResultConfirmed', variantName: 'ChatToolCallResultConfirmed', tsInterface: 'ChatToolCallResultConfirmedAction' },
   { type: 'chat/toolCallContentChanged', variantName: 'ChatToolCallContentChanged', tsInterface: 'ChatToolCallContentChangedAction' },
+  { type: 'chat/toolCallAuthRequired', variantName: 'ChatToolCallAuthRequired', tsInterface: 'ChatToolCallAuthRequiredAction' },
+  { type: 'chat/toolCallAuthResolved', variantName: 'ChatToolCallAuthResolved', tsInterface: 'ChatToolCallAuthResolvedAction' },
   { type: 'chat/turnComplete', variantName: 'ChatTurnComplete', tsInterface: 'ChatTurnCompleteAction' },
   { type: 'chat/turnCancelled', variantName: 'ChatTurnCancelled', tsInterface: 'ChatTurnCancelledAction' },
   { type: 'chat/error', variantName: 'ChatError', tsInterface: 'ChatErrorAction' },
@@ -1291,7 +1298,7 @@ pub struct ${scope}ToolCallConfirmedAction {
 function generateActionsFile(project: Project): string {
   const lines: string[] = [GENERATED_HEADER];
   lines.push('#[allow(unused_imports)]');
-  lines.push('use crate::state::{AgentInfo, AgentSelection, Annotation, AnnotationEntry, ChatInputAnswer, ChatInputRequest, ChatInputResponseKind, ChatInteractivity, ChatOrigin, ConfirmationOption, Customization, ErrorInfo, McpServerState, ModelSelection, ResponsePart, SessionActiveClient, SessionInputRequest, TerminalClaim, TerminalInfo, TextRange, ToolCallContributor, ToolCallResult, ToolCallRiskAssessment, ToolCallConfirmationReason, ToolCallCancellationReason, ToolDefinition, ToolResultContent, UsageInfo, Message, PendingMessageKind, Turn, ChangesetStatus, ChangesetFile, ChangesetOperation, ChangesetOperationStatus, Changeset, ChatSummary};');
+  lines.push('use crate::state::{AgentInfo, AgentSelection, Annotation, AnnotationEntry, ChatInputAnswer, ChatInputRequest, ChatInputResponseKind, ChatInteractivity, ChatOrigin, ConfirmationOption, Customization, ErrorInfo, McpAuthRequirement, McpServerState, ModelSelection, ResponsePart, SessionActiveClient, SessionInputRequest, TerminalClaim, TerminalInfo, TextRange, ToolCallContributor, ToolCallResult, ToolCallRiskAssessment, ToolCallConfirmationReason, ToolCallCancellationReason, ToolDefinition, ToolResultContent, UsageInfo, Message, PendingMessageKind, Turn, ChangesetStatus, ChangesetFile, ChangesetOperation, ChangesetOperationStatus, Changeset, ChatSummary};');
   lines.push('');
 
   // ActionType enum

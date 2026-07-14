@@ -62,6 +62,10 @@ enum class ActionType {
     CHAT_TOOL_CALL_RESULT_CONFIRMED,
     @SerialName("chat/toolCallContentChanged")
     CHAT_TOOL_CALL_CONTENT_CHANGED,
+    @SerialName("chat/toolCallAuthRequired")
+    CHAT_TOOL_CALL_AUTH_REQUIRED,
+    @SerialName("chat/toolCallAuthResolved")
+    CHAT_TOOL_CALL_AUTH_RESOLVED,
     @SerialName("chat/turnComplete")
     CHAT_TURN_COMPLETE,
     @SerialName("chat/turnCancelled")
@@ -608,6 +612,56 @@ data class ChatToolCallContentChangedAction(
      * The current partial content for the running tool call
      */
     val content: List<ToolResultContent>
+)
+
+@Serializable
+data class ChatToolCallAuthRequiredAction(
+    /**
+     * Turn identifier
+     */
+    val turnId: String,
+    /**
+     * Tool call identifier
+     */
+    val toolCallId: String,
+    /**
+     * Additional provider-specific metadata for this tool call.
+     *
+     * Clients MAY look for well-known keys here to provide enhanced UI.
+     * For example, a `ptyTerminal` key with `{ input: string; output: string }`
+     * indicates the tool operated on a terminal (both `input` and `output` may
+     * contain escape sequences).
+     */
+    @SerialName("_meta")
+    val meta: Map<String, JsonElement>? = null,
+    val type: ActionType,
+    /**
+     * The authentication challenge blocking this invocation.
+     */
+    val auth: McpAuthRequirement
+)
+
+@Serializable
+data class ChatToolCallAuthResolvedAction(
+    /**
+     * Turn identifier
+     */
+    val turnId: String,
+    /**
+     * Tool call identifier
+     */
+    val toolCallId: String,
+    /**
+     * Additional provider-specific metadata for this tool call.
+     *
+     * Clients MAY look for well-known keys here to provide enhanced UI.
+     * For example, a `ptyTerminal` key with `{ input: string; output: string }`
+     * indicates the tool operated on a terminal (both `input` and `output` may
+     * contain escape sequences).
+     */
+    @SerialName("_meta")
+    val meta: Map<String, JsonElement>? = null,
+    val type: ActionType
 )
 
 @Serializable
@@ -1450,6 +1504,8 @@ sealed interface StateAction
 @JvmInline value class StateActionChatToolCallComplete(val value: ChatToolCallCompleteAction) : StateAction
 @JvmInline value class StateActionChatToolCallResultConfirmed(val value: ChatToolCallResultConfirmedAction) : StateAction
 @JvmInline value class StateActionChatToolCallContentChanged(val value: ChatToolCallContentChangedAction) : StateAction
+@JvmInline value class StateActionChatToolCallAuthRequired(val value: ChatToolCallAuthRequiredAction) : StateAction
+@JvmInline value class StateActionChatToolCallAuthResolved(val value: ChatToolCallAuthResolvedAction) : StateAction
 @JvmInline value class StateActionChatTurnComplete(val value: ChatTurnCompleteAction) : StateAction
 @JvmInline value class StateActionChatTurnCancelled(val value: ChatTurnCancelledAction) : StateAction
 @JvmInline value class StateActionChatError(val value: ChatErrorAction) : StateAction
@@ -1544,6 +1600,8 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             "chat/toolCallComplete" -> StateActionChatToolCallComplete(input.json.decodeFromJsonElement(ChatToolCallCompleteAction.serializer(), element))
             "chat/toolCallResultConfirmed" -> StateActionChatToolCallResultConfirmed(input.json.decodeFromJsonElement(ChatToolCallResultConfirmedAction.serializer(), element))
             "chat/toolCallContentChanged" -> StateActionChatToolCallContentChanged(input.json.decodeFromJsonElement(ChatToolCallContentChangedAction.serializer(), element))
+            "chat/toolCallAuthRequired" -> StateActionChatToolCallAuthRequired(input.json.decodeFromJsonElement(ChatToolCallAuthRequiredAction.serializer(), element))
+            "chat/toolCallAuthResolved" -> StateActionChatToolCallAuthResolved(input.json.decodeFromJsonElement(ChatToolCallAuthResolvedAction.serializer(), element))
             "chat/turnComplete" -> StateActionChatTurnComplete(input.json.decodeFromJsonElement(ChatTurnCompleteAction.serializer(), element))
             "chat/turnCancelled" -> StateActionChatTurnCancelled(input.json.decodeFromJsonElement(ChatTurnCancelledAction.serializer(), element))
             "chat/error" -> StateActionChatError(input.json.decodeFromJsonElement(ChatErrorAction.serializer(), element))
@@ -1631,6 +1689,8 @@ internal object StateActionSerializer : KSerializer<StateAction> {
             is StateActionChatToolCallComplete -> output.json.encodeToJsonElement(ChatToolCallCompleteAction.serializer(), value.value)
             is StateActionChatToolCallResultConfirmed -> output.json.encodeToJsonElement(ChatToolCallResultConfirmedAction.serializer(), value.value)
             is StateActionChatToolCallContentChanged -> output.json.encodeToJsonElement(ChatToolCallContentChangedAction.serializer(), value.value)
+            is StateActionChatToolCallAuthRequired -> output.json.encodeToJsonElement(ChatToolCallAuthRequiredAction.serializer(), value.value)
+            is StateActionChatToolCallAuthResolved -> output.json.encodeToJsonElement(ChatToolCallAuthResolvedAction.serializer(), value.value)
             is StateActionChatTurnComplete -> output.json.encodeToJsonElement(ChatTurnCompleteAction.serializer(), value.value)
             is StateActionChatTurnCancelled -> output.json.encodeToJsonElement(ChatTurnCancelledAction.serializer(), value.value)
             is StateActionChatError -> output.json.encodeToJsonElement(ChatErrorAction.serializer(), value.value)

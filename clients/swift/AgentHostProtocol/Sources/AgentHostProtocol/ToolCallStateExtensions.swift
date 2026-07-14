@@ -15,6 +15,7 @@ extension ToolCallState {
         case .streaming(let s): return s.toolCallId
         case .pendingConfirmation(let s): return s.toolCallId
         case .running(let s): return s.toolCallId
+        case .authRequired(let s): return s.toolCallId
         case .pendingResultConfirmation(let s): return s.toolCallId
         case .completed(let s): return s.toolCallId
         case .cancelled(let s): return s.toolCallId
@@ -50,6 +51,10 @@ extension ToolCallState {
                                        displayName: s.displayName, intention: s.intention,
                                        contributor: s.contributor, meta: s.meta)
         case .running(let s):
+            return ToolCallBaseFields(toolCallId: s.toolCallId, toolName: s.toolName,
+                                       displayName: s.displayName, intention: s.intention,
+                                       contributor: s.contributor, meta: s.meta)
+        case .authRequired(let s):
             return ToolCallBaseFields(toolCallId: s.toolCallId, toolName: s.toolName,
                                        displayName: s.displayName, intention: s.intention,
                                        contributor: s.contributor, meta: s.meta)

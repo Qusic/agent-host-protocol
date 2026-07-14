@@ -358,8 +358,12 @@ stateDiagram-v2
   pending_confirmation --> cancelled : toolCallConfirmed (denied/skipped)
 
   running --> pending_confirmation : toolCallReady (re‑confirmation)
+  running --> auth_required : toolCallAuthRequired
   running --> completed : toolCallComplete
   running --> pending_result_confirmation : toolCallComplete (requiresResultConfirmation)
+
+  auth_required --> running : toolCallAuthResolved
+  auth_required --> completed : toolCallComplete (cancel, failed result only)
 
   pending_result_confirmation --> completed : toolCallResultConfirmed (approved)
   pending_result_confirmation --> cancelled : toolCallResultConfirmed (denied)
@@ -375,13 +379,28 @@ stateDiagram-v2
 | `streaming`                   | `partialInput?`                                                      | LM is streaming tool call parameters. `partialInput` accumulates via `toolCallDelta`.                                                                                                                                                                                                  |
 | `pending-confirmation`        | `invocationMessage`, `toolInput?`, `edits?`, `editable?`, `options?` | Parameters complete or mid-execution confirmation needed. `edits` previews file changes. `editable` indicates the client may edit parameters before confirming. `options` provides server-defined choices beyond simple approve/deny (see below). Uses `_meta` for additional context. |
 | `running`                     | `confirmed`, `selectedOption?`                                       | Tool is executing. `confirmed` records how it was approved. `selectedOption` holds the chosen confirmation option, if any.                                                                                                                                                             |
+| `auth-required`               | `confirmed`, `selectedOption?`, `contributor` (MCP), `auth`          | Execution paused pending MCP authentication (see below). Only reachable for MCP-contributed tool calls.                                                                                                                                                                               |
 | `pending-result-confirmation` | `success`, `pastTenseMessage`, `content?`, `selectedOption?`         | Execution finished, waiting for client to approve the result.                                                                                                                                                                                                                          |
 | `completed`                   | `success`, `pastTenseMessage`, `content?`, `selectedOption?`         | Terminal state. Tool finished.                                                                                                                                                                                                                                                         |
 | `cancelled`                   | `reason`, `reasonMessage?`, `userSuggestion?`, `selectedOption?`     | Terminal state. `reason` is `'denied'`, `'skipped'`, or `'result-denied'`.                                                                                                                                                                                                             |
 
+`confirmed`, `selectedOption?` are pulled into a shared `ToolCallPostConfirmationFields` base since the invariant — "confirmation has already been resolved" — holds for every state reachable only after `pending-confirmation`: `running`, `auth-required`, `pending-result-confirmation`, and `completed`. `pending-confirmation` itself (not yet confirmed) and `cancelled` (the denial path, which never ran) keep their own fields instead.
+
 ### Mid-execution Re-confirmation
 
 When a running tool needs additional user approval (e.g. a shell permission), the server dispatches `chat/toolCallReady` again without `confirmed`. This transitions the tool call from `running` back to `pending-confirmation`, updating `invocationMessage` and `_meta` with context about what needs approval. The client uses the standard `chat/toolCallConfirmed` flow to approve or deny.
+
+### Mid-execution MCP Authentication
+
+A `running` tool call contributed by an MCP server (`contributor.kind === 'mcp'`) can pause on an authentication challenge — most commonly step-up auth when the underlying `tools/call` comes back with insufficient scope. The server dispatches `chat/toolCallAuthRequired` with an `auth: McpAuthRequirement` object (`reason`, `resource`, `requiredScopes?`, `description?` — no token), transitioning `running` → `auth-required`. This is a **first-class status**, not a generic "blocked" state: it exists specifically because the resolution path (obtain a token, call `authenticate`) differs from a `chat/toolCallConfirmed` approve/deny decision.
+
+The host SHOULD also raise `session/inputNeededSet` with a `toolAuthentication` entry (see [Aggregated Input Requests](/specification/session-channel#aggregated-input-requests)) so the block is visible without subscribing to the chat. Once the client obtains a token for `auth.resource` and pushes it via `authenticate`, the host dispatches `chat/toolCallAuthResolved`, transitioning `auth-required` back to `running` with the fields it had before pausing (`invocationMessage`, `toolInput`, `confirmed`, `selectedOption`, `content`) preserved.
+
+A client MAY instead cancel the invocation without ever authenticating by dispatching `chat/toolCallComplete` with a **failed** result (e.g. `error.code: 'cancelled'`). The reducer accepts this transition from `auth-required` the same way it does from `running`, but always transitions straight to `completed` — `requiresResultConfirmation` is ignored on this path and it can never enter `pending-result-confirmation`, since a cancelled auth challenge produced no real result to review. `confirmed`, `selectedOption`, `contributor`, `invocationMessage`/`toolInput`, and any pre-auth partial `content` are preserved unless the dispatched result supplies its own.
+
+A **successful** result (`result.success: true`) dispatched from `auth-required` is invalid: execution never resumed after the challenge, so there's nothing that could have produced a real result. The reducer rejects it as a no-op — the tool call remains `auth-required` — rather than letting a client bypass the pending authentication by claiming success. Only `chat/toolCallAuthResolved` (after a real token exchange) resumes the call to `running`.
+
+This is deliberately **separate** from `McpServerAuthRequiredState` (the MCP server's own `authRequired` lifecycle state, see [MCP Servers](/guide/mcp#authentication)): the server saying "I need auth" and a specific tool call saying "I am waiting on that auth" are independent facts.
 
 ### Editable Parameters
 
