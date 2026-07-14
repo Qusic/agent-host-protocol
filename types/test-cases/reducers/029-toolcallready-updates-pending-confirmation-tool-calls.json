@@ -69,7 +69,7 @@
             "invocationMessage": "Run again",
             "toolInput": null,
             "confirmationTitle": null,
-            "confirmationReason": null,
+            "riskAssessment": null,
             "edits": null,
             "editable": null
           }

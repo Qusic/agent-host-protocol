@@ -407,7 +407,7 @@ export function chatReducer(state: ChatState, action: ChatAction, log?: (msg: st
           invocationMessage: action.invocationMessage,
           toolInput: action.toolInput ?? pending?.toolInput,
           confirmationTitle: action.confirmationTitle ?? pending?.confirmationTitle,
-          confirmationReason: action.confirmationReason ?? pending?.confirmationReason,
+          riskAssessment: action.riskAssessment ?? pending?.riskAssessment,
           edits: action.edits ?? pending?.edits,
           editable: action.editable ?? pending?.editable,
           ...(options ? { options } : {}),

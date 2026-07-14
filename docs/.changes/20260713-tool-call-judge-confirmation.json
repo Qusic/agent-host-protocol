@@ -1,4 +1,0 @@
-{
-  "type": "added",
-  "message": "Asynchronous `judge` tool-call confirmation reasons with a model-provided explanation and normalized safety score."
-}

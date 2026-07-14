@@ -1195,9 +1195,10 @@ fn apply_tool_call_ready(state: &mut ChatState, a: &ChatToolCallReadyAction) -> 
                         confirmation_title: a.confirmation_title.clone().or_else(|| {
                             pending.as_ref().and_then(|p| p.confirmation_title.clone())
                         }),
-                        confirmation_reason: a.confirmation_reason.clone().or_else(|| {
-                            pending.as_ref().and_then(|p| p.confirmation_reason.clone())
-                        }),
+                        risk_assessment: a
+                            .risk_assessment
+                            .clone()
+                            .or_else(|| pending.as_ref().and_then(|p| p.risk_assessment.clone())),
                         edits: a
                             .edits
                             .clone()

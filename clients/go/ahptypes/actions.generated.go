@@ -350,8 +350,8 @@ type ChatToolCallReadyAction struct {
 	ToolInput *string `json:"toolInput,omitempty"`
 	// Short title for the confirmation prompt (e.g. `"Run in terminal"`, `"Write file"`)
 	ConfirmationTitle *StringOrMarkdown `json:"confirmationTitle,omitempty"`
-	// Why the tool requires user confirmation.
-	ConfirmationReason *ToolCallJudgeConfirmationReason `json:"confirmationReason,omitempty"`
+	// Risk assessment that informed the confirmation requirement.
+	RiskAssessment *ToolCallRiskAssessment `json:"riskAssessment,omitempty"`
 	// File edits that this tool call will perform, for preview before confirmation
 	Edits *json.RawMessage `json:"edits,omitempty"`
 	// Whether the agent host allows the client to edit the tool's input parameters before confirming

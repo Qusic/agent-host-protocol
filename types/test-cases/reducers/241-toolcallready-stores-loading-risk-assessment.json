@@ -1,5 +1,5 @@
 {
-  "description": "toolCallReady stores an asynchronous judge loading state",
+  "description": "toolCallReady stores a loading risk assessment",
   "reducer": "chat",
   "initial": {
     "turns": [],
@@ -33,7 +33,7 @@
       "turnId": "turn-1",
       "toolCallId": "tc-1",
       "invocationMessage": "Checking command safety",
-      "confirmationReason": {
+      "riskAssessment": {
         "kind": "judge",
         "status": "loading"
       }
@@ -64,7 +64,7 @@
             "invocationMessage": "Checking command safety",
             "toolInput": null,
             "confirmationTitle": null,
-            "confirmationReason": {
+            "riskAssessment": {
               "kind": "judge",
               "status": "loading"
             },

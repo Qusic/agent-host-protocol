@@ -644,8 +644,8 @@ const STATE_ENUMS = [
   'ChatOriginKind', 'ChatInteractivity', 'PendingMessageKind', 'ChatInputAnswerState', 'ChatInputAnswerValueKind', 'ChatInputQuestionKind',
   'ChatInputResponseKind', 'SessionInputRequestKind',
   'TurnState', 'MessageKind', 'MessageAttachmentKind', 'ResponsePartKind', 'ToolCallStatus',
-  'ToolCallConfirmationReason', 'ToolCallJudgeConfirmationReasonKind',
-  'ToolCallJudgeConfirmationReasonStatus',
+  'ToolCallConfirmationReason', 'ToolCallRiskAssessmentKind',
+  'ToolCallRiskAssessmentStatus',
   'ToolCallCancellationReason',
   'ConfirmationOptionKind', 'ToolCallContributorKind',
   'ToolResultContentType', 'CustomizationType', 'CustomizationLoadStatus', 'TerminalClaimKind',
@@ -713,8 +713,8 @@ const STATE_STRUCTS: { name: string; omitDiscriminants?: boolean; goName?: strin
   { name: 'SystemNotificationResponsePart' },
   { name: 'InputRequestResponsePart' },
   { name: 'ToolCallResult' },
-  { name: 'ToolCallJudgeConfirmationReasonLoadingState' },
-  { name: 'ToolCallJudgeConfirmationReasonCompleteState' },
+  { name: 'ToolCallRiskAssessmentLoadingState' },
+  { name: 'ToolCallRiskAssessmentCompleteState' },
   { name: 'ConfirmationOption' },
   { name: 'ToolCallStreamingState' },
   { name: 'ToolCallPendingConfirmationState' },
@@ -975,13 +975,13 @@ const TOOL_CALL_CONTRIBUTOR_UNION: UnionConfig = {
   unknown: true,
 };
 
-const TOOL_CALL_JUDGE_CONFIRMATION_REASON_UNION: UnionConfig = {
-  name: 'ToolCallJudgeConfirmationReason',
+const TOOL_CALL_RISK_ASSESSMENT_UNION: UnionConfig = {
+  name: 'ToolCallRiskAssessment',
   discriminantField: 'status',
-  doc: 'ToolCallJudgeConfirmationReason is an asynchronous model-judge confirmation rationale.',
+  doc: 'ToolCallRiskAssessment is an asynchronous model-judge risk assessment.',
   variants: [
-    { variantName: 'Loading', innerType: 'ToolCallJudgeConfirmationReasonLoadingState', wireValue: 'loading' },
-    { variantName: 'Complete', innerType: 'ToolCallJudgeConfirmationReasonCompleteState', wireValue: 'complete' },
+    { variantName: 'Loading', innerType: 'ToolCallRiskAssessmentLoadingState', wireValue: 'loading' },
+    { variantName: 'Complete', innerType: 'ToolCallRiskAssessmentCompleteState', wireValue: 'complete' },
   ],
   unknown: true,
 };
@@ -1242,7 +1242,7 @@ function generateStateFile(project: Project): string {
   lines.push('');
   lines.push(generateDiscriminatedUnion(TOOL_CALL_CONTRIBUTOR_UNION));
   lines.push('');
-  lines.push(generateDiscriminatedUnion(TOOL_CALL_JUDGE_CONFIRMATION_REASON_UNION));
+  lines.push(generateDiscriminatedUnion(TOOL_CALL_RISK_ASSESSMENT_UNION));
   lines.push('');
   lines.push(generateDiscriminatedUnion(SESSION_INPUT_REQUEST_UNION));
   lines.push('');
@@ -1948,7 +1948,7 @@ function checkExhaustiveness(project: Project): void {
     'CustomizationLoadState',
     'McpServerState',
     'ToolCallContributor',
-    'ToolCallJudgeConfirmationReason',
+    'ToolCallRiskAssessment',
     'SessionInputRequest',
     'ToolCallConfirmationState',
     'ReconnectResult',

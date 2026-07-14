@@ -19,8 +19,8 @@ use crate::state::{
     ConfirmationOption, Customization, ErrorInfo, McpServerState, Message, ModelSelection,
     PendingMessageKind, ResponsePart, SessionActiveClient, SessionInputRequest, TerminalClaim,
     TerminalInfo, TextRange, ToolCallCancellationReason, ToolCallConfirmationReason,
-    ToolCallContributor, ToolCallJudgeConfirmationReason, ToolCallResult, ToolDefinition,
-    ToolResultContent, Turn, UsageInfo,
+    ToolCallContributor, ToolCallResult, ToolCallRiskAssessment, ToolDefinition, ToolResultContent,
+    Turn, UsageInfo,
 };
 
 // ─── ActionType ──────────────────────────────────────────────────────
@@ -477,9 +477,9 @@ pub struct ChatToolCallReadyAction {
     /// Short title for the confirmation prompt (e.g. `"Run in terminal"`, `"Write file"`)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confirmation_title: Option<StringOrMarkdown>,
-    /// Why the tool requires user confirmation.
+    /// Risk assessment that informed the confirmation requirement.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub confirmation_reason: Option<ToolCallJudgeConfirmationReason>,
+    pub risk_assessment: Option<ToolCallRiskAssessment>,
     /// File edits that this tool call will perform, for preview before confirmation
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub edits: Option<AnyValue>,

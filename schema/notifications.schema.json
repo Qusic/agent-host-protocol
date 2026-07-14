@@ -3485,23 +3485,23 @@
         "content"
       ]
     },
-    "ToolCallJudgeConfirmationReasonBase": {
+    "ToolCallRiskAssessmentBase": {
       "type": "object",
       "properties": {
         "kind": {
-          "$ref": "#/$defs/ToolCallJudgeConfirmationReasonKind"
+          "$ref": "#/$defs/ToolCallRiskAssessmentKind"
         }
       },
       "required": [
         "kind"
       ]
     },
-    "ToolCallJudgeConfirmationReasonLoadingState": {
+    "ToolCallRiskAssessmentLoadingState": {
       "type": "object",
       "description": "The model judge is still evaluating the tool call.",
       "properties": {
         "kind": {
-          "$ref": "#/$defs/ToolCallJudgeConfirmationReasonKind"
+          "$ref": "#/$defs/ToolCallRiskAssessmentKind"
         },
         "status": {
           "const": "loading"
@@ -3512,12 +3512,12 @@
         "status"
       ]
     },
-    "ToolCallJudgeConfirmationReasonCompleteState": {
+    "ToolCallRiskAssessmentCompleteState": {
       "type": "object",
       "description": "The model judge has completed its evaluation.",
       "properties": {
         "kind": {
-          "$ref": "#/$defs/ToolCallJudgeConfirmationReasonKind"
+          "$ref": "#/$defs/ToolCallRiskAssessmentKind"
         },
         "status": {
           "const": "complete"
@@ -3786,9 +3786,9 @@
           "$ref": "#/$defs/StringOrMarkdown",
           "description": "Short title for the confirmation prompt (e.g. `\"Run in terminal\"`, `\"Write file\"`)"
         },
-        "confirmationReason": {
-          "$ref": "#/$defs/ToolCallJudgeConfirmationReason",
-          "description": "Why the tool requires user confirmation."
+        "riskAssessment": {
+          "$ref": "#/$defs/ToolCallRiskAssessment",
+          "description": "Risk assessment that informed the confirmation requirement."
         },
         "edits": {
           "type": "object",
@@ -5285,7 +5285,7 @@
       ],
       "description": "A string that may optionally be rendered as Markdown.\n\n- A plain `string` is rendered as-is (no Markdown processing).\n- An object with `{ markdown: string }` is rendered with Markdown formatting."
     },
-    "ToolCallJudgeConfirmationReasonKind": {
+    "ToolCallRiskAssessmentKind": {
       "enum": [
         "judge"
       ],
@@ -5336,13 +5336,13 @@
       ],
       "description": "Content block in a tool result.\n\nMirrors the content blocks in MCP `CallToolResult.content`, plus\n`ToolResultResourceContent` for lazy-loading large results,\n`ToolResultFileEditContent` for file edit diffs,\n`ToolResultTerminalContent` for live terminal output,\n`ToolResultTerminalCompleteContent` for terminal-style completion metadata, and\n`ToolResultSubagentContent` for tool-spawned worker chats (AHP extensions)."
     },
-    "ToolCallJudgeConfirmationReason": {
+    "ToolCallRiskAssessment": {
       "oneOf": [
         {
-          "$ref": "#/$defs/ToolCallJudgeConfirmationReasonLoadingState"
+          "$ref": "#/$defs/ToolCallRiskAssessmentLoadingState"
         },
         {
-          "$ref": "#/$defs/ToolCallJudgeConfirmationReasonCompleteState"
+          "$ref": "#/$defs/ToolCallRiskAssessmentCompleteState"
         }
       ]
     },

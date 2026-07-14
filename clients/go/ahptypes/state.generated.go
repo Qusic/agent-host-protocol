@@ -238,18 +238,18 @@ const (
 )
 
 // Identifies a model judge as the source of a confirmation requirement.
-type ToolCallJudgeConfirmationReasonKind string
+type ToolCallRiskAssessmentKind string
 
 const (
-	ToolCallJudgeConfirmationReasonKindJudge ToolCallJudgeConfirmationReasonKind = "judge"
+	ToolCallRiskAssessmentKindJudge ToolCallRiskAssessmentKind = "judge"
 )
 
 // Lifecycle status of an asynchronous model-judge confirmation decision.
-type ToolCallJudgeConfirmationReasonStatus string
+type ToolCallRiskAssessmentStatus string
 
 const (
-	ToolCallJudgeConfirmationReasonStatusLoading  ToolCallJudgeConfirmationReasonStatus = "loading"
-	ToolCallJudgeConfirmationReasonStatusComplete ToolCallJudgeConfirmationReasonStatus = "complete"
+	ToolCallRiskAssessmentStatusLoading  ToolCallRiskAssessmentStatus = "loading"
+	ToolCallRiskAssessmentStatusComplete ToolCallRiskAssessmentStatus = "complete"
 )
 
 // Why a tool call was cancelled.
@@ -1718,16 +1718,16 @@ type ToolCallResult struct {
 }
 
 // The model judge is still evaluating the tool call.
-type ToolCallJudgeConfirmationReasonLoadingState struct {
-	Kind   ToolCallJudgeConfirmationReasonKind   `json:"kind"`
-	Status ToolCallJudgeConfirmationReasonStatus `json:"status"`
+type ToolCallRiskAssessmentLoadingState struct {
+	Kind   ToolCallRiskAssessmentKind   `json:"kind"`
+	Status ToolCallRiskAssessmentStatus `json:"status"`
 }
 
 // The model judge has completed its evaluation.
-type ToolCallJudgeConfirmationReasonCompleteState struct {
-	Kind   ToolCallJudgeConfirmationReasonKind   `json:"kind"`
-	Status ToolCallJudgeConfirmationReasonStatus `json:"status"`
-	Reason StringOrMarkdown                      `json:"reason"`
+type ToolCallRiskAssessmentCompleteState struct {
+	Kind   ToolCallRiskAssessmentKind   `json:"kind"`
+	Status ToolCallRiskAssessmentStatus `json:"status"`
+	Reason StringOrMarkdown             `json:"reason"`
 	// The judge's normalized safety score, where `0` is unsafe and `1` is safe.
 	Safety float64 `json:"safety"`
 }
@@ -1801,8 +1801,8 @@ type ToolCallPendingConfirmationState struct {
 	Status    ToolCallStatus `json:"status"`
 	// Short title for the confirmation prompt (e.g. `"Run in terminal"`, `"Write file"`)
 	ConfirmationTitle *StringOrMarkdown `json:"confirmationTitle,omitempty"`
-	// Why the tool requires user confirmation.
-	ConfirmationReason *ToolCallJudgeConfirmationReason `json:"confirmationReason,omitempty"`
+	// Risk assessment that informed the confirmation requirement.
+	RiskAssessment *ToolCallRiskAssessment `json:"riskAssessment,omitempty"`
 	// File edits that this tool call will perform, for preview before confirmation
 	Edits *json.RawMessage `json:"edits,omitempty"`
 	// Whether the agent host allows the client to edit the tool's input parameters before confirming
@@ -4385,40 +4385,40 @@ func (u ToolCallContributor) MarshalJSON() ([]byte, error) {
 	return json.Marshal(u.Value)
 }
 
-// ToolCallJudgeConfirmationReason is an asynchronous model-judge confirmation rationale.
-type ToolCallJudgeConfirmationReason struct {
-	Value isToolCallJudgeConfirmationReason
+// ToolCallRiskAssessment is an asynchronous model-judge risk assessment.
+type ToolCallRiskAssessment struct {
+	Value isToolCallRiskAssessment
 }
 
-// isToolCallJudgeConfirmationReason is the marker interface implemented by every
-// concrete variant of ToolCallJudgeConfirmationReason.
-type isToolCallJudgeConfirmationReason interface{ isToolCallJudgeConfirmationReason() }
+// isToolCallRiskAssessment is the marker interface implemented by every
+// concrete variant of ToolCallRiskAssessment.
+type isToolCallRiskAssessment interface{ isToolCallRiskAssessment() }
 
-func (*ToolCallJudgeConfirmationReasonLoadingState) isToolCallJudgeConfirmationReason()  {}
-func (*ToolCallJudgeConfirmationReasonCompleteState) isToolCallJudgeConfirmationReason() {}
+func (*ToolCallRiskAssessmentLoadingState) isToolCallRiskAssessment()  {}
+func (*ToolCallRiskAssessmentCompleteState) isToolCallRiskAssessment() {}
 
-// ToolCallJudgeConfirmationReasonUnknown carries an unrecognized ToolCallJudgeConfirmationReason variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
-type ToolCallJudgeConfirmationReasonUnknown struct {
+// ToolCallRiskAssessmentUnknown carries an unrecognized ToolCallRiskAssessment variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
+type ToolCallRiskAssessmentUnknown struct {
 	Raw json.RawMessage
 }
 
-func (*ToolCallJudgeConfirmationReasonUnknown) isToolCallJudgeConfirmationReason() {}
+func (*ToolCallRiskAssessmentUnknown) isToolCallRiskAssessment() {}
 
 // UnmarshalJSON decodes the variant indicated by the "status" discriminator.
-func (u *ToolCallJudgeConfirmationReason) UnmarshalJSON(data []byte) error {
+func (u *ToolCallRiskAssessment) UnmarshalJSON(data []byte) error {
 	disc, _, err := readDiscriminator(data, "status")
 	if err != nil {
 		return err
 	}
 	switch disc {
 	case "loading":
-		var value ToolCallJudgeConfirmationReasonLoadingState
+		var value ToolCallRiskAssessmentLoadingState
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err
 		}
 		u.Value = &value
 	case "complete":
-		var value ToolCallJudgeConfirmationReasonCompleteState
+		var value ToolCallRiskAssessmentCompleteState
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err
 		}
@@ -4426,14 +4426,14 @@ func (u *ToolCallJudgeConfirmationReason) UnmarshalJSON(data []byte) error {
 	default:
 		raw := make(json.RawMessage, len(data))
 		copy(raw, data)
-		u.Value = &ToolCallJudgeConfirmationReasonUnknown{Raw: raw}
+		u.Value = &ToolCallRiskAssessmentUnknown{Raw: raw}
 	}
 	return nil
 }
 
 // MarshalJSON encodes the active variant back to JSON.
-func (u ToolCallJudgeConfirmationReason) MarshalJSON() ([]byte, error) {
-	if unk, ok := u.Value.(*ToolCallJudgeConfirmationReasonUnknown); ok {
+func (u ToolCallRiskAssessment) MarshalJSON() ([]byte, error) {
+	if unk, ok := u.Value.(*ToolCallRiskAssessmentUnknown); ok {
 		if len(unk.Raw) == 0 {
 			return []byte("null"), nil
 		}

@@ -1,5 +1,5 @@
 {
-  "description": "toolCallReady completes an asynchronous judge reason without clearing confirmation context",
+  "description": "toolCallReady completes a risk assessment without clearing confirmation context",
   "reducer": "chat",
   "initial": {
     "turns": [],
@@ -26,7 +26,7 @@
             "invocationMessage": "Checking command safety",
             "toolInput": "rm -rf /tmp/test",
             "confirmationTitle": "Run in terminal",
-            "confirmationReason": {
+            "riskAssessment": {
               "kind": "judge",
               "status": "loading"
             },
@@ -57,7 +57,7 @@
       "turnId": "turn-1",
       "toolCallId": "tc-1",
       "invocationMessage": "Run: rm -rf /tmp/test",
-      "confirmationReason": {
+      "riskAssessment": {
         "kind": "judge",
         "status": "complete",
         "reason": "The command deletes files.",
@@ -90,7 +90,7 @@
             "invocationMessage": "Run: rm -rf /tmp/test",
             "toolInput": "rm -rf /tmp/test",
             "confirmationTitle": "Run in terminal",
-            "confirmationReason": {
+            "riskAssessment": {
               "kind": "judge",
               "status": "complete",
               "reason": "The command deletes files.",

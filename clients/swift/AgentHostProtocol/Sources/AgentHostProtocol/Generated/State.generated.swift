@@ -226,12 +226,12 @@ public enum ToolCallConfirmationReason: String, Codable, Sendable {
 }
 
 /// Identifies a model judge as the source of a confirmation requirement.
-public enum ToolCallJudgeConfirmationReasonKind: String, Codable, Sendable {
+public enum ToolCallRiskAssessmentKind: String, Codable, Sendable {
     case judge = "judge"
 }
 
 /// Lifecycle status of an asynchronous model-judge confirmation decision.
-public enum ToolCallJudgeConfirmationReasonStatus: String, Codable, Sendable {
+public enum ToolCallRiskAssessmentStatus: String, Codable, Sendable {
     case loading = "loading"
     case complete = "complete"
 }
@@ -2473,8 +2473,8 @@ public struct ToolCallPendingConfirmationState: Codable, Sendable {
     public var status: ToolCallStatus
     /// Short title for the confirmation prompt (e.g. `"Run in terminal"`, `"Write file"`)
     public var confirmationTitle: StringOrMarkdown?
-    /// Why the tool requires user confirmation.
-    public var confirmationReason: ToolCallJudgeConfirmationReason?
+    /// Risk assessment that informed the confirmation requirement.
+    public var riskAssessment: ToolCallRiskAssessment?
     /// File edits that this tool call will perform, for preview before confirmation
     public var edits: AnyCodable?
     /// Whether the agent host allows the client to edit the tool's input parameters before confirming
@@ -2496,7 +2496,7 @@ public struct ToolCallPendingConfirmationState: Codable, Sendable {
         case toolInput
         case status
         case confirmationTitle
-        case confirmationReason
+        case riskAssessment
         case edits
         case editable
         case options
@@ -2513,7 +2513,7 @@ public struct ToolCallPendingConfirmationState: Codable, Sendable {
         toolInput: String? = nil,
         status: ToolCallStatus,
         confirmationTitle: StringOrMarkdown? = nil,
-        confirmationReason: ToolCallJudgeConfirmationReason? = nil,
+        riskAssessment: ToolCallRiskAssessment? = nil,
         edits: AnyCodable? = nil,
         editable: Bool? = nil,
         options: [ConfirmationOption]? = nil
@@ -2528,7 +2528,7 @@ public struct ToolCallPendingConfirmationState: Codable, Sendable {
         self.toolInput = toolInput
         self.status = status
         self.confirmationTitle = confirmationTitle
-        self.confirmationReason = confirmationReason
+        self.riskAssessment = riskAssessment
         self.edits = edits
         self.editable = editable
         self.options = options
@@ -2883,29 +2883,29 @@ public struct ToolCallCancelledState: Codable, Sendable {
     }
 }
 
-public struct ToolCallJudgeConfirmationReasonLoadingState: Codable, Sendable {
-    public var kind: ToolCallJudgeConfirmationReasonKind
-    public var status: ToolCallJudgeConfirmationReasonStatus
+public struct ToolCallRiskAssessmentLoadingState: Codable, Sendable {
+    public var kind: ToolCallRiskAssessmentKind
+    public var status: ToolCallRiskAssessmentStatus
 
     public init(
-        kind: ToolCallJudgeConfirmationReasonKind,
-        status: ToolCallJudgeConfirmationReasonStatus
+        kind: ToolCallRiskAssessmentKind,
+        status: ToolCallRiskAssessmentStatus
     ) {
         self.kind = kind
         self.status = status
     }
 }
 
-public struct ToolCallJudgeConfirmationReasonCompleteState: Codable, Sendable {
-    public var kind: ToolCallJudgeConfirmationReasonKind
-    public var status: ToolCallJudgeConfirmationReasonStatus
+public struct ToolCallRiskAssessmentCompleteState: Codable, Sendable {
+    public var kind: ToolCallRiskAssessmentKind
+    public var status: ToolCallRiskAssessmentStatus
     public var reason: StringOrMarkdown
     /// The judge's normalized safety score, where `0` is unsafe and `1` is safe.
     public var safety: Double
 
     public init(
-        kind: ToolCallJudgeConfirmationReasonKind,
-        status: ToolCallJudgeConfirmationReasonStatus,
+        kind: ToolCallRiskAssessmentKind,
+        status: ToolCallRiskAssessmentStatus,
         reason: StringOrMarkdown,
         safety: Double
     ) {
@@ -5514,9 +5514,9 @@ public enum ToolCallContributor: Codable, Sendable {
     }
 }
 
-public enum ToolCallJudgeConfirmationReason: Codable, Sendable {
-    case loading(ToolCallJudgeConfirmationReasonLoadingState)
-    case complete(ToolCallJudgeConfirmationReasonCompleteState)
+public enum ToolCallRiskAssessment: Codable, Sendable {
+    case loading(ToolCallRiskAssessmentLoadingState)
+    case complete(ToolCallRiskAssessmentCompleteState)
     /// Unknown or future discriminant; the raw payload is preserved
     /// and re-encoded verbatim for forward-compatibility.
     case unknown(AnyCodable)
@@ -5530,9 +5530,9 @@ public enum ToolCallJudgeConfirmationReason: Codable, Sendable {
         let discriminant = try container.decode(String.self, forKey: .discriminant)
         switch discriminant {
         case "loading":
-            self = .loading(try ToolCallJudgeConfirmationReasonLoadingState(from: decoder))
+            self = .loading(try ToolCallRiskAssessmentLoadingState(from: decoder))
         case "complete":
-            self = .complete(try ToolCallJudgeConfirmationReasonCompleteState(from: decoder))
+            self = .complete(try ToolCallRiskAssessmentCompleteState(from: decoder))
         default:
             self = .unknown(try AnyCodable(from: decoder))
         }

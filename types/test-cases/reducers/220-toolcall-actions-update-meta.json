@@ -273,7 +273,7 @@
             "invocationMessage": "Needs approval",
             "toolInput": null,
             "confirmationTitle": null,
-            "confirmationReason": null,
+            "riskAssessment": null,
             "edits": null,
             "editable": null
           }

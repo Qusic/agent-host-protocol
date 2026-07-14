@@ -1025,7 +1025,7 @@ func applyToolCallReady(state *ahptypes.ChatState, a *ahptypes.ChatToolCallReady
 				InvocationMessage:  a.InvocationMessage,
 				ToolInput:          a.ToolInput,
 				ConfirmationTitle:  a.ConfirmationTitle,
-				ConfirmationReason: a.ConfirmationReason,
+				RiskAssessment:     a.RiskAssessment,
 				Edits:              a.Edits,
 				Editable:           a.Editable,
 				Options:            a.Options,
@@ -1037,8 +1037,8 @@ func applyToolCallReady(state *ahptypes.ChatState, a *ahptypes.ChatToolCallReady
 				if next.ConfirmationTitle == nil {
 					next.ConfirmationTitle = pending.ConfirmationTitle
 				}
-				if next.ConfirmationReason == nil {
-					next.ConfirmationReason = pending.ConfirmationReason
+				if next.RiskAssessment == nil {
+					next.RiskAssessment = pending.RiskAssessment
 				}
 				if next.Edits == nil {
 					next.Edits = pending.Edits

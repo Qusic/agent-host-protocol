@@ -33,7 +33,7 @@
       "turnId": "turn-1",
       "toolCallId": "tc-1",
       "invocationMessage": "Run: echo hello",
-      "confirmationReason": {
+      "riskAssessment": {
         "kind": "judge",
         "status": "complete",
         "reason": "The command can modify the workspace.",
@@ -92,7 +92,7 @@
             "invocationMessage": "Run: echo hello",
             "toolInput": null,
             "confirmationTitle": null,
-            "confirmationReason": {
+            "riskAssessment": {
               "kind": "judge",
               "status": "complete",
               "reason": "The command can modify the workspace.",
