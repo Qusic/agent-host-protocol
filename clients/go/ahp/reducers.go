@@ -1015,20 +1015,20 @@ func applyToolCallReady(state *ahptypes.ChatState, a *ahptypes.ChatToolCallReady
 				}}
 			}
 			next := &ahptypes.ToolCallPendingConfirmationState{
-				Status:             ahptypes.ToolCallStatusPendingConfirmation,
-				ToolCallId:         common.id,
-				ToolName:           common.name,
-				DisplayName:        common.displayName,
-				Intention:          common.intention,
-				Contributor:        common.contributor,
-				Meta:               common.meta,
-				InvocationMessage:  a.InvocationMessage,
-				ToolInput:          a.ToolInput,
-				ConfirmationTitle:  a.ConfirmationTitle,
-				RiskAssessment:     a.RiskAssessment,
-				Edits:              a.Edits,
-				Editable:           a.Editable,
-				Options:            a.Options,
+				Status:            ahptypes.ToolCallStatusPendingConfirmation,
+				ToolCallId:        common.id,
+				ToolName:          common.name,
+				DisplayName:       common.displayName,
+				Intention:         common.intention,
+				Contributor:       common.contributor,
+				Meta:              common.meta,
+				InvocationMessage: a.InvocationMessage,
+				ToolInput:         a.ToolInput,
+				ConfirmationTitle: a.ConfirmationTitle,
+				RiskAssessment:    a.RiskAssessment,
+				Edits:             a.Edits,
+				Editable:          a.Editable,
+				Options:           a.Options,
 			}
 			if pending != nil {
 				if next.ToolInput == nil {
