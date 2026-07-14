@@ -189,11 +189,17 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
     case .chatToolCallReady(let a):
         return refreshChatSummaryStatus(updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
             switch tc {
-            case .streaming, .running: break
+            case .streaming, .running, .pendingConfirmation: break
             default: return tc
             }
             let base = tc.baseFields
             let meta = a.meta ?? base.meta
+            let pending: ToolCallPendingConfirmationState?
+            if case .pendingConfirmation(let value) = tc {
+                pending = value
+            } else {
+                pending = nil
+            }
             if let confirmed = a.confirmed {
                 return .running(ToolCallRunningState(
                     toolCallId: base.toolCallId,
@@ -216,13 +222,13 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
                 contributor: base.contributor,
                 meta: meta,
                 invocationMessage: a.invocationMessage,
-                toolInput: a.toolInput,
+                toolInput: a.toolInput ?? pending?.toolInput,
                 status: .pendingConfirmation,
-                confirmationTitle: a.confirmationTitle,
-                confirmationReason: a.confirmationReason,
-                edits: a.edits,
-                editable: a.editable,
-                options: a.options
+                confirmationTitle: a.confirmationTitle ?? pending?.confirmationTitle,
+                confirmationReason: a.confirmationReason ?? pending?.confirmationReason,
+                edits: a.edits ?? pending?.edits,
+                editable: a.editable ?? pending?.editable,
+                options: a.options ?? pending?.options
             ))
         })
 

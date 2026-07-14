@@ -230,6 +230,12 @@ public enum ToolCallJudgeConfirmationReasonKind: String, Codable, Sendable {
     case judge = "judge"
 }
 
+/// Lifecycle status of an asynchronous model-judge confirmation decision.
+public enum ToolCallJudgeConfirmationReasonStatus: String, Codable, Sendable {
+    case loading = "loading"
+    case complete = "complete"
+}
+
 /// Why a tool call was cancelled.
 public enum ToolCallCancellationReason: String, Codable, Sendable {
     case denied = "denied"
@@ -2877,16 +2883,36 @@ public struct ToolCallCancelledState: Codable, Sendable {
     }
 }
 
-public struct ToolCallJudgeConfirmationReason: Codable, Sendable {
+public struct ToolCallJudgeConfirmationReasonLoadingState: Codable, Sendable {
     public var kind: ToolCallJudgeConfirmationReasonKind
-    public var reason: StringOrMarkdown
+    public var status: ToolCallJudgeConfirmationReasonStatus
 
     public init(
         kind: ToolCallJudgeConfirmationReasonKind,
-        reason: StringOrMarkdown
+        status: ToolCallJudgeConfirmationReasonStatus
     ) {
         self.kind = kind
+        self.status = status
+    }
+}
+
+public struct ToolCallJudgeConfirmationReasonCompleteState: Codable, Sendable {
+    public var kind: ToolCallJudgeConfirmationReasonKind
+    public var status: ToolCallJudgeConfirmationReasonStatus
+    public var reason: StringOrMarkdown
+    /// The judge's normalized safety score, where `0` is unsafe and `1` is safe.
+    public var safety: Double
+
+    public init(
+        kind: ToolCallJudgeConfirmationReasonKind,
+        status: ToolCallJudgeConfirmationReasonStatus,
+        reason: StringOrMarkdown,
+        safety: Double
+    ) {
+        self.kind = kind
+        self.status = status
         self.reason = reason
+        self.safety = safety
     }
 }
 
@@ -5484,6 +5510,39 @@ public enum ToolCallContributor: Codable, Sendable {
         switch self {
         case .client(let value): try value.encode(to: encoder)
         case .mcp(let value): try value.encode(to: encoder)
+        }
+    }
+}
+
+public enum ToolCallJudgeConfirmationReason: Codable, Sendable {
+    case loading(ToolCallJudgeConfirmationReasonLoadingState)
+    case complete(ToolCallJudgeConfirmationReasonCompleteState)
+    /// Unknown or future discriminant; the raw payload is preserved
+    /// and re-encoded verbatim for forward-compatibility.
+    case unknown(AnyCodable)
+
+    private enum DiscriminantKey: String, CodingKey {
+        case discriminant = "status"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: DiscriminantKey.self)
+        let discriminant = try container.decode(String.self, forKey: .discriminant)
+        switch discriminant {
+        case "loading":
+            self = .loading(try ToolCallJudgeConfirmationReasonLoadingState(from: decoder))
+        case "complete":
+            self = .complete(try ToolCallJudgeConfirmationReasonCompleteState(from: decoder))
+        default:
+            self = .unknown(try AnyCodable(from: decoder))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        switch self {
+        case .loading(let value): try value.encode(to: encoder)
+        case .complete(let value): try value.encode(to: encoder)
+        case .unknown(let value): try value.encode(to: encoder)
         }
     }
 }

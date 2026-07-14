@@ -443,6 +443,17 @@ enum class ToolCallJudgeConfirmationReasonKind {
 }
 
 /**
+ * Lifecycle status of an asynchronous model-judge confirmation decision.
+ */
+@Serializable
+enum class ToolCallJudgeConfirmationReasonStatus {
+    @SerialName("loading")
+    LOADING,
+    @SerialName("complete")
+    COMPLETE
+}
+
+/**
  * Why a tool call was cancelled.
  */
 @Serializable
@@ -2740,9 +2751,20 @@ data class ToolCallCancelledState(
 )
 
 @Serializable
-data class ToolCallJudgeConfirmationReason(
+data class ToolCallJudgeConfirmationReasonLoadingState(
     val kind: ToolCallJudgeConfirmationReasonKind,
-    val reason: StringOrMarkdown
+    val status: ToolCallJudgeConfirmationReasonStatus
+)
+
+@Serializable
+data class ToolCallJudgeConfirmationReasonCompleteState(
+    val kind: ToolCallJudgeConfirmationReasonKind,
+    val status: ToolCallJudgeConfirmationReasonStatus,
+    val reason: StringOrMarkdown,
+    /**
+     * The judge's normalized safety score, where `0` is unsafe and `1` is safe.
+     */
+    val safety: Double
 )
 
 @Serializable
@@ -5177,6 +5199,55 @@ internal object ToolCallContributorSerializer : KSerializer<ToolCallContributor>
             is ToolCallContributorClient -> output.json.encodeToJsonElement(ToolCallClientContributor.serializer(), value.value)
             is ToolCallContributorMcp -> output.json.encodeToJsonElement(ToolCallMcpContributor.serializer(), value.value)
             is ToolCallContributorUnknown -> value.raw
+        }
+        output.encodeJsonElement(element)
+    }
+}
+
+@Serializable(with = ToolCallJudgeConfirmationReasonSerializer::class)
+sealed interface ToolCallJudgeConfirmationReason
+
+@JvmInline
+value class ToolCallJudgeConfirmationReasonLoading(val value: ToolCallJudgeConfirmationReasonLoadingState) : ToolCallJudgeConfirmationReason
+@JvmInline
+value class ToolCallJudgeConfirmationReasonComplete(val value: ToolCallJudgeConfirmationReasonCompleteState) : ToolCallJudgeConfirmationReason
+/**
+ * Forward-compat catch-all for unknown ToolCallJudgeConfirmationReason discriminators.
+ *
+ * Older clients may receive newer wire variants they don't recognise; capturing
+ * the raw `JsonObject` lets such payloads round-trip through the client unchanged.
+ * Reducers handle this variant conservatively on a per-union basis (typically
+ * as a no-op, but see `Reducers.kt` for the exact treatment).
+ */
+@JvmInline
+value class ToolCallJudgeConfirmationReasonUnknown(val raw: JsonObject) : ToolCallJudgeConfirmationReason
+
+internal object ToolCallJudgeConfirmationReasonSerializer : KSerializer<ToolCallJudgeConfirmationReason> {
+    override val descriptor: SerialDescriptor =
+        buildClassSerialDescriptor("ToolCallJudgeConfirmationReason")
+
+    override fun deserialize(decoder: Decoder): ToolCallJudgeConfirmationReason {
+        val input = decoder as? JsonDecoder
+            ?: error("ToolCallJudgeConfirmationReason can only be deserialized from JSON")
+        val element = input.decodeJsonElement()
+        val obj = element as? JsonObject
+            ?: error("Expected JsonObject for ToolCallJudgeConfirmationReason")
+        val discriminant = (obj["status"] as? JsonPrimitive)?.content
+            ?: return ToolCallJudgeConfirmationReasonUnknown(obj)
+        return when (discriminant) {
+            "loading" -> ToolCallJudgeConfirmationReasonLoading(input.json.decodeFromJsonElement(ToolCallJudgeConfirmationReasonLoadingState.serializer(), element))
+            "complete" -> ToolCallJudgeConfirmationReasonComplete(input.json.decodeFromJsonElement(ToolCallJudgeConfirmationReasonCompleteState.serializer(), element))
+            else -> ToolCallJudgeConfirmationReasonUnknown(obj)
+        }
+    }
+
+    override fun serialize(encoder: Encoder, value: ToolCallJudgeConfirmationReason) {
+        val output = encoder as? JsonEncoder
+            ?: error("ToolCallJudgeConfirmationReason can only be serialized to JSON")
+        val element: JsonElement = when (value) {
+            is ToolCallJudgeConfirmationReasonLoading -> output.json.encodeToJsonElement(ToolCallJudgeConfirmationReasonLoadingState.serializer(), value.value)
+            is ToolCallJudgeConfirmationReasonComplete -> output.json.encodeToJsonElement(ToolCallJudgeConfirmationReasonCompleteState.serializer(), value.value)
+            is ToolCallJudgeConfirmationReasonUnknown -> value.raw
         }
         output.encodeJsonElement(element)
     }

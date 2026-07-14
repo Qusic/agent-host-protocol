@@ -792,6 +792,7 @@ const STATE_ENUMS = [
   'ChatInputResponseKind', 'SessionInputRequestKind',
   'TurnState', 'MessageKind', 'MessageAttachmentKind', 'ResponsePartKind', 'ToolCallStatus',
   'ToolCallConfirmationReason', 'ToolCallJudgeConfirmationReasonKind',
+  'ToolCallJudgeConfirmationReasonStatus',
   'ToolCallCancellationReason', 'ConfirmationOptionKind',
   'ToolCallContributorKind',
   'ToolResultContentType', 'CustomizationType', 'CustomizationLoadStatus', 'TerminalClaimKind',
@@ -826,7 +827,8 @@ const STATE_STRUCTS = [
   'ToolCallResult', 'ToolCallStreamingState',
   'ToolCallPendingConfirmationState', 'ToolCallRunningState',
   'ToolCallPendingResultConfirmationState', 'ToolCallCompletedState',
-  'ToolCallCancelledState', 'ToolCallJudgeConfirmationReason', 'ConfirmationOption',
+  'ToolCallCancelledState', 'ToolCallJudgeConfirmationReasonLoadingState',
+  'ToolCallJudgeConfirmationReasonCompleteState', 'ConfirmationOption',
   'ToolDefinition', 'ToolAnnotations',
   'ToolResultTextContent', 'ToolResultEmbeddedResourceContent',
   'ToolResultResourceContent', 'ToolResultFileEditContent',
@@ -1077,6 +1079,16 @@ const TOOL_CALL_CONTRIBUTOR_UNION: UnionConfig = {
   unknown: true,
 };
 
+const TOOL_CALL_JUDGE_CONFIRMATION_REASON_UNION: UnionConfig = {
+  name: 'ToolCallJudgeConfirmationReason',
+  discriminantField: 'status',
+  variants: [
+    { caseName: 'Loading', structName: 'ToolCallJudgeConfirmationReasonLoadingState', discriminantValue: 'loading' },
+    { caseName: 'Complete', structName: 'ToolCallJudgeConfirmationReasonCompleteState', discriminantValue: 'complete' },
+  ],
+  unknown: true,
+};
+
 const SESSION_INPUT_REQUEST_UNION: UnionConfig = {
   name: 'SessionInputRequest',
   discriminantField: 'kind',
@@ -1154,6 +1166,8 @@ function generateStateFile(project: Project): string {
   lines.push(generateDiscriminatedUnion(MCP_SERVER_STATUS_UNION));
   lines.push('');
   lines.push(generateDiscriminatedUnion(TOOL_CALL_CONTRIBUTOR_UNION));
+  lines.push('');
+  lines.push(generateDiscriminatedUnion(TOOL_CALL_JUDGE_CONFIRMATION_REASON_UNION));
   lines.push('');
   lines.push(generateDiscriminatedUnion(SESSION_INPUT_REQUEST_UNION));
   lines.push('');
@@ -1920,6 +1934,7 @@ function checkExhaustiveness(project: Project): void {
     'ChildCustomization',           // CHILD_CUSTOMIZATION_UNION discriminated union
     'McpServerState',              // MCP_SERVER_STATUS_UNION discriminated union
     'ToolCallContributor',          // TOOL_CALL_CONTRIBUTOR_UNION discriminated union
+    'ToolCallJudgeConfirmationReason', // TOOL_CALL_JUDGE_CONFIRMATION_REASON_UNION discriminated union
     'SessionInputRequest',          // SESSION_INPUT_REQUEST_UNION discriminated union
     'ToolCallConfirmationState',    // TOOL_CALL_CONFIRMATION_STATE_UNION discriminated union
     'ChildCustomizationType',       // TS subset alias of CustomizationType; consumers reuse CustomizationType

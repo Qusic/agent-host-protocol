@@ -35,7 +35,9 @@
       "invocationMessage": "Run: echo hello",
       "confirmationReason": {
         "kind": "judge",
-        "reason": "The command can modify the workspace."
+        "status": "complete",
+        "reason": "The command can modify the workspace.",
+        "safety": 0.25
       },
       "options": [
         {
@@ -92,7 +94,9 @@
             "confirmationTitle": null,
             "confirmationReason": {
               "kind": "judge",
-              "reason": "The command can modify the workspace."
+              "status": "complete",
+              "reason": "The command can modify the workspace.",
+              "safety": 0.25
             },
             "edits": null,
             "editable": null,

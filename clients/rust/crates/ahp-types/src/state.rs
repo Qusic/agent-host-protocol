@@ -349,6 +349,15 @@ pub enum ToolCallJudgeConfirmationReasonKind {
     Judge,
 }
 
+/// Lifecycle status of an asynchronous model-judge confirmation decision.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ToolCallJudgeConfirmationReasonStatus {
+    #[serde(rename = "loading")]
+    Loading,
+    #[serde(rename = "complete")]
+    Complete,
+}
+
 /// Why a tool call was cancelled.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ToolCallCancellationReason {
@@ -2134,12 +2143,21 @@ pub struct ToolCallResult {
     pub error: Option<AnyValue>,
 }
 
-/// A model judge's explanation for requiring user confirmation.
+/// The model judge is still evaluating the tool call.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ToolCallJudgeConfirmationReason {
+pub struct ToolCallJudgeConfirmationReasonLoadingState {
+    pub kind: ToolCallJudgeConfirmationReasonKind,
+}
+
+/// The model judge has completed its evaluation.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolCallJudgeConfirmationReasonCompleteState {
     pub kind: ToolCallJudgeConfirmationReasonKind,
     pub reason: StringOrMarkdown,
+    /// The judge's normalized safety score, where `0` is unsafe and `1` is safe.
+    pub safety: f64,
 }
 
 /// A confirmation option that the server offers for a tool call awaiting
@@ -4215,6 +4233,20 @@ pub enum ToolCallContributor {
     Client(ToolCallClientContributor),
     #[serde(rename = "mcp")]
     Mcp(ToolCallMcpContributor),
+    /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.
+    /// Reducers treat this as a no-op.
+    #[serde(untagged)]
+    Unknown(serde_json::Value),
+}
+
+/// Asynchronous model-judge confirmation rationale.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "status")]
+pub enum ToolCallJudgeConfirmationReason {
+    #[serde(rename = "loading")]
+    Loading(ToolCallJudgeConfirmationReasonLoadingState),
+    #[serde(rename = "complete")]
+    Complete(ToolCallJudgeConfirmationReasonCompleteState),
     /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.
     /// Reducers treat this as a no-op.
     #[serde(untagged)]

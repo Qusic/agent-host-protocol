@@ -860,10 +860,15 @@ public fun chatReducer(state: ChatState, action: StateAction): ChatState = when 
         val a = action.value
         refreshChatSummaryStatus(
             updateToolCallInParts(state, a.turnId, a.toolCallId) { tc ->
-                if (tc !is ToolCallStateStreaming && tc !is ToolCallStateRunning) {
+                if (
+                    tc !is ToolCallStateStreaming
+                    && tc !is ToolCallStateRunning
+                    && tc !is ToolCallStatePendingConfirmation
+                ) {
                     tc
                 } else {
                     val base = toolCallBase(tc).withMeta(a.meta)
+                    val pending = (tc as? ToolCallStatePendingConfirmation)?.value
                     if (a.confirmed != null) {
                         ToolCallStateRunning(
                             ToolCallRunningState(
@@ -889,13 +894,13 @@ public fun chatReducer(state: ChatState, action: StateAction): ChatState = when 
                                 contributor = base.contributor,
                                 meta = base.meta,
                                 invocationMessage = a.invocationMessage,
-                                toolInput = a.toolInput,
+                                toolInput = a.toolInput ?: pending?.toolInput,
                                 status = ToolCallStatus.PENDING_CONFIRMATION,
-                                confirmationTitle = a.confirmationTitle,
-                                confirmationReason = a.confirmationReason,
-                                edits = a.edits,
-                                editable = a.editable,
-                                options = a.options,
+                                confirmationTitle = a.confirmationTitle ?: pending?.confirmationTitle,
+                                confirmationReason = a.confirmationReason ?: pending?.confirmationReason,
+                                edits = a.edits ?: pending?.edits,
+                                editable = a.editable ?: pending?.editable,
+                                options = a.options ?: pending?.options,
                             ),
                         )
                     }

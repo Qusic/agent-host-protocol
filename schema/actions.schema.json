@@ -5270,20 +5270,56 @@
         "content"
       ]
     },
-    "ToolCallJudgeConfirmationReason": {
+    "ToolCallJudgeConfirmationReasonBase": {
       "type": "object",
-      "description": "A model judge's explanation for requiring user confirmation.",
       "properties": {
         "kind": {
-          "const": "judge"
+          "$ref": "#/$defs/ToolCallJudgeConfirmationReasonKind"
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    },
+    "ToolCallJudgeConfirmationReasonLoadingState": {
+      "type": "object",
+      "description": "The model judge is still evaluating the tool call.",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ToolCallJudgeConfirmationReasonKind"
         },
-        "reason": {
-          "$ref": "#/$defs/StringOrMarkdown"
+        "status": {
+          "const": "loading"
         }
       },
       "required": [
         "kind",
-        "reason"
+        "status"
+      ]
+    },
+    "ToolCallJudgeConfirmationReasonCompleteState": {
+      "type": "object",
+      "description": "The model judge has completed its evaluation.",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ToolCallJudgeConfirmationReasonKind"
+        },
+        "status": {
+          "const": "complete"
+        },
+        "reason": {
+          "$ref": "#/$defs/StringOrMarkdown"
+        },
+        "safety": {
+          "type": "number",
+          "description": "The judge's normalized safety score, where `0` is unsafe and `1` is safe."
+        }
+      },
+      "required": [
+        "kind",
+        "status",
+        "reason",
+        "safety"
       ]
     },
     "ConfirmationOption": {
@@ -6912,6 +6948,16 @@
         }
       ]
     },
+    "ToolCallJudgeConfirmationReason": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ToolCallJudgeConfirmationReasonLoadingState"
+        },
+        {
+          "$ref": "#/$defs/ToolCallJudgeConfirmationReasonCompleteState"
+        }
+      ]
+    },
     "ToolCallContributor": {
       "oneOf": [
         {
@@ -7364,6 +7410,13 @@
       ],
       "type": "string",
       "description": "Discriminant for {@link MessageOrigin} — identifies who produced a message."
+    },
+    "ToolCallJudgeConfirmationReasonKind": {
+      "enum": [
+        "judge"
+      ],
+      "type": "string",
+      "description": "Identifies a model judge as the source of a confirmation requirement."
     },
     "ConfirmationOptionKind": {
       "enum": [

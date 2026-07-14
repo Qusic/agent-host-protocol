@@ -992,8 +992,14 @@ func applyToolCallReady(state *ahptypes.ChatState, a *ahptypes.ChatToolCallReady
 		if a.Meta != nil {
 			common.meta = a.Meta
 		}
+		var pending *ahptypes.ToolCallPendingConfirmationState
+		if value, ok := tc.Value.(*ahptypes.ToolCallPendingConfirmationState); ok {
+			pending = value
+		}
 		switch tc.Value.(type) {
-		case *ahptypes.ToolCallStreamingState, *ahptypes.ToolCallRunningState:
+		case *ahptypes.ToolCallStreamingState,
+			*ahptypes.ToolCallRunningState,
+			*ahptypes.ToolCallPendingConfirmationState:
 			if a.Confirmed != nil {
 				return ahptypes.ToolCallState{Value: &ahptypes.ToolCallRunningState{
 					Status:            ahptypes.ToolCallStatusRunning,
@@ -1008,7 +1014,7 @@ func applyToolCallReady(state *ahptypes.ChatState, a *ahptypes.ChatToolCallReady
 					Confirmed:         *a.Confirmed,
 				}}
 			}
-			return ahptypes.ToolCallState{Value: &ahptypes.ToolCallPendingConfirmationState{
+			next := &ahptypes.ToolCallPendingConfirmationState{
 				Status:             ahptypes.ToolCallStatusPendingConfirmation,
 				ToolCallId:         common.id,
 				ToolName:           common.name,
@@ -1023,7 +1029,28 @@ func applyToolCallReady(state *ahptypes.ChatState, a *ahptypes.ChatToolCallReady
 				Edits:              a.Edits,
 				Editable:           a.Editable,
 				Options:            a.Options,
-			}}
+			}
+			if pending != nil {
+				if next.ToolInput == nil {
+					next.ToolInput = pending.ToolInput
+				}
+				if next.ConfirmationTitle == nil {
+					next.ConfirmationTitle = pending.ConfirmationTitle
+				}
+				if next.ConfirmationReason == nil {
+					next.ConfirmationReason = pending.ConfirmationReason
+				}
+				if next.Edits == nil {
+					next.Edits = pending.Edits
+				}
+				if next.Editable == nil {
+					next.Editable = pending.Editable
+				}
+				if next.Options == nil {
+					next.Options = pending.Options
+				}
+			}
+			return ahptypes.ToolCallState{Value: next}
 		}
 		return tc
 	})

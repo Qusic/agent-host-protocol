@@ -244,6 +244,14 @@ const (
 	ToolCallJudgeConfirmationReasonKindJudge ToolCallJudgeConfirmationReasonKind = "judge"
 )
 
+// Lifecycle status of an asynchronous model-judge confirmation decision.
+type ToolCallJudgeConfirmationReasonStatus string
+
+const (
+	ToolCallJudgeConfirmationReasonStatusLoading  ToolCallJudgeConfirmationReasonStatus = "loading"
+	ToolCallJudgeConfirmationReasonStatusComplete ToolCallJudgeConfirmationReasonStatus = "complete"
+)
+
 // Why a tool call was cancelled.
 type ToolCallCancellationReason string
 
@@ -1709,10 +1717,19 @@ type ToolCallResult struct {
 	Error *json.RawMessage `json:"error,omitempty"`
 }
 
-// A model judge's explanation for requiring user confirmation.
-type ToolCallJudgeConfirmationReason struct {
-	Kind   ToolCallJudgeConfirmationReasonKind `json:"kind"`
-	Reason StringOrMarkdown                    `json:"reason"`
+// The model judge is still evaluating the tool call.
+type ToolCallJudgeConfirmationReasonLoadingState struct {
+	Kind   ToolCallJudgeConfirmationReasonKind   `json:"kind"`
+	Status ToolCallJudgeConfirmationReasonStatus `json:"status"`
+}
+
+// The model judge has completed its evaluation.
+type ToolCallJudgeConfirmationReasonCompleteState struct {
+	Kind   ToolCallJudgeConfirmationReasonKind   `json:"kind"`
+	Status ToolCallJudgeConfirmationReasonStatus `json:"status"`
+	Reason StringOrMarkdown                      `json:"reason"`
+	// The judge's normalized safety score, where `0` is unsafe and `1` is safe.
+	Safety float64 `json:"safety"`
 }
 
 // A confirmation option that the server offers for a tool call awaiting
@@ -4357,6 +4374,66 @@ func (u *ToolCallContributor) UnmarshalJSON(data []byte) error {
 // MarshalJSON encodes the active variant back to JSON.
 func (u ToolCallContributor) MarshalJSON() ([]byte, error) {
 	if unk, ok := u.Value.(*ToolCallContributorUnknown); ok {
+		if len(unk.Raw) == 0 {
+			return []byte("null"), nil
+		}
+		return unk.Raw, nil
+	}
+	if u.Value == nil {
+		return []byte("null"), nil
+	}
+	return json.Marshal(u.Value)
+}
+
+// ToolCallJudgeConfirmationReason is an asynchronous model-judge confirmation rationale.
+type ToolCallJudgeConfirmationReason struct {
+	Value isToolCallJudgeConfirmationReason
+}
+
+// isToolCallJudgeConfirmationReason is the marker interface implemented by every
+// concrete variant of ToolCallJudgeConfirmationReason.
+type isToolCallJudgeConfirmationReason interface{ isToolCallJudgeConfirmationReason() }
+
+func (*ToolCallJudgeConfirmationReasonLoadingState) isToolCallJudgeConfirmationReason()  {}
+func (*ToolCallJudgeConfirmationReasonCompleteState) isToolCallJudgeConfirmationReason() {}
+
+// ToolCallJudgeConfirmationReasonUnknown carries an unrecognized ToolCallJudgeConfirmationReason variant — typically a discriminator value introduced by a newer protocol version. The original JSON object is preserved verbatim so that re-encoding round-trips faithfully.
+type ToolCallJudgeConfirmationReasonUnknown struct {
+	Raw json.RawMessage
+}
+
+func (*ToolCallJudgeConfirmationReasonUnknown) isToolCallJudgeConfirmationReason() {}
+
+// UnmarshalJSON decodes the variant indicated by the "status" discriminator.
+func (u *ToolCallJudgeConfirmationReason) UnmarshalJSON(data []byte) error {
+	disc, _, err := readDiscriminator(data, "status")
+	if err != nil {
+		return err
+	}
+	switch disc {
+	case "loading":
+		var value ToolCallJudgeConfirmationReasonLoadingState
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	case "complete":
+		var value ToolCallJudgeConfirmationReasonCompleteState
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	default:
+		raw := make(json.RawMessage, len(data))
+		copy(raw, data)
+		u.Value = &ToolCallJudgeConfirmationReasonUnknown{Raw: raw}
+	}
+	return nil
+}
+
+// MarshalJSON encodes the active variant back to JSON.
+func (u ToolCallJudgeConfirmationReason) MarshalJSON() ([]byte, error) {
+	if unk, ok := u.Value.(*ToolCallJudgeConfirmationReasonUnknown); ok {
 		if len(unk.Raw) == 0 {
 			return []byte("null"), nil
 		}

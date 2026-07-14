@@ -944,14 +944,46 @@ export const enum ToolCallJudgeConfirmationReasonKind {
 }
 
 /**
- * A model judge's explanation for requiring user confirmation.
+ * Lifecycle status of an asynchronous model-judge confirmation decision.
  *
  * @category Tool Call Types
  */
-export interface ToolCallJudgeConfirmationReason {
-  kind: ToolCallJudgeConfirmationReasonKind.Judge;
-  reason: StringOrMarkdown;
+export const enum ToolCallJudgeConfirmationReasonStatus {
+  Loading = 'loading',
+  Complete = 'complete',
 }
+
+interface ToolCallJudgeConfirmationReasonBase {
+  kind: ToolCallJudgeConfirmationReasonKind;
+}
+
+/**
+ * The model judge is still evaluating the tool call.
+ *
+ * @category Tool Call Types
+ */
+export interface ToolCallJudgeConfirmationReasonLoadingState extends ToolCallJudgeConfirmationReasonBase {
+  status: ToolCallJudgeConfirmationReasonStatus.Loading;
+}
+
+/**
+ * The model judge has completed its evaluation.
+ *
+ * @category Tool Call Types
+ */
+export interface ToolCallJudgeConfirmationReasonCompleteState extends ToolCallJudgeConfirmationReasonBase {
+  status: ToolCallJudgeConfirmationReasonStatus.Complete;
+  reason: StringOrMarkdown;
+  /**
+   * The judge's normalized safety score, where `0` is unsafe and `1` is safe.
+   * @format float
+   */
+  safety: number;
+}
+
+export type ToolCallJudgeConfirmationReason =
+  | ToolCallJudgeConfirmationReasonLoadingState
+  | ToolCallJudgeConfirmationReasonCompleteState;
 
 /**
  * Why a tool call was cancelled.
