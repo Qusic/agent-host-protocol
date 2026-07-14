@@ -1712,7 +1712,7 @@ type ToolCallResult struct {
 // A model judge's explanation for requiring user confirmation.
 type ToolCallJudgeConfirmationReason struct {
 	Kind   ToolCallJudgeConfirmationReasonKind `json:"kind"`
-	Reason string                              `json:"reason"`
+	Reason StringOrMarkdown                    `json:"reason"`
 }
 
 // A confirmation option that the server offers for a tool call awaiting

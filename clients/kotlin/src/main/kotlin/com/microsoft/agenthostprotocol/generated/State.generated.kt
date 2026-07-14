@@ -2742,7 +2742,7 @@ data class ToolCallCancelledState(
 @Serializable
 data class ToolCallJudgeConfirmationReason(
     val kind: ToolCallJudgeConfirmationReasonKind,
-    val reason: String
+    val reason: StringOrMarkdown
 )
 
 @Serializable

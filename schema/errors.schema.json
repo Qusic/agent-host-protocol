@@ -3333,7 +3333,7 @@
           "const": "judge"
         },
         "reason": {
-          "type": "string"
+          "$ref": "#/$defs/StringOrMarkdown"
         }
       },
       "required": [

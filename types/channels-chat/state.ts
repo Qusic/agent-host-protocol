@@ -950,7 +950,7 @@ export const enum ToolCallJudgeConfirmationReasonKind {
  */
 export interface ToolCallJudgeConfirmationReason {
   kind: ToolCallJudgeConfirmationReasonKind.Judge;
-  reason: string;
+  reason: StringOrMarkdown;
 }
 
 /**

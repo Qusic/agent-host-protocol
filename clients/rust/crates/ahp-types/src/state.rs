@@ -2139,7 +2139,7 @@ pub struct ToolCallResult {
 #[serde(rename_all = "camelCase")]
 pub struct ToolCallJudgeConfirmationReason {
     pub kind: ToolCallJudgeConfirmationReasonKind,
-    pub reason: String,
+    pub reason: StringOrMarkdown,
 }
 
 /// A confirmation option that the server offers for a tool call awaiting

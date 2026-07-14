@@ -2879,11 +2879,11 @@ public struct ToolCallCancelledState: Codable, Sendable {
 
 public struct ToolCallJudgeConfirmationReason: Codable, Sendable {
     public var kind: ToolCallJudgeConfirmationReasonKind
-    public var reason: String
+    public var reason: StringOrMarkdown
 
     public init(
         kind: ToolCallJudgeConfirmationReasonKind,
-        reason: String
+        reason: StringOrMarkdown
     ) {
         self.kind = kind
         self.reason = reason
