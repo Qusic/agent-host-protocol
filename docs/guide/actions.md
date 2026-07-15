@@ -72,6 +72,8 @@ Tool calls follow a discriminated-union state machine — see [State Model — T
 | `chat/toolCallComplete` | **Yes**¹ | Tool execution finished |
 | `chat/toolCallResultConfirmed` | **Yes** | Client approves or denies a pending result |
 | `chat/toolCallContentChanged` | **Yes**¹ | Streaming intermediate content while a tool is running |
+| `chat/toolCallAuthRequired` | No | Running MCP-contributed tool call pauses pending authentication |
+| `chat/toolCallAuthResolved` | No | Authentication resolved; tool call resumes to `running` |
 
 ¹ Client-dispatchable for **client-provided tools** only (where the tool call's `contributor.clientId` matches the dispatching client). For server-side tools, only the server produces these actions.
 

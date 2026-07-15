@@ -124,9 +124,25 @@ The same monitoring pattern also covers `reason: 'expired'` mid-turn — the dif
 
 Per-agent protected resources in [`AgentInfo.protectedResources`](/reference/root#agentinfo) cover agents themselves. MCP server resources are advertised here, on the customization, so a single agent can carry an arbitrary number of MCP servers each with their own authorization servers without bloating the root state.
 
-::: tip
-The existing `authenticate` command requires `resource` to match one declared by an agent. Hosts that surface MCP server auth via `McpServerAuthRequiredState` either need to widen that rule or mirror MCP server resources into `AgentInfo.protectedResources` until the dedicated MCP actions land. This is a known gap and will be tightened when the MCP-specific action surface is specified.
-:::
+The `authenticate` command's `resource` field accepts any protected-resource identifier the server has advertised — statically via `AgentInfo.protectedResources`, or dynamically via a live `McpServerAuthRequiredState.resource` (or, for the tool-call-level state below, `ToolCallAuthRequiredState.auth.resource`). Servers surfacing MCP auth this way don't need to mirror the resource into `AgentInfo.protectedResources`.
+
+### Tool-call-level authentication
+
+The `McpServerAuthRequiredState` above describes the *server's* lifecycle — it can't serve **any** request while blocked. A distinct, first-class tool-call status, [`ToolCallStatus.AuthRequired`](/reference/chat#toolcallstatus), describes a **specific in-flight tool call** pausing on the same kind of challenge:
+
+```mermaid
+stateDiagram-v2
+    running --> auth_required : chat/toolCallAuthRequired
+    auth_required --> running : chat/toolCallAuthResolved
+    auth_required --> completed : chat/toolCallComplete (cancel)
+```
+
+- The server dispatches `chat/toolCallAuthRequired` with an `auth: McpAuthRequirement` object — the same `{ reason, resource, requiredScopes?, description? }` shape as `McpServerAuthRequiredState`, minus `kind`, and factored into a shared `McpAuthRequirement` interface so both describe the same OAuth challenge with one vocabulary. It carries **no token**.
+- This is normally reached from, and returned to, `running` — it is not part of `ToolCallConfirmationState` (the parameter/result confirmation union), since it isn't resolved by a `chat/toolCallConfirmed`-style decision. It's resolved by the client obtaining a token for `auth.resource` and pushing it via `authenticate`; the host then dispatches `chat/toolCallAuthResolved` to resume the call. A client MAY instead dispatch `chat/toolCallComplete` with a **failed** result (e.g. `error.code: 'cancelled'`) to cancel the invocation outright without ever authenticating; the reducer accepts this transition from `auth-required` the same way it does from `running`, but always moves straight to `completed` — `requiresResultConfirmation` is ignored for this path, since a cancelled auth challenge has no real result to review. A **successful** result dispatched from `auth-required` is invalid and the reducer ignores it as a no-op, leaving the tool call in `auth-required`; only a failed result can complete it.
+- It only ever applies to MCP-contributed tool calls: `ToolCallAuthRequiredState.contributor` is narrowed to the MCP variant of `ToolCallContributor`, so the invariant "auth-required implies MCP-contributed" is structurally enforced rather than merely documented.
+- The host SHOULD surface a `session/inputNeededSet` entry with `kind: 'toolAuthentication'` (see [Aggregated Input Requests](/specification/session-channel#aggregated-input-requests)) correlating the blocked tool call to its chat and turn, so clients that only watch the session can discover and resolve it via `authenticate` without subscribing to the chat.
+
+The server-level and tool-call-level states are dispatched independently and deliberately kept separate: "the MCP server needs auth" and "this specific invocation is waiting on that auth" are different facts that don't always coincide (a step-up challenge triggered by one tool call need not block the whole server).
 
 ## Where MCP tools live
 

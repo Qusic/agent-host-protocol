@@ -103,6 +103,8 @@ func toolCallMeta(tc ahptypes.ToolCallState) toolCallCommon {
 		return toolCallCommon{v.ToolCallId, v.ToolName, v.DisplayName, v.Intention, v.Contributor, v.Meta}
 	case *ahptypes.ToolCallRunningState:
 		return toolCallCommon{v.ToolCallId, v.ToolName, v.DisplayName, v.Intention, v.Contributor, v.Meta}
+	case *ahptypes.ToolCallAuthRequiredState:
+		return toolCallCommon{v.ToolCallId, v.ToolName, v.DisplayName, v.Intention, v.Contributor, v.Meta}
 	case *ahptypes.ToolCallPendingResultConfirmationState:
 		return toolCallCommon{v.ToolCallId, v.ToolName, v.DisplayName, v.Intention, v.Contributor, v.Meta}
 	case *ahptypes.ToolCallCompletedState:
@@ -128,6 +130,8 @@ func toolCallInvocationAndInput(tc ahptypes.ToolCallState) (ahptypes.StringOrMar
 		return v.InvocationMessage, v.ToolInput
 	case *ahptypes.ToolCallRunningState:
 		return v.InvocationMessage, v.ToolInput
+	case *ahptypes.ToolCallAuthRequiredState:
+		return v.InvocationMessage, v.ToolInput
 	case *ahptypes.ToolCallPendingResultConfirmationState:
 		return v.InvocationMessage, v.ToolInput
 	}
@@ -138,7 +142,9 @@ func toolCallID(tc ahptypes.ToolCallState) string {
 	return toolCallMeta(tc).id
 }
 
-func hasPendingToolCallConfirmation(state *ahptypes.ChatState) bool {
+// hasBlockingToolCall reports whether the active turn has any tool call blocked
+// on confirmation or MCP authentication.
+func hasBlockingToolCall(state *ahptypes.ChatState) bool {
 	if state.ActiveTurn == nil {
 		return false
 	}
@@ -149,6 +155,7 @@ func hasPendingToolCallConfirmation(state *ahptypes.ChatState) bool {
 		}
 		switch tc.ToolCall.Value.(type) {
 		case *ahptypes.ToolCallPendingConfirmationState,
+			*ahptypes.ToolCallAuthRequiredState,
 			*ahptypes.ToolCallPendingResultConfirmationState:
 			return true
 		}
@@ -161,7 +168,7 @@ func summaryStatus(state *ahptypes.ChatState, terminal *ahptypes.SessionStatus) 
 	switch {
 	case terminal != nil:
 		activity = *terminal
-	case len(state.InputRequests) > 0 || hasPendingToolCallConfirmation(state):
+	case len(state.InputRequests) > 0 || hasBlockingToolCall(state):
 		activity = ahptypes.SessionStatusInputNeeded
 	case state.ActiveTurn != nil:
 		activity = ahptypes.SessionStatusInProgress
@@ -288,6 +295,8 @@ func sessionInputRequestID(r ahptypes.SessionInputRequest) (string, bool) {
 	case *ahptypes.SessionToolConfirmationRequest:
 		return v.Id, true
 	case *ahptypes.SessionToolClientExecutionRequest:
+		return v.Id, true
+	case *ahptypes.SessionToolAuthenticationRequest:
 		return v.Id, true
 	}
 	return "", false
@@ -535,6 +544,18 @@ func ApplyActionToChat(state *ahptypes.ChatState, action ahptypes.StateAction) R
 			}
 			return tc
 		})
+	case *ahptypes.ChatToolCallAuthRequiredAction:
+		res := applyToolCallAuthRequired(state, a)
+		if res == ReduceOutcomeApplied {
+			refreshSummaryStatus(state)
+		}
+		return res
+	case *ahptypes.ChatToolCallAuthResolvedAction:
+		res := applyToolCallAuthResolved(state, a)
+		if res == ReduceOutcomeApplied {
+			refreshSummaryStatus(state)
+		}
+		return res
 	case *ahptypes.ChatUsageAction:
 		if state.ActiveTurn == nil || state.ActiveTurn.Id != a.TurnId {
 			return ReduceOutcomeNoOp
@@ -1136,10 +1157,12 @@ func applyToolCallComplete(state *ahptypes.ChatState, a *ahptypes.ChatToolCallCo
 			common.meta = a.Meta
 		}
 		var (
-			invocation     ahptypes.StringOrMarkdown
-			toolInput      *string
-			confirmed      = ahptypes.ToolCallConfirmationReasonNotNeeded
-			selectedOption *ahptypes.ConfirmationOption
+			invocation       ahptypes.StringOrMarkdown
+			toolInput        *string
+			confirmed        = ahptypes.ToolCallConfirmationReasonNotNeeded
+			selectedOption   *ahptypes.ConfirmationOption
+			preAuthContent   []ahptypes.ToolResultContent
+			fromAuthRequired bool
 		)
 		switch v := tc.Value.(type) {
 		case *ahptypes.ToolCallRunningState:
@@ -1150,10 +1173,34 @@ func applyToolCallComplete(state *ahptypes.ChatState, a *ahptypes.ChatToolCallCo
 		case *ahptypes.ToolCallPendingConfirmationState:
 			invocation = v.InvocationMessage
 			toolInput = v.ToolInput
+		case *ahptypes.ToolCallAuthRequiredState:
+			// A client MAY cancel an auth-required MCP tool call by dispatching a
+			// failed completion instead of authenticating. A successful completion
+			// is invalid from auth-required — execution never resumed after the
+			// challenge — and is ignored, leaving the call in auth-required. Any
+			// partial content produced before the call paused for auth is
+			// preserved unless the dispatched result supplies its own content.
+			if a.Result.Success {
+				return tc
+			}
+			invocation = v.InvocationMessage
+			toolInput = v.ToolInput
+			confirmed = v.Confirmed
+			selectedOption = v.SelectedOption
+			preAuthContent = v.Content
+			fromAuthRequired = true
 		default:
 			return tc
 		}
-		requiresResultConfirmation := a.RequiresResultConfirmation != nil && *a.RequiresResultConfirmation
+		content := a.Result.Content
+		if content == nil {
+			content = preAuthContent
+		}
+		// Cancelling from auth-required always completes terminally: the
+		// pending auth challenge isn't a "pending result" the client can
+		// review, so requiresResultConfirmation is ignored for this path —
+		// it must never enter pending-result-confirmation.
+		requiresResultConfirmation := a.RequiresResultConfirmation != nil && *a.RequiresResultConfirmation && !fromAuthRequired
 		if requiresResultConfirmation {
 			return ahptypes.ToolCallState{Value: &ahptypes.ToolCallPendingResultConfirmationState{
 				Status:            ahptypes.ToolCallStatusPendingResultConfirmation,
@@ -1167,7 +1214,7 @@ func applyToolCallComplete(state *ahptypes.ChatState, a *ahptypes.ChatToolCallCo
 				ToolInput:         toolInput,
 				Success:           a.Result.Success,
 				PastTenseMessage:  a.Result.PastTenseMessage,
-				Content:           append([]ahptypes.ToolResultContent(nil), a.Result.Content...),
+				Content:           append([]ahptypes.ToolResultContent(nil), content...),
 				StructuredContent: a.Result.StructuredContent,
 				Error:             a.Result.Error,
 				Confirmed:         confirmed,
@@ -1186,7 +1233,7 @@ func applyToolCallComplete(state *ahptypes.ChatState, a *ahptypes.ChatToolCallCo
 			ToolInput:         toolInput,
 			Success:           a.Result.Success,
 			PastTenseMessage:  a.Result.PastTenseMessage,
-			Content:           append([]ahptypes.ToolResultContent(nil), a.Result.Content...),
+			Content:           append([]ahptypes.ToolResultContent(nil), content...),
 			StructuredContent: a.Result.StructuredContent,
 			Error:             a.Result.Error,
 			Confirmed:         confirmed,
@@ -1241,6 +1288,67 @@ func applyToolCallResultConfirmed(state *ahptypes.ChatState, a *ahptypes.ChatToo
 			ToolInput:         s.ToolInput,
 			Reason:            ahptypes.ToolCallCancellationReasonResultDenied,
 			SelectedOption:    s.SelectedOption,
+		}}
+	})
+}
+
+func applyToolCallAuthRequired(state *ahptypes.ChatState, a *ahptypes.ChatToolCallAuthRequiredAction) ReduceOutcome {
+	return updateToolCall(state, a.TurnId, a.ToolCallId, func(tc ahptypes.ToolCallState) ahptypes.ToolCallState {
+		s, ok := tc.Value.(*ahptypes.ToolCallRunningState)
+		if !ok {
+			return tc
+		}
+		if s.Contributor == nil {
+			return tc
+		}
+		if _, ok := s.Contributor.Value.(*ahptypes.ToolCallMcpContributor); !ok {
+			return tc
+		}
+		meta := s.Meta
+		if a.Meta != nil {
+			meta = a.Meta
+		}
+		return ahptypes.ToolCallState{Value: &ahptypes.ToolCallAuthRequiredState{
+			Status:            ahptypes.ToolCallStatusAuthRequired,
+			ToolCallId:        s.ToolCallId,
+			ToolName:          s.ToolName,
+			DisplayName:       s.DisplayName,
+			Intention:         s.Intention,
+			Contributor:       s.Contributor,
+			Meta:              meta,
+			InvocationMessage: s.InvocationMessage,
+			ToolInput:         s.ToolInput,
+			Confirmed:         s.Confirmed,
+			SelectedOption:    s.SelectedOption,
+			Auth:              a.Auth,
+			Content:           append([]ahptypes.ToolResultContent(nil), s.Content...),
+		}}
+	})
+}
+
+func applyToolCallAuthResolved(state *ahptypes.ChatState, a *ahptypes.ChatToolCallAuthResolvedAction) ReduceOutcome {
+	return updateToolCall(state, a.TurnId, a.ToolCallId, func(tc ahptypes.ToolCallState) ahptypes.ToolCallState {
+		s, ok := tc.Value.(*ahptypes.ToolCallAuthRequiredState)
+		if !ok {
+			return tc
+		}
+		meta := s.Meta
+		if a.Meta != nil {
+			meta = a.Meta
+		}
+		return ahptypes.ToolCallState{Value: &ahptypes.ToolCallRunningState{
+			Status:            ahptypes.ToolCallStatusRunning,
+			ToolCallId:        s.ToolCallId,
+			ToolName:          s.ToolName,
+			DisplayName:       s.DisplayName,
+			Intention:         s.Intention,
+			Contributor:       s.Contributor,
+			Meta:              meta,
+			InvocationMessage: s.InvocationMessage,
+			ToolInput:         s.ToolInput,
+			Confirmed:         s.Confirmed,
+			SelectedOption:    s.SelectedOption,
+			Content:           append([]ahptypes.ToolResultContent(nil), s.Content...),
 		}}
 	})
 }

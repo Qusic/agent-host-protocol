@@ -986,7 +986,7 @@
     },
     "ChatToolCallCompleteAction": {
       "type": "object",
-      "description": "Tool execution finished. Transitions to `completed` or `pending-result-confirmation`\nif `requiresResultConfirmation` is `true`.\n\nFor client-provided tools (whose tool call state carries a client\n`ToolCallContributor` with a `clientId`), the owning client dispatches this\naction with the execution result. The server SHOULD reject this action if the\ndispatching client does not match the contributor's `clientId`.\n\nServers waiting on a client tool call MAY time out after a reasonable duration\nif the implementing client disconnects or becomes unresponsive, and dispatch\nthis action with `result.success = false` and an appropriate error.",
+      "description": "Tool execution finished. Transitions to `completed` or `pending-result-confirmation`\nif `requiresResultConfirmation` is `true`.\n\nFor client-provided tools (whose tool call state carries a client\n`ToolCallContributor` with a `clientId`), the owning client dispatches this\naction with the execution result. The server SHOULD reject this action if the\ndispatching client does not match the contributor's `clientId`.\n\nServers waiting on a client tool call MAY time out after a reasonable duration\nif the implementing client disconnects or becomes unresponsive, and dispatch\nthis action with `result.success = false` and an appropriate error.\n\nA client MAY also dispatch this action with a **failed** result (\n`result.success: false`) for a tool call currently in `auth-required`\nstatus, to cancel that invocation without completing the pending MCP\nauthentication challenge. This always transitions the tool call straight\nto `completed`, preserving the fields it had before pausing for auth;\n`requiresResultConfirmation` is ignored for this transition; the\ncancellation can never enter `pending-result-confirmation`, since there is\nno real result to review.\n\nA **successful** result (`result.success: true`) is invalid for a tool\ncall in `auth-required` status — execution never resumed after the\nchallenge, so there's nothing that could have produced it. The reducer\nMUST reject/ignore it as a no-op, leaving the tool call in\n`auth-required`. The client must resolve the auth challenge\n(`chat/toolCallAuthResolved`) before completing successfully.",
       "properties": {
         "turnId": {
           "type": "string",
@@ -1085,6 +1085,65 @@
         "toolCallId",
         "type",
         "content"
+      ]
+    },
+    "ChatToolCallAuthRequiredAction": {
+      "type": "object",
+      "description": "A running tool call is paused pending MCP authentication. Transitions the\ntool call from `running` to `auth-required`.\n\nThe server dispatches this when the MCP server backing the call responds\nwith a 401/403 challenge mid-execution (see\n{@link McpAuthRequirement.reason | `insufficientScope`}). The host SHOULD\npair this with `session/inputNeededSet` (kind `toolAuthentication`) so the\nblock is visible at the session-summary level, mirroring\n{@link McpServerAuthRequiredState}'s own `InputNeeded` guidance.\n\nOnly valid for tool calls contributed by an MCP server — the reducer is a\nno-op if the tool call's `contributor` is not\n{@link ToolCallContributorKind.MCP | MCP-kind}.",
+      "properties": {
+        "turnId": {
+          "type": "string",
+          "description": "Turn identifier"
+        },
+        "toolCallId": {
+          "type": "string",
+          "description": "Tool call identifier"
+        },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this tool call.\n\nClients MAY look for well-known keys here to provide enhanced UI.\nFor example, a `ptyTerminal` key with `{ input: string; output: string }`\nindicates the tool operated on a terminal (both `input` and `output` may\ncontain escape sequences)."
+        },
+        "type": {
+          "const": "chat/toolCallAuthRequired"
+        },
+        "auth": {
+          "$ref": "#/$defs/McpAuthRequirement",
+          "description": "The authentication challenge blocking this invocation."
+        }
+      },
+      "required": [
+        "turnId",
+        "toolCallId",
+        "type",
+        "auth"
+      ]
+    },
+    "ChatToolCallAuthResolvedAction": {
+      "type": "object",
+      "description": "The authentication challenge blocking a tool call has been resolved (the\nclient pushed a token via `authenticate` and the host validated it).\nTransitions the tool call from `auth-required` back to `running`,\npreserving the fields it had before pausing.\n\nThe host SHOULD remove the corresponding `session/inputNeededSet` entry\n(kind `toolAuthentication`) once this is dispatched.",
+      "properties": {
+        "turnId": {
+          "type": "string",
+          "description": "Turn identifier"
+        },
+        "toolCallId": {
+          "type": "string",
+          "description": "Tool call identifier"
+        },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this tool call.\n\nClients MAY look for well-known keys here to provide enhanced UI.\nFor example, a `ptyTerminal` key with `{ input: string; output: string }`\nindicates the tool operated on a terminal (both `input` and `output` may\ncontain escape sequences)."
+        },
+        "type": {
+          "const": "chat/toolCallAuthResolved"
+        }
+      },
+      "required": [
+        "turnId",
+        "toolCallId",
+        "type"
       ]
     },
     "ChatTurnCompleteAction": {
@@ -1991,6 +2050,12 @@
         },
         {
           "$ref": "#/$defs/ChatToolCallContentChangedAction"
+        },
+        {
+          "$ref": "#/$defs/ChatToolCallAuthRequiredAction"
+        },
+        {
+          "$ref": "#/$defs/ChatToolCallAuthResolvedAction"
         },
         {
           "$ref": "#/$defs/ChatTurnCompleteAction"
@@ -2962,6 +3027,38 @@
         "kind",
         "turnId",
         "clientId",
+        "toolCall"
+      ]
+    },
+    "SessionToolAuthenticationRequest": {
+      "type": "object",
+      "description": "A tool call blocked on MCP authentication mid-execution, surfaced at the\nsession level.\n\nThe {@link toolCall} is always a {@link ToolCallAuthRequiredState} (a\n{@link ToolCallState} in `auth-required` status). Unlike\n{@link SessionToolConfirmationRequest}, this is **not** answered by\ndispatching a `chat/*` action directly: the client obtains a token for\n{@link ToolCallAuthRequiredState.auth | `toolCall.auth`}`.resource` and\npushes it via the existing `authenticate` command (see\n{@link /specification/authentication | Authentication}). The host resumes\nthe tool call and dispatches `chat/toolCallAuthResolved` once the token is\naccepted, at which point it also removes this entry with\n`session/inputNeededRemoved`.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable key for this entry, unique within the session's\n{@link SessionState.inputNeeded} list. The host derives it however it likes\n(for example from the chat URI plus the underlying request or tool-call\nid); consumers MUST treat it as opaque. It is the key for the\n`session/inputNeededSet` / `session/inputNeededRemoved` upsert convention."
+        },
+        "chat": {
+          "$ref": "#/$defs/URI",
+          "description": "The chat the underlying request lives in. This is the channel a client\ndispatches its response to — it does not need to have subscribed to that\nchat first."
+        },
+        "kind": {
+          "const": "toolAuthentication"
+        },
+        "turnId": {
+          "type": "string",
+          "description": "The turn the tool call belongs to."
+        },
+        "toolCall": {
+          "$ref": "#/$defs/ToolCallAuthRequiredState",
+          "description": "The tool call awaiting authentication."
+        }
+      },
+      "required": [
+        "id",
+        "chat",
+        "kind",
+        "turnId",
         "toolCall"
       ]
     },
@@ -4141,13 +4238,10 @@
         "kind"
       ]
     },
-    "McpServerAuthRequiredState": {
+    "McpAuthRequirement": {
       "type": "object",
-      "description": "Server is reachable but cannot serve requests until the client\nauthenticates. Mirrors the discovery flow defined by\n[RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728)\n(Protected Resource Metadata) and the OAuth 2.1 / RFC 6750 challenge\nsemantics required by the MCP authorization spec.\n\nClients react to this state by calling the existing `authenticate`\ncommand with the {@link ProtectedResourceMetadata.resource | resource}\ncarried here. There is **no** `notify/authRequired` notification for\nMCP servers — the action stream is the single source of truth.\n\nWhen the transition is triggered by a request issued during a turn\n— most commonly\n{@link McpAuthRequiredReason.InsufficientScope | `InsufficientScope`}\nsurfacing mid-tool-call — the host SHOULD also raise\n{@link SessionStatus.InputNeeded} on the session so the block is\nvisible at the summary level. Clients SHOULD watch this status on\nany MCP server backing a running tool call and surface an explicit\naffordance (e.g. a \"grant additional access\" prompt) tied to that\ntool call, rather than relying on the user to notice the\ncustomization’s status badge.",
+      "description": "Reusable MCP authentication challenge — the RFC 9728 discovery info a\nclient needs to obtain a token and push it via the `authenticate` command.\nDeliberately carries **no token**: this describes what is being asked for,\nnever the ****** itself.\n\nShared by two independent state machines that describe the same OAuth\nchallenge from different vantage points:\n\n- {@link McpServerAuthRequiredState} — the MCP server itself cannot serve\n  *any* request until the client authenticates.\n- {@link ToolCallAuthRequiredState} — a specific in-flight tool call is\n  paused pending authentication (typically\n  {@link McpAuthRequiredReason.InsufficientScope} step-up auth\n  mid-execution). The server state and the tool-call state remain\n  separate on purpose: the server saying \"I need auth\" and a tool\n  invocation saying \"I am waiting on that auth\" are different facts that\n  can be true independently.",
       "properties": {
-        "kind": {
-          "const": "authRequired"
-        },
         "reason": {
           "$ref": "#/$defs/McpAuthRequiredReason",
           "description": "Why authentication is required."
@@ -4161,7 +4255,7 @@
           "items": {
             "type": "string"
           },
-          "description": "Scopes required for the current challenge, parsed from the\n`WWW-Authenticate: Bearer scope=\"…\"` header (or `scopes_supported`\nfallback). Authoritative for the next authorization request — clients\nMUST NOT assume any subset/superset relationship to\n`resource.scopes_supported`."
+          "description": "Scopes required for the current challenge, parsed from the\n`WWW-Authenticate: ******\"…\"` header (or `scopes_supported`\nfallback). Authoritative for the next authorization request — clients\nMUST NOT assume any subset/superset relationship to\n`resource.scopes_supported`."
         },
         "description": {
           "type": "string",
@@ -4169,9 +4263,41 @@
         }
       },
       "required": [
-        "kind",
         "reason",
         "resource"
+      ]
+    },
+    "McpServerAuthRequiredState": {
+      "type": "object",
+      "description": "Server is reachable but cannot serve requests until the client\nauthenticates. Mirrors the discovery flow defined by\n[RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728)\n(Protected Resource Metadata) and the OAuth 2.1 / RFC 6750 challenge\nsemantics required by the MCP authorization spec.\n\nClients react to this state by calling the existing `authenticate`\ncommand with the {@link ProtectedResourceMetadata.resource | resource}\ncarried here. There is **no** `notify/authRequired` notification for\nMCP servers — the action stream is the single source of truth.\n\nWhen the transition is triggered by a request issued during a turn\n— most commonly\n{@link McpAuthRequiredReason.InsufficientScope | `InsufficientScope`}\nsurfacing mid-tool-call — the host SHOULD also raise\n{@link SessionStatus.InputNeeded} on the session so the block is\nvisible at the summary level. Clients SHOULD watch this status on\nany MCP server backing a running tool call and surface an explicit\naffordance (e.g. a \"grant additional access\" prompt) tied to that\ntool call, rather than relying on the user to notice the\ncustomization’s status badge.",
+      "properties": {
+        "reason": {
+          "$ref": "#/$defs/McpAuthRequiredReason",
+          "description": "Why authentication is required."
+        },
+        "resource": {
+          "$ref": "#/$defs/ProtectedResourceMetadata",
+          "description": "RFC 9728 Protected Resource Metadata. The `resource` field is the\ncanonical MCP server URI per RFC 8707, used as the OAuth `resource`\nindicator. `authorization_servers` is REQUIRED by the MCP\nauthorization spec."
+        },
+        "requiredScopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Scopes required for the current challenge, parsed from the\n`WWW-Authenticate: ******\"…\"` header (or `scopes_supported`\nfallback). Authoritative for the next authorization request — clients\nMUST NOT assume any subset/superset relationship to\n`resource.scopes_supported`."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable hint, typically from the OAuth `error_description`."
+        },
+        "kind": {
+          "const": "authRequired"
+        }
+      },
+      "required": [
+        "reason",
+        "resource",
+        "kind"
       ]
     },
     "McpServerErrorState": {
@@ -5607,6 +5733,23 @@
         "status"
       ]
     },
+    "ToolCallPostConfirmationFields": {
+      "type": "object",
+      "description": "Fields present on every tool call state that exists **after** confirmation\nhas been resolved: {@link ToolCallRunningState}, {@link ToolCallAuthRequiredState},\n{@link ToolCallPendingResultConfirmationState}, and {@link ToolCallCompletedState}.\n`ToolCallPendingConfirmationState` (not yet confirmed) and\n`ToolCallCancelledState` (the denial path — never ran) don't satisfy this\ninvariant, so they keep their own `selectedOption` field independently\nrather than extending this one.",
+      "properties": {
+        "confirmed": {
+          "$ref": "#/$defs/ToolCallConfirmationReason",
+          "description": "How the tool was confirmed for execution"
+        },
+        "selectedOption": {
+          "$ref": "#/$defs/ConfirmationOption",
+          "description": "The confirmation option the user selected, if confirmation options were provided"
+        }
+      },
+      "required": [
+        "confirmed"
+      ]
+    },
     "ToolCallRunningState": {
       "type": "object",
       "description": "Tool is actively executing.",
@@ -5644,9 +5787,6 @@
           "type": "string",
           "description": "Raw tool input"
         },
-        "status": {
-          "const": "running"
-        },
         "confirmed": {
           "$ref": "#/$defs/ToolCallConfirmationReason",
           "description": "How the tool was confirmed for execution"
@@ -5654,6 +5794,9 @@
         "selectedOption": {
           "$ref": "#/$defs/ConfirmationOption",
           "description": "The confirmation option the user selected, if confirmation options were provided"
+        },
+        "status": {
+          "const": "running"
         },
         "content": {
           "type": "array",
@@ -5668,8 +5811,79 @@
         "toolName",
         "displayName",
         "invocationMessage",
+        "confirmed",
+        "status"
+      ]
+    },
+    "ToolCallAuthRequiredState": {
+      "type": "object",
+      "description": "A running tool call is paused because the MCP server backing it needs\nauthentication — most commonly {@link McpAuthRequirement.reason |\n`insufficientScope`} step-up auth triggered by the `tools/call` request\nitself. Only ever reached from {@link ToolCallRunningState}, and normally\nreturns there once authenticated: `running` → `auth-required` → `running`\n→ …. A client MAY instead cancel the invocation without authenticating by\ndispatching a `chat/toolCallComplete` with a **failed** result, always\nmoving straight to {@link ToolCallCompletedState} —\n`requiresResultConfirmation` is ignored on this path, so it can never\nenter {@link ToolCallPendingResultConfirmationState}. A **successful**\nresult dispatched from this state is invalid and MUST be rejected/ignored\nas a no-op by the reducer, since execution never resumed after the\nchallenge.\n\nThis is the tool-call-level counterpart to\n{@link McpServerAuthRequiredState} — that state means the MCP *server*\ncannot serve any request; this one means *this specific invocation* is\nwaiting on the same kind of challenge. The two are dispatched\nindependently and MAY be true at the same time, or not: an\n`insufficientScope` challenge triggered by a single tool call, for\nexample, need not block the whole server.\n\nBecause the challenge is always resolved by pushing a token via the\nexisting `authenticate` command, this state can only originate from a\ntool call {@link ToolCallContributorKind.MCP | contributed by an MCP\nserver} — `contributor` is narrowed accordingly (unlike the optional,\nmulti-kind `contributor` on other tool call states).",
+      "properties": {
+        "toolCallId": {
+          "type": "string",
+          "description": "Unique tool call identifier"
+        },
+        "toolName": {
+          "type": "string",
+          "description": "Internal tool name (for debugging/logging)"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable tool name"
+        },
+        "intention": {
+          "type": "string",
+          "description": "Human-readable description of what the tool invocation intends to do"
+        },
+        "contributor": {
+          "$ref": "#/$defs/ToolCallMcpContributor",
+          "description": "The MCP server that contributed this tool call — always MCP, never a client tool."
+        },
+        "_meta": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "Additional provider-specific metadata for this tool call.\n\nThis MAY include a `ui` field corresponding to the MCP Apps (SEP-1865)\n`McpUiToolMeta` found in MCP tool calls, which may be used in combination\nwith the {@link contributor} to serve MCP Apps."
+        },
+        "invocationMessage": {
+          "$ref": "#/$defs/StringOrMarkdown",
+          "description": "Message describing what the tool will do"
+        },
+        "toolInput": {
+          "type": "string",
+          "description": "Raw tool input"
+        },
+        "confirmed": {
+          "$ref": "#/$defs/ToolCallConfirmationReason",
+          "description": "How the tool was confirmed for execution"
+        },
+        "selectedOption": {
+          "$ref": "#/$defs/ConfirmationOption",
+          "description": "The confirmation option the user selected, if confirmation options were provided"
+        },
+        "status": {
+          "const": "auth-required"
+        },
+        "auth": {
+          "$ref": "#/$defs/McpAuthRequirement",
+          "description": "The authentication challenge blocking this invocation."
+        },
+        "content": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ToolResultContent"
+          },
+          "description": "Partial content produced before the call paused for authentication."
+        }
+      },
+      "required": [
+        "toolCallId",
+        "toolName",
+        "displayName",
+        "contributor",
+        "invocationMessage",
+        "confirmed",
         "status",
-        "confirmed"
+        "auth"
       ]
     },
     "ToolCallPendingResultConfirmationState": {
@@ -5744,9 +5958,6 @@
           ],
           "description": "Error details if the tool failed"
         },
-        "status": {
-          "const": "pending-result-confirmation"
-        },
         "confirmed": {
           "$ref": "#/$defs/ToolCallConfirmationReason",
           "description": "How the tool was confirmed for execution"
@@ -5754,6 +5965,9 @@
         "selectedOption": {
           "$ref": "#/$defs/ConfirmationOption",
           "description": "The confirmation option the user selected, if confirmation options were provided"
+        },
+        "status": {
+          "const": "pending-result-confirmation"
         }
       },
       "required": [
@@ -5763,8 +5977,8 @@
         "invocationMessage",
         "success",
         "pastTenseMessage",
-        "status",
-        "confirmed"
+        "confirmed",
+        "status"
       ]
     },
     "ToolCallCompletedState": {
@@ -5839,9 +6053,6 @@
           ],
           "description": "Error details if the tool failed"
         },
-        "status": {
-          "const": "completed"
-        },
         "confirmed": {
           "$ref": "#/$defs/ToolCallConfirmationReason",
           "description": "How the tool was confirmed for execution"
@@ -5849,6 +6060,9 @@
         "selectedOption": {
           "$ref": "#/$defs/ConfirmationOption",
           "description": "The confirmation option the user selected, if confirmation options were provided"
+        },
+        "status": {
+          "const": "completed"
         }
       },
       "required": [
@@ -5858,8 +6072,8 @@
         "invocationMessage",
         "success",
         "pastTenseMessage",
-        "status",
-        "confirmed"
+        "confirmed",
+        "status"
       ]
     },
     "ToolCallCancelledState": {
@@ -6704,9 +6918,12 @@
         },
         {
           "$ref": "#/$defs/SessionToolClientExecutionRequest"
+        },
+        {
+          "$ref": "#/$defs/SessionToolAuthenticationRequest"
         }
       ],
-      "description": "One outstanding piece of input a session is blocked on, aggregated across all\nchats in {@link SessionState.inputNeeded}.\n\nEach entry is self-sufficient: it carries the owning\n{@link SessionInputRequestBase.chat | `chat`} URI plus every identifier needed\nto construct the response, so a client can answer by dispatching the ordinary\n`chat/*` action (`chat/inputCompleted`, `chat/toolCallConfirmed`,\n`chat/toolCallComplete`, …) to that chat's channel **without having subscribed\nto the chat**. The host removes the entry with `session/inputNeededRemoved`\nonce the underlying request resolves."
+      "description": "One outstanding piece of input a session is blocked on, aggregated across all\nchats in {@link SessionState.inputNeeded}.\n\nEach entry is self-sufficient: it carries the owning\n{@link SessionInputRequestBase.chat | `chat`} URI plus every identifier needed\nto construct the response, so a client can answer by dispatching the ordinary\n`chat/*` action (`chat/inputCompleted`, `chat/toolCallConfirmed`,\n`chat/toolCallComplete`, …) to that chat's channel **without having subscribed\nto the chat** — except {@link SessionToolAuthenticationRequest}, which is\nresolved via the `authenticate` command instead. The host removes the entry\nwith `session/inputNeededRemoved` once the underlying request resolves."
     },
     "ChildCustomizationType": {
       "oneOf": [
@@ -6980,6 +7197,9 @@
           "$ref": "#/$defs/ToolCallRunningState"
         },
         {
+          "$ref": "#/$defs/ToolCallAuthRequiredState"
+        },
+        {
           "$ref": "#/$defs/ToolCallPendingResultConfirmationState"
         },
         {
@@ -7000,7 +7220,7 @@
           "$ref": "#/$defs/ToolCallPendingResultConfirmationState"
         }
       ],
-      "description": "The two tool-call states that block on a client confirmation: parameter\nconfirmation before execution ({@link ToolCallPendingConfirmationState}) and\nresult confirmation after execution\n({@link ToolCallPendingResultConfirmationState}).\n\nSurfaced at the session level by {@link SessionToolConfirmationRequest}."
+      "description": "The two tool-call states that block on a client confirmation: parameter\nconfirmation before execution ({@link ToolCallPendingConfirmationState}) and\nresult confirmation after execution\n({@link ToolCallPendingResultConfirmationState}).\n\n{@link ToolCallAuthRequiredState} is intentionally **not** part of this\nunion: it doesn't block on a `chat/toolCallConfirmed`-style client\ndecision, it blocks on the client completing an OAuth flow and calling\n`authenticate`. See {@link SessionToolAuthenticationRequest} for its\nsession-level surfacing.\n\nSurfaced at the session level by {@link SessionToolConfirmationRequest}."
     },
     "ToolResultContent": {
       "oneOf": [
@@ -7172,6 +7392,12 @@
         },
         {
           "$ref": "#/$defs/ChatToolCallContentChangedAction"
+        },
+        {
+          "$ref": "#/$defs/ChatToolCallAuthRequiredAction"
+        },
+        {
+          "$ref": "#/$defs/ChatToolCallAuthResolvedAction"
         },
         {
           "$ref": "#/$defs/ChatTurnCompleteAction"

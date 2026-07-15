@@ -244,6 +244,9 @@ pub enum SessionInputRequestKind {
     /// A running tool the session wants an active client to execute.
     #[serde(rename = "toolClientExecution")]
     ToolClientExecution,
+    /// A tool call blocked on MCP authentication mid-execution.
+    #[serde(rename = "toolAuthentication")]
+    ToolAuthentication,
 }
 
 /// How a turn ended.
@@ -319,6 +322,11 @@ pub enum ToolCallStatus {
     PendingConfirmation,
     #[serde(rename = "running")]
     Running,
+    /// Running paused because the MCP server backing this call needs
+    /// authentication (typically step-up auth for insufficient scope,
+    /// surfacing mid-execution). See {@link ToolCallAuthRequiredState}.
+    #[serde(rename = "auth-required")]
+    AuthRequired,
     #[serde(rename = "pending-result-confirmation")]
     PendingResultConfirmation,
     #[serde(rename = "completed")]
@@ -1298,6 +1306,38 @@ pub struct SessionToolClientExecutionRequest {
     /// host only ever populates this with a {@link ToolCallRunningState} (i.e. a
     /// {@link ToolCallState} in `running` status).
     pub tool_call: ToolCallState,
+}
+
+/// A tool call blocked on MCP authentication mid-execution, surfaced at the
+/// session level.
+///
+/// The {@link toolCall} is always a {@link ToolCallAuthRequiredState} (a
+/// {@link ToolCallState} in `auth-required` status). Unlike
+/// {@link SessionToolConfirmationRequest}, this is **not** answered by
+/// dispatching a `chat/*` action directly: the client obtains a token for
+/// {@link ToolCallAuthRequiredState.auth | `toolCall.auth`}`.resource` and
+/// pushes it via the existing `authenticate` command (see
+/// {@link /specification/authentication | Authentication}). The host resumes
+/// the tool call and dispatches `chat/toolCallAuthResolved` once the token is
+/// accepted, at which point it also removes this entry with
+/// `session/inputNeededRemoved`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionToolAuthenticationRequest {
+    /// Stable key for this entry, unique within the session's
+    /// {@link SessionState.inputNeeded} list. The host derives it however it likes
+    /// (for example from the chat URI plus the underlying request or tool-call
+    /// id); consumers MUST treat it as opaque. It is the key for the
+    /// `session/inputNeededSet` / `session/inputNeededRemoved` upsert convention.
+    pub id: String,
+    /// The chat the underlying request lives in. This is the channel a client
+    /// dispatches its response to — it does not need to have subscribed to that
+    /// chat first.
+    pub chat: Uri,
+    /// The turn the tool call belongs to.
+    pub turn_id: String,
+    /// The tool call awaiting authentication.
+    pub tool_call: ToolCallAuthRequiredState,
 }
 
 /// Lightweight catalog entry summarizing one session. Surfaced via
@@ -2298,6 +2338,73 @@ pub struct ToolCallRunningState {
     ///
     /// For example, a terminal content block lets clients subscribe to live
     /// output before the tool completes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content: Option<Vec<ToolResultContent>>,
+}
+
+/// A running tool call is paused because the MCP server backing it needs
+/// authentication — most commonly {@link McpAuthRequirement.reason |
+/// `insufficientScope`} step-up auth triggered by the `tools/call` request
+/// itself. Only ever reached from {@link ToolCallRunningState}, and normally
+/// returns there once authenticated: `running` → `auth-required` → `running`
+/// → …. A client MAY instead cancel the invocation without authenticating by
+/// dispatching a `chat/toolCallComplete` with a **failed** result, always
+/// moving straight to {@link ToolCallCompletedState} —
+/// `requiresResultConfirmation` is ignored on this path, so it can never
+/// enter {@link ToolCallPendingResultConfirmationState}. A **successful**
+/// result dispatched from this state is invalid and MUST be rejected/ignored
+/// as a no-op by the reducer, since execution never resumed after the
+/// challenge.
+///
+/// This is the tool-call-level counterpart to
+/// {@link McpServerAuthRequiredState} — that state means the MCP *server*
+/// cannot serve any request; this one means *this specific invocation* is
+/// waiting on the same kind of challenge. The two are dispatched
+/// independently and MAY be true at the same time, or not: an
+/// `insufficientScope` challenge triggered by a single tool call, for
+/// example, need not block the whole server.
+///
+/// Because the challenge is always resolved by pushing a token via the
+/// existing `authenticate` command, this state can only originate from a
+/// tool call {@link ToolCallContributorKind.MCP | contributed by an MCP
+/// server} — `contributor` is narrowed accordingly (unlike the optional,
+/// multi-kind `contributor` on other tool call states).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolCallAuthRequiredState {
+    /// Unique tool call identifier
+    pub tool_call_id: String,
+    /// Internal tool name (for debugging/logging)
+    pub tool_name: String,
+    /// Human-readable tool name
+    pub display_name: String,
+    /// Human-readable description of what the tool invocation intends to do
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub intention: Option<String>,
+    /// Reference to the contributor of the tool being called.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contributor: Option<ToolCallContributor>,
+    /// Additional provider-specific metadata for this tool call.
+    ///
+    /// This MAY include a `ui` field corresponding to the MCP Apps (SEP-1865)
+    /// `McpUiToolMeta` found in MCP tool calls, which may be used in combination
+    /// with the {@link contributor} to serve MCP Apps.
+    #[serde(rename = "_meta", default, skip_serializing_if = "Option::is_none")]
+    pub meta: Option<JsonObject>,
+    /// Message describing what the tool will do
+    pub invocation_message: StringOrMarkdown,
+    /// Raw tool input
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_input: Option<String>,
+    /// How the tool was confirmed for execution
+    pub confirmed: ToolCallConfirmationReason,
+    /// The confirmation option the user selected, if confirmation options were provided
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_option: Option<ConfirmationOption>,
+    pub status: ToolCallStatus,
+    /// The authentication challenge blocking this invocation.
+    pub auth: McpAuthRequirement,
+    /// Partial content produced before the call paused for authentication.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub content: Option<Vec<ToolResultContent>>,
 }
@@ -3342,7 +3449,7 @@ pub struct McpServerAuthRequiredState {
     /// authorization spec.
     pub resource: ProtectedResourceMetadata,
     /// Scopes required for the current challenge, parsed from the
-    /// `WWW-Authenticate: Bearer scope="…"` header (or `scopes_supported`
+    /// `WWW-Authenticate: ******"…"` header (or `scopes_supported`
     /// fallback). Authoritative for the next authorization request — clients
     /// MUST NOT assume any subset/superset relationship to
     /// `resource.scopes_supported`.
@@ -3368,6 +3475,45 @@ pub struct McpServerErrorState {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct McpServerStoppedState {}
+
+/// Reusable MCP authentication challenge — the RFC 9728 discovery info a
+/// client needs to obtain a token and push it via the `authenticate` command.
+/// Deliberately carries **no token**: this describes what is being asked for,
+/// never the ****** itself.
+///
+/// Shared by two independent state machines that describe the same OAuth
+/// challenge from different vantage points:
+///
+/// - {@link McpServerAuthRequiredState} — the MCP server itself cannot serve
+///   *any* request until the client authenticates.
+/// - {@link ToolCallAuthRequiredState} — a specific in-flight tool call is
+///   paused pending authentication (typically
+///   {@link McpAuthRequiredReason.InsufficientScope} step-up auth
+///   mid-execution). The server state and the tool-call state remain
+///   separate on purpose: the server saying "I need auth" and a tool
+///   invocation saying "I am waiting on that auth" are different facts that
+///   can be true independently.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpAuthRequirement {
+    /// Why authentication is required.
+    pub reason: McpAuthRequiredReason,
+    /// RFC 9728 Protected Resource Metadata. The `resource` field is the
+    /// canonical MCP server URI per RFC 8707, used as the OAuth `resource`
+    /// indicator. `authorization_servers` is REQUIRED by the MCP
+    /// authorization spec.
+    pub resource: ProtectedResourceMetadata,
+    /// Scopes required for the current challenge, parsed from the
+    /// `WWW-Authenticate: ******"…"` header (or `scopes_supported`
+    /// fallback). Authoritative for the next authorization request — clients
+    /// MUST NOT assume any subset/superset relationship to
+    /// `resource.scopes_supported`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub required_scopes: Option<Vec<String>>,
+    /// Human-readable hint, typically from the OAuth `error_description`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -3995,6 +4141,8 @@ pub enum ToolCallState {
     PendingConfirmation(ToolCallPendingConfirmationState),
     #[serde(rename = "running")]
     Running(ToolCallRunningState),
+    #[serde(rename = "auth-required")]
+    AuthRequired(ToolCallAuthRequiredState),
     #[serde(rename = "pending-result-confirmation")]
     PendingResultConfirmation(ToolCallPendingResultConfirmationState),
     #[serde(rename = "completed")]
@@ -4263,6 +4411,8 @@ pub enum SessionInputRequest {
     ToolConfirmation(SessionToolConfirmationRequest),
     #[serde(rename = "toolClientExecution")]
     ToolClientExecution(SessionToolClientExecutionRequest),
+    #[serde(rename = "toolAuthentication")]
+    ToolAuthentication(SessionToolAuthenticationRequest),
     /// Unknown or future variant — preserved as raw JSON for round-trip fidelity.
     /// Reducers treat this as a no-op.
     #[serde(untagged)]

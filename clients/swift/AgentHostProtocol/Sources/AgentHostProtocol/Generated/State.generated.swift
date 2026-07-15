@@ -159,6 +159,8 @@ public enum SessionInputRequestKind: String, Codable, Sendable {
     case toolConfirmation = "toolConfirmation"
     /// A running tool the session wants an active client to execute.
     case toolClientExecution = "toolClientExecution"
+    /// A tool call blocked on MCP authentication mid-execution.
+    case toolAuthentication = "toolAuthentication"
 }
 
 /// How a turn ended.
@@ -209,6 +211,10 @@ public enum ToolCallStatus: String, Codable, Sendable {
     case streaming = "streaming"
     case pendingConfirmation = "pending-confirmation"
     case running = "running"
+    /// Running paused because the MCP server backing this call needs
+    /// authentication (typically step-up auth for insufficient scope,
+    /// surfacing mid-execution). See {@link ToolCallAuthRequiredState}.
+    case authRequired = "auth-required"
     case pendingResultConfirmation = "pending-result-confirmation"
     case completed = "completed"
     case cancelled = "cancelled"
@@ -1285,6 +1291,38 @@ public struct SessionToolClientExecutionRequest: Codable, Sendable {
         self.kind = kind
         self.turnId = turnId
         self.clientId = clientId
+        self.toolCall = toolCall
+    }
+}
+
+public struct SessionToolAuthenticationRequest: Codable, Sendable {
+    /// Stable key for this entry, unique within the session's
+    /// {@link SessionState.inputNeeded} list. The host derives it however it likes
+    /// (for example from the chat URI plus the underlying request or tool-call
+    /// id); consumers MUST treat it as opaque. It is the key for the
+    /// `session/inputNeededSet` / `session/inputNeededRemoved` upsert convention.
+    public var id: String
+    /// The chat the underlying request lives in. This is the channel a client
+    /// dispatches its response to — it does not need to have subscribed to that
+    /// chat first.
+    public var chat: String
+    public var kind: SessionInputRequestKind
+    /// The turn the tool call belongs to.
+    public var turnId: String
+    /// The tool call awaiting authentication.
+    public var toolCall: ToolCallAuthRequiredState
+
+    public init(
+        id: String,
+        chat: String,
+        kind: SessionInputRequestKind,
+        turnId: String,
+        toolCall: ToolCallAuthRequiredState
+    ) {
+        self.id = id
+        self.chat = chat
+        self.kind = kind
+        self.turnId = turnId
         self.toolCall = toolCall
     }
 }
@@ -2556,11 +2594,11 @@ public struct ToolCallRunningState: Codable, Sendable {
     public var invocationMessage: StringOrMarkdown
     /// Raw tool input
     public var toolInput: String?
-    public var status: ToolCallStatus
     /// How the tool was confirmed for execution
     public var confirmed: ToolCallConfirmationReason
     /// The confirmation option the user selected, if confirmation options were provided
     public var selectedOption: ConfirmationOption?
+    public var status: ToolCallStatus
     /// Partial content produced while the tool is still executing.
     ///
     /// For example, a terminal content block lets clients subscribe to live
@@ -2576,9 +2614,9 @@ public struct ToolCallRunningState: Codable, Sendable {
         case meta = "_meta"
         case invocationMessage
         case toolInput
-        case status
         case confirmed
         case selectedOption
+        case status
         case content
     }
 
@@ -2591,9 +2629,9 @@ public struct ToolCallRunningState: Codable, Sendable {
         meta: [String: AnyCodable]? = nil,
         invocationMessage: StringOrMarkdown,
         toolInput: String? = nil,
-        status: ToolCallStatus,
         confirmed: ToolCallConfirmationReason,
         selectedOption: ConfirmationOption? = nil,
+        status: ToolCallStatus,
         content: [ToolResultContent]? = nil
     ) {
         self.toolCallId = toolCallId
@@ -2604,9 +2642,87 @@ public struct ToolCallRunningState: Codable, Sendable {
         self.meta = meta
         self.invocationMessage = invocationMessage
         self.toolInput = toolInput
-        self.status = status
         self.confirmed = confirmed
         self.selectedOption = selectedOption
+        self.status = status
+        self.content = content
+    }
+}
+
+public struct ToolCallAuthRequiredState: Codable, Sendable {
+    /// Unique tool call identifier
+    public var toolCallId: String
+    /// Internal tool name (for debugging/logging)
+    public var toolName: String
+    /// Human-readable tool name
+    public var displayName: String
+    /// Human-readable description of what the tool invocation intends to do
+    public var intention: String?
+    /// Reference to the contributor of the tool being called.
+    public var contributor: ToolCallContributor?
+    /// Additional provider-specific metadata for this tool call.
+    ///
+    /// This MAY include a `ui` field corresponding to the MCP Apps (SEP-1865)
+    /// `McpUiToolMeta` found in MCP tool calls, which may be used in combination
+    /// with the {@link contributor} to serve MCP Apps.
+    public var meta: [String: AnyCodable]?
+    /// Message describing what the tool will do
+    public var invocationMessage: StringOrMarkdown
+    /// Raw tool input
+    public var toolInput: String?
+    /// How the tool was confirmed for execution
+    public var confirmed: ToolCallConfirmationReason
+    /// The confirmation option the user selected, if confirmation options were provided
+    public var selectedOption: ConfirmationOption?
+    public var status: ToolCallStatus
+    /// The authentication challenge blocking this invocation.
+    public var auth: McpAuthRequirement
+    /// Partial content produced before the call paused for authentication.
+    public var content: [ToolResultContent]?
+
+    enum CodingKeys: String, CodingKey {
+        case toolCallId
+        case toolName
+        case displayName
+        case intention
+        case contributor
+        case meta = "_meta"
+        case invocationMessage
+        case toolInput
+        case confirmed
+        case selectedOption
+        case status
+        case auth
+        case content
+    }
+
+    public init(
+        toolCallId: String,
+        toolName: String,
+        displayName: String,
+        intention: String? = nil,
+        contributor: ToolCallContributor? = nil,
+        meta: [String: AnyCodable]? = nil,
+        invocationMessage: StringOrMarkdown,
+        toolInput: String? = nil,
+        confirmed: ToolCallConfirmationReason,
+        selectedOption: ConfirmationOption? = nil,
+        status: ToolCallStatus,
+        auth: McpAuthRequirement,
+        content: [ToolResultContent]? = nil
+    ) {
+        self.toolCallId = toolCallId
+        self.toolName = toolName
+        self.displayName = displayName
+        self.intention = intention
+        self.contributor = contributor
+        self.meta = meta
+        self.invocationMessage = invocationMessage
+        self.toolInput = toolInput
+        self.confirmed = confirmed
+        self.selectedOption = selectedOption
+        self.status = status
+        self.auth = auth
         self.content = content
     }
 }
@@ -2646,11 +2762,11 @@ public struct ToolCallPendingResultConfirmationState: Codable, Sendable {
     public var structuredContent: [String: AnyCodable]?
     /// Error details if the tool failed
     public var error: AnyCodable?
-    public var status: ToolCallStatus
     /// How the tool was confirmed for execution
     public var confirmed: ToolCallConfirmationReason
     /// The confirmation option the user selected, if confirmation options were provided
     public var selectedOption: ConfirmationOption?
+    public var status: ToolCallStatus
 
     enum CodingKeys: String, CodingKey {
         case toolCallId
@@ -2666,9 +2782,9 @@ public struct ToolCallPendingResultConfirmationState: Codable, Sendable {
         case content
         case structuredContent
         case error
-        case status
         case confirmed
         case selectedOption
+        case status
     }
 
     public init(
@@ -2685,9 +2801,9 @@ public struct ToolCallPendingResultConfirmationState: Codable, Sendable {
         content: [ToolResultContent]? = nil,
         structuredContent: [String: AnyCodable]? = nil,
         error: AnyCodable? = nil,
-        status: ToolCallStatus,
         confirmed: ToolCallConfirmationReason,
-        selectedOption: ConfirmationOption? = nil
+        selectedOption: ConfirmationOption? = nil,
+        status: ToolCallStatus
     ) {
         self.toolCallId = toolCallId
         self.toolName = toolName
@@ -2702,9 +2818,9 @@ public struct ToolCallPendingResultConfirmationState: Codable, Sendable {
         self.content = content
         self.structuredContent = structuredContent
         self.error = error
-        self.status = status
         self.confirmed = confirmed
         self.selectedOption = selectedOption
+        self.status = status
     }
 }
 
@@ -2743,11 +2859,11 @@ public struct ToolCallCompletedState: Codable, Sendable {
     public var structuredContent: [String: AnyCodable]?
     /// Error details if the tool failed
     public var error: AnyCodable?
-    public var status: ToolCallStatus
     /// How the tool was confirmed for execution
     public var confirmed: ToolCallConfirmationReason
     /// The confirmation option the user selected, if confirmation options were provided
     public var selectedOption: ConfirmationOption?
+    public var status: ToolCallStatus
 
     enum CodingKeys: String, CodingKey {
         case toolCallId
@@ -2763,9 +2879,9 @@ public struct ToolCallCompletedState: Codable, Sendable {
         case content
         case structuredContent
         case error
-        case status
         case confirmed
         case selectedOption
+        case status
     }
 
     public init(
@@ -2782,9 +2898,9 @@ public struct ToolCallCompletedState: Codable, Sendable {
         content: [ToolResultContent]? = nil,
         structuredContent: [String: AnyCodable]? = nil,
         error: AnyCodable? = nil,
-        status: ToolCallStatus,
         confirmed: ToolCallConfirmationReason,
-        selectedOption: ConfirmationOption? = nil
+        selectedOption: ConfirmationOption? = nil,
+        status: ToolCallStatus
     ) {
         self.toolCallId = toolCallId
         self.toolName = toolName
@@ -2799,9 +2915,9 @@ public struct ToolCallCompletedState: Codable, Sendable {
         self.content = content
         self.structuredContent = structuredContent
         self.error = error
-        self.status = status
         self.confirmed = confirmed
         self.selectedOption = selectedOption
+        self.status = status
     }
 }
 
@@ -4119,7 +4235,6 @@ public struct McpServerReadyState: Codable, Sendable {
 }
 
 public struct McpServerAuthRequiredState: Codable, Sendable {
-    public var kind: McpServerStatus
     /// Why authentication is required.
     public var reason: McpAuthRequiredReason
     /// RFC 9728 Protected Resource Metadata. The `resource` field is the
@@ -4128,26 +4243,27 @@ public struct McpServerAuthRequiredState: Codable, Sendable {
     /// authorization spec.
     public var resource: ProtectedResourceMetadata
     /// Scopes required for the current challenge, parsed from the
-    /// `WWW-Authenticate: Bearer scope="…"` header (or `scopes_supported`
+    /// `WWW-Authenticate: ******"…"` header (or `scopes_supported`
     /// fallback). Authoritative for the next authorization request — clients
     /// MUST NOT assume any subset/superset relationship to
     /// `resource.scopes_supported`.
     public var requiredScopes: [String]?
     /// Human-readable hint, typically from the OAuth `error_description`.
     public var description: String?
+    public var kind: McpServerStatus
 
     public init(
-        kind: McpServerStatus,
         reason: McpAuthRequiredReason,
         resource: ProtectedResourceMetadata,
         requiredScopes: [String]? = nil,
-        description: String? = nil
+        description: String? = nil,
+        kind: McpServerStatus
     ) {
-        self.kind = kind
         self.reason = reason
         self.resource = resource
         self.requiredScopes = requiredScopes
         self.description = description
+        self.kind = kind
     }
 }
 
@@ -4172,6 +4288,36 @@ public struct McpServerStoppedState: Codable, Sendable {
         kind: McpServerStatus
     ) {
         self.kind = kind
+    }
+}
+
+public struct McpAuthRequirement: Codable, Sendable {
+    /// Why authentication is required.
+    public var reason: McpAuthRequiredReason
+    /// RFC 9728 Protected Resource Metadata. The `resource` field is the
+    /// canonical MCP server URI per RFC 8707, used as the OAuth `resource`
+    /// indicator. `authorization_servers` is REQUIRED by the MCP
+    /// authorization spec.
+    public var resource: ProtectedResourceMetadata
+    /// Scopes required for the current challenge, parsed from the
+    /// `WWW-Authenticate: ******"…"` header (or `scopes_supported`
+    /// fallback). Authoritative for the next authorization request — clients
+    /// MUST NOT assume any subset/superset relationship to
+    /// `resource.scopes_supported`.
+    public var requiredScopes: [String]?
+    /// Human-readable hint, typically from the OAuth `error_description`.
+    public var description: String?
+
+    public init(
+        reason: McpAuthRequiredReason,
+        resource: ProtectedResourceMetadata,
+        requiredScopes: [String]? = nil,
+        description: String? = nil
+    ) {
+        self.reason = reason
+        self.resource = resource
+        self.requiredScopes = requiredScopes
+        self.description = description
     }
 }
 
@@ -5001,6 +5147,7 @@ public enum ToolCallState: Codable, Sendable {
     case streaming(ToolCallStreamingState)
     case pendingConfirmation(ToolCallPendingConfirmationState)
     case running(ToolCallRunningState)
+    case authRequired(ToolCallAuthRequiredState)
     case pendingResultConfirmation(ToolCallPendingResultConfirmationState)
     case completed(ToolCallCompletedState)
     case cancelled(ToolCallCancelledState)
@@ -5022,6 +5169,8 @@ public enum ToolCallState: Codable, Sendable {
             self = .pendingConfirmation(try ToolCallPendingConfirmationState(from: decoder))
         case "running":
             self = .running(try ToolCallRunningState(from: decoder))
+        case "auth-required":
+            self = .authRequired(try ToolCallAuthRequiredState(from: decoder))
         case "pending-result-confirmation":
             self = .pendingResultConfirmation(try ToolCallPendingResultConfirmationState(from: decoder))
         case "completed":
@@ -5038,6 +5187,7 @@ public enum ToolCallState: Codable, Sendable {
         case .streaming(let value): try value.encode(to: encoder)
         case .pendingConfirmation(let value): try value.encode(to: encoder)
         case .running(let value): try value.encode(to: encoder)
+        case .authRequired(let value): try value.encode(to: encoder)
         case .pendingResultConfirmation(let value): try value.encode(to: encoder)
         case .completed(let value): try value.encode(to: encoder)
         case .cancelled(let value): try value.encode(to: encoder)
@@ -5551,6 +5701,7 @@ public enum SessionInputRequest: Codable, Sendable {
     case chatInput(SessionChatInputRequest)
     case toolConfirmation(SessionToolConfirmationRequest)
     case toolClientExecution(SessionToolClientExecutionRequest)
+    case toolAuthentication(SessionToolAuthenticationRequest)
     /// Unknown or future discriminant; the raw payload is preserved
     /// and re-encoded verbatim for forward-compatibility.
     case unknown(AnyCodable)
@@ -5569,6 +5720,8 @@ public enum SessionInputRequest: Codable, Sendable {
             self = .toolConfirmation(try SessionToolConfirmationRequest(from: decoder))
         case "toolClientExecution":
             self = .toolClientExecution(try SessionToolClientExecutionRequest(from: decoder))
+        case "toolAuthentication":
+            self = .toolAuthentication(try SessionToolAuthenticationRequest(from: decoder))
         default:
             self = .unknown(try AnyCodable(from: decoder))
         }
@@ -5579,6 +5732,7 @@ public enum SessionInputRequest: Codable, Sendable {
         case .chatInput(let value): try value.encode(to: encoder)
         case .toolConfirmation(let value): try value.encode(to: encoder)
         case .toolClientExecution(let value): try value.encode(to: encoder)
+        case .toolAuthentication(let value): try value.encode(to: encoder)
         case .unknown(let value): try value.encode(to: encoder)
         }
     }

@@ -37,6 +37,8 @@ const (
 	ActionTypeChatToolCallComplete              ActionType = "chat/toolCallComplete"
 	ActionTypeChatToolCallResultConfirmed       ActionType = "chat/toolCallResultConfirmed"
 	ActionTypeChatToolCallContentChanged        ActionType = "chat/toolCallContentChanged"
+	ActionTypeChatToolCallAuthRequired          ActionType = "chat/toolCallAuthRequired"
+	ActionTypeChatToolCallAuthResolved          ActionType = "chat/toolCallAuthResolved"
 	ActionTypeChatTurnComplete                  ActionType = "chat/turnComplete"
 	ActionTypeChatTurnCancelled                 ActionType = "chat/turnCancelled"
 	ActionTypeChatError                         ActionType = "chat/error"
@@ -392,6 +394,22 @@ type ChatToolCallConfirmedAction struct {
 // Servers waiting on a client tool call MAY time out after a reasonable duration
 // if the implementing client disconnects or becomes unresponsive, and dispatch
 // this action with `result.success = false` and an appropriate error.
+//
+// A client MAY also dispatch this action with a **failed** result (
+// `result.success: false`) for a tool call currently in `auth-required`
+// status, to cancel that invocation without completing the pending MCP
+// authentication challenge. This always transitions the tool call straight
+// to `completed`, preserving the fields it had before pausing for auth;
+// `requiresResultConfirmation` is ignored for this transition; the
+// cancellation can never enter `pending-result-confirmation`, since there is
+// no real result to review.
+//
+// A **successful** result (`result.success: true`) is invalid for a tool
+// call in `auth-required` status — execution never resumed after the
+// challenge, so there's nothing that could have produced it. The reducer
+// MUST reject/ignore it as a no-op, leaving the tool call in
+// `auth-required`. The client must resolve the auth challenge
+// (`chat/toolCallAuthResolved`) before completing successfully.
 type ChatToolCallCompleteAction struct {
 	// Turn identifier
 	TurnId string `json:"turnId"`
@@ -457,6 +475,58 @@ type ChatToolCallContentChangedAction struct {
 	Type ActionType                 `json:"type"`
 	// The current partial content for the running tool call
 	Content []ToolResultContent `json:"content"`
+}
+
+// A running tool call is paused pending MCP authentication. Transitions the
+// tool call from `running` to `auth-required`.
+//
+// The server dispatches this when the MCP server backing the call responds
+// with a 401/403 challenge mid-execution (see
+// {@link McpAuthRequirement.reason | `insufficientScope`}). The host SHOULD
+// pair this with `session/inputNeededSet` (kind `toolAuthentication`) so the
+// block is visible at the session-summary level, mirroring
+// {@link McpServerAuthRequiredState}'s own `InputNeeded` guidance.
+//
+// Only valid for tool calls contributed by an MCP server — the reducer is a
+// no-op if the tool call's `contributor` is not
+// {@link ToolCallContributorKind.MCP | MCP-kind}.
+type ChatToolCallAuthRequiredAction struct {
+	// Turn identifier
+	TurnId string `json:"turnId"`
+	// Tool call identifier
+	ToolCallId string `json:"toolCallId"`
+	// Additional provider-specific metadata for this tool call.
+	//
+	// Clients MAY look for well-known keys here to provide enhanced UI.
+	// For example, a `ptyTerminal` key with `{ input: string; output: string }`
+	// indicates the tool operated on a terminal (both `input` and `output` may
+	// contain escape sequences).
+	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
+	Type ActionType                 `json:"type"`
+	// The authentication challenge blocking this invocation.
+	Auth McpAuthRequirement `json:"auth"`
+}
+
+// The authentication challenge blocking a tool call has been resolved (the
+// client pushed a token via `authenticate` and the host validated it).
+// Transitions the tool call from `auth-required` back to `running`,
+// preserving the fields it had before pausing.
+//
+// The host SHOULD remove the corresponding `session/inputNeededSet` entry
+// (kind `toolAuthentication`) once this is dispatched.
+type ChatToolCallAuthResolvedAction struct {
+	// Turn identifier
+	TurnId string `json:"turnId"`
+	// Tool call identifier
+	ToolCallId string `json:"toolCallId"`
+	// Additional provider-specific metadata for this tool call.
+	//
+	// Clients MAY look for well-known keys here to provide enhanced UI.
+	// For example, a `ptyTerminal` key with `{ input: string; output: string }`
+	// indicates the tool operated on a terminal (both `input` and `output` may
+	// contain escape sequences).
+	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
+	Type ActionType                 `json:"type"`
 }
 
 // Turn finished — the assistant is idle.
@@ -1374,6 +1444,8 @@ func (*ChatToolCallConfirmedAction) isStateAction()             {}
 func (*ChatToolCallCompleteAction) isStateAction()              {}
 func (*ChatToolCallResultConfirmedAction) isStateAction()       {}
 func (*ChatToolCallContentChangedAction) isStateAction()        {}
+func (*ChatToolCallAuthRequiredAction) isStateAction()          {}
+func (*ChatToolCallAuthResolvedAction) isStateAction()          {}
 func (*ChatTurnCompleteAction) isStateAction()                  {}
 func (*ChatTurnCancelledAction) isStateAction()                 {}
 func (*ChatErrorAction) isStateAction()                         {}
@@ -1559,6 +1631,18 @@ func (u *StateAction) UnmarshalJSON(data []byte) error {
 		u.Value = &value
 	case "chat/toolCallContentChanged":
 		var value ChatToolCallContentChangedAction
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	case "chat/toolCallAuthRequired":
+		var value ChatToolCallAuthRequiredAction
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		u.Value = &value
+	case "chat/toolCallAuthResolved":
+		var value ChatToolCallAuthResolvedAction
 		if err := json.Unmarshal(data, &value); err != nil {
 			return err
 		}

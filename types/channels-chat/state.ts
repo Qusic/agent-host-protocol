@@ -6,7 +6,7 @@
  */
 
 import type { ModelSelection } from '../channels-root/state.js';
-import type { AgentSelection, SessionStatus } from '../channels-session/state.js';
+import type { AgentSelection, McpAuthRequirement, SessionStatus } from '../channels-session/state.js';
 import type {
   ContentRef,
   ErrorInfo,
@@ -914,6 +914,12 @@ export const enum ToolCallStatus {
   Streaming = 'streaming',
   PendingConfirmation = 'pending-confirmation',
   Running = 'running',
+  /**
+   * Running paused because the MCP server backing this call needs
+   * authentication (typically step-up auth for insufficient scope,
+   * surfacing mid-execution). See {@link ToolCallAuthRequiredState}.
+   */
+  AuthRequired = 'auth-required',
   PendingResultConfirmation = 'pending-result-confirmation',
   Completed = 'completed',
   Cancelled = 'cancelled',
@@ -1167,16 +1173,30 @@ export interface ToolCallPendingConfirmationState extends ToolCallBase, ToolCall
 }
 
 /**
- * Tool is actively executing.
+ * Fields present on every tool call state that exists **after** confirmation
+ * has been resolved: {@link ToolCallRunningState}, {@link ToolCallAuthRequiredState},
+ * {@link ToolCallPendingResultConfirmationState}, and {@link ToolCallCompletedState}.
+ * `ToolCallPendingConfirmationState` (not yet confirmed) and
+ * `ToolCallCancelledState` (the denial path — never ran) don't satisfy this
+ * invariant, so they keep their own `selectedOption` field independently
+ * rather than extending this one.
  *
  * @category Tool Call Types
  */
-export interface ToolCallRunningState extends ToolCallBase, ToolCallParameterFields {
-  status: ToolCallStatus.Running;
+interface ToolCallPostConfirmationFields {
   /** How the tool was confirmed for execution */
   confirmed: ToolCallConfirmationReason;
   /** The confirmation option the user selected, if confirmation options were provided */
   selectedOption?: ConfirmationOption;
+}
+
+/**
+ * Tool is actively executing.
+ *
+ * @category Tool Call Types
+ */
+export interface ToolCallRunningState extends ToolCallBase, ToolCallParameterFields, ToolCallPostConfirmationFields {
+  status: ToolCallStatus.Running;
   /**
    * Partial content produced while the tool is still executing.
    *
@@ -1187,16 +1207,53 @@ export interface ToolCallRunningState extends ToolCallBase, ToolCallParameterFie
 }
 
 /**
+ * A running tool call is paused because the MCP server backing it needs
+ * authentication — most commonly {@link McpAuthRequirement.reason |
+ * `insufficientScope`} step-up auth triggered by the `tools/call` request
+ * itself. Only ever reached from {@link ToolCallRunningState}, and normally
+ * returns there once authenticated: `running` → `auth-required` → `running`
+ * → …. A client MAY instead cancel the invocation without authenticating by
+ * dispatching a `chat/toolCallComplete` with a **failed** result, always
+ * moving straight to {@link ToolCallCompletedState} —
+ * `requiresResultConfirmation` is ignored on this path, so it can never
+ * enter {@link ToolCallPendingResultConfirmationState}. A **successful**
+ * result dispatched from this state is invalid and MUST be rejected/ignored
+ * as a no-op by the reducer, since execution never resumed after the
+ * challenge.
+ *
+ * This is the tool-call-level counterpart to
+ * {@link McpServerAuthRequiredState} — that state means the MCP *server*
+ * cannot serve any request; this one means *this specific invocation* is
+ * waiting on the same kind of challenge. The two are dispatched
+ * independently and MAY be true at the same time, or not: an
+ * `insufficientScope` challenge triggered by a single tool call, for
+ * example, need not block the whole server.
+ *
+ * Because the challenge is always resolved by pushing a token via the
+ * existing `authenticate` command, this state can only originate from a
+ * tool call {@link ToolCallContributorKind.MCP | contributed by an MCP
+ * server} — `contributor` is narrowed accordingly (unlike the optional,
+ * multi-kind `contributor` on other tool call states).
+ *
+ * @category Tool Call Types
+ */
+export interface ToolCallAuthRequiredState extends ToolCallBase, ToolCallParameterFields, ToolCallPostConfirmationFields {
+  status: ToolCallStatus.AuthRequired;
+  /** The MCP server that contributed this tool call — always MCP, never a client tool. */
+  contributor: ToolCallMcpContributor;
+  /** The authentication challenge blocking this invocation. */
+  auth: McpAuthRequirement;
+  /** Partial content produced before the call paused for authentication. */
+  content?: ToolResultContent[];
+}
+
+/**
  * Tool finished executing, waiting for client to approve the result.
  *
  * @category Tool Call Types
  */
-export interface ToolCallPendingResultConfirmationState extends ToolCallBase, ToolCallParameterFields, ToolCallResult {
+export interface ToolCallPendingResultConfirmationState extends ToolCallBase, ToolCallParameterFields, ToolCallResult, ToolCallPostConfirmationFields {
   status: ToolCallStatus.PendingResultConfirmation;
-  /** How the tool was confirmed for execution */
-  confirmed: ToolCallConfirmationReason;
-  /** The confirmation option the user selected, if confirmation options were provided */
-  selectedOption?: ConfirmationOption;
 }
 
 /**
@@ -1204,12 +1261,8 @@ export interface ToolCallPendingResultConfirmationState extends ToolCallBase, To
  *
  * @category Tool Call Types
  */
-export interface ToolCallCompletedState extends ToolCallBase, ToolCallParameterFields, ToolCallResult {
+export interface ToolCallCompletedState extends ToolCallBase, ToolCallParameterFields, ToolCallResult, ToolCallPostConfirmationFields {
   status: ToolCallStatus.Completed;
-  /** How the tool was confirmed for execution */
-  confirmed: ToolCallConfirmationReason;
-  /** The confirmation option the user selected, if confirmation options were provided */
-  selectedOption?: ConfirmationOption;
 }
 
 /**
@@ -1241,6 +1294,7 @@ export type ToolCallState =
   | ToolCallStreamingState
   | ToolCallPendingConfirmationState
   | ToolCallRunningState
+  | ToolCallAuthRequiredState
   | ToolCallPendingResultConfirmationState
   | ToolCallCompletedState
   | ToolCallCancelledState;
@@ -1250,6 +1304,12 @@ export type ToolCallState =
  * confirmation before execution ({@link ToolCallPendingConfirmationState}) and
  * result confirmation after execution
  * ({@link ToolCallPendingResultConfirmationState}).
+ *
+ * {@link ToolCallAuthRequiredState} is intentionally **not** part of this
+ * union: it doesn't block on a `chat/toolCallConfirmed`-style client
+ * decision, it blocks on the client completing an OAuth flow and calling
+ * `authenticate`. See {@link SessionToolAuthenticationRequest} for its
+ * session-level surfacing.
  *
  * Surfaced at the session level by {@link SessionToolConfirmationRequest}.
  *

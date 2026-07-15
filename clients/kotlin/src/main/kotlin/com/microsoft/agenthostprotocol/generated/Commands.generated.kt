@@ -860,14 +860,25 @@ data class AuthenticateParams(
      */
     val channel: String,
     /**
-     * The protected resource identifier. MUST match a `resource` value from
-     * `ProtectedResourceMetadata` declared in `AgentInfo.protectedResources`.
+     * The protected resource identifier. MUST match a `resource` value the
+     * server has advertised — via `ProtectedResourceMetadata` in
+     * `AgentInfo.protectedResources`, or via a live
+     * `McpServerAuthRequiredState.resource` / `ToolCallAuthRequiredState.auth.resource`.
      */
     val resource: String,
     /**
-     * Bearer token obtained from the resource's authorization server
+     * ***** obtained from the resource's authorization server
      */
-    val token: String
+    val token: String,
+    /**
+     * OAuth scopes the token grants, when known. Lets the server determine
+     * whether a specific challenge — e.g. the `requiredScopes` on a live
+     * `McpServerAuthRequiredState` or `ToolCallAuthRequiredState.auth` — is
+     * satisfied without decoding the (opaque, server-specific) token itself.
+     * Omit when the client doesn't track granted scopes separately from the
+     * token.
+     */
+    val scopes: List<String>? = null
 )
 
 @Serializable

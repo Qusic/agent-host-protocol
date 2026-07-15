@@ -53,6 +53,7 @@ private func sessionInputRequestID(_ r: SessionInputRequest) -> String? {
     case .chatInput(let x): return x.id
     case .toolConfirmation(let x): return x.id
     case .toolClientExecution(let x): return x.id
+    case .toolAuthentication(let x): return x.id
     case .unknown: return nil
     }
 }
@@ -210,8 +211,8 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
                     meta: meta,
                     invocationMessage: a.invocationMessage,
                     toolInput: a.toolInput,
-                    status: .running,
-                    confirmed: confirmed
+                    confirmed: confirmed,
+                    status: .running
                 ))
             }
             return .pendingConfirmation(ToolCallPendingConfirmationState(
@@ -248,9 +249,9 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
                     meta: meta,
                     invocationMessage: pending.invocationMessage,
                     toolInput: a.editedToolInput ?? pending.toolInput,
-                    status: .running,
                     confirmed: a.confirmed ?? .notNeeded,
-                    selectedOption: selectedOption
+                    selectedOption: selectedOption,
+                    status: .running
                 ))
             }
             return .cancelled(ToolCallCancelledState(
@@ -278,22 +279,49 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
             let invocationMessage: StringOrMarkdown
             let toolInput: String?
             let selectedOption: ConfirmationOption?
+            let preAuthContent: [ToolResultContent]?
+            let fromAuthRequired: Bool
             switch tc {
             case .running(let r):
                 confirmed = r.confirmed
                 invocationMessage = r.invocationMessage
                 toolInput = r.toolInput
                 selectedOption = r.selectedOption
+                preAuthContent = nil
+                fromAuthRequired = false
             case .pendingConfirmation(let p):
                 confirmed = .notNeeded
                 invocationMessage = p.invocationMessage
                 toolInput = p.toolInput
                 selectedOption = nil
+                preAuthContent = nil
+                fromAuthRequired = false
+            // A client MAY cancel an auth-required MCP tool call by dispatching a
+            // failed completion instead of authenticating. A successful completion
+            // is invalid here — execution never resumed after the auth challenge —
+            // and is ignored, leaving the call in auth-required. Any partial content
+            // produced before the call paused for auth is preserved unless the
+            // dispatched result supplies its own content.
+            case .authRequired(let ar):
+                if a.result.success {
+                    return tc
+                }
+                confirmed = ar.confirmed
+                invocationMessage = ar.invocationMessage
+                toolInput = ar.toolInput
+                selectedOption = ar.selectedOption
+                preAuthContent = ar.content
+                fromAuthRequired = true
             default:
                 return tc
             }
+            let content = a.result.content ?? preAuthContent
 
-            if a.requiresResultConfirmation == true {
+            // Cancelling from auth-required always completes terminally: the
+            // pending auth challenge isn't a "pending result" the client can
+            // review, so requiresResultConfirmation is ignored for this path —
+            // it must never enter pending-result-confirmation.
+            if a.requiresResultConfirmation == true && !fromAuthRequired {
                 return .pendingResultConfirmation(ToolCallPendingResultConfirmationState(
                     toolCallId: base.toolCallId,
                     toolName: base.toolName,
@@ -305,12 +333,12 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
                     toolInput: toolInput,
                     success: a.result.success,
                     pastTenseMessage: a.result.pastTenseMessage,
-                    content: a.result.content,
+                    content: content,
                     structuredContent: a.result.structuredContent,
                     error: a.result.error,
-                    status: .pendingResultConfirmation,
                     confirmed: confirmed,
-                    selectedOption: selectedOption
+                    selectedOption: selectedOption,
+                    status: .pendingResultConfirmation
                 ))
             }
             return .completed(ToolCallCompletedState(
@@ -324,12 +352,12 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
                 toolInput: toolInput,
                 success: a.result.success,
                 pastTenseMessage: a.result.pastTenseMessage,
-                content: a.result.content,
+                content: content,
                 structuredContent: a.result.structuredContent,
                 error: a.result.error,
-                status: .completed,
                 confirmed: confirmed,
-                selectedOption: selectedOption
+                selectedOption: selectedOption,
+                status: .completed
             ))
         })
 
@@ -353,9 +381,9 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
                     content: prc.content,
                     structuredContent: prc.structuredContent,
                     error: prc.error,
-                    status: .completed,
                     confirmed: prc.confirmed,
-                    selectedOption: prc.selectedOption
+                    selectedOption: prc.selectedOption,
+                    status: .completed
                 ))
             }
             return .cancelled(ToolCallCancelledState(
@@ -380,6 +408,52 @@ public func chatReducer(state: ChatState, action: StateAction) -> ChatState {
             r.content = a.content
             return .running(r)
         }
+
+    case .chatToolCallAuthRequired(let a):
+        return refreshChatSummaryStatus(updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
+            guard case .running(let running) = tc else { return tc }
+            guard let contributor = running.contributor, case .mcp = contributor else { return tc }
+
+            let base = tc.baseFields
+            let meta = a.meta ?? base.meta
+            return .authRequired(ToolCallAuthRequiredState(
+                toolCallId: base.toolCallId,
+                toolName: base.toolName,
+                displayName: base.displayName,
+                intention: base.intention,
+                contributor: contributor,
+                meta: meta,
+                invocationMessage: running.invocationMessage,
+                toolInput: running.toolInput,
+                confirmed: running.confirmed,
+                selectedOption: running.selectedOption,
+                status: .authRequired,
+                auth: a.auth,
+                content: running.content
+            ))
+        })
+
+    case .chatToolCallAuthResolved(let a):
+        return refreshChatSummaryStatus(updateToolCall(state: state, turnId: a.turnId, toolCallId: a.toolCallId) { tc in
+            guard case .authRequired(let authRequired) = tc else { return tc }
+
+            let base = tc.baseFields
+            let meta = a.meta ?? base.meta
+            return .running(ToolCallRunningState(
+                toolCallId: base.toolCallId,
+                toolName: base.toolName,
+                displayName: base.displayName,
+                intention: base.intention,
+                contributor: base.contributor,
+                meta: meta,
+                invocationMessage: authRequired.invocationMessage,
+                toolInput: authRequired.toolInput,
+                confirmed: authRequired.confirmed,
+                selectedOption: authRequired.selectedOption,
+                status: .running,
+                content: authRequired.content
+            ))
+        })
 
     case .chatUsage(let a):
         guard var activeTurn = state.activeTurn, activeTurn.id == a.turnId else {
@@ -841,7 +915,7 @@ private func chatSummaryStatus(_ state: ChatState, terminalStatus: SessionStatus
     let activity: SessionStatus
     if let terminalStatus {
         activity = terminalStatus
-    } else if state.inputRequests?.isEmpty == false || hasPendingToolCallConfirmation(state) {
+    } else if state.inputRequests?.isEmpty == false || hasBlockingToolCall(state) {
         activity = .inputNeeded
     } else if state.activeTurn != nil {
         activity = .inProgress
@@ -851,13 +925,13 @@ private func chatSummaryStatus(_ state: ChatState, terminalStatus: SessionStatus
     return state.status.subtracting(statusActivityMask).union(activity)
 }
 
-/// Returns `true` if the active turn has any tool call awaiting user confirmation.
-private func hasPendingToolCallConfirmation(_ state: ChatState) -> Bool {
+/// Returns `true` if the active turn has any tool call blocked on external input.
+private func hasBlockingToolCall(_ state: ChatState) -> Bool {
     guard let activeTurn = state.activeTurn else { return false }
     for part in activeTurn.responseParts {
         guard case .toolCall(let tcPart) = part else { continue }
         switch tcPart.toolCall {
-        case .pendingConfirmation, .pendingResultConfirmation:
+        case .pendingConfirmation, .authRequired, .pendingResultConfirmation:
             return true
         default:
             continue
@@ -924,6 +998,9 @@ private func endTurn(
             case .running(let r):
                 invocationMessage = r.invocationMessage
                 toolInput = r.toolInput
+            case .authRequired(let a):
+                invocationMessage = a.invocationMessage
+                toolInput = a.toolInput
             case .pendingResultConfirmation(let r):
                 invocationMessage = r.invocationMessage
                 toolInput = r.toolInput
