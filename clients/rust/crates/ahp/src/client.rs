@@ -527,6 +527,28 @@ impl Client {
         self.request("reconnect", params).await
     }
 
+    /// Protocol-level liveness `ping`.
+    ///
+    /// Verifies the connection is still alive and keeps it from being closed
+    /// by idle-timeout intermediaries (proxies, load balancers, etc.). `ping`
+    /// is a connection-level command scoped to the root channel and carries no
+    /// payload in either direction — the response itself is the signal. The
+    /// server responds regardless of whether `initialize` has completed or any
+    /// subscriptions are held.
+    pub async fn ping(&self) -> Result<(), ClientError> {
+        #[derive(Serialize)]
+        struct PingParams {
+            channel: &'static str,
+        }
+        self.request(
+            "ping",
+            PingParams {
+                channel: ROOT_RESOURCE_URI,
+            },
+        )
+        .await
+    }
+
     /// Subscribe to a URI and obtain a handle that streams
     /// [`SubscriptionEvent`]s for that channel.
     pub async fn subscribe(

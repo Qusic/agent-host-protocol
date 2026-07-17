@@ -1,0 +1,5 @@
+{
+  "type": "added",
+  "message": "`AHPClient.ping()` for protocol-level connection liveness and an `AHPCommands.ping(id:)` request factory, mirroring the TypeScript client's `AhpClient.ping()`.",
+  "targets": ["swift"]
+}

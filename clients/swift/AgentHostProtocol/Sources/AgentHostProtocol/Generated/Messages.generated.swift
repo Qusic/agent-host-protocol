@@ -72,6 +72,12 @@ public enum AHPCommands {
         JsonRpcRequest(id: id, method: "initialize", params: params)
     }
 
+    // `ping` carries no payload beyond the root channel discriminant, so there is
+    // no dedicated `PingParams` type. The helper hardcodes the channel object.
+    public static func ping(id: Int) -> JsonRpcRequest<[String: String]> {
+        JsonRpcRequest(id: id, method: "ping", params: ["channel": "ahp-root://"])
+    }
+
     public static func reconnect(id: Int, params: ReconnectParams) -> JsonRpcRequest<ReconnectParams> {
         JsonRpcRequest(id: id, method: "reconnect", params: params)
     }

@@ -1778,6 +1778,11 @@ object AhpCommands {
     fun initialize(id: Long, params: InitializeParams): JsonRpcRequest<InitializeParams> =
         JsonRpcRequest(id = id, method = "initialize", params = params)
 
+    // \`ping\` carries no payload beyond the root channel discriminant, so there is
+    // no dedicated \`PingParams\` type. The helper hardcodes the channel object.
+    fun ping(id: Long): JsonRpcRequest<JsonObject> =
+        JsonRpcRequest(id = id, method = "ping", params = JsonObject(mapOf("channel" to JsonPrimitive("ahp-root://"))))
+
     fun reconnect(id: Long, params: ReconnectParams): JsonRpcRequest<ReconnectParams> =
         JsonRpcRequest(id = id, method = "reconnect", params = params)
 
@@ -1906,8 +1911,8 @@ function checkExhaustiveness(project: Project): void {
     // PingParams shape is `interface PingParams extends BaseParams { channel: 'ahp-root://' }`
     // (i.e. a `BaseParams` with `channel` narrowed to a string literal). We don't
     // emit a dedicated data class because the only useful payload is the
-    // hard-coded channel value and a typed `AhpCommands.ping(...)` helper can
-    // construct the request without forcing consumers through a wrapper.
+    // hard-coded channel value; the typed `AhpCommands.ping(...)` helper
+    // constructs the request without forcing consumers through a wrapper.
     // Matches the Swift generator's handling.
     'PingParams',
     'ActionType',                   // emitted directly by generateActionsFile(), not via STATE_ENUMS

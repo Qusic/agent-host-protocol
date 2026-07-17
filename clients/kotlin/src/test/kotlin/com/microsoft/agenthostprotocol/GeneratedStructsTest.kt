@@ -1,16 +1,20 @@
 package com.microsoft.agenthostprotocol
 
 import com.microsoft.agenthostprotocol.generated.AgentInfo
+import com.microsoft.agenthostprotocol.generated.AhpCommands
 import com.microsoft.agenthostprotocol.generated.AuthRequiredParams
+import com.microsoft.agenthostprotocol.generated.JsonRpcRequest
 import com.microsoft.agenthostprotocol.generated.PolicyState
 import com.microsoft.agenthostprotocol.generated.ProtectedResourceMetadata
 import com.microsoft.agenthostprotocol.generated.SessionAddedParams
 import com.microsoft.agenthostprotocol.generated.SessionModelInfo
 import com.microsoft.agenthostprotocol.generated.SessionStatus
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -171,5 +175,20 @@ class GeneratedStructsTest {
         val auth = json.decodeFromString(AuthRequiredParams.serializer(), authWire)
         assertEquals("ahp-root://", auth.channel)
         assertEquals("https://api.github.com", auth.resource)
+    }
+
+    @Test
+    fun `AhpCommands ping builds a root-scoped ping request`() {
+        // `ping` has no dedicated params type; the factory hardcodes the root
+        // channel object. Verify the emitted request shape matches the wire.
+        val request = AhpCommands.ping(7L)
+        assertEquals("ping", request.method)
+
+        val encoded = json.encodeToString(JsonRpcRequest.serializer(JsonObject.serializer()), request)
+        val obj = json.parseToJsonElement(encoded).jsonObject
+        assertEquals("2.0", obj["jsonrpc"]?.jsonPrimitive?.content)
+        assertEquals(7L, obj["id"]?.jsonPrimitive?.long)
+        assertEquals("ping", obj["method"]?.jsonPrimitive?.content)
+        assertEquals("ahp-root://", obj["params"]?.jsonObject?.get("channel")?.jsonPrimitive?.content)
     }
 }

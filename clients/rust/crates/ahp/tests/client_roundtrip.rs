@@ -204,6 +204,40 @@ async fn resource_read_send_wrapper_targets_root_channel() {
 }
 
 #[tokio::test]
+async fn ping_targets_root_channel_and_resolves_on_null_result() {
+    let (client_side, mut server_side) = pair();
+    let client = Client::connect(client_side, ClientConfig::default())
+        .await
+        .expect("connect");
+
+    let server = tokio::spawn(async move {
+        let msg = server_side.recv().await.unwrap().unwrap();
+        let JsonRpcMessage::Request(req) = msg.into_parsed().unwrap() else {
+            panic!("expected Request")
+        };
+        assert_eq!(req.method, "ping");
+        // `ping` is a connection-level command scoped to the root channel.
+        assert_eq!(req.params.unwrap()["channel"], "ahp-root://");
+
+        // The server responds with a `null` result — the response is the signal.
+        let resp = JsonRpcMessage::SuccessResponse(JsonRpcSuccessResponse {
+            jsonrpc: JsonRpcVersion::V2,
+            id: req.id,
+            result: ahp_types::common::AnyValue::from(serde_json::Value::Null),
+        });
+        server_side
+            .send(TransportMessage::encode(&resp).unwrap())
+            .await
+            .unwrap();
+    });
+
+    client.ping().await.expect("ping");
+
+    client.shutdown().await;
+    server.await.unwrap();
+}
+
+#[tokio::test]
 async fn inbound_resource_request_routes_to_typed_handler() {
     use ahp::ResourceRequestHandlers;
     use ahp_types::commands::{ContentEncoding, ResourceReadResult};
