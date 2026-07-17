@@ -86,6 +86,11 @@ object AhpCommands {
     fun initialize(id: Long, params: InitializeParams): JsonRpcRequest<InitializeParams> =
         JsonRpcRequest(id = id, method = "initialize", params = params)
 
+    // `ping` carries no payload beyond the root channel discriminant, so there is
+    // no dedicated `PingParams` type. The helper hardcodes the channel object.
+    fun ping(id: Long): JsonRpcRequest<JsonObject> =
+        JsonRpcRequest(id = id, method = "ping", params = JsonObject(mapOf("channel" to JsonPrimitive("ahp-root://"))))
+
     fun reconnect(id: Long, params: ReconnectParams): JsonRpcRequest<ReconnectParams> =
         JsonRpcRequest(id = id, method = "reconnect", params = params)
 

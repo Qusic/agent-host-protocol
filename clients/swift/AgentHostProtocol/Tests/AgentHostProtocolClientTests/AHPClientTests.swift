@@ -37,6 +37,34 @@ final class AHPClientTests: XCTestCase {
         await client.shutdown()
     }
 
+    // MARK: - ping
+
+    func testPingTargetsRootChannelAndResolvesOnNullResult() async throws {
+        let (clientSide, serverSide) = InMemoryTransport.pair()
+        let client = AHPClient(transport: clientSide)
+        try await client.connect()
+
+        // Server task: answer a single `ping` with a null result.
+        let serverTask = Task {
+            let request = try await readRequest(from: serverSide, expectedMethod: "ping")
+            // `ping` is a connection-level command scoped to the root channel.
+            let params = try XCTUnwrap(request.params)
+            let paramsData = try JSONEncoder().encode(params)
+            let obj = try JSONSerialization.jsonObject(with: paramsData) as? [String: Any]
+            XCTAssertEqual(obj?["channel"] as? String, RootResourceURI)
+
+            // The response itself is the signal; `ping` carries a null result.
+            let dict: [String: Any] = ["jsonrpc": "2.0", "id": request.id, "result": NSNull()]
+            let wireBytes = try JSONSerialization.data(withJSONObject: dict)
+            try await serverSide.send(.text(String(data: wireBytes, encoding: .utf8)!))
+        }
+
+        try await client.ping()
+
+        try await serverTask.value
+        await client.shutdown()
+    }
+
     // MARK: - subscribe_streams_actions
 
     func testSubscribeStreamsActions() async throws {

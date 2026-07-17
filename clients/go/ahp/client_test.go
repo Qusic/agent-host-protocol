@@ -123,6 +123,71 @@ func TestClientRequestRoundTrip(t *testing.T) {
 	}
 }
 
+// TestPingTargetsRootChannel drives a fake server that answers a single
+// `ping` request with a null result and verifies the request shape.
+func TestPingTargetsRootChannel(t *testing.T) {
+	clientSide, serverSide := newMemTransportPair()
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		msg, err := serverSide.Recv(ctx)
+		if err != nil {
+			t.Errorf("server recv: %v", err)
+			return
+		}
+		parsed, err := msg.IntoParsed()
+		if err != nil {
+			t.Errorf("server parse: %v", err)
+			return
+		}
+		if parsed.Request == nil {
+			t.Errorf("expected request, got %+v", parsed)
+			return
+		}
+		if parsed.Request.Method != "ping" {
+			t.Errorf("method = %q, want %q", parsed.Request.Method, "ping")
+		}
+		var params struct {
+			Channel string `json:"channel"`
+		}
+		if err := json.Unmarshal(parsed.Request.Params, &params); err != nil {
+			t.Errorf("server decode params: %v", err)
+			return
+		}
+		if params.Channel != string(ahptypes.RootResourceURI) {
+			t.Errorf("channel = %q, want %q", params.Channel, ahptypes.RootResourceURI)
+		}
+		// The server responds with a null result — the response is the signal.
+		resp := ahptypes.JsonRpcMessage{SuccessResponse: &ahptypes.JsonRpcSuccessResponse{
+			JsonRpc: ahptypes.JsonRpcV2,
+			ID:      parsed.Request.ID,
+			Result:  json.RawMessage("null"),
+		}}
+		out, err := EncodeMessage(resp)
+		if err != nil {
+			t.Errorf("server encode: %v", err)
+			return
+		}
+		if err := serverSide.Send(ctx, out); err != nil {
+			t.Errorf("server send: %v", err)
+			return
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	client, err := Connect(ctx, clientSide, DefaultConfig())
+	if err != nil {
+		t.Fatalf("Connect: %v", err)
+	}
+	defer client.Shutdown(context.Background())
+
+	if err := client.Ping(ctx); err != nil {
+		t.Fatalf("Ping: %v", err)
+	}
+}
+
 func TestResourceReadSendWrapperTargetsRootChannel(t *testing.T) {
 	clientSide, serverSide := newMemTransportPair()
 	serverErr := make(chan error, 1)

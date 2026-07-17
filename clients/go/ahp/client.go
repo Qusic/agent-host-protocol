@@ -793,6 +793,19 @@ func (c *Client) Reconnect(ctx context.Context, clientID string, lastSeenServerS
 	return &out, nil
 }
 
+// Ping sends a protocol-level `ping` request to verify the connection is
+// still alive and keep it from being closed by idle-timeout intermediaries
+// (proxies, load balancers, etc.). It is a connection-level command scoped to
+// the root channel and carries no payload in either direction — the response
+// itself is the signal. The server responds regardless of whether Initialize
+// has completed or any subscriptions are held.
+func (c *Client) Ping(ctx context.Context) error {
+	params := struct {
+		Channel ahptypes.URI `json:"channel"`
+	}{Channel: ahptypes.RootResourceURI}
+	return c.Request(ctx, "ping", params, nil)
+}
+
 // Subscribe sends a `subscribe` request and returns the initial snapshot
 // together with a per-URI [Subscription] handle.
 func (c *Client) Subscribe(ctx context.Context, uri string) (*ahptypes.SubscribeResult, *Subscription, error) {

@@ -1691,6 +1691,12 @@ public enum AHPCommands {
         JsonRpcRequest(id: id, method: "initialize", params: params)
     }
 
+    // \`ping\` carries no payload beyond the root channel discriminant, so there is
+    // no dedicated \`PingParams\` type. The helper hardcodes the channel object.
+    public static func ping(id: Int) -> JsonRpcRequest<[String: String]> {
+        JsonRpcRequest(id: id, method: "ping", params: ["channel": "ahp-root://"])
+    }
+
     public static func reconnect(id: Int, params: ReconnectParams) -> JsonRpcRequest<ReconnectParams> {
         JsonRpcRequest(id: id, method: "reconnect", params: params)
     }
@@ -1941,7 +1947,7 @@ function checkExhaustiveness(project: Project): void {
     'SessionToolCallApprovedAction', // merged into SessionToolCallConfirmedAction
     'SessionToolCallDeniedAction',   // merged into SessionToolCallConfirmedAction
     'SessionToolCallConfirmedAction', // emitted as merged variant
-    'PingParams',                    // empty interface; no Swift type emitted
+    'PingParams',                    // empty interface; no Swift type emitted (AHPCommands.ping hardcodes the channel)
     'TerminalClaim',                // TERMINAL_CLAIM_UNION discriminated union
     'TerminalContentPart',           // TERMINAL_CONTENT_PART_UNION discriminated union
     'ChatInputQuestion',         // SESSION_INPUT_QUESTION_UNION discriminated union

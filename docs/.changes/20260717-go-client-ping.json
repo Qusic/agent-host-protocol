@@ -1,0 +1,5 @@
+{
+  "type": "added",
+  "message": "`Client.Ping()` for protocol-level connection liveness, mirroring the TypeScript client's `AhpClient.ping()`.",
+  "targets": ["go"]
+}

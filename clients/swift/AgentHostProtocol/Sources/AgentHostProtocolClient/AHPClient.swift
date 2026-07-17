@@ -305,6 +305,23 @@ public actor AHPClient {
         return result
     }
 
+    /// Protocol-level liveness `ping`.
+    ///
+    /// Verifies the connection is still alive and keeps it from being closed
+    /// by idle-timeout intermediaries (proxies, load balancers, etc.). `ping`
+    /// is a connection-level command scoped to the root channel and carries no
+    /// payload in either direction — the response itself is the signal. The
+    /// server responds regardless of whether `initialize` has completed or any
+    /// subscriptions are held.
+    ///
+    /// This is the protocol-level ping (usable over any transport); it is
+    /// distinct from transport-level WebSocket ping frames exposed via
+    /// ``AHPKeepAliveTransport``.
+    public func ping() async throws {
+        let paramsData = try encoder.encode([ "channel": RootResourceURI ])
+        _ = try await requestRaw(method: "ping", paramsData: paramsData)
+    }
+
     /// Subscribe to a channel URI. Returns the subscribe result (whose
     /// `snapshot` is `nil` for stateless channels) and a fresh stream of
     /// subsequent events.
