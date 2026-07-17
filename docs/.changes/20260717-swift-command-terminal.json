@@ -1,0 +1,6 @@
+{
+  "type": "added",
+  "message": "`AHPCommands.createTerminal(id:params:)` and `AHPCommands.disposeTerminal(id:params:)` request factories, so the generated `CreateTerminalParams` / `DisposeTerminalParams` are reachable through the typed command surface for parity with `createSession` / `disposeSession`.",
+  "targets": ["swift"],
+  "issues": [341]
+}
