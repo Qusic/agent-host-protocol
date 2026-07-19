@@ -14,6 +14,4 @@ public let PROTOCOL_VERSION: String = "0.6.0"
 /// protocol versions if the host doesn't accept the newest one.
 public let SUPPORTED_PROTOCOL_VERSIONS: [String] = [
     "0.6.0",
-    "0.5.2",
-    "0.5.1",
 ]
