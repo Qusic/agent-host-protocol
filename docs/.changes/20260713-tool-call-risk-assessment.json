@@ -1,4 +1,0 @@
-{
-  "type": "added",
-  "message": "Asynchronous tool-call risk assessments with a model-provided explanation and normalized safety score."
-}

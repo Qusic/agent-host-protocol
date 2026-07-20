@@ -1,5 +1,0 @@
-{
-  "type": "added",
-  "message": "`AhpCommands.ping(id)` request factory for protocol-level connection liveness, mirroring the TypeScript client's `AhpClient.ping()`.",
-  "targets": ["kotlin"]
-}
